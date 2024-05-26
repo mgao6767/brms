@@ -6,7 +6,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
   ui->setupUi(this);
 
-  this->yieldCurveWindow = new YieldCurveWindow();
+  m_yieldCurveWindow = new YieldCurveWindow();
 
   connect(ui->actionAbout_Qt, &QAction::triggered, this,
           [&]() { QMessageBox::aboutQt(this, "About Qt"); });
@@ -14,10 +14,10 @@ MainWindow::MainWindow(QWidget *parent)
           &MainWindow::showYieldCurve);
 }
 
-MainWindow::~MainWindow() { delete ui; }
+MainWindow::~MainWindow() { delete ui; delete m_yieldCurveWindow; }
 
 void MainWindow::showYieldCurve() {
-  yieldCurveWindow->show();
-  yieldCurveWindow->raise();
-  yieldCurveWindow->setWindowState(Qt::WindowState::WindowActive);
+  m_yieldCurveWindow->show();
+  m_yieldCurveWindow->raise();
+  m_yieldCurveWindow->setWindowState(Qt::WindowState::WindowActive);
 }

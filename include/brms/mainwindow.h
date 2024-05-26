@@ -20,6 +20,6 @@ public:
 
 private:
   Ui::MainWindow *ui;
-  YieldCurveWindow *yieldCurveWindow;
+  YieldCurveWindow *m_yieldCurveWindow;
 };
 #endif // MAINWINDOW_H
