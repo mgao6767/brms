@@ -171,11 +171,12 @@ QVariant YieldCurveDataModel::headerData(int section,
 
 QVariant YieldCurveDataModel::data(const QModelIndex &index, int role) const {
   if ((role == Qt::DisplayRole) | (role == Qt::EditRole)) {
-    if (index.row() % 2 == 1) {
-      auto rate = m_yields[index.row()].at(index.column());
+    auto row = index.row();
+    if (row % 2 == 1) {
+      auto rate = m_yields[row / 2].at(index.column());
       return QString::number(rate, 'f', 2);
     } else {
-      auto date = m_matureDates[index.row()].at(index.column());
+      auto date = m_matureDates[row / 2].at(index.column());
       return date;
     }
   }
