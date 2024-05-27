@@ -59,6 +59,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${EXTERNAL_LIB}
         include/brms/yieldcurvewindow.h src/yieldcurvewindow.cpp src/yieldcurvewindow.ui
         include/brms/yieldcurvedatamodel.h src/yieldcurvedatamodel.cpp
+        include/brms/treeitem.h src/treeitem.cpp
+        include/brms/treemodel.h src/treemodel.cpp
     )
 endif()
 

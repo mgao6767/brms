@@ -1,4 +1,5 @@
 #include "brms/mainwindow.h"
+#include "brms/treemodel.h"
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
@@ -8,7 +9,8 @@ MainWindow::MainWindow(QWidget *parent)
   ui->setupUi(this);
 
   m_yieldCurveWindow = new YieldCurveWindow();
-  m_yieldCurveWindow->importYieldCurveData("/Users/adriangao/Code/brms/out.csv");
+  m_yieldCurveWindow->importYieldCurveData(
+      "/Users/adriangao/Code/brms/out.csv");
 
   connect(ui->actionAbout_Qt, &QAction::triggered, this,
           [&]() { QMessageBox::aboutQt(this, "About Qt"); });
@@ -17,6 +19,14 @@ MainWindow::MainWindow(QWidget *parent)
   connect(ui->actionImport_yield_curve_data, &QAction::triggered, this,
           &MainWindow::importYieldCurveData);
 
+  // placeholder
+  TreeModel *treeModel = new TreeModel();
+  QTreeView *view = ui->treeView;
+  view->setModel(treeModel);
+  view->expandAll();
+  for (int c = 0; c < treeModel->columnCount(); ++c) {
+    view->resizeColumnToContents(c);
+  }
 }
 
 MainWindow::~MainWindow() { delete ui; }
