@@ -20,13 +20,13 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const;
 
   std::vector<double> yields(const QDate &date);
+  void loadYieldsData(QString filePath);
 
 private:
-  QList<QList<qreal> *> m_data;
+  std::vector<std::vector<qreal>> m_data;
   QMultiHash<QString, QRect> m_mapping;
   int m_columnCount;
   int m_rowCount;
-  void loadYieldsData();
   // to store yields date and data
   std::vector<QDate> m_dates;
   std::vector<std::vector<double>> m_yields;

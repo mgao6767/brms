@@ -36,6 +36,8 @@ class YieldCurveWindow : public QWidget {
 public:
   explicit YieldCurveWindow(QWidget *parent = nullptr);
   ~YieldCurveWindow();
+  void importYieldCurveData(QString filePath);
+
 
 private:
   Ui::YieldCurveWindow *ui;

@@ -9,6 +9,15 @@
 
 using namespace QuantLib;
 
+void YieldCurveWindow::importYieldCurveData(QString filePath){
+    qDebug() << filePath;
+    m_model->loadYieldsData(filePath);
+    // hide all even rows, which store the maturity dates for plotting purpose
+    for (int i = 0; i < m_model->rowCount(); i += 2)
+        ui->tableView->hideRow(i);
+    m_model->test();
+}
+
 YieldCurveWindow::YieldCurveWindow(QWidget *parent)
     : QWidget(parent), ui(new Ui::YieldCurveWindow) {
 
@@ -106,11 +115,11 @@ void YieldCurveWindow::changeYieldCurvePlot() {
   maxDateTime.setDate(date.addYears(30)); // max is 30yr
   m_axisX->setRange(minDateTime, maxDateTime);
   // update y axis?
-  qreal maxY = -100;
-  for (auto &p : m_series->points()) {
-    maxY = maxY < p.y() ? p.y() : maxY;
-  }
-  m_axisY->setRange(0, maxY + 1);
+  // qreal maxY = -100;
+  // for (auto &p : m_series->points()) {
+  //   maxY = maxY < p.y() ? p.y() : maxY;
+  // }
+  // m_axisY->setRange(0, maxY + 1);
   interpolateYieldCurve();
 }
 
@@ -236,6 +245,8 @@ void YieldCurveWindow::interpolateYieldCurve() {
   for (int d = 0; d < 30 * 12; ++d) {
     auto date = settlementDate + d * Months;
     // effective annual rate
+    if (date > m_yieldCurve->maxDate())
+      continue;
     auto r = m_yieldCurve->zeroRate(date, m_termStructureDayCounter, Compounded,
                                     Annual);
     // qDebug() << d << date.year() << date.month() << date.dayOfMonth() << r;

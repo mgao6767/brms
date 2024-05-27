@@ -17,6 +17,7 @@ public:
   MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
   void showYieldCurve();
+  void importYieldCurveData();
 
 private:
   Ui::MainWindow *ui;
