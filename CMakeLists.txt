@@ -82,6 +82,18 @@ set_target_properties(brms PROPERTIES
 target_link_libraries(brms PRIVATE QuantLib ${Boost_LIBRARIES} Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Charts)
 target_include_directories(brms PRIVATE "${CMAKE_CURRENT_LIST_DIR}/include")
 
+# Resources:
+set(brms_resource_files
+    "resources/par_yields.csv"
+)
+
+qt_add_resources(brms "brms"
+    PREFIX
+        "/"
+    FILES
+        ${brms_resource_files}
+)
+
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(brms)
 endif()

@@ -9,8 +9,7 @@ MainWindow::MainWindow(QWidget *parent)
   ui->setupUi(this);
 
   m_yieldCurveWindow = new YieldCurveWindow();
-  m_yieldCurveWindow->importYieldCurveData(
-      "/Users/adriangao/Code/brms/out.csv");
+  m_yieldCurveWindow->importYieldCurveData(":/resources/par_yields.csv");
 
   connect(ui->actionAbout_Qt, &QAction::triggered, this,
           [&]() { QMessageBox::aboutQt(this, "About Qt"); });
