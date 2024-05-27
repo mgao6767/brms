@@ -9,13 +9,13 @@
 
 using namespace QuantLib;
 
-void YieldCurveWindow::importYieldCurveData(QString filePath){
-    qDebug() << filePath;
-    m_model->loadYieldsData(filePath);
-    // hide all even rows, which store the maturity dates for plotting purpose
-    for (int i = 0; i < m_model->rowCount(); i += 2)
-        ui->tableView->hideRow(i);
-    ui->tableView->selectRow(1);
+void YieldCurveWindow::importYieldCurveData(QString filePath) {
+  qDebug() << filePath;
+  m_model->loadYieldsData(filePath);
+  // hide all even rows, which store the maturity dates for plotting purpose
+  for (int i = 0; i < m_model->rowCount(); i += 2)
+    ui->tableView->hideRow(i);
+  ui->tableView->selectRow(1);
 }
 
 YieldCurveWindow::YieldCurveWindow(QWidget *parent)
@@ -39,6 +39,7 @@ YieldCurveWindow::YieldCurveWindow(QWidget *parent)
   ui->tableView->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
   ui->tableView->setSelectionMode(QAbstractItemView::SingleSelection);
   ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+  ui->tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
   // hide all even rows, which store the maturity dates for plotting purpose
   for (int i = 0; i < m_model->rowCount(); i += 2)

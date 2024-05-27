@@ -10,6 +10,54 @@
 
 bool readCSVRow(QTextStream &in, QStringList *row);
 
+inline QDateTime matureDateTime(int k, QDate date) {
+  QDate maturityDate;
+  QDateTime maturityDateTime;
+  switch (k + 1) {
+  case 1:
+    maturityDate = date.addMonths(1);
+    break;
+  case 2:
+    maturityDate = date.addMonths(2);
+    break;
+  case 3:
+    maturityDate = date.addMonths(3);
+    break;
+  case 4:
+    maturityDate = date.addMonths(4);
+    break;
+  case 5:
+    maturityDate = date.addMonths(6);
+    break;
+  case 6:
+    maturityDate = date.addYears(1);
+    break;
+  case 7:
+    maturityDate = date.addYears(2);
+    break;
+  case 8:
+    maturityDate = date.addYears(3);
+    break;
+  case 9:
+    maturityDate = date.addYears(5);
+    break;
+  case 10:
+    maturityDate = date.addYears(7);
+    break;
+  case 11:
+    maturityDate = date.addYears(10);
+    break;
+  case 12:
+    maturityDate = date.addYears(20);
+    break;
+  case 13:
+    maturityDate = date.addYears(30);
+    break;
+  }
+  maturityDateTime.setDate(maturityDate);
+  return maturityDateTime;
+}
+
 void YieldCurveDataModel::loadYieldsData(QString filePath) {
 
   QFile csv(filePath);
@@ -24,7 +72,6 @@ void YieldCurveDataModel::loadYieldsData(QString filePath) {
   m_columnCount = 13;
   m_dates.clear();
   m_yields.clear();
-  m_data.clear();
 
   while (readCSVRow(in, &row)) {
     // skip header row
@@ -36,98 +83,24 @@ void YieldCurveDataModel::loadYieldsData(QString filePath) {
     QDate date = QDate::fromString(row[0], "yyyy-MM-dd");
     m_dates.push_back(date);
     row.pop_front();
-    std::vector<double> dailyYields;
-    dailyYields.reserve(m_columnCount);
-    for (auto &r : row) {
-      auto rate = r.toDouble();
-      dailyYields.push_back(rate);
+    std::vector<double> dailyYields(m_columnCount, 0.0),
+        matureDates(m_columnCount, 0.0);
+    for (int i = 0; i < row.size(); ++i) {
+      dailyYields[i] = row[i].toDouble();
+      matureDates[i] = matureDateTime(i, date).toMSecsSinceEpoch();
     }
     m_yields.push_back(dailyYields);
+    m_matureDates.push_back(matureDates);
     m_rowCount++;
   }
 
   m_rowCount = (m_rowCount - 1) * 2; // to store hidden rows of mature dates
 
-  // m_data repeats:
-  // row of mature dates
-  // row of corresponding par yield
-  for (int i = 0; i < m_rowCount / 2; i++) {
-    auto date = m_dates[i];
-
-    // hidden dates = date + maturity
-    // auto maturityDatesList = QList<qreal>(m_columnCount);
-    auto maturityDatesList = std::vector<qreal>(13, 0.0);
-    for (int k = 0; k < m_columnCount; k++) {
-      QDate maturityDate;
-      QDateTime maturityDateTime;
-      switch (k + 1) {
-      case 1:
-        maturityDate = date.addMonths(1);
-        break;
-      case 2:
-        maturityDate = date.addMonths(2);
-        break;
-      case 3:
-        maturityDate = date.addMonths(3);
-        break;
-      case 4:
-        maturityDate = date.addMonths(4);
-        break;
-      case 5:
-        maturityDate = date.addMonths(6);
-        break;
-      case 6:
-        maturityDate = date.addYears(1);
-        break;
-      case 7:
-        maturityDate = date.addYears(2);
-        break;
-      case 8:
-        maturityDate = date.addYears(3);
-        break;
-      case 9:
-        maturityDate = date.addYears(5);
-        break;
-      case 10:
-        maturityDate = date.addYears(7);
-        break;
-      case 11:
-        maturityDate = date.addYears(10);
-        break;
-      case 12:
-        maturityDate = date.addYears(20);
-        break;
-      case 13:
-        maturityDate = date.addYears(30);
-        break;
-      }
-      maturityDateTime.setDate(maturityDate);
-      maturityDatesList[k] =maturityDateTime.toMSecsSinceEpoch();
-    }
-    m_data.push_back(maturityDatesList);
-
-    // yield data
-    // auto dataList = QList<qreal>(m_columnCount);
-    auto dataList = std::vector<qreal>(13, 0.0);
-    for (int k = 0; k < m_columnCount; k++) {
-      // dataList.replace(k, m_yields[i][k]);
-        dataList[k]=m_yields[i][k];
-    }
-
-    m_data.push_back(dataList);
-  }
-
   endResetModel();
-  // beginInsertRows(QModelIndex(), 0, m_rowCount-1);
-  // endInsertRows();
-  // beginInsertColumns(QModelIndex(), 0, m_columnCount-1);
-  // endInsertColumns();
 }
 
 YieldCurveDataModel::YieldCurveDataModel(QObject *parent)
-    : QAbstractTableModel{parent} {
-
-}
+    : QAbstractTableModel{parent} {}
 
 int YieldCurveDataModel::rowCount(const QModelIndex &parent) const {
   Q_UNUSED(parent);
@@ -198,25 +171,18 @@ QVariant YieldCurveDataModel::headerData(int section,
 
 QVariant YieldCurveDataModel::data(const QModelIndex &index, int role) const {
   if ((role == Qt::DisplayRole) | (role == Qt::EditRole)) {
-        auto rate = m_data[index.row()].at(index.column());
-    return QString::number(rate, 'f', 2);
+    if (index.row() % 2 == 1) {
+      auto rate = m_yields[index.row()].at(index.column());
+      return QString::number(rate, 'f', 2);
+    } else {
+      auto date = m_matureDates[index.row()].at(index.column());
+      return date;
+    }
   }
   if (role == Qt::TextAlignmentRole) {
     return int(Qt::AlignRight | Qt::AlignVCenter);
   }
   return QVariant();
-}
-
-bool YieldCurveDataModel::setData(const QModelIndex &index,
-                                  const QVariant &value, int role) {
-  if (index.isValid() && role == Qt::EditRole) {
-    // m_data[index.row()].replace(index.column(), value.toDouble());
-      m_data[index.row()].at(index.column()) = value.toDouble();
-
-    emit dataChanged(index, index);
-    return true;
-  }
-  return false;
 }
 
 Qt::ItemFlags YieldCurveDataModel::flags(const QModelIndex &index) const {

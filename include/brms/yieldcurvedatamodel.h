@@ -15,21 +15,19 @@ public:
   QVariant headerData(int section, Qt::Orientation orientation,
                       int role = Qt::DisplayRole) const;
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
-  bool setData(const QModelIndex &index, const QVariant &value,
-               int role = Qt::EditRole);
   Qt::ItemFlags flags(const QModelIndex &index) const;
 
   std::vector<double> yields(const QDate &date);
   void loadYieldsData(QString filePath);
 
 private:
-  std::vector<std::vector<qreal>> m_data;
   QMultiHash<QString, QRect> m_mapping;
   int m_columnCount;
   int m_rowCount;
   // to store yields date and data
   std::vector<QDate> m_dates;
   std::vector<std::vector<double>> m_yields;
+  std::vector<std::vector<double>> m_matureDates;
 };
 
 #endif // YIELDCURVEDATAMODEL_H
