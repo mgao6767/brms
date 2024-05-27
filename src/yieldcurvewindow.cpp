@@ -15,7 +15,7 @@ void YieldCurveWindow::importYieldCurveData(QString filePath){
     // hide all even rows, which store the maturity dates for plotting purpose
     for (int i = 0; i < m_model->rowCount(); i += 2)
         ui->tableView->hideRow(i);
-    m_model->test();
+    ui->tableView->selectRow(1);
 }
 
 YieldCurveWindow::YieldCurveWindow(QWidget *parent)
