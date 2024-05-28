@@ -71,6 +71,12 @@
          <property name="icon">
           <iconset theme="go-next"/>
          </property>
+         <property name="shortcut">
+          <string>Return</string>
+         </property>
+         <property name="default">
+          <bool>true</bool>
+         </property>
          <property name="flat">
           <bool>false</bool>
          </property>
