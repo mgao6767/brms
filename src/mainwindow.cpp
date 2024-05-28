@@ -10,11 +10,11 @@ MainWindow::MainWindow(QWidget *parent)
 
   m_yieldCurveWindow = new YieldCurveWindow();
   m_yieldCurveWindow->importYieldCurveData(":/resources/par_yields.csv");
+
+  // by default, simulation starts from the first day
   m_todayInSimulation = m_yieldCurveWindow->dates()[0];
-  ui->dateInSimulationLabel->setText(
-      QString("Today's date in simualtion: %1")
-          .arg(m_todayInSimulation.toString("MMM dd, yyyy")));
-  qDebug() << "Initial date of simulation" << m_todayInSimulation;
+  setTodaysDateLabel();
+
   // setup the bank
   m_bank = new Bank();
   m_bank->setBondPricingEngine(m_yieldCurveWindow->bondEngine());
@@ -57,21 +57,21 @@ MainWindow::~MainWindow() {
 
 void MainWindow::advanceToNextPeriodInSimulation() {
   auto dates = m_yieldCurveWindow->dates();
-  for (int index = 0; index < dates.size() - 1; ++index) {
-    if (m_todayInSimulation == dates[index]) {
-      m_todayInSimulation = dates[index + 1];
-      qDebug() << "Today in simulation" << m_todayInSimulation;
-      m_yieldCurveWindow->advanceToDate(m_todayInSimulation);
-      ui->dateInSimulationLabel->setText(
-          QString("Today's date in simualtion: %1")
-              .arg(m_todayInSimulation.toString("MMM dd, yyyy")));
-
-      emit simulationDateChanged();
-      break;
-    }
-  }
+  auto it = std::find(dates.begin(), dates.end(), m_todayInSimulation);
   // simulation should end
-  return;
+  if (it == dates.end())
+    return;
+  // advance to next date
+  m_todayInSimulation = dates[std::distance(dates.begin(), it) + 1];
+  m_yieldCurveWindow->advanceToDate(m_todayInSimulation);
+  setTodaysDateLabel();
+  emit simulationDateChanged();
+}
+
+void MainWindow::setTodaysDateLabel() {
+  ui->dateInSimulationLabel->setText(
+      QString("Today's date in simulation: %1")
+          .arg(m_todayInSimulation.toString("MMM dd, yyyy")));
 }
 
 void MainWindow::showYieldCurve() {
