@@ -10,6 +10,16 @@ MainWindow::MainWindow(QWidget *parent)
 
   m_yieldCurveWindow = new YieldCurveWindow();
   m_yieldCurveWindow->importYieldCurveData(":/resources/par_yields.csv");
+  m_todayInSimulation = m_yieldCurveWindow->dates()[0];
+  ui->dateInSimulationLabel->setText(
+      QString("Today's date in simualtion: %1")
+          .arg(m_todayInSimulation.toString("MMM dd, yyyy")));
+  qDebug() << "Initial date of simulation" << m_todayInSimulation;
+  // setup the bank
+  m_bank = new Bank();
+  m_bank->setBondPricingEngine(m_yieldCurveWindow->bondEngine());
+  m_bank->init(m_todayInSimulation); // init with fake data
+  m_bank->m_assets->update();        // TODO
 
   connect(ui->actionAbout_Qt, &QAction::triggered, this,
           [&]() { QMessageBox::aboutQt(this, "About Qt"); });
@@ -17,18 +27,52 @@ MainWindow::MainWindow(QWidget *parent)
           &MainWindow::showYieldCurve);
   connect(ui->actionImport_yield_curve_data, &QAction::triggered, this,
           &MainWindow::importYieldCurveData);
+  connect(ui->nextPeriodPushButton, &QPushButton::clicked, this,
+          &MainWindow::advanceToNextPeriodInSimulation);
+  connect(ui->buyTreasuryPushButton, &QPushButton::clicked, this,
+          &MainWindow::buyTreasury);
 
   // placeholder
-  TreeModel *treeModel = new TreeModel();
+  TreeModel *treeModel = m_bank->m_assets;
   QTreeView *view = ui->treeView;
   view->setModel(treeModel);
   view->expandAll();
+  view->setAlternatingRowColors(true);
   for (int c = 0; c < treeModel->columnCount(); ++c) {
     view->resizeColumnToContents(c);
   }
+
+  // connect(this, SIGNAL(simulationDateChanged()), m_bank->m_assets,
+  // SLOT(reprice()));
+  connect(this, &MainWindow::simulationDateChanged, this, [&]() {
+    this->m_bank->m_assets->reprice();
+    this->ui->treeView->expandAll();
+  });
 }
 
-MainWindow::~MainWindow() { delete ui; }
+MainWindow::~MainWindow() {
+  delete ui;
+  delete m_bank;
+}
+
+void MainWindow::advanceToNextPeriodInSimulation() {
+  auto dates = m_yieldCurveWindow->dates();
+  for (int index = 0; index < dates.size() - 1; ++index) {
+    if (m_todayInSimulation == dates[index]) {
+      m_todayInSimulation = dates[index + 1];
+      qDebug() << "Today in simulation" << m_todayInSimulation;
+      m_yieldCurveWindow->advanceToDate(m_todayInSimulation);
+      ui->dateInSimulationLabel->setText(
+          QString("Today's date in simualtion: %1")
+              .arg(m_todayInSimulation.toString("MMM dd, yyyy")));
+
+      emit simulationDateChanged();
+      break;
+    }
+  }
+  // simulation should end
+  return;
+}
 
 void MainWindow::showYieldCurve() {
   m_yieldCurveWindow->show();
@@ -47,3 +91,5 @@ void MainWindow::importYieldCurveData() {
     return;
   m_yieldCurveWindow->importYieldCurveData(fileNames[0]);
 }
+
+void MainWindow::buyTreasury() {}

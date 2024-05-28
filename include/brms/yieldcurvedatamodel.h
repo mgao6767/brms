@@ -19,6 +19,7 @@ public:
 
   std::vector<double> yields(const QDate &date);
   void loadYieldsData(QString filePath);
+  std::vector<QDate> &dates();
 
 private:
   QMultiHash<QString, QRect> m_mapping;

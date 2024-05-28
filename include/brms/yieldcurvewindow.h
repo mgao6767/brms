@@ -37,10 +37,14 @@ public:
   explicit YieldCurveWindow(QWidget *parent = nullptr);
   ~YieldCurveWindow();
   void importYieldCurveData(QString filePath);
-
+  std::vector<QDate> &dates();
+  void advanceToDate(QDate date);
+  const QuantLib::ext::shared_ptr<QuantLib::DiscountingBondEngine> &
+  bondEngine();
 
 private:
   Ui::YieldCurveWindow *ui;
+  QDate m_today;
   std::shared_ptr<YieldCurveDataModel> m_model;
   std::shared_ptr<QChart> m_chart;
   std::shared_ptr<QChartView> m_chartView;
@@ -58,12 +62,20 @@ private:
       QuantLib::UnitedStates(QuantLib::UnitedStates::GovernmentBond);
   std::vector<QuantLib::ext::shared_ptr<QuantLib::RateHelper>>
       m_bondInstruments;
-  std::shared_ptr<
+  QuantLib::ext::shared_ptr<
       QuantLib::PiecewiseYieldCurve<QuantLib::Discount, QuantLib::LogLinear>>
       m_yieldCurve;
+  // Term structures that will be used for pricing:
+  // the one used for discounting cash flows
+  QuantLib::RelinkableHandle<QuantLib::YieldTermStructure>
+      m_discountingTermStructure;
+  QuantLib::ext::shared_ptr<QuantLib::DiscountingBondEngine> m_bondEngine;
 
   void changeYieldCurvePlot();
   void interpolateYieldCurve();
+
+signals:
+  void yieldCurveChanged(QDate today);
 };
 
 #endif // YIELDCURVEWINDOW_H

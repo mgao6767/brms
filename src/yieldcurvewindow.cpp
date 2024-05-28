@@ -1,4 +1,5 @@
 #include "brms/yieldcurvewindow.h"
+#include "brms/utils.h"
 #include "ui_yieldcurvewindow.h"
 #include <QDateTime>
 #include <QDebug>
@@ -31,6 +32,9 @@ YieldCurveWindow::YieldCurveWindow(QWidget *parent)
   m_axisY = std::make_shared<QValueAxis>();
   m_chartView = std::make_shared<QChartView>(m_chart.get(), this);
   m_seriesZeroRates = std::make_shared<QLineSeries>();
+  // Pricing engine
+  m_bondEngine =
+      ext::make_shared<DiscountingBondEngine>(m_discountingTermStructure);
 
   // setup table view
   ui->tableView->setModel(m_model.get());
@@ -92,11 +96,11 @@ YieldCurveWindow::YieldCurveWindow(QWidget *parent)
   connect(ui->tableView->selectionModel(),
           &QItemSelectionModel::selectionChanged, this,
           &YieldCurveWindow::changeYieldCurvePlot);
-
-  ui->tableView->selectRow(1);
 }
 
 YieldCurveWindow::~YieldCurveWindow() { delete ui; }
+
+std::vector<QDate> &YieldCurveWindow::dates() { return m_model->dates(); }
 
 void YieldCurveWindow::changeYieldCurvePlot() {
   // get selected row(s) but only single row selection is allowed
@@ -122,13 +126,19 @@ void YieldCurveWindow::changeYieldCurvePlot() {
   // }
   // m_axisY->setRange(0, maxY + 1);
   interpolateYieldCurve();
+  m_today = date;
+  emit yieldCurveChanged(date);
 }
 
-const QuantLib::Month monthMap[] = {
-    QuantLib::Jan, QuantLib::Feb, QuantLib::Mar, QuantLib::Apr,
-    QuantLib::May, QuantLib::Jun, QuantLib::Jul, QuantLib::Aug,
-    QuantLib::Sep, QuantLib::Oct, QuantLib::Nov, QuantLib::Dec,
-};
+void YieldCurveWindow::advanceToDate(QDate date) {
+  auto dates = this->dates();
+  for (int i = 0; i < dates.size(); ++i) {
+    if (date == dates[i]) {
+      ui->tableView->selectRow(i * 2 + 1);
+      break;
+    }
+  }
+}
 
 void YieldCurveWindow::interpolateYieldCurve() {
 
@@ -138,8 +148,7 @@ void YieldCurveWindow::interpolateYieldCurve() {
   QDate today = m_model->headerData(index.row(), Qt::Vertical).toDate();
 
   // QuantLib at work
-  Date todaysDate(today.daysInMonth(), monthMap[today.month() - 1],
-                  today.year());
+  Date todaysDate = qDateToQLDate(today);
   Integer fixingDays = 0;
   Integer settlementDays = 0;
   Date settlementDate = todaysDate + settlementDays * Days;
@@ -256,4 +265,11 @@ void YieldCurveWindow::interpolateYieldCurve() {
     maturityDateTime.setDate(maturityDate);
     m_seriesZeroRates->append(maturityDateTime.toMSecsSinceEpoch(), r * 100);
   }
+
+  m_discountingTermStructure.linkTo(m_yieldCurve);
 }
+
+const QuantLib::ext::shared_ptr<QuantLib::DiscountingBondEngine> &
+YieldCurveWindow::bondEngine() {
+  return m_bondEngine;
+};

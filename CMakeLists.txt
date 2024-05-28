@@ -32,7 +32,7 @@ set(PROJECT_SOURCES
         src/mainwindow.ui
 )
 
-add_compile_definitions(QL_USE_STD_SHARED_PTR)
+# add_compile_definitions(QL_USE_STD_SHARED_PTR)
 set(QUANTLIB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include/ql")
 set(QUANTLIB_LIBRARY_DIR "${CMAKE_SOURCE_DIR}/lib")
 include_directories(${QUANTLIB_INCLUDE_DIR})
@@ -61,6 +61,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         include/brms/yieldcurvedatamodel.h src/yieldcurvedatamodel.cpp
         include/brms/treeitem.h src/treeitem.cpp
         include/brms/treemodel.h src/treemodel.cpp
+        include/brms/bank.h src/bank.cpp
+        include/brms/instruments.h src/instruments.cpp
+        include/brms/utils.h
     )
 endif()
 

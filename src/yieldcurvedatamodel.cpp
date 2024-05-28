@@ -10,6 +10,8 @@
 
 bool readCSVRow(QTextStream &in, QStringList *row);
 
+std::vector<QDate> &YieldCurveDataModel::dates() { return m_dates; }
+
 inline QDateTime matureDateTime(int k, QDate date) {
   QDate maturityDate;
   QDateTime maturityDateTime;

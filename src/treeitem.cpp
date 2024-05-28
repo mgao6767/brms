@@ -33,3 +33,15 @@ int TreeItem::row() const {
   Q_ASSERT(false); // should not happen
   return -1;
 }
+
+bool TreeItem::setData(int column, const QVariant &value) {
+  if (column < 0 || column >= m_itemData.size())
+    return false;
+
+  m_itemData[column] = value;
+  return true;
+}
+
+void TreeItem::removeChildren() {
+  m_childItems.erase(m_childItems.cbegin(), m_childItems.cend());
+}
