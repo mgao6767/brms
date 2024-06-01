@@ -24,6 +24,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(APPLE)
 list(APPEND CMAKE_PREFIX_PATH "/Users/adriangao/Qt/6.7.1/macos/lib/cmake")
+set(QuantLib "QuantLib")
 endif()
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Charts)
@@ -87,7 +88,7 @@ set_target_properties(brms PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
-target_link_libraries(brms PRIVATE QuantLib ${Boost_LIBRARIES} Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Charts)
+target_link_libraries(brms PRIVATE ${QuantLib} ${Boost_LIBRARIES} Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Charts)
 target_include_directories(brms PRIVATE "${CMAKE_CURRENT_LIST_DIR}/include")
 
 # Resources:
