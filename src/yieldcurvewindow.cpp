@@ -21,7 +21,7 @@ void YieldCurveWindow::importYieldCurveData(QString filePath) {
 
 YieldCurveWindow::YieldCurveWindow(QWidget *parent)
     : QWidget(parent), ui(new Ui::YieldCurveWindow) {
-
+  qDebug() << "Init Yield Curve Window";
   ui->setupUi(this);
 
   m_model = std::make_shared<YieldCurveDataModel>();
@@ -96,6 +96,8 @@ YieldCurveWindow::YieldCurveWindow(QWidget *parent)
   connect(ui->tableView->selectionModel(),
           &QItemSelectionModel::selectionChanged, this,
           &YieldCurveWindow::changeYieldCurvePlot);
+
+  qDebug() << "Done init Yield Curve Window";
 }
 
 YieldCurveWindow::~YieldCurveWindow() { delete ui; }

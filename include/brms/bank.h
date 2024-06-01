@@ -1,7 +1,7 @@
 #ifndef BANK_H
 #define BANK_H
 
-#include "brms/treemodel.h"
+#include "brms/bankassets.h"
 #include <ql/qldefines.hpp>
 #if !defined(BOOST_ALL_NO_LIB) && defined(BOOST_MSVC)
 #include <ql/auto_link.hpp>
@@ -25,18 +25,12 @@ public:
   explicit Bank(QObject *parent = nullptr);
   ~Bank();
 
-  TreeModel *m_assets;
-  void addBond(QuantLib::FixedRateBond bond);
-  const std::vector<QuantLib::FixedRateBond> &bonds();
-  void setBondPricingEngine(
-      const QuantLib::ext::shared_ptr<QuantLib::DiscountingBondEngine> &engine);
+  BankAssets *assets();
+
   void init(QDate today); // init with fake data
-  void printBonds();
 
 private:
-  std::vector<QuantLib::FixedRateBond> m_fixedRateBonds;
-  QuantLib::ext::shared_ptr<QuantLib::DiscountingBondEngine>
-      m_bondPricingEngine;
+  BankAssets *m_assets;
 };
 
 #endif // BANK_H

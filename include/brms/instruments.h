@@ -1,11 +1,15 @@
 #ifndef INSTRUMENTS_H
 #define INSTRUMENTS_H
-
+#include <QMetaType>
 #include <ql/instruments/bonds/all.hpp>
 #include <ql/qldefines.hpp>
 #include <ql/termstructures/yield/piecewiseyieldcurve.hpp>
 #include <ql/time/calendars/unitedstates.hpp>
 #include <ql/time/daycounters/actualactual.hpp>
+
+Q_DECLARE_METATYPE(QuantLib::Bond *)
+Q_DECLARE_METATYPE(QuantLib::FixedRateBond *)
+Q_DECLARE_METATYPE(QuantLib::ZeroCouponBond *)
 
 class Instruments {
 public:

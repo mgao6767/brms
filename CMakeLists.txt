@@ -22,6 +22,10 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(APPLE)
+list(APPEND CMAKE_PREFIX_PATH "/Users/adriangao/Qt/6.7.1/macos/lib/cmake")
+endif()
+
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Charts)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Charts)
 
@@ -64,6 +68,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         include/brms/bank.h src/bank.cpp
         include/brms/instruments.h src/instruments.cpp
         include/brms/utils.h
+        include/brms/bankassets.h src/bankassets.cpp
     )
 endif()
 

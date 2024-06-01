@@ -17,8 +17,30 @@ class MainWindow : public QMainWindow {
 public:
   MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
+
+  /**
+   * @brief Sets up UI
+   */
+  void setupUi();
+
+  /**
+   * @brief Connects signals and slots
+   */
+  void setupConnection();
+
+  /**
+   * @brief Set the Todays Date Label object
+   */
   void setTodaysDateLabel();
+
+  /**
+   * @brief Shows the Yield Curve Window
+   */
   void showYieldCurve();
+
+  /**
+   * @brief Imports yield curve data
+   */
   void importYieldCurveData();
 
 signals:
@@ -31,6 +53,6 @@ private:
   YieldCurveWindow *m_yieldCurveWindow;
 
   void advanceToNextPeriodInSimulation();
-  void buyTreasury();
 };
+
 #endif // MAINWINDOW_H

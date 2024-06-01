@@ -3,11 +3,16 @@
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
+#include <qDebug>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
-  ui->setupUi(this);
+  setupUi();
+  setupConnection();
+}
 
+void MainWindow::setupUi() {
+  ui->setupUi(this);
   m_yieldCurveWindow = new YieldCurveWindow();
   m_yieldCurveWindow->importYieldCurveData(":/resources/par_yields.csv");
 
@@ -17,9 +22,11 @@ MainWindow::MainWindow(QWidget *parent)
 
   // setup the bank
   m_bank = new Bank();
-  m_bank->setBondPricingEngine(m_yieldCurveWindow->bondEngine());
+  m_bank->assets()->setTreasuryPricingEngine(m_yieldCurveWindow->bondEngine());
   m_bank->init(m_todayInSimulation); // init with fake data
-  m_bank->m_assets->update();        // TODO
+}
+
+void MainWindow::setupConnection() {
 
   connect(ui->actionAbout_Qt, &QAction::triggered, this,
           [&]() { QMessageBox::aboutQt(this, "About Qt"); });
@@ -29,24 +36,23 @@ MainWindow::MainWindow(QWidget *parent)
           &MainWindow::importYieldCurveData);
   connect(ui->nextPeriodPushButton, &QPushButton::clicked, this,
           &MainWindow::advanceToNextPeriodInSimulation);
-  connect(ui->buyTreasuryPushButton, &QPushButton::clicked, this,
-          &MainWindow::buyTreasury);
+  // connect(ui->buyTreasuryPushButton, &QPushButton::clicked, this,
+  //         &MainWindow::buyTreasury);
 
   // placeholder
-  TreeModel *treeModel = m_bank->m_assets;
   QTreeView *view = ui->treeView;
-  view->setModel(treeModel);
+  view->setModel(m_bank->assets()->model());
   view->expandAll();
   view->setAlternatingRowColors(true);
-  for (int c = 0; c < treeModel->columnCount(); ++c) {
+  for (int c = 0; c < m_bank->assets()->model()->columnCount(); ++c) {
     view->resizeColumnToContents(c);
   }
 
   // connect(this, SIGNAL(simulationDateChanged()), m_bank->m_assets,
   // SLOT(reprice()));
   connect(this, &MainWindow::simulationDateChanged, this, [&]() {
-    this->m_bank->m_assets->reprice();
-    this->ui->treeView->expandAll();
+    this->m_bank->assets()->reprice();
+    // this->ui->treeView->expandAll();
   });
 }
 
@@ -91,5 +97,3 @@ void MainWindow::importYieldCurveData() {
     return;
   m_yieldCurveWindow->importYieldCurveData(fileNames[0]);
 }
-
-void MainWindow::buyTreasury() {}
