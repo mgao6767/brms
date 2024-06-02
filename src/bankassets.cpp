@@ -20,14 +20,14 @@ double BankAssets::getCash() const {
 
 bool BankAssets::setCash(double amount) {
   QModelIndex index = m_model->find(TreeColumn::Name, CASH);
-  TreeItem *cashItem = m_model->getItem(index);
-  return cashItem->setData(TreeColumn::Value, amount);
+  QModelIndex cashAmountIdx = m_model->index(index.row(), TreeColumn::Value);
+  return m_model->setData(cashAmountIdx, amount);
 }
 
 bool BankAssets::addTreasuryBill(QuantLib::ZeroCouponBond &bill) {
   QString name = QString("%1% Treasury Bill %2");
   QDate maturityDate = qlDateToQDate(bill.maturityDate());
-  name = name.arg(bill.nextCouponRate() * 100);
+  name = name.arg(QString::number(bill.nextCouponRate() * 100, 'f', 3));
   name = name.arg(maturityDate.toString("dd/MM/yyyy"));
   return addTreasurySecurity(bill, name);
 }
@@ -35,7 +35,7 @@ bool BankAssets::addTreasuryBill(QuantLib::ZeroCouponBond &bill) {
 bool BankAssets::addTreasuryNote(QuantLib::FixedRateBond &note) {
   QString name = QString("%1% Treasury Note %2");
   QDate maturityDate = qlDateToQDate(note.maturityDate());
-  name = name.arg(note.nextCouponRate() * 100);
+  name = name.arg(QString::number(note.nextCouponRate() * 100, 'f', 3));
   name = name.arg(maturityDate.toString("dd/MM/yyyy"));
   return addTreasurySecurity(note, name);
 }
@@ -43,7 +43,7 @@ bool BankAssets::addTreasuryNote(QuantLib::FixedRateBond &note) {
 bool BankAssets::addTreasuryBond(QuantLib::FixedRateBond &bond) {
   QString name = QString("%1% Treasury Bond %2");
   QDate maturityDate = qlDateToQDate(bond.maturityDate());
-  name = name.arg(bond.nextCouponRate() * 100);
+  name = name.arg(QString::number(bond.nextCouponRate() * 100, 'f', 3));
   name = name.arg(maturityDate.toString("dd/MM/yyyy"));
   return addTreasurySecurity(bond, name);
 }
@@ -79,11 +79,30 @@ void BankAssets::reprice() {
   TreeItem *treasuryItem = m_model->getItem(index);
   for (size_t i = 0; i < treasuryItem->childCount(); i++) {
     auto bond = treasuryItem->child(i);
-    // get the pointer to the original bond object
+    // j is the location of the bond in the vector
     auto j = bond->data(TreeColumn::Ref).toInt();
-    auto npv = m_treasurySecurities[j].NPV();
-    auto valueIdx = m_model->index(i, TreeColumn::Value, index);
-    m_model->setData(valueIdx, npv);
+    QuantLib::Bond &instrument = m_treasurySecurities[j];
+    if (instrument.isExpired()) continue;
+    // if today is maturity date
+    if (instrument.valuationDate() == instrument.maturityDate()) {
+      double totalPaymentAtMaturity = 0.0;
+      for (auto &c : instrument.cashflows()) {
+        totalPaymentAtMaturity +=
+            c->date() == instrument.maturityDate() ? c->amount() : 0.0;
+      }
+      qDebug() << "Maturity date" << qlDateToQDate(instrument.valuationDate())
+               << totalPaymentAtMaturity;
+      // update cash
+      setCash(getCash() + totalPaymentAtMaturity);
+      // set the instrument to "matured"
+      auto valueIdx = m_model->index(i, TreeColumn::Value, index);
+      m_model->setData(valueIdx, "Matured");
+    } else {
+      // not yet matured
+      auto npv = instrument.NPV();
+      auto valueIdx = m_model->index(i, TreeColumn::Value, index);
+      m_model->setData(valueIdx, npv);
+    }
   }
   updateTotalValue();
 }

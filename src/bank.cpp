@@ -18,10 +18,10 @@ void Bank::init(QDate today) {
 
   // let the bank has some treasury bonds
   for (size_t i = 0; i < 5; i++) {
-    auto issueDate = todaysDate - i * QuantLib::Years;
-    auto matureDate = issueDate + 5 * QuantLib::Years;
+    auto issueDate = todaysDate - 4 * QuantLib::Years;
+    auto matureDate = todaysDate + 1 * QuantLib::Weeks;
     auto bond = factory.makeFixedRateTresuryBond(issueDate, matureDate,
-                                                 0.0125 * (i + 1));
+                                                 0.0125 * (i + 1), 100);
     assets()->addTreasuryNote(bond);
   }
   for (size_t i = 0; i < 1; i++) {
