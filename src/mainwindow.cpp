@@ -42,6 +42,8 @@ void MainWindow::setupConnection() {
   // placeholder
   QTreeView *view = ui->treeView;
   view->setModel(m_bank->assets()->model());
+  view->hideColumn(TreeColumn::Ref);
+  view->hideColumn(TreeColumn::BackgroundColor);
   view->expandAll();
   view->setAlternatingRowColors(true);
   for (int c = 0; c < m_bank->assets()->model()->columnCount(); ++c) {
@@ -96,4 +98,14 @@ void MainWindow::importYieldCurveData() {
   if (fileNames.isEmpty())
     return;
   m_yieldCurveWindow->importYieldCurveData(fileNames[0]);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+  foreach (QWidget *widget, QApplication::topLevelWidgets()) {
+    if (widget == this)
+      continue;
+    widget->close();
+  }
+  event->accept();
+  QMainWindow::closeEvent(event);
 }

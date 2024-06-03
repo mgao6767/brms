@@ -3,11 +3,14 @@
 
 #include <QVariant>
 #include <QVector>
+#include <QColor>
 
 enum TreeColumn {
   Name,
   Value,
-  Ref
+  Ref,
+  BackgroundColor,
+  TREECOLUMN_SIZE,
 };
 
 /**

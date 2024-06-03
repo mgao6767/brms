@@ -65,7 +65,7 @@ bool BankAssets::addTreasurySecurity(QuantLib::Bond &bond, QString name) {
   TreeItem *item = new TreeItem({name, bond.NPV(), ref}, treasuryItem);
   treasuryItem->appendChild(item);
   // update total value of Treasury securities
-  updateTotalValue();
+  updateTotalValue(false);
   return setCash(cash - bond.NPV());
 }
 
@@ -82,8 +82,11 @@ void BankAssets::reprice() {
     // j is the location of the bond in the vector
     auto j = bond->data(TreeColumn::Ref).toInt();
     QuantLib::Bond &instrument = m_treasurySecurities[j];
-    if (instrument.isExpired()) continue;
+    if (instrument.isExpired())
+      continue;
     // if today is maturity date
+    auto colorIdx = m_model->index(i, TreeColumn::BackgroundColor, index);
+    auto valueIdx = m_model->index(i, TreeColumn::Value, index);
     if (instrument.valuationDate() == instrument.maturityDate()) {
       double totalPaymentAtMaturity = 0.0;
       for (auto &c : instrument.cashflows()) {
@@ -95,25 +98,37 @@ void BankAssets::reprice() {
       // update cash
       setCash(getCash() + totalPaymentAtMaturity);
       // set the instrument to "matured"
-      auto valueIdx = m_model->index(i, TreeColumn::Value, index);
       m_model->setData(valueIdx, "Matured");
+      m_model->setData(colorIdx, QColor(Qt::transparent), Qt::BackgroundRole);
     } else {
       // not yet matured
       auto npv = instrument.NPV();
-      auto valueIdx = m_model->index(i, TreeColumn::Value, index);
+      if (npv > m_model->data(valueIdx, Qt::DisplayRole).toDouble())
+        m_model->setData(colorIdx, GREEN, Qt::BackgroundRole);
+      else
+        m_model->setData(colorIdx, RED, Qt::BackgroundRole);
+      // update value
       m_model->setData(valueIdx, npv);
     }
   }
   updateTotalValue();
 }
 
-void BankAssets::updateTotalValue() {
+void BankAssets::updateTotalValue(bool updateColor) {
   QModelIndex index = m_model->find(TreeColumn::Name, TREASURY_SECURITIES);
   TreeItem *treasuryItem = m_model->getItem(index);
+  auto colorIdx = m_model->index(index.row(), TreeColumn::BackgroundColor);
+  double currentValue = treasuryItem->data(TreeColumn::Value).toDouble();
   double totalValue = 0.0;
   for (size_t i = 0; i < treasuryItem->childCount(); i++) {
     auto bond = treasuryItem->child(i);
     totalValue += bond->data(TreeColumn::Value).toDouble();
   }
+  if (updateColor)
+    if (totalValue > currentValue)
+      m_model->setData(colorIdx, GREEN, Qt::BackgroundRole);
+    else
+      m_model->setData(colorIdx, RED, Qt::BackgroundRole);
+
   m_model->setData(index.siblingAtColumn(TreeColumn::Value), totalValue);
 }

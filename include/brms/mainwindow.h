@@ -46,6 +46,9 @@ public:
 signals:
   void simulationDateChanged();
 
+protected:
+  void closeEvent(QCloseEvent *event) override;
+
 private:
   Ui::MainWindow *ui;
   QDate m_todayInSimulation;

@@ -1,7 +1,12 @@
 #include "brms/treeitem.h"
 
 TreeItem::TreeItem(const QVector<QVariant> &data, TreeItem *parent)
-    : m_itemData(data), m_parentItem(parent) {}
+    : m_parentItem(parent) {
+    m_itemData = QVector<QVariant>(TreeColumn::TREECOLUMN_SIZE, QVariant());
+    for (int i = 0; i < data.size(); ++i)
+        m_itemData[i] = data[i];
+    m_itemData[TreeColumn::BackgroundColor] = QColor(Qt::transparent);
+}
 
 TreeItem::~TreeItem() { qDeleteAll(m_childItems); }
 

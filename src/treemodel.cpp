@@ -16,12 +16,15 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid())
     return QVariant();
 
-  if (role != Qt::DisplayRole)
-    return QVariant();
-
   TreeItem *item = static_cast<TreeItem *>(index.internalPointer());
 
-  return item->data(index.column());
+  if (role == Qt::BackgroundRole && index.column() == TreeColumn::Value)
+      return item->data(TreeColumn::BackgroundColor);
+
+  if (role == Qt::DisplayRole)
+    return item->data(index.column());
+
+  return QVariant();
 }
 
 QVariant TreeModel::headerData(int section, Qt::Orientation orientation,
@@ -141,7 +144,7 @@ bool TreeModel::removeRow(int row, const QModelIndex &parent) {
 
 bool TreeModel::setData(const QModelIndex &index, const QVariant &value,
                         int role) {
-  if (role != Qt::EditRole)
+  if (role != Qt::EditRole && role != Qt::BackgroundRole)
     return false;
 
   TreeItem *item = getItem(index);

@@ -70,6 +70,8 @@ private:
   const QString CASH{"Cash and reserves"};
   const QString TREASURY_SECURITIES{"Treasury Securities"};
   const QString LOANS{"Loans and other receivables"};
+  const QColor GREEN{0, 255, 0, 127};
+  const QColor RED{255, 0, 0, 127};
 
   TreeModel *m_model;
   std::vector<QuantLib::Bond> m_treasurySecurities;
@@ -87,8 +89,9 @@ private:
 
   /**
    * @brief Updates the total value.
+   * @param updateColor Whether to update color. Defaults to true.
    */
-  void updateTotalValue();
+  void updateTotalValue(bool updateColor = true);
 
 public slots:
   void reprice();
