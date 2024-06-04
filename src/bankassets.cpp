@@ -74,7 +74,9 @@ void BankAssets::setTreasuryPricingEngine(
   m_treasuryPricingEngine = engine;
 }
 
-void BankAssets::reprice() {
+void BankAssets::reprice() { repriceTreasurySecurities(); }
+
+void BankAssets::repriceTreasurySecurities() {
   QModelIndex index = m_model->find(TreeColumn::Name, TREASURY_SECURITIES);
   TreeItem *treasuryItem = m_model->getItem(index);
   for (size_t i = 0; i < treasuryItem->childCount(); i++) {
@@ -93,21 +95,16 @@ void BankAssets::reprice() {
         totalPaymentAtMaturity +=
             c->date() == instrument.maturityDate() ? c->amount() : 0.0;
       }
-      qDebug() << "Maturity date" << qlDateToQDate(instrument.valuationDate())
-               << totalPaymentAtMaturity;
       // update cash
       setCash(getCash() + totalPaymentAtMaturity);
       // set the instrument to "matured"
       m_model->setData(valueIdx, "Matured");
-      m_model->setData(colorIdx, QColor(Qt::transparent), Qt::BackgroundRole);
+      m_model->setData(colorIdx, TRANSPARENT, Qt::BackgroundRole);
     } else {
       // not yet matured
       auto npv = instrument.NPV();
-      if (npv > m_model->data(valueIdx, Qt::DisplayRole).toDouble())
-        m_model->setData(colorIdx, GREEN, Qt::BackgroundRole);
-      else
-        m_model->setData(colorIdx, RED, Qt::BackgroundRole);
-      // update value
+      auto idx = m_model->index(i, TreeColumn::Value, index);
+      updateColor(idx, npv);
       m_model->setData(valueIdx, npv);
     }
   }
@@ -117,18 +114,26 @@ void BankAssets::reprice() {
 void BankAssets::updateTotalValue(bool updateColor) {
   QModelIndex index = m_model->find(TreeColumn::Name, TREASURY_SECURITIES);
   TreeItem *treasuryItem = m_model->getItem(index);
-  auto colorIdx = m_model->index(index.row(), TreeColumn::BackgroundColor);
-  double currentValue = treasuryItem->data(TreeColumn::Value).toDouble();
   double totalValue = 0.0;
   for (size_t i = 0; i < treasuryItem->childCount(); i++) {
     auto bond = treasuryItem->child(i);
     totalValue += bond->data(TreeColumn::Value).toDouble();
   }
-  if (updateColor)
-    if (totalValue > currentValue)
-      m_model->setData(colorIdx, GREEN, Qt::BackgroundRole);
-    else
-      m_model->setData(colorIdx, RED, Qt::BackgroundRole);
-
+  if (updateColor) {
+    BankAssets::updateColor(index, totalValue);
+  }
   m_model->setData(index.siblingAtColumn(TreeColumn::Value), totalValue);
+}
+
+void BankAssets::updateColor(QModelIndex index, double newValue) {
+  TreeItem *item = m_model->getItem(index);
+  auto colorIdx = index.siblingAtColumn(TreeColumn::BackgroundColor);
+  double currentValue = item->data(TreeColumn::Value).toDouble();
+  if (newValue > currentValue) {
+    m_model->setData(colorIdx, GREEN, Qt::BackgroundRole);
+  } else if (newValue < currentValue) {
+    m_model->setData(colorIdx, RED, Qt::BackgroundRole);
+  } else {
+    m_model->setData(colorIdx, TRANSPARENT, Qt::BackgroundRole);
+  }
 }

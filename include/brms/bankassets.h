@@ -72,6 +72,7 @@ private:
   const QString LOANS{"Loans and other receivables"};
   const QColor GREEN{0, 255, 0, 127};
   const QColor RED{255, 0, 0, 127};
+  const QColor TRANSPARENT{Qt::transparent};
 
   TreeModel *m_model;
   std::vector<QuantLib::Bond> m_treasurySecurities;
@@ -92,6 +93,16 @@ private:
    * @param updateColor Whether to update color. Defaults to true.
    */
   void updateTotalValue(bool updateColor = true);
+
+  /**
+   * @brief Updates the background color of asset value.
+   *
+   * @param index Index of the item.
+   * @param newValue New value of the asset value.
+   */
+  void updateColor(QModelIndex index, double newValue);
+
+  void repriceTreasurySecurities();
 
 public slots:
   void reprice();
