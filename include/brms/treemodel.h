@@ -3,6 +3,7 @@
 
 #include "brms/treeitem.h"
 #include <QAbstractItemModel>
+#include <QLocale>
 
 /**
  * @brief The TreeModel class represents the model for a tree structure.
@@ -119,6 +120,7 @@ public:
 
 private:
   TreeItem *rootItem; ///< Root item of the tree
+  QLocale m_locale;
 };
 
 #endif // TREEMODEL_H

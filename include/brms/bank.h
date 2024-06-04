@@ -2,6 +2,7 @@
 #define BANK_H
 
 #include "brms/bankassets.h"
+#include "brms/bankliabilities.h"
 #include <ql/qldefines.hpp>
 #if !defined(BOOST_ALL_NO_LIB) && defined(BOOST_MSVC)
 #include <ql/auto_link.hpp>
@@ -26,11 +27,13 @@ public:
   ~Bank();
 
   BankAssets *assets();
+  BankLiabilities *liabilities();
 
   void init(QDate today); // init with fake data
 
 private:
   BankAssets *m_assets;
+  BankLiabilities *m_liabilities;
 };
 
 #endif // BANK_H

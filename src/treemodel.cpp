@@ -8,6 +8,7 @@ TreeModel::TreeModel(const QStringList &headers, QObject *parent)
     rootData << header;
 
   rootItem = new TreeItem(rootData);
+  m_locale = QLocale::system();
 }
 
 TreeModel::~TreeModel() { delete rootItem; }
@@ -18,11 +19,18 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const {
 
   TreeItem *item = static_cast<TreeItem *>(index.internalPointer());
 
-  if (role == Qt::BackgroundRole && index.column() == TreeColumn::Value)
+  if (role == Qt::BackgroundRole)
+    if (index.column() == TreeColumn::Value |
+        index.column() == TreeColumn::BackgroundColor)
       return item->data(TreeColumn::BackgroundColor);
 
-  if (role == Qt::DisplayRole)
-    return item->data(index.column());
+  if (role == Qt::DisplayRole) {
+    auto v = item->data(index.column());
+    if (index.column() == TreeColumn::Value) {
+      return m_locale.toString(v.toDouble(), 'f', 4);
+    }
+    return v;
+  }
 
   return QVariant();
 }
@@ -149,7 +157,11 @@ bool TreeModel::setData(const QModelIndex &index, const QVariant &value,
 
   TreeItem *item = getItem(index);
   if (item && item->setData(index.column(), value)) {
-    emit dataChanged(index, index, {role});
+    if (index.column() == TreeColumn::BackgroundColor) {
+      emit dataChanged(index.siblingAtColumn(TreeColumn::Value), index, {role});
+    } else {
+      emit dataChanged(index, index, {role});
+    }
     return true;
   }
   return false;

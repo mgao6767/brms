@@ -39,8 +39,8 @@ void MainWindow::setupConnection() {
   // connect(ui->buyTreasuryPushButton, &QPushButton::clicked, this,
   //         &MainWindow::buyTreasury);
 
-  // placeholder
-  QTreeView *view = ui->treeView;
+  // assets tree view
+  QTreeView *view = ui->assetsTreeView;
   view->setModel(m_bank->assets()->model());
   view->hideColumn(TreeColumn::Ref);
   view->hideColumn(TreeColumn::BackgroundColor);
@@ -49,13 +49,24 @@ void MainWindow::setupConnection() {
   for (int c = 0; c < m_bank->assets()->model()->columnCount(); ++c) {
     view->resizeColumnToContents(c);
   }
-
-  // connect(this, SIGNAL(simulationDateChanged()), m_bank->m_assets,
-  // SLOT(reprice()));
   connect(this, &MainWindow::simulationDateChanged, this, [&]() {
     this->m_bank->assets()->reprice();
-    // this->ui->treeView->expandAll();
   });
+
+  // liabilities tree view
+  QTreeView *liabilitiesView = ui->liabilitiesTreeView;
+  liabilitiesView->setModel(m_bank->liabilities()->model());
+  liabilitiesView->hideColumn(TreeColumn::Ref);
+  liabilitiesView->hideColumn(TreeColumn::BackgroundColor);
+  liabilitiesView->expandAll();
+  liabilitiesView->setAlternatingRowColors(true);
+  for (int c = 0; c < m_bank->liabilities()->model()->columnCount(); ++c) {
+    liabilitiesView->resizeColumnToContents(c);
+  }
+  connect(this, &MainWindow::simulationDateChanged, this, [&]() {
+    this->m_bank->liabilities()->reprice();
+  });
+
 }
 
 MainWindow::~MainWindow() {

@@ -74,7 +74,16 @@ void BankAssets::setTreasuryPricingEngine(
   m_treasuryPricingEngine = engine;
 }
 
-void BankAssets::reprice() { repriceTreasurySecurities(); }
+void BankAssets::reprice() {
+  double startingCash = getCash();
+
+  repriceTreasurySecurities();
+
+  // update cash color
+  QModelIndex cashIndex = m_model->find(TreeColumn::Name, CASH);
+  double endingCash = getCash();
+  updateColor(cashIndex, endingCash, startingCash);
+}
 
 void BankAssets::repriceTreasurySecurities() {
   QModelIndex index = m_model->find(TreeColumn::Name, TREASURY_SECURITIES);
@@ -99,7 +108,7 @@ void BankAssets::repriceTreasurySecurities() {
       setCash(getCash() + totalPaymentAtMaturity);
       // set the instrument to "matured"
       m_model->setData(valueIdx, "Matured");
-      m_model->setData(colorIdx, TRANSPARENT, Qt::BackgroundRole);
+      m_model->setData(colorIdx, TRANSPARENT);
     } else {
       // not yet matured
       auto npv = instrument.NPV();
@@ -125,15 +134,19 @@ void BankAssets::updateTotalValue(bool updateColor) {
   m_model->setData(index.siblingAtColumn(TreeColumn::Value), totalValue);
 }
 
-void BankAssets::updateColor(QModelIndex index, double newValue) {
-  TreeItem *item = m_model->getItem(index);
+void BankAssets::updateColor(QModelIndex index, double newValue,
+                             double currentValue) {
   auto colorIdx = index.siblingAtColumn(TreeColumn::BackgroundColor);
-  double currentValue = item->data(TreeColumn::Value).toDouble();
+  m_model->setData(colorIdx, TRANSPARENT, Qt::BackgroundRole);
   if (newValue > currentValue) {
     m_model->setData(colorIdx, GREEN, Qt::BackgroundRole);
   } else if (newValue < currentValue) {
     m_model->setData(colorIdx, RED, Qt::BackgroundRole);
-  } else {
-    m_model->setData(colorIdx, TRANSPARENT, Qt::BackgroundRole);
   }
+}
+
+void BankAssets::updateColor(QModelIndex index, double newValue) {
+  TreeItem *item = m_model->getItem(index);
+  double currentValue = item->data(TreeColumn::Value).toDouble();
+  BankAssets::updateColor(index, newValue, currentValue);
 }

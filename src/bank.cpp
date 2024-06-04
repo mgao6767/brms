@@ -5,11 +5,16 @@
 
 Bank::Bank(QObject *parent) : QObject{parent} {
   m_assets = new BankAssets({"Asset", "Value"});
+  m_liabilities = new BankLiabilities({"Liability", "Value"});
 }
 
-Bank::~Bank() { delete m_assets; }
+Bank::~Bank() {
+  delete m_assets;
+  delete m_liabilities;
+}
 
 BankAssets *Bank::assets() { return m_assets; }
+BankLiabilities *Bank::liabilities() { return m_liabilities; }
 
 void Bank::init(QDate today) {
 

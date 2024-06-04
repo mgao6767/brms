@@ -16,10 +16,10 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="1" column="0">
-     <widget class="QTreeView" name="treeView"/>
+     <widget class="QTreeView" name="assetsTreeView"/>
     </item>
     <item row="1" column="2">
-     <widget class="QTreeView" name="treeView_2"/>
+     <widget class="QTreeView" name="liabilitiesTreeView"/>
     </item>
     <item row="0" column="0">
      <widget class="QLabel" name="dateInSimulationLabel">

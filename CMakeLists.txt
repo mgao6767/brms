@@ -70,6 +70,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         include/brms/instruments.h src/instruments.cpp
         include/brms/utils.h
         include/brms/bankassets.h src/bankassets.cpp
+        include/brms/bankliabilities.h src/bankliabilities.cpp
     )
 endif()
 

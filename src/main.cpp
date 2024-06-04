@@ -14,6 +14,5 @@ int main(int argc, char *argv[]) {
   MainWindow w;
   w.setWindowTitle(appName);
   w.show();
-  w.showYieldCurve();
   return a.exec();
 }

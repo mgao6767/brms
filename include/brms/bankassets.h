@@ -101,6 +101,7 @@ private:
    * @param newValue New value of the asset value.
    */
   void updateColor(QModelIndex index, double newValue);
+  void updateColor(QModelIndex index, double newValue, double currentValue);
 
   void repriceTreasurySecurities();
 
