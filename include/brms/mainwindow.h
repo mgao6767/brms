@@ -55,6 +55,12 @@ private:
   Bank *m_bank;
   YieldCurveWindow *m_yieldCurveWindow;
 
+  QLineSeries *m_equitySeries;
+  QChart *m_equityChart;
+  QChartView *m_chartView;
+  QDateTimeAxis *m_axisX;
+  QValueAxis *m_axisY;
+
   void advanceToNextPeriodInSimulation();
 };
 

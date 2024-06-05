@@ -57,6 +57,43 @@ void MainWindow::setupUi() {
   for (int c = 0; c < m_bank->equity()->model()->columnCount(); ++c) {
     equityTreeView->resizeColumnToContents(c);
   }
+
+  // equity evolution
+  m_equityChart = new QChart();
+  m_equitySeries = new QLineSeries();
+  m_chartView = new QChartView(m_equityChart);
+  m_equityChart->addSeries(m_equitySeries);
+
+  m_axisX = new QDateTimeAxis();
+  m_axisY = new QValueAxis();
+  m_axisX->setTickCount(5);
+  m_axisX->setFormat("dd MMM yyyy");
+
+  m_equityChart->addAxis(m_axisX, Qt::AlignBottom);
+  m_equityChart->addAxis(m_axisY, Qt::AlignLeft);
+  m_equityChart->legend()->hide();
+
+  m_equitySeries->attachAxis(m_axisX);
+  m_equitySeries->attachAxis(m_axisY);
+
+  m_equityChart->setTitle("Bank Equity Value");
+  m_chartView->setRenderHint(QPainter::Antialiasing);
+
+  QDateTime dt;
+  dt.setDate(m_todayInSimulation);
+  m_axisX->setMin(dt);
+  m_equitySeries->append(dt.toMSecsSinceEpoch(),
+                         m_bank->equity()->totalEquity());
+  dt.setDate(m_todayInSimulation.addDays(10));
+  m_axisX->setMax(dt);
+  // update y axis?
+  qreal maxY = -100;
+  for (auto &p : m_equitySeries->points()) {
+    maxY = maxY < p.y() ? p.y() : maxY;
+  }
+  m_axisY->setRange(0, maxY * 1.05);
+
+  ui->gridLayout->replaceWidget(ui->placeholderChartView, m_chartView);
 }
 
 void MainWindow::setupConnection() {
@@ -72,13 +109,18 @@ void MainWindow::setupConnection() {
   // connect(ui->buyTreasuryPushButton, &QPushButton::clicked, this,
   //         &MainWindow::buyTreasury);
 
-  connect(this, &MainWindow::simulationDateChanged, this,
-          [&]() { m_bank->reprice(); });
+  // connect(this, &MainWindow::simulationDateChanged, this,
+  //         [&]() { m_bank->reprice(); });
 }
 
 MainWindow::~MainWindow() {
   delete ui;
   delete m_bank;
+  delete m_equitySeries;
+  delete m_equityChart;
+  delete m_chartView;
+  delete m_axisX;
+  delete m_axisY;
 }
 
 void MainWindow::advanceToNextPeriodInSimulation() {
@@ -91,7 +133,20 @@ void MainWindow::advanceToNextPeriodInSimulation() {
   m_todayInSimulation = dates[std::distance(dates.begin(), it) + 1];
   m_yieldCurveWindow->advanceToDate(m_todayInSimulation);
   setTodaysDateLabel();
-  emit simulationDateChanged();
+  // emit simulationDateChanged();
+  m_bank->reprice();
+
+  QDateTime dt;
+  dt.setDate(m_todayInSimulation.addDays(10));
+  m_axisX->setMax(dt);
+  m_equitySeries->append(dt.toMSecsSinceEpoch(),
+                         m_bank->equity()->totalEquity());
+  // update y axis?
+  qreal maxY = -100;
+  for (auto &p : m_equitySeries->points()) {
+    maxY = maxY < p.y() ? p.y() : maxY;
+  }
+  m_axisY->setRange(0, maxY * 1.05);
 }
 
 void MainWindow::setTodaysDateLabel() {
