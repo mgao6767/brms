@@ -76,9 +76,11 @@ void BankAssets::setTreasuryPricingEngine(
 
 bool BankAssets::addAmortizingFixedRateLoan(
     QuantLib::AmortizingFixedRateBond &loan) {
-  QString name = QString("%1% Amortizing Loan %2");
+  QString name = QString("%1% %2-year amortizing loan %3");
   QDate maturityDate = qlDateToQDate(loan.maturityDate());
+  int mat = (loan.maturityDate() - loan.issueDate()) / 365;
   name = name.arg(QString::number(loan.nextCouponRate() * 100, 'f', 3));
+  name = name.arg(mat);
   name = name.arg(maturityDate.toString("dd/MM/yyyy"));
 
   double cash = getCash();

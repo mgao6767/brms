@@ -79,4 +79,9 @@ void Bank::init(QDate today) {
       issueDate - 10 * QuantLib::Years, QuantLib::Period(30, QuantLib::Years),
       0.05, 200000);
   assets()->addAmortizingFixedRateLoan(loan2);
+
+  auto loan3 = factory.makeAmortizingFixedRateBond(
+      QuantLib::Date(11, QuantLib::Oct, today.year() - 5),
+      QuantLib::Period(20, QuantLib::Years), 0.04, 300000);
+  assets()->addAmortizingFixedRateLoan(loan3);
 }
