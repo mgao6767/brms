@@ -37,10 +37,9 @@ private:
   BankAssets *m_assets;
   BankLiabilities *m_liabilities;
   BankEquity *m_equity;
-  int receivedRepricingSignals; // number of repricing signals received
 
-private slots:
-  void updateEquity(bool force = false);
+public slots:
+  void reprice();
 };
 
 #endif // BANK_H

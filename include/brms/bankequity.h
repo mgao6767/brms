@@ -19,10 +19,13 @@ public:
    */
   TreeModel *model();
 
+  double totalEquity() const;
+
 private:
   const QString EQUITY{"Common equity"};
 
   TreeModel *m_model;
+  double m_commonEquity;
 
 public slots:
   void reprice();

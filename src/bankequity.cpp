@@ -14,6 +14,10 @@ void BankEquity::reprice() {}
 void BankEquity::reprice(double totalAssets, double totalLiabilities) {
   QModelIndex index = m_model->find(TreeColumn::Name, EQUITY);
   QModelIndex equityAmountIdx = index.siblingAtColumn(TreeColumn::Value);
-  double equityValue = totalAssets - totalLiabilities;
-  m_model->setData(equityAmountIdx, equityValue);
+  m_commonEquity = totalAssets - totalLiabilities;
+  m_model->setData(equityAmountIdx, m_commonEquity);
+}
+
+double BankEquity::totalEquity() const {
+  return m_commonEquity;
 }

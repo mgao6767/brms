@@ -3,18 +3,18 @@
 #include "brms/utils.h"
 #include <qDebug>
 
-Bank::Bank(QObject *parent) : QObject{parent}, receivedRepricingSignals(0) {
+Bank::Bank(QObject *parent) : QObject{parent} {
   m_assets = new BankAssets({"Asset", "Value"});
   m_liabilities = new BankLiabilities({"Liability", "Value"});
   m_equity = new BankEquity({"Equity", "Value"});
 
   // set the initial equity
-  updateEquity(true);
+  reprice();
 
-  connect(m_assets, SIGNAL(totalAssetsChanged(double)), this,
-          SLOT(updateEquity()));
-  connect(m_liabilities, SIGNAL(totalLiabilitiesChanged(double)), this,
-          SLOT(updateEquity()));
+  connect(m_liabilities, SIGNAL(newDepositsTaken(double)), m_assets,
+          SLOT(addCash(double)));
+  connect(m_liabilities, SIGNAL(interestPaymentToMake(double)), m_assets,
+          SLOT(deductCash(double)));
 }
 
 Bank::~Bank() {
@@ -29,25 +29,38 @@ BankLiabilities *Bank::liabilities() { return m_liabilities; }
 
 BankEquity *Bank::equity() { return m_equity; }
 
-void Bank::updateEquity(bool force) {
-  if (!force)
-    ++receivedRepricingSignals;
-  // Reprice equity only after receiving two signals
-  // from totalAssetsChanged and totalLiabilitiesChanged.
-  // In a step of simulation, both assets and liabilities will be repriced,
-  // which sends two signals.
-  if ((receivedRepricingSignals == 2) | force) {
-    double totalAssets = m_assets->totalAssets();
-    double totalLiabilities = m_liabilities->totalLiabilities();
-    m_equity->reprice(totalAssets, totalLiabilities);
-    receivedRepricingSignals = 0;
-  }
+void Bank::reprice() {
+  m_assets->reprice();
+  m_liabilities->reprice();
+  double totalAssets = m_assets->totalAssets();
+  double totalLiabilities = m_liabilities->totalLiabilities();
+  m_equity->reprice(totalAssets, totalLiabilities);
 }
 
 void Bank::init(QDate today) {
 
   QuantLib::Date todaysDate = qDateToQLDate(today);
   auto factory = Instruments();
+
+  auto deposit = factory.makeTermDeposits(todaysDate - 1 * QuantLib::Years,
+                                          QuantLib::Period(5, QuantLib::Years),
+                                          0.05, 300000);
+  liabilities()->addTermDeposits(deposit);
+
+  auto deposit2 = factory.makeTermDeposits(todaysDate - 6 * QuantLib::Months,
+                                           QuantLib::Period(3, QuantLib::Years),
+                                           0.032, 100000);
+  liabilities()->addTermDeposits(deposit2);
+
+  auto deposit3 = factory.makeTermDeposits(todaysDate - 103 * QuantLib::Weeks,
+                                           QuantLib::Period(2, QuantLib::Years),
+                                           0.02, 50000);
+  liabilities()->addTermDeposits(deposit3);
+
+  auto deposit4 = factory.makeTermDeposits(todaysDate - 88 * QuantLib::Weeks,
+                                           QuantLib::Period(5, QuantLib::Years),
+                                           0.052, 200000);
+  liabilities()->addTermDeposits(deposit4);
 
   // let the bank has some treasury bonds
   for (size_t i = 0; i < 5; i++) {
@@ -84,4 +97,10 @@ void Bank::init(QDate today) {
       QuantLib::Date(11, QuantLib::Oct, today.year() - 5),
       QuantLib::Period(20, QuantLib::Years), 0.04, 300000);
   assets()->addAmortizingFixedRateLoan(loan3);
+
+  // force refresh to remove inital coloring
+  assets()->reprice();
+  liabilities()->reprice();
+  liabilities()->reprice();
+  equity()->reprice(assets()->totalAssets(), liabilities()->totalLiabilities());
 }

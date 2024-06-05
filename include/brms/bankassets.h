@@ -98,7 +98,7 @@ public:
 
 private:
   const QString CASH{"Cash and reserves"};
-  const QString TREASURY_SECURITIES{"Treasury Securities"};
+  const QString TREASURY_SECURITIES{"Treasury securities"};
   const QString LOANS{"Loans and other receivables"};
 
   TreeModel *m_model;
@@ -137,6 +137,8 @@ private:
 
 public slots:
   void reprice();
+  void addCash(double amount);
+  void deductCash(double amount);
 
 signals:
   void totalAssetsChanged(double totalAssets);

@@ -26,16 +26,32 @@ public:
    */
   double totalLiabilities() const;
 
+  /**
+   * @brief Adds fixed rate term deposit.
+   * It emits a signal for assets to add cash.
+   *
+   * @param deposit
+   */
+  void addTermDeposits(QuantLib::FixedRateBond &deposit);
+
 private:
   const QString DEPOSITS{"Deposits"};
 
   TreeModel *m_model;
+  QuantLib::Date m_lastRepricingDate;
+  std::vector<QuantLib::FixedRateBond> m_termDeposits;
+
+  void updateTotalValue();
+  void repriceDeposits();
+  double getTotalValueOfTermDeposits() const;
 
 public slots:
   void reprice();
 
 signals:
   void totalLiabilitiesChanged(double totalLiabilities);
+  void newDepositsTaken(double deposits);
+  void interestPaymentToMake(double payment);
 };
 
 #endif // BANKLIABILITIES_H

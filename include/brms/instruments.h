@@ -25,6 +25,11 @@ public:
       const QuantLib::Frequency frequency = QuantLib::Monthly,
       const QuantLib::ext::shared_ptr<QuantLib::PricingEngine> &pricingEngine =
           nullptr);
+
+  QuantLib::FixedRateBond makeTermDeposits(
+      const QuantLib::Date &depositDate, const QuantLib::Period &term,
+      const QuantLib::Rate &interestRate, const QuantLib::Real &amount,
+      const QuantLib::Period frequency = QuantLib::Period(QuantLib::Monthly));
 };
 
 #endif // INSTRUMENTS_H

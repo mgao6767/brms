@@ -49,3 +49,23 @@ AmortizingFixedRateBond Instruments::makeAmortizingFixedRateBond(
 
   return loan;
 }
+
+FixedRateBond Instruments::makeTermDeposits(const QuantLib::Date &depositDate,
+                                         const QuantLib::Period &term,
+                                         const QuantLib::Rate &interestRate,
+                                         const QuantLib::Real &amount,
+                                         const QuantLib::Period frequency) {
+
+  Natural settlementDays = 0;
+  Date maturityDate = depositDate + term;
+
+  Schedule schedule(depositDate, maturityDate, frequency,
+                    UnitedStates(UnitedStates::GovernmentBond), Following,
+                    Following, DateGeneration::Backward, false);
+
+  FixedRateBond termDeposits(settlementDays, amount, schedule, {interestRate},
+                             ActualActual(ActualActual::ISMA), Following, 100.0,
+                             depositDate);
+
+  return termDeposits;
+};

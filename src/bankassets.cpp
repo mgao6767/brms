@@ -3,7 +3,8 @@
 
 BankAssets::BankAssets(QStringList header) {
   m_model = new TreeModel(header);
-  m_model->appendRow(QModelIndex(), {CASH, 1000000.0});
+  m_model->appendRow(QModelIndex(),
+                     {CASH, 100000.0}); // This is the initial common equity
   m_model->appendRow(QModelIndex(), {TREASURY_SECURITIES, 0.0});
   m_model->appendRow(QModelIndex(), {LOANS, 0.0});
   m_lastRepricingDate = QuantLib::Settings::instance().evaluationDate();
@@ -24,6 +25,10 @@ bool BankAssets::setCash(double amount) {
   QModelIndex cashAmountIdx = m_model->index(index.row(), TreeColumn::Value);
   return m_model->setData(cashAmountIdx, amount);
 }
+
+void BankAssets::addCash(double amount) { setCash(getCash() + amount); }
+
+void BankAssets::deductCash(double amount) { addCash(-amount); }
 
 bool BankAssets::addTreasuryBill(QuantLib::ZeroCouponBond &bill) {
   QString name = QString("%1% Treasury Bill %2");
@@ -114,7 +119,6 @@ void BankAssets::reprice() {
 
 void BankAssets::updateCashColor(double startingCash, double endingCash) {
   QModelIndex index = m_model->find(TreeColumn::Name, CASH);
-  TreeItem *item = m_model->getItem(index);
   if (endingCash > startingCash) {
     m_model->setData(index.siblingAtColumn(TreeColumn::BackgroundColor),
                      BRMS::GREEN);
