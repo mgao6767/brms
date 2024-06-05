@@ -5,6 +5,12 @@
 #include <QAbstractItemModel>
 #include <QLocale>
 
+namespace BRMS {
+const QColor GREEN{0, 255, 0, 127};
+const QColor RED{255, 0, 0, 127};
+const QColor TRANSPARENT{Qt::transparent};
+} // namespace BRMS
+
 /**
  * @brief The TreeModel class represents the model for a tree structure.
  */

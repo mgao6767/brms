@@ -6,6 +6,7 @@ BankAssets::BankAssets(QStringList header) {
   m_model->appendRow(QModelIndex(), {CASH, 1000000.0});
   m_model->appendRow(QModelIndex(), {TREASURY_SECURITIES, 0.0});
   m_model->appendRow(QModelIndex(), {LOANS, 0.0});
+  m_lastRepricingDate = QuantLib::Settings::instance().evaluationDate();
 }
 
 BankAssets::~BankAssets() { delete m_model; }
@@ -64,7 +65,6 @@ bool BankAssets::addTreasurySecurity(QuantLib::Bond &bond, QString name) {
   TreeItem *treasuryItem = m_model->getItem(index);
   TreeItem *item = new TreeItem({name, bond.NPV(), ref}, treasuryItem);
   treasuryItem->appendChild(item);
-  // update total value of Treasury securities
   updateTotalValue();
   return setCash(cash - bond.NPV());
 }
@@ -74,11 +74,55 @@ void BankAssets::setTreasuryPricingEngine(
   m_treasuryPricingEngine = engine;
 }
 
-void BankAssets::reprice() {
-  repriceTreasurySecurities();
+bool BankAssets::addAmortizingFixedRateLoan(
+    QuantLib::AmortizingFixedRateBond &loan) {
+  QString name = QString("%1% Amortizing Loan %2");
+  QDate maturityDate = qlDateToQDate(loan.maturityDate());
+  name = name.arg(QString::number(loan.nextCouponRate() * 100, 'f', 3));
+  name = name.arg(maturityDate.toString("dd/MM/yyyy"));
 
-  setCash(getCash()); // trigger color update
+  double cash = getCash();
+  if (cash < loan.notional())
+    return false;
+  m_loans.push_back(loan);
+  // ref is the index of the bond in the vector
+  QVariant ref = QVariant::fromValue<unsigned long>(m_loans.size() - 1);
+  // add to tree model
+  QModelIndex index = m_model->find(TreeColumn::Name, LOANS);
+  TreeItem *loanItem = m_model->getItem(index);
+  TreeItem *item = new TreeItem({name, loan.notional(), ref}, loanItem);
+  loanItem->appendChild(item);
+  updateTotalValue();
+  return setCash(cash - loan.notional());
+}
+
+void BankAssets::reprice() {
+  double startingCash = getCash();
+  repriceTreasurySecurities();
+  repriceLoans();
+  double endingCash = getCash();
+
+  updateTotalValue();
+  setCash(endingCash);
+  updateCashColor(startingCash, endingCash);
+
   emit totalAssetsChanged(totalAssets());
+  m_lastRepricingDate = QuantLib::Settings::instance().evaluationDate();
+}
+
+void BankAssets::updateCashColor(double startingCash, double endingCash) {
+  QModelIndex index = m_model->find(TreeColumn::Name, CASH);
+  TreeItem *item = m_model->getItem(index);
+  if (endingCash > startingCash) {
+    m_model->setData(index.siblingAtColumn(TreeColumn::BackgroundColor),
+                     BRMS::GREEN);
+  } else if (endingCash < startingCash) {
+    m_model->setData(index.siblingAtColumn(TreeColumn::BackgroundColor),
+                     BRMS::RED);
+  } else {
+    m_model->setData(index.siblingAtColumn(TreeColumn::BackgroundColor),
+                     BRMS::TRANSPARENT);
+  }
 }
 
 void BankAssets::repriceTreasurySecurities() {
@@ -105,22 +149,53 @@ void BankAssets::repriceTreasurySecurities() {
       setCash(getCash() + totalPaymentAtMaturity);
       // set the instrument to "matured"
       m_model->setData(valueIdx, "Matured");
-      m_model->setData(colorIdx, QColor(Qt::transparent));
+      m_model->setData(colorIdx, BRMS::TRANSPARENT);
     } else {
       // not yet matured
       auto npv = instrument.NPV();
       m_model->setData(valueIdx, npv);
     }
   }
-  updateTotalValue();
+}
+
+void BankAssets::repriceLoans() {
+  QModelIndex index = m_model->find(TreeColumn::Name, LOANS);
+  TreeItem *item = m_model->getItem(index);
+  QuantLib::Date today = QuantLib::Settings::instance().evaluationDate();
+  double totalPayment = 0.0;
+  for (size_t i = 0; i < item->childCount(); i++) {
+    auto bond = item->child(i);
+    // j is the location of the bond in the vector
+    auto j = bond->data(TreeColumn::Ref).toInt();
+    QuantLib::Bond &instrument = m_loans[j];
+    if (instrument.isExpired()) {
+      continue;
+    }
+    for (auto &c : instrument.cashflows()) {
+      // today in the simulation may not coincide with the cash flow day
+      if (m_lastRepricingDate < c->date() && c->date() <= today)
+        totalPayment += c->amount();
+    }
+    auto valueIdx = m_model->index(i, TreeColumn::Value, index);
+    m_model->setData(valueIdx, instrument.notional());
+  }
+  if (totalPayment > 0) {
+    setCash(getCash() + totalPayment);
+  }
 }
 
 void BankAssets::updateTotalValue() {
+  // Treasuries
   QModelIndex indexTreasury =
       m_model->find(TreeColumn::Name, TREASURY_SECURITIES);
   double totalValue = getTotalValueOfTreasurySecurities();
   m_model->setData(indexTreasury.siblingAtColumn(TreeColumn::Value),
                    totalValue);
+
+  // loans
+  QModelIndex indexLoans = m_model->find(TreeColumn::Name, LOANS);
+  double loanValue = getTotalValueOfLoans();
+  m_model->setData(indexLoans.siblingAtColumn(TreeColumn::Value), loanValue);
 }
 
 double BankAssets::totalAssets() const {
@@ -142,4 +217,13 @@ double BankAssets::getTotalValueOfTreasurySecurities() const {
   return totalValue;
 }
 
-double BankAssets::getTotalValueOfLoans() const { return 0; }
+double BankAssets::getTotalValueOfLoans() const {
+  QModelIndex index = m_model->find(TreeColumn::Name, LOANS);
+  TreeItem *item = m_model->getItem(index);
+  double totalValue = 0.0;
+  for (size_t i = 0; i < item->childCount(); i++) {
+    auto bond = item->child(i);
+    totalValue += bond->data(TreeColumn::Value).toDouble();
+  }
+  return totalValue;
+}

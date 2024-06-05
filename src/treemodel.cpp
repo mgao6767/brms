@@ -1,10 +1,6 @@
 #include "brms/treemodel.h"
 #include "brms/treeitem.h"
 
-const QColor GREEN{0, 255, 0, 127};
-const QColor RED{255, 0, 0, 127};
-const QColor TRANSPARENT{Qt::transparent};
-
 TreeModel::TreeModel(const QStringList &headers, QObject *parent)
     : QAbstractItemModel(parent) {
   QVector<QVariant> rootData;
@@ -165,16 +161,16 @@ bool TreeModel::setData(const QModelIndex &index, const QVariant &value,
 
   if (index.column() == TreeColumn::Value) {
     if (!value.canConvert<double>()) {
-      item->setData(TreeColumn::BackgroundColor, TRANSPARENT);
+      item->setData(TreeColumn::BackgroundColor, BRMS::TRANSPARENT);
     } else {
       double oldValue = item->data(TreeColumn::Value).toDouble();
       double newValue = value.toDouble();
       if (newValue > oldValue) {
-        item->setData(TreeColumn::BackgroundColor, GREEN);
+        item->setData(TreeColumn::BackgroundColor, BRMS::GREEN);
       } else if (newValue < oldValue) {
-        item->setData(TreeColumn::BackgroundColor, RED);
+        item->setData(TreeColumn::BackgroundColor, BRMS::RED);
       } else {
-        item->setData(TreeColumn::BackgroundColor, TRANSPARENT);
+        item->setData(TreeColumn::BackgroundColor, BRMS::TRANSPARENT);
       }
     }
     item->setData(TreeColumn::Value, value);

@@ -87,6 +87,8 @@ public:
   void setTreasuryPricingEngine(
       const QuantLib::ext::shared_ptr<QuantLib::DiscountingBondEngine> &engine);
 
+  bool addAmortizingFixedRateLoan(QuantLib::AmortizingFixedRateBond &loan);
+
   /**
    * @brief Returns the total assets.
    *
@@ -100,7 +102,9 @@ private:
   const QString LOANS{"Loans and other receivables"};
 
   TreeModel *m_model;
+  QuantLib::Date m_lastRepricingDate;
   std::vector<QuantLib::Bond> m_treasurySecurities;
+  std::vector<QuantLib::Bond> m_loans;
   QuantLib::ext::shared_ptr<QuantLib::DiscountingBondEngine>
       m_treasuryPricingEngine;
 
@@ -118,7 +122,18 @@ private:
    */
   void updateTotalValue();
 
+  /**
+   * @brief Updates cash color.
+   * Because cash can be updated multiple times during repricing, it is best to
+   * manually trigger updating, instead of relying on the TreeItem self update.
+   *
+   * @param startingCash
+   * @param endingCash
+   */
+  void updateCashColor(double startingCash, double endingCash);
+
   void repriceTreasurySecurities();
+  void repriceLoans();
 
 public slots:
   void reprice();

@@ -7,10 +7,6 @@
 #include <ql/time/calendars/unitedstates.hpp>
 #include <ql/time/daycounters/actualactual.hpp>
 
-Q_DECLARE_METATYPE(QuantLib::Bond *)
-Q_DECLARE_METATYPE(QuantLib::FixedRateBond *)
-Q_DECLARE_METATYPE(QuantLib::ZeroCouponBond *)
-
 class Instruments {
 public:
   Instruments();
@@ -20,6 +16,13 @@ public:
       QuantLib::Real interestRate, QuantLib::Real faceAmount = 100.0,
       QuantLib::Period frequency = QuantLib::Period(QuantLib::Semiannual),
       QuantLib::Real redemption = 100.0, QuantLib::Natural settlementDays = 0,
+      const QuantLib::ext::shared_ptr<QuantLib::PricingEngine> &pricingEngine =
+          nullptr);
+
+  QuantLib::AmortizingFixedRateBond makeAmortizingFixedRateBond(
+      const QuantLib::Date &issueDate, const QuantLib::Period &maturity,
+      const QuantLib::Rate &interestRate, const QuantLib::Real &faceAmount,
+      const QuantLib::Frequency frequency = QuantLib::Monthly,
       const QuantLib::ext::shared_ptr<QuantLib::PricingEngine> &pricingEngine =
           nullptr);
 };

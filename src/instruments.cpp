@@ -1,28 +1,51 @@
 #include "brms/instruments.h"
 
+using namespace QuantLib;
+
 Instruments::Instruments() {}
 
-QuantLib::FixedRateBond Instruments::makeFixedRateTresuryBond(
-    QuantLib::Date issueDate, QuantLib::Date matureDate,
-    QuantLib::Real interestRate, QuantLib::Real faceAmount,
-    QuantLib::Period frequency, QuantLib::Real redemption,
-    QuantLib::Natural settlementDays,
-    const QuantLib::ext::shared_ptr<QuantLib::PricingEngine> &pricingEngine) {
+FixedRateBond Instruments::makeFixedRateTresuryBond(
+    Date issueDate, Date matureDate, Real interestRate, Real faceAmount,
+    Period frequency, Real redemption, Natural settlementDays,
+    const ext::shared_ptr<PricingEngine> &pricingEngine) {
 
-  QuantLib::Schedule fixedBondSchedule(
-      issueDate, matureDate, frequency,
-      QuantLib::UnitedStates(QuantLib::UnitedStates::GovernmentBond),
-      QuantLib::Following, QuantLib::Following,
-      QuantLib::DateGeneration::Backward, false);
+  Schedule fixedBondSchedule(issueDate, matureDate, frequency,
+                             UnitedStates(UnitedStates::GovernmentBond),
+                             Following, Following, DateGeneration::Backward,
+                             false);
 
-  QuantLib::FixedRateBond fixedRateBond(
-      settlementDays, faceAmount, fixedBondSchedule,
-      std::vector<QuantLib::Rate>(1, interestRate),
-      QuantLib::ActualActual(QuantLib::ActualActual::Bond), QuantLib::Following,
-      100.0, issueDate);
+  FixedRateBond fixedRateBond(settlementDays, faceAmount, fixedBondSchedule,
+                              std::vector<Rate>(1, interestRate),
+                              ActualActual(ActualActual::Bond), Following,
+                              100.0, issueDate);
 
   if (pricingEngine)
     fixedRateBond.setPricingEngine(pricingEngine);
 
   return fixedRateBond;
+}
+
+AmortizingFixedRateBond Instruments::makeAmortizingFixedRateBond(
+    const Date &issueDate, const Period &maturity, const Rate &interestRate,
+    const Real &faceAmount, const Frequency frequency,
+    const ext::shared_ptr<PricingEngine> &pricingEngine) {
+
+  auto calendar = NullCalendar();
+
+  Schedule schedule = sinkingSchedule(issueDate, maturity, frequency, calendar);
+
+  std::vector<Real> notionals =
+      sinkingNotionals(maturity, frequency, interestRate, faceAmount);
+
+  Natural settlementDays = 0;
+  auto convention = ActualActual(ActualActual::ISMA);
+
+  AmortizingFixedRateBond loan = AmortizingFixedRateBond(
+      settlementDays, notionals, schedule, std::vector<Real>(1, interestRate),
+      convention, Following, issueDate);
+
+  if (pricingEngine)
+    loan.setPricingEngine(pricingEngine);
+
+  return loan;
 }

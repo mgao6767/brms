@@ -54,20 +54,29 @@ void Bank::init(QDate today) {
     auto issueDate = todaysDate - 4 * QuantLib::Years;
     auto matureDate = todaysDate + 1 * QuantLib::Weeks;
     auto bond = factory.makeFixedRateTresuryBond(issueDate, matureDate,
-                                                 0.0125 * (i + 1), 100);
+                                                 0.0125 * (i + 1), 10000);
     assets()->addTreasuryNote(bond);
   }
   for (size_t i = 0; i < 1; i++) {
     auto issueDate = todaysDate - 1 * QuantLib::Years;
     auto matureDate = issueDate + 10 * QuantLib::Years;
     auto bond = factory.makeFixedRateTresuryBond(issueDate, matureDate, 0.015,
-                                                 100 * 50);
+                                                 100 * 200);
     assets()->addTreasuryNote(bond);
   }
 
   auto issueDate = todaysDate - 1 * QuantLib::Years;
   auto matureDate = issueDate + 20 * QuantLib::Years;
   auto bond =
-      factory.makeFixedRateTresuryBond(issueDate, matureDate, 0.02, 100 * 100);
+      factory.makeFixedRateTresuryBond(issueDate, matureDate, 0.02, 200000);
   assets()->addTreasuryBond(bond);
+
+  auto loan = factory.makeAmortizingFixedRateBond(
+      todaysDate, QuantLib::Period(30, QuantLib::Years), 0.07, 100000);
+  assets()->addAmortizingFixedRateLoan(loan);
+
+  auto loan2 = factory.makeAmortizingFixedRateBond(
+      issueDate - 10 * QuantLib::Years, QuantLib::Period(30, QuantLib::Years),
+      0.05, 200000);
+  assets()->addAmortizingFixedRateLoan(loan2);
 }
