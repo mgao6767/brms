@@ -2,7 +2,7 @@
 
 BankEquity::BankEquity(QStringList header) {
   m_model = new TreeModel(header);
-  m_model->appendRow(QModelIndex(), {EQUITY, 50000.0});
+  m_model->appendRow(QModelIndex(), {EQUITY, 0});
 }
 
 BankEquity::~BankEquity() { delete m_model; }
@@ -10,3 +10,10 @@ BankEquity::~BankEquity() { delete m_model; }
 TreeModel *BankEquity::model() { return m_model; }
 
 void BankEquity::reprice() {}
+
+void BankEquity::reprice(double totalAssets, double totalLiabilities) {
+  QModelIndex index = m_model->find(TreeColumn::Name, EQUITY);
+  QModelIndex equityAmountIdx = index.siblingAtColumn(TreeColumn::Value);
+  double equityValue = totalAssets - totalLiabilities;
+  m_model->setData(equityAmountIdx, equityValue);
+}

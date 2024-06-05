@@ -65,7 +65,7 @@ bool BankAssets::addTreasurySecurity(QuantLib::Bond &bond, QString name) {
   TreeItem *item = new TreeItem({name, bond.NPV(), ref}, treasuryItem);
   treasuryItem->appendChild(item);
   // update total value of Treasury securities
-  updateTotalValue(false);
+  updateTotalValue();
   return setCash(cash - bond.NPV());
 }
 
@@ -75,14 +75,10 @@ void BankAssets::setTreasuryPricingEngine(
 }
 
 void BankAssets::reprice() {
-  double startingCash = getCash();
-
   repriceTreasurySecurities();
 
-  // update cash color
-  QModelIndex cashIndex = m_model->find(TreeColumn::Name, CASH);
-  double endingCash = getCash();
-  updateColor(cashIndex, endingCash, startingCash);
+  setCash(getCash()); // trigger color update
+  emit totalAssetsChanged(totalAssets());
 }
 
 void BankAssets::repriceTreasurySecurities() {
@@ -93,8 +89,9 @@ void BankAssets::repriceTreasurySecurities() {
     // j is the location of the bond in the vector
     auto j = bond->data(TreeColumn::Ref).toInt();
     QuantLib::Bond &instrument = m_treasurySecurities[j];
-    if (instrument.isExpired())
+    if (instrument.isExpired()) {
       continue;
+    }
     // if today is maturity date
     auto colorIdx = m_model->index(i, TreeColumn::BackgroundColor, index);
     auto valueIdx = m_model->index(i, TreeColumn::Value, index);
@@ -108,19 +105,33 @@ void BankAssets::repriceTreasurySecurities() {
       setCash(getCash() + totalPaymentAtMaturity);
       // set the instrument to "matured"
       m_model->setData(valueIdx, "Matured");
-      m_model->setData(colorIdx, TRANSPARENT);
+      m_model->setData(colorIdx, QColor(Qt::transparent));
     } else {
       // not yet matured
       auto npv = instrument.NPV();
-      auto idx = m_model->index(i, TreeColumn::Value, index);
-      updateColor(idx, npv);
       m_model->setData(valueIdx, npv);
     }
   }
   updateTotalValue();
 }
 
-void BankAssets::updateTotalValue(bool updateColor) {
+void BankAssets::updateTotalValue() {
+  QModelIndex indexTreasury =
+      m_model->find(TreeColumn::Name, TREASURY_SECURITIES);
+  double totalValue = getTotalValueOfTreasurySecurities();
+  m_model->setData(indexTreasury.siblingAtColumn(TreeColumn::Value),
+                   totalValue);
+}
+
+double BankAssets::totalAssets() const {
+  double cash = getCash();
+  double treasuries = getTotalValueOfTreasurySecurities();
+  double loans = getTotalValueOfLoans();
+
+  return cash + treasuries + loans;
+}
+
+double BankAssets::getTotalValueOfTreasurySecurities() const {
   QModelIndex index = m_model->find(TreeColumn::Name, TREASURY_SECURITIES);
   TreeItem *treasuryItem = m_model->getItem(index);
   double totalValue = 0.0;
@@ -128,25 +139,7 @@ void BankAssets::updateTotalValue(bool updateColor) {
     auto bond = treasuryItem->child(i);
     totalValue += bond->data(TreeColumn::Value).toDouble();
   }
-  if (updateColor) {
-    BankAssets::updateColor(index, totalValue);
-  }
-  m_model->setData(index.siblingAtColumn(TreeColumn::Value), totalValue);
+  return totalValue;
 }
 
-void BankAssets::updateColor(QModelIndex index, double newValue,
-                             double currentValue) {
-  auto colorIdx = index.siblingAtColumn(TreeColumn::BackgroundColor);
-  m_model->setData(colorIdx, TRANSPARENT, Qt::BackgroundRole);
-  if (newValue > currentValue) {
-    m_model->setData(colorIdx, GREEN, Qt::BackgroundRole);
-  } else if (newValue < currentValue) {
-    m_model->setData(colorIdx, RED, Qt::BackgroundRole);
-  }
-}
-
-void BankAssets::updateColor(QModelIndex index, double newValue) {
-  TreeItem *item = m_model->getItem(index);
-  double currentValue = item->data(TreeColumn::Value).toDouble();
-  BankAssets::updateColor(index, newValue, currentValue);
-}
+double BankAssets::getTotalValueOfLoans() const { return 0; }

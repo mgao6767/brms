@@ -1,6 +1,10 @@
 #include "brms/treemodel.h"
 #include "brms/treeitem.h"
 
+const QColor GREEN{0, 255, 0, 127};
+const QColor RED{255, 0, 0, 127};
+const QColor TRANSPARENT{Qt::transparent};
+
 TreeModel::TreeModel(const QStringList &headers, QObject *parent)
     : QAbstractItemModel(parent) {
   QVector<QVariant> rootData;
@@ -156,12 +160,30 @@ bool TreeModel::setData(const QModelIndex &index, const QVariant &value,
     return false;
 
   TreeItem *item = getItem(index);
-  if (item && item->setData(index.column(), value)) {
-    if (index.column() == TreeColumn::BackgroundColor) {
-      emit dataChanged(index.siblingAtColumn(TreeColumn::Value), index, {role});
+  if (!item)
+    return false;
+
+  if (index.column() == TreeColumn::Value) {
+    if (!value.canConvert<double>()) {
+      item->setData(TreeColumn::BackgroundColor, TRANSPARENT);
     } else {
-      emit dataChanged(index, index, {role});
+      double oldValue = item->data(TreeColumn::Value).toDouble();
+      double newValue = value.toDouble();
+      if (newValue > oldValue) {
+        item->setData(TreeColumn::BackgroundColor, GREEN);
+      } else if (newValue < oldValue) {
+        item->setData(TreeColumn::BackgroundColor, RED);
+      } else {
+        item->setData(TreeColumn::BackgroundColor, TRANSPARENT);
+      }
     }
+    item->setData(TreeColumn::Value, value);
+    emit dataChanged(index, index, {role, Qt::BackgroundRole});
+    return true;
+  }
+
+  if (item && item->setData(index.column(), value)) {
+    emit dataChanged(index, index, {role});
     return true;
   }
   return false;

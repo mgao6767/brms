@@ -3,9 +3,11 @@
 
 #include "instruments.h"
 #include "treemodel.h"
+#include <QObject>
 #include <ql/pricingengines/bond/discountingbondengine.hpp>
 
-class BankAssets {
+class BankAssets : public QObject {
+  Q_OBJECT
 public:
   BankAssets(QStringList header = {"Asset", "Value"});
   ~BankAssets();
@@ -32,6 +34,20 @@ public:
    * @return false if unsuccessful
    */
   bool setCash(double amount);
+
+  /**
+   * @brief Gets the amount of total Treasury securities.
+   *
+   * @return double
+   */
+  double getTotalValueOfTreasurySecurities() const;
+
+  /**
+   * @brief Gets the amount of total loans.
+   *
+   * @return double
+   */
+  double getTotalValueOfLoans() const;
 
   /**
    * @brief Adds Treasury Bill to assets.
@@ -63,16 +79,25 @@ public:
    */
   bool addTreasuryBond(QuantLib::FixedRateBond &bond);
 
+  /**
+   * @brief Sets the Treasury Pricing Engine
+   * Used for repricing the treasury securities.
+   * @param engine
+   */
   void setTreasuryPricingEngine(
       const QuantLib::ext::shared_ptr<QuantLib::DiscountingBondEngine> &engine);
+
+  /**
+   * @brief Returns the total assets.
+   *
+   * @return double The value of total assets.
+   */
+  double totalAssets() const;
 
 private:
   const QString CASH{"Cash and reserves"};
   const QString TREASURY_SECURITIES{"Treasury Securities"};
   const QString LOANS{"Loans and other receivables"};
-  const QColor GREEN{0, 255, 0, 127};
-  const QColor RED{255, 0, 0, 127};
-  const QColor TRANSPARENT{Qt::transparent};
 
   TreeModel *m_model;
   std::vector<QuantLib::Bond> m_treasurySecurities;
@@ -90,23 +115,16 @@ private:
 
   /**
    * @brief Updates the total value.
-   * @param updateColor Whether to update color. Defaults to true.
    */
-  void updateTotalValue(bool updateColor = true);
-
-  /**
-   * @brief Updates the background color of asset value.
-   *
-   * @param index Index of the item.
-   * @param newValue New value of the asset value.
-   */
-  void updateColor(QModelIndex index, double newValue);
-  void updateColor(QModelIndex index, double newValue, double currentValue);
+  void updateTotalValue();
 
   void repriceTreasurySecurities();
 
 public slots:
   void reprice();
+
+signals:
+  void totalAssetsChanged(double totalAssets);
 };
 
 #endif // BANKASSETS_H

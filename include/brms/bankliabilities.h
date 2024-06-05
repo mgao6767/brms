@@ -3,10 +3,11 @@
 
 #include "instruments.h"
 #include "treemodel.h"
+#include <QObject>
 #include <QStringList>
-#include <QColor>
 
-class BankLiabilities {
+class BankLiabilities : public QObject {
+  Q_OBJECT
 public:
   BankLiabilities(QStringList header = {"Liability", "Value"});
   ~BankLiabilities();
@@ -18,16 +19,23 @@ public:
    */
   TreeModel *model();
 
+  /**
+   * @brief Get the amount of total liabilities
+   *
+   * @return double
+   */
+  double totalLiabilities() const;
+
 private:
   const QString DEPOSITS{"Deposits"};
-  const QColor GREEN{0, 255, 0, 127};
-  const QColor RED{255, 0, 0, 127};
-  const QColor TRANSPARENT{Qt::transparent};
 
   TreeModel *m_model;
 
 public slots:
   void reprice();
+
+signals:
+  void totalLiabilitiesChanged(double totalLiabilities);
 };
 
 #endif // BANKLIABILITIES_H

@@ -3,10 +3,18 @@
 #include "brms/utils.h"
 #include <qDebug>
 
-Bank::Bank(QObject *parent) : QObject{parent} {
+Bank::Bank(QObject *parent) : QObject{parent}, receivedRepricingSignals(0) {
   m_assets = new BankAssets({"Asset", "Value"});
   m_liabilities = new BankLiabilities({"Liability", "Value"});
   m_equity = new BankEquity({"Equity", "Value"});
+
+  // set the initial equity
+  updateEquity(true);
+
+  connect(m_assets, SIGNAL(totalAssetsChanged(double)), this,
+          SLOT(updateEquity()));
+  connect(m_liabilities, SIGNAL(totalLiabilitiesChanged(double)), this,
+          SLOT(updateEquity()));
 }
 
 Bank::~Bank() {
@@ -16,8 +24,25 @@ Bank::~Bank() {
 }
 
 BankAssets *Bank::assets() { return m_assets; }
+
 BankLiabilities *Bank::liabilities() { return m_liabilities; }
+
 BankEquity *Bank::equity() { return m_equity; }
+
+void Bank::updateEquity(bool force) {
+  if (!force)
+    ++receivedRepricingSignals;
+  // Reprice equity only after receiving two signals
+  // from totalAssetsChanged and totalLiabilitiesChanged.
+  // In a step of simulation, both assets and liabilities will be repriced,
+  // which sends two signals.
+  if ((receivedRepricingSignals == 2) | force) {
+    double totalAssets = m_assets->totalAssets();
+    double totalLiabilities = m_liabilities->totalLiabilities();
+    m_equity->reprice(totalAssets, totalLiabilities);
+    receivedRepricingSignals = 0;
+  }
+}
 
 void Bank::init(QDate today) {
 

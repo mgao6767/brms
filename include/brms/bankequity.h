@@ -3,10 +3,11 @@
 
 #include "instruments.h"
 #include "treemodel.h"
-#include <QColor>
+#include <QObject>
 #include <QStringList>
 
-class BankEquity {
+class BankEquity : public QObject {
+  Q_OBJECT
 public:
   BankEquity(QStringList header);
   ~BankEquity();
@@ -20,14 +21,12 @@ public:
 
 private:
   const QString EQUITY{"Common equity"};
-  const QColor GREEN{0, 255, 0, 127};
-  const QColor RED{255, 0, 0, 127};
-  const QColor TRANSPARENT{Qt::transparent};
 
   TreeModel *m_model;
 
 public slots:
   void reprice();
+  void reprice(double totalAssets, double totalLiabilities);
 };
 
 #endif // BANKEQUITY_H
