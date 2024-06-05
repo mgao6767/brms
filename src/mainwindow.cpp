@@ -49,9 +49,8 @@ void MainWindow::setupConnection() {
   for (int c = 0; c < m_bank->assets()->model()->columnCount(); ++c) {
     view->resizeColumnToContents(c);
   }
-  connect(this, &MainWindow::simulationDateChanged, this, [&]() {
-    this->m_bank->assets()->reprice();
-  });
+  connect(this, &MainWindow::simulationDateChanged, this,
+          [&]() { this->m_bank->assets()->reprice(); });
 
   // liabilities tree view
   QTreeView *liabilitiesView = ui->liabilitiesTreeView;
@@ -63,10 +62,21 @@ void MainWindow::setupConnection() {
   for (int c = 0; c < m_bank->liabilities()->model()->columnCount(); ++c) {
     liabilitiesView->resizeColumnToContents(c);
   }
-  connect(this, &MainWindow::simulationDateChanged, this, [&]() {
-    this->m_bank->liabilities()->reprice();
-  });
+  connect(this, &MainWindow::simulationDateChanged, this,
+          [&]() { this->m_bank->liabilities()->reprice(); });
 
+  // equity tree view
+  QTreeView *equityTreeView = ui->equityTreeView;
+  equityTreeView->setModel(m_bank->equity()->model());
+  equityTreeView->hideColumn(TreeColumn::Ref);
+  equityTreeView->hideColumn(TreeColumn::BackgroundColor);
+  equityTreeView->expandAll();
+  equityTreeView->setAlternatingRowColors(true);
+  for (int c = 0; c < m_bank->equity()->model()->columnCount(); ++c) {
+    equityTreeView->resizeColumnToContents(c);
+  }
+  connect(this, &MainWindow::simulationDateChanged, this,
+          [&]() { this->m_bank->equity()->reprice(); });
 }
 
 MainWindow::~MainWindow() {
