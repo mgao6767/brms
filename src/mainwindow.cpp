@@ -87,8 +87,8 @@ MainWindow::~MainWindow() {
   delete ui;
   delete m_bank;
   delete m_equitySeries;
-  delete m_equityChart;
-  delete m_chartView;
+  // delete m_equityChart;
+  // delete m_chartView; // will be deleted by ui
   delete m_axisX;
   delete m_axisY;
 }
