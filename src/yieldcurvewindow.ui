@@ -26,6 +26,16 @@
       <item row="0" column="0">
        <widget class="QWidget" name="chartPlaceholderWidget" native="true"/>
       </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="checkBox_AdjustYaxis">
+        <property name="text">
+         <string>Adjust Y-axis</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

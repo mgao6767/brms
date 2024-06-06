@@ -15,6 +15,19 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
+    <item row="1" column="6">
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
     <item row="2" column="6">
      <widget class="QWidget" name="widget" native="true">
       <property name="sizePolicy">
@@ -87,19 +100,6 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="6">
-     <spacer name="verticalSpacer">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -128,6 +128,10 @@
      <string>View</string>
     </property>
     <addaction name="actionYield_Curve"/>
+    <addaction name="actionBalance_Sheet"/>
+    <addaction name="actionHistory"/>
+    <addaction name="separator"/>
+    <addaction name="actionRestore"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
@@ -191,12 +195,49 @@
     </layout>
    </widget>
   </widget>
+  <widget class="QDockWidget" name="dockWidget_YieldCurve">
+   <property name="minimumSize">
+    <size>
+     <width>900</width>
+     <height>400</height>
+    </size>
+   </property>
+   <property name="windowTitle">
+    <string>Yield Curve</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>4</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_YiledCurve">
+    <layout class="QGridLayout" name="gridLayout_YieldCurve">
+     <item row="0" column="0">
+      <widget class="QWidget" name="placeholderYieldCurveWindow" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="autoFillBackground">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
   <action name="actionAbout_Qt">
    <property name="text">
     <string>About Qt</string>
    </property>
   </action>
   <action name="actionYield_Curve">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Yield Curve</string>
    </property>
@@ -204,6 +245,33 @@
   <action name="actionImport_yield_curve_data">
    <property name="text">
     <string>Import yield curve data</string>
+   </property>
+  </action>
+  <action name="actionBalance_Sheet">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Balance Sheet</string>
+   </property>
+  </action>
+  <action name="actionHistory">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>History</string>
+   </property>
+  </action>
+  <action name="actionRestore">
+   <property name="text">
+    <string>Restore default view</string>
    </property>
   </action>
  </widget>

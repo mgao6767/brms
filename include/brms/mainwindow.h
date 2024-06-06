@@ -61,6 +61,11 @@ private:
 
   void advanceToNextPeriodInSimulation();
   void updateEquityEvolutionChart();
+
+  void toggleYieldCurveWindow();
+  void toggleBalanceSheet();
+  void toggleHistory();
+  void restoreAllViews();
 };
 
 #endif // MAINWINDOW_H

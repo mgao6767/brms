@@ -24,20 +24,20 @@ YieldCurveWindow::YieldCurveWindow(QWidget *parent)
   qDebug() << "Init Yield Curve Window";
   ui->setupUi(this);
 
-  m_model = std::make_shared<YieldCurveDataModel>();
-  m_chart = std::make_shared<QChart>();
-  m_series = std::make_shared<QLineSeries>();
-  m_mapper = std::make_shared<QHXYModelMapper>(this);
-  m_axisX = std::make_shared<QDateTimeAxis>();
-  m_axisY = std::make_shared<QValueAxis>();
-  m_chartView = std::make_shared<QChartView>(m_chart.get(), this);
-  m_seriesZeroRates = std::make_shared<QLineSeries>();
+  m_model = new YieldCurveDataModel();
+  m_chart = new QChart();
+  m_series = new QLineSeries();
+  m_mapper = new QHXYModelMapper(this);
+  m_axisX = new QDateTimeAxis();
+  m_axisY = new QValueAxis();
+  m_chartView = new QChartView(m_chart, this);
+  m_seriesZeroRates = new QLineSeries();
   // Pricing engine
   m_bondEngine =
       ext::make_shared<DiscountingBondEngine>(m_discountingTermStructure);
 
   // setup table view
-  ui->tableView->setModel(m_model.get());
+  ui->tableView->setModel(m_model);
   ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
   ui->tableView->horizontalHeader()->setDefaultAlignment(Qt::AlignRight);
   ui->tableView->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -55,31 +55,31 @@ YieldCurveWindow::YieldCurveWindow(QWidget *parent)
   m_axisX->setTitleText("Maturity Date");
   m_axisY->setRange(0, 7); // 0% to 7%
   m_axisY->setLabelFormat("%.2f%");
-  m_axisY->setTitleText("Rate");
+  // m_axisY->setTitleText("Rate");
 
   // mapper from model to view
   m_mapper->setXRow(0);
   m_mapper->setYRow(1);
-  m_mapper->setSeries(m_series.get());
-  m_mapper->setModel(m_model.get());
+  m_mapper->setSeries(m_series);
+  m_mapper->setModel(m_model);
 
   // setup chart
-  m_chart->addSeries(m_series.get());
-  m_chart->addSeries(m_seriesZeroRates.get());
+  m_chart->addSeries(m_series);
+  m_chart->addSeries(m_seriesZeroRates);
 
-  m_chart->addAxis(m_axisX.get(), Qt::AlignBottom);
-  m_chart->addAxis(m_axisY.get(), Qt::AlignLeft);
+  m_chart->addAxis(m_axisX, Qt::AlignBottom);
+  m_chart->addAxis(m_axisY, Qt::AlignLeft);
   m_chart->setAnimationOptions(QChart::SeriesAnimations);
 
   // series of official par yields
   // attach axes after they are added to the chart
   m_series->setName("Par Yield Curve");
-  m_series->attachAxis(m_axisX.get());
-  m_series->attachAxis(m_axisY.get());
+  m_series->attachAxis(m_axisX);
+  m_series->attachAxis(m_axisY);
 
   m_seriesZeroRates->setName("Interpolated Zero Rate");
-  m_seriesZeroRates->attachAxis(m_axisX.get());
-  m_seriesZeroRates->attachAxis(m_axisY.get());
+  m_seriesZeroRates->attachAxis(m_axisX);
+  m_seriesZeroRates->attachAxis(m_axisY);
 
   // aesthetics
   QFont titleFont = QFont();
@@ -89,8 +89,7 @@ YieldCurveWindow::YieldCurveWindow(QWidget *parent)
   m_chartView->setRenderHint(QPainter::Antialiasing);
 
   // add the chart to the window
-  ui->chartGridLayout->replaceWidget(ui->chartPlaceholderWidget,
-                                     m_chartView.get());
+  ui->chartGridLayout->replaceWidget(ui->chartPlaceholderWidget, m_chartView);
 
   // connect signals
   connect(ui->tableView->selectionModel(),
@@ -100,7 +99,13 @@ YieldCurveWindow::YieldCurveWindow(QWidget *parent)
   qDebug() << "Done init Yield Curve Window";
 }
 
-YieldCurveWindow::~YieldCurveWindow() { delete ui; }
+YieldCurveWindow::~YieldCurveWindow() {
+  delete ui;
+  delete m_model;
+  delete m_axisX;
+  delete m_axisY;
+  delete m_seriesZeroRates;
+}
 
 std::vector<QDate> &YieldCurveWindow::dates() { return m_model->dates(); }
 
@@ -122,11 +127,13 @@ void YieldCurveWindow::changeYieldCurvePlot() {
   maxDateTime.setDate(date.addYears(30)); // max is 30yr
   m_axisX->setRange(minDateTime, maxDateTime);
   // update y axis?
-  // qreal maxY = -100;
-  // for (auto &p : m_series->points()) {
-  //   maxY = maxY < p.y() ? p.y() : maxY;
-  // }
-  // m_axisY->setRange(0, maxY + 1);
+  if (ui->checkBox_AdjustYaxis->isChecked()) {
+    qreal maxY = -100;
+    for (auto &p : m_series->points()) {
+      maxY = maxY < p.y() ? p.y() : maxY;
+    }
+    m_axisY->setRange(0, maxY + 1);
+  }
   interpolateYieldCurve();
   m_today = date;
   emit yieldCurveChanged(date);

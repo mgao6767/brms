@@ -1,4 +1,5 @@
 #include "brms/mainwindow.h"
+#include "QtWidgets/qgraphicslayout.h"
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
@@ -16,6 +17,8 @@ void MainWindow::setupUi() {
   ui->setupUi(this);
   m_yieldCurveWindow = new YieldCurveWindow();
   m_yieldCurveWindow->importYieldCurveData(":/resources/par_yields.csv");
+  ui->gridLayout_YieldCurve->replaceWidget(ui->placeholderYieldCurveWindow,
+                                           m_yieldCurveWindow);
 
   // by default, simulation starts from the first day
   m_todayInSimulation = m_yieldCurveWindow->dates()[0];
@@ -61,7 +64,12 @@ void MainWindow::setupUi() {
   m_equitySeries->attachAxis(m_axisX);
   m_equitySeries->attachAxis(m_axisY);
 
+  QFont titleFont = QFont();
+  titleFont.setWeight(QFont::Weight::Bold);
+  m_equityChart->setTitleFont(titleFont);
+  m_equityChart->layout()->setContentsMargins(0, 0, 0, 0);
   m_equityChart->setTitle("Bank Equity Value");
+  m_equityChart->setAnimationOptions(QChart::SeriesAnimations);
   m_chartView->setRenderHint(QPainter::Antialiasing);
 
   QDateTime dt;
@@ -82,8 +90,31 @@ void MainWindow::setupConnection() {
           &MainWindow::importYieldCurveData);
   connect(ui->nextPeriodPushButton, &QPushButton::clicked, this,
           &MainWindow::advanceToNextPeriodInSimulation);
-  // connect(ui->buyTreasuryPushButton, &QPushButton::clicked, this,
-  //         &MainWindow::buyTreasury);
+
+  // views
+  connect(ui->actionYield_Curve, &QAction::triggered, this,
+          &MainWindow::toggleYieldCurveWindow);
+  connect(ui->dockWidget_YieldCurve, &QDockWidget::visibilityChanged, this,
+          [&]() {
+            ui->actionYield_Curve->setChecked(
+                ui->dockWidget_YieldCurve->isVisible());
+          });
+  connect(ui->actionBalance_Sheet, &QAction::triggered, this,
+          &MainWindow::toggleBalanceSheet);
+  connect(ui->dockWidget_BalanceSheet, &QDockWidget::visibilityChanged, this,
+          [&]() {
+            ui->actionBalance_Sheet->setChecked(
+                ui->dockWidget_BalanceSheet->isVisible());
+          });
+  connect(ui->actionHistory, &QAction::triggered, this,
+          &MainWindow::toggleHistory);
+  connect(ui->dockWidget_History, &QDockWidget::visibilityChanged, this, [&]() {
+    ui->actionHistory->setChecked(ui->dockWidget_History->isVisible());
+  });
+  connect(ui->actionRestore, &QAction::triggered, this,
+          &MainWindow::restoreAllViews);
+
+  // history
   connect(m_bank->liabilities(), &BankLiabilities::interestPaymentToMake,
           ui->textBrowser, [this](double amount) {
             QString text("[%1] Interest payment or withdrawal on deposits. "
@@ -166,9 +197,9 @@ void MainWindow::setTodaysDateLabel() {
 }
 
 void MainWindow::showYieldCurve() {
-  m_yieldCurveWindow->show();
-  m_yieldCurveWindow->raise();
-  m_yieldCurveWindow->setWindowState(Qt::WindowState::WindowActive);
+  ui->dockWidget_YieldCurve->show();
+  addDockWidget(Qt::DockWidgetArea::TopDockWidgetArea,
+                ui->dockWidget_YieldCurve);
 }
 
 void MainWindow::importYieldCurveData() {
@@ -191,4 +222,42 @@ void MainWindow::closeEvent(QCloseEvent *event) {
   }
   event->accept();
   QMainWindow::closeEvent(event);
+}
+
+void MainWindow::toggleYieldCurveWindow() {
+  if (ui->actionYield_Curve->isChecked()) {
+    ui->dockWidget_YieldCurve->show();
+  } else {
+    ui->dockWidget_YieldCurve->hide();
+  }
+}
+
+void MainWindow::toggleBalanceSheet() {
+  if (ui->actionBalance_Sheet->isChecked()) {
+    ui->dockWidget_BalanceSheet->show();
+  } else {
+    ui->dockWidget_BalanceSheet->hide();
+  }
+}
+
+void MainWindow::toggleHistory() {
+  if (ui->actionHistory->isChecked()) {
+    ui->dockWidget_History->show();
+  } else {
+    ui->dockWidget_History->hide();
+  }
+}
+
+void MainWindow::restoreAllViews() {
+  auto widgets = {ui->dockWidget_BalanceSheet, ui->dockWidget_History,
+                  ui->dockWidget_YieldCurve};
+  for (auto &w : widgets) {
+    w->show();
+    w->setFloating(false);
+  }
+  addDockWidget(Qt::DockWidgetArea::LeftDockWidgetArea,
+                ui->dockWidget_BalanceSheet);
+  addDockWidget(Qt::DockWidgetArea::LeftDockWidgetArea, ui->dockWidget_History);
+  addDockWidget(Qt::DockWidgetArea::TopDockWidgetArea,
+                ui->dockWidget_YieldCurve);
 }

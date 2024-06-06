@@ -45,14 +45,14 @@ public:
 private:
   Ui::YieldCurveWindow *ui;
   QDate m_today;
-  std::shared_ptr<YieldCurveDataModel> m_model;
-  std::shared_ptr<QChart> m_chart;
-  std::shared_ptr<QChartView> m_chartView;
-  std::shared_ptr<QValueAxis> m_axisY;
-  std::shared_ptr<QDateTimeAxis> m_axisX;
-  std::shared_ptr<QHXYModelMapper> m_mapper;
-  std::shared_ptr<QLineSeries> m_series;
-  std::shared_ptr<QLineSeries> m_seriesZeroRates;
+  YieldCurveDataModel *m_model;
+  QChart *m_chart;
+  QChartView *m_chartView;
+  QValueAxis *m_axisY;
+  QDateTimeAxis *m_axisX;
+  QHXYModelMapper *m_mapper;
+  QLineSeries *m_series;
+  QLineSeries *m_seriesZeroRates;
 
   const QuantLib::DayCounter m_zcBondsDayCounter =
       QuantLib::ActualActual(QuantLib::ActualActual::ISMA);
