@@ -27,7 +27,7 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const {
   if (role == Qt::DisplayRole) {
     auto v = item->data(index.column());
     if (index.column() == TreeColumn::Value) {
-      return m_locale.toString(v.toDouble(), 'f', 4);
+      return m_locale.toString(v.toDouble(), 'f', 2);
     }
     return v;
   }

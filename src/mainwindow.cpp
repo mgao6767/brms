@@ -2,10 +2,12 @@
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QScrollBar>
 #include <qDebug>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
+  m_locale = QLocale::system();
   setupUi();
   setupConnection();
 }
@@ -50,6 +52,7 @@ void MainWindow::setupUi() {
   m_axisY = new QValueAxis();
   m_axisX->setTickCount(5);
   m_axisX->setFormat("dd MMM yyyy");
+  m_axisY->setLabelFormat("%.0f");
 
   m_equityChart->addAxis(m_axisX, Qt::AlignBottom);
   m_equityChart->addAxis(m_axisY, Qt::AlignLeft);
@@ -81,6 +84,35 @@ void MainWindow::setupConnection() {
           &MainWindow::advanceToNextPeriodInSimulation);
   // connect(ui->buyTreasuryPushButton, &QPushButton::clicked, this,
   //         &MainWindow::buyTreasury);
+  connect(m_bank->liabilities(), &BankLiabilities::interestPaymentToMake,
+          ui->textBrowser, [this](double amount) {
+            QString text("[%1] Interest payment or withdrawal on deposits. "
+                         "Cash <font style=\"color:#A6192E\">-%2</font><br>");
+            text = text.arg(m_todayInSimulation.toString("dd MMM yyyy"));
+            text = text.arg(m_locale.toString(amount, 'f', 2));
+            ui->textBrowser->insertHtml(text);
+          });
+  connect(m_bank->assets(), &BankAssets::treasurySecurityMatured,
+          ui->textBrowser, [this](QString name, double amount) {
+            QString text(
+                "[%1] <span style=\"text-decoration:underline\">%2</span> "
+                "matured. Cash <font style=\"color:#009174\">+%3</font><br>");
+            text = text.arg(m_todayInSimulation.toString("dd MMM yyyy"));
+            text = text.arg(name);
+            text = text.arg(m_locale.toString(amount, 'f', 2));
+            ui->textBrowser->insertHtml(text);
+          });
+  connect(m_bank->assets(), &BankAssets::loanAmortizingPaymentReceived,
+          ui->textBrowser, [this](QString name, double amount) {
+            QString text(
+                "[%1] <span style=\"text-decoration:underline\">%2</span> "
+                "amortizing payment received. Cash <font "
+                "style=\"color:#009174\">+%3</font><br>");
+            text = text.arg(m_todayInSimulation.toString("dd MMM yyyy"));
+            text = text.arg(name);
+            text = text.arg(m_locale.toString(amount, 'f', 2));
+            ui->textBrowser->insertHtml(text);
+          });
 }
 
 MainWindow::~MainWindow() {
@@ -121,12 +153,16 @@ void MainWindow::advanceToNextPeriodInSimulation() {
 
   m_bank->reprice();
   updateEquityEvolutionChart();
+
+  // always showing the latest
+  QScrollBar *sb = ui->textBrowser->verticalScrollBar();
+  sb->setValue(sb->maximum());
 }
 
 void MainWindow::setTodaysDateLabel() {
-  ui->dateInSimulationLabel->setText(
-      QString("Today's date in simulation: %1")
-          .arg(m_todayInSimulation.toString("MMM dd, yyyy")));
+  QString text = QString("Today's date in simulation: %1")
+                     .arg(m_todayInSimulation.toString("MMM dd, yyyy"));
+  ui->statusbar->showMessage(text);
 }
 
 void MainWindow::showYieldCurve() {

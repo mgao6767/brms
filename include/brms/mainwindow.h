@@ -51,6 +51,7 @@ private:
   QDate m_todayInSimulation;
   Bank *m_bank;
   YieldCurveWindow *m_yieldCurveWindow;
+  QLocale m_locale;
 
   QLineSeries *m_equitySeries;
   QChart *m_equityChart;

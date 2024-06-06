@@ -142,6 +142,8 @@ public slots:
 
 signals:
   void totalAssetsChanged(double totalAssets);
+  void treasurySecurityMatured(QString name, double amount);
+  void loanAmortizingPaymentReceived(QString name, double amount);
 };
 
 #endif // BANKASSETS_H

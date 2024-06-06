@@ -81,7 +81,7 @@ void BankAssets::setTreasuryPricingEngine(
 
 bool BankAssets::addAmortizingFixedRateLoan(
     QuantLib::AmortizingFixedRateBond &loan) {
-  QString name = QString("%1% %2-year amortizing loan %3");
+  QString name = QString("%1% %2-year mortgage %3");
   QDate maturityDate = qlDateToQDate(loan.maturityDate());
   int mat = (loan.maturityDate() - loan.issueDate()) / 365;
   name = name.arg(QString::number(loan.nextCouponRate() * 100, 'f', 3));
@@ -156,6 +156,11 @@ void BankAssets::repriceTreasurySecurities() {
       // set the instrument to "matured"
       m_model->setData(valueIdx, "Matured");
       m_model->setData(colorIdx, BRMS::TRANSPARENT);
+      QString name = m_model
+                         ->data(valueIdx.siblingAtColumn(TreeColumn::Name),
+                                Qt::DisplayRole)
+                         .toString();
+      emit treasurySecurityMatured(name, totalPaymentAtMaturity);
     } else {
       // not yet matured
       auto npv = instrument.NPV();
@@ -177,13 +182,22 @@ void BankAssets::repriceLoans() {
     if (instrument.isExpired()) {
       continue;
     }
+    double singleLoanPayment = 0.0;
     for (auto &c : instrument.cashflows()) {
       // today in the simulation may not coincide with the cash flow day
       if (m_lastRepricingDate < c->date() && c->date() <= today)
-        totalPayment += c->amount();
+        singleLoanPayment += c->amount();
     }
     auto valueIdx = m_model->index(i, TreeColumn::Value, index);
     m_model->setData(valueIdx, instrument.notional());
+    totalPayment += singleLoanPayment;
+    if (singleLoanPayment > 0) {
+      QString name = m_model
+                         ->data(valueIdx.siblingAtColumn(TreeColumn::Name),
+                                Qt::DisplayRole)
+                         .toString();
+      emit loanAmortizingPaymentReceived(name, singleLoanPayment);
+    }
   }
   if (totalPayment > 0) {
     setCash(getCash() + totalPayment);
