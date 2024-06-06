@@ -6,6 +6,7 @@
 #include <QScrollBar>
 #include <QStyleHints>
 #include <qDebug>
+#include <QStyleFactory>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
@@ -24,6 +25,11 @@ void MainWindow::setupUi() {
   // by default, simulation starts from the first day
   m_todayInSimulation = m_yieldCurveWindow->dates()[0];
   setTodaysDateLabel();
+
+  // simulation progress bar
+  // ui->progressBar->setStyle(QStyleFactory::create("Fusion"));
+  ui->progressBar->setRange(0, m_yieldCurveWindow->dates().size());
+  ui->progressBar->setValue(0);
 
   // setup the bank
   m_bank = new Bank();
@@ -193,6 +199,9 @@ void MainWindow::advanceToNextPeriodInSimulation() {
   // always showing the latest
   QScrollBar *sb = ui->textBrowser->verticalScrollBar();
   sb->setValue(sb->maximum());
+
+  // update progress bar
+  ui->progressBar->setValue(ui->progressBar->value()+1);
 }
 
 void MainWindow::setTodaysDateLabel() {
