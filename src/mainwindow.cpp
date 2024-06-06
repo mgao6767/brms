@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QScrollBar>
+#include <QStyleHints>
 #include <qDebug>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -49,6 +50,10 @@ void MainWindow::setupUi() {
   m_equityChart = new QChart();
   m_equitySeries = new QLineSeries();
   m_chartView = new QChartView(m_equityChart);
+  // check if the system is using dark theme?
+  if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
+    m_chartView->chart()->setTheme(QChart::ChartThemeDark);
+  }
   m_equityChart->addSeries(m_equitySeries);
 
   m_axisX = new QDateTimeAxis();

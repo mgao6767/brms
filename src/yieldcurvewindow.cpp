@@ -6,6 +6,7 @@
 #include <QGraphicsLayout>
 #include <QGridLayout>
 #include <QHeaderView>
+#include <QStyleHints>
 #include <QTableView>
 
 using namespace QuantLib;
@@ -35,6 +36,11 @@ YieldCurveWindow::YieldCurveWindow(QWidget *parent)
   // Pricing engine
   m_bondEngine =
       ext::make_shared<DiscountingBondEngine>(m_discountingTermStructure);
+
+  // check if the system is using dark theme?
+  if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
+    m_chartView->chart()->setTheme(QChart::ChartThemeDark);
+  }
 
   // setup table view
   ui->tableView->setModel(m_model);
