@@ -1,5 +1,4 @@
 #include "brms/mainwindow.h"
-#include "brms/treemodel.h"
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
@@ -25,37 +24,20 @@ void MainWindow::setupUi() {
   m_bank->assets()->setTreasuryPricingEngine(m_yieldCurveWindow->bondEngine());
   m_bank->init(m_todayInSimulation); // init with fake data
 
-  // assets tree view
-  QTreeView *view = ui->assetsTreeView;
-  view->setModel(m_bank->assets()->model());
-  view->hideColumn(TreeColumn::Ref);
-  view->hideColumn(TreeColumn::BackgroundColor);
-  view->expandAll();
-  view->setAlternatingRowColors(true);
-  for (int c = 0; c < m_bank->assets()->model()->columnCount(); ++c) {
-    view->resizeColumnToContents(c);
-  }
-
-  // liabilities tree view
-  QTreeView *liabilitiesView = ui->liabilitiesTreeView;
-  liabilitiesView->setModel(m_bank->liabilities()->model());
-  liabilitiesView->hideColumn(TreeColumn::Ref);
-  liabilitiesView->hideColumn(TreeColumn::BackgroundColor);
-  liabilitiesView->expandAll();
-  liabilitiesView->setAlternatingRowColors(true);
-  for (int c = 0; c < m_bank->liabilities()->model()->columnCount(); ++c) {
-    liabilitiesView->resizeColumnToContents(c);
-  }
-
-  // equity tree view
-  QTreeView *equityTreeView = ui->equityTreeView;
-  equityTreeView->setModel(m_bank->equity()->model());
-  equityTreeView->hideColumn(TreeColumn::Ref);
-  equityTreeView->hideColumn(TreeColumn::BackgroundColor);
-  equityTreeView->expandAll();
-  equityTreeView->setAlternatingRowColors(true);
-  for (int c = 0; c < m_bank->equity()->model()->columnCount(); ++c) {
-    equityTreeView->resizeColumnToContents(c);
+  // tree view
+  ui->assetsTreeView->setModel(m_bank->assets()->model());
+  ui->liabilitiesTreeView->setModel(m_bank->liabilities()->model());
+  ui->equityTreeView->setModel(m_bank->equity()->model());
+  auto views = {ui->assetsTreeView, ui->liabilitiesTreeView,
+                ui->equityTreeView};
+  for (auto &view : views) {
+    view->hideColumn(TreeColumn::Ref);
+    view->hideColumn(TreeColumn::BackgroundColor);
+    view->expandAll();
+    view->setAlternatingRowColors(true);
+    for (int c = 0; c < TreeColumn::Value; ++c) {
+      view->resizeColumnToContents(c);
+    }
   }
 
   // equity evolution
@@ -81,17 +63,8 @@ void MainWindow::setupUi() {
 
   QDateTime dt;
   dt.setDate(m_todayInSimulation);
-  m_axisX->setMin(dt);
-  m_equitySeries->append(dt.toMSecsSinceEpoch(),
-                         m_bank->equity()->totalEquity());
-  dt.setDate(m_todayInSimulation.addDays(10));
-  m_axisX->setMax(dt);
-  // update y axis?
-  qreal maxY = -100;
-  for (auto &p : m_equitySeries->points()) {
-    maxY = maxY < p.y() ? p.y() : maxY;
-  }
-  m_axisY->setRange(0, maxY * 1.05);
+  m_axisX->setMin(dt); // starting date
+  updateEquityEvolutionChart();
 
   ui->gridLayout->replaceWidget(ui->placeholderChartView, m_chartView);
 }
@@ -108,9 +81,6 @@ void MainWindow::setupConnection() {
           &MainWindow::advanceToNextPeriodInSimulation);
   // connect(ui->buyTreasuryPushButton, &QPushButton::clicked, this,
   //         &MainWindow::buyTreasury);
-
-  // connect(this, &MainWindow::simulationDateChanged, this,
-  //         [&]() { m_bank->reprice(); });
 }
 
 MainWindow::~MainWindow() {
@@ -123,6 +93,21 @@ MainWindow::~MainWindow() {
   delete m_axisY;
 }
 
+void MainWindow::updateEquityEvolutionChart() {
+  QDateTime dt;
+  dt.setDate(m_todayInSimulation);
+  m_equitySeries->append(dt.toMSecsSinceEpoch(),
+                         m_bank->equity()->totalEquity());
+  dt.setDate(m_todayInSimulation.addDays(10));
+  m_axisX->setMax(dt);
+  // update y axis?
+  qreal maxY = -100;
+  for (auto &p : m_equitySeries->points()) {
+    maxY = maxY < p.y() ? p.y() : maxY;
+  }
+  m_axisY->setRange(0, maxY * 1.05);
+}
+
 void MainWindow::advanceToNextPeriodInSimulation() {
   auto dates = m_yieldCurveWindow->dates();
   auto it = std::find(dates.begin(), dates.end(), m_todayInSimulation);
@@ -133,20 +118,9 @@ void MainWindow::advanceToNextPeriodInSimulation() {
   m_todayInSimulation = dates[std::distance(dates.begin(), it) + 1];
   m_yieldCurveWindow->advanceToDate(m_todayInSimulation);
   setTodaysDateLabel();
-  // emit simulationDateChanged();
-  m_bank->reprice();
 
-  QDateTime dt;
-  dt.setDate(m_todayInSimulation.addDays(10));
-  m_axisX->setMax(dt);
-  m_equitySeries->append(dt.toMSecsSinceEpoch(),
-                         m_bank->equity()->totalEquity());
-  // update y axis?
-  qreal maxY = -100;
-  for (auto &p : m_equitySeries->points()) {
-    maxY = maxY < p.y() ? p.y() : maxY;
-  }
-  m_axisY->setRange(0, maxY * 1.05);
+  m_bank->reprice();
+  updateEquityEvolutionChart();
 }
 
 void MainWindow::setTodaysDateLabel() {

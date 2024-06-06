@@ -43,9 +43,6 @@ public:
    */
   void importYieldCurveData();
 
-signals:
-  void simulationDateChanged();
-
 protected:
   void closeEvent(QCloseEvent *event) override;
 
@@ -62,6 +59,7 @@ private:
   QValueAxis *m_axisY;
 
   void advanceToNextPeriodInSimulation();
+  void updateEquityEvolutionChart();
 };
 
 #endif // MAINWINDOW_H
