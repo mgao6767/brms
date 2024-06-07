@@ -31,23 +31,40 @@ void BankLiabilities::repriceDeposits() {
     // j is the location of the bond in the vector
     auto j = d->data(TreeColumn::Ref).toInt();
     QuantLib::Bond &instrument = m_termDeposits[j];
-    if (instrument.isExpired()) {
-      auto valueIdx = m_model->index(i, TreeColumn::Value, index);
-      auto colorIdx = m_model->index(i, TreeColumn::BackgroundColor, index);
-      m_model->setData(valueIdx, instrument.notional());
-      m_model->setData(colorIdx, BRMS::TRANSPARENT);
+    auto valueIdx = m_model->index(i, TreeColumn::Value, index);
+    auto colorIdx = m_model->index(i, TreeColumn::BackgroundColor, index);
+    QString name =
+        m_model
+            ->data(valueIdx.siblingAtColumn(TreeColumn::Name), Qt::DisplayRole)
+            .toString();
+    if (m_lastRepricingDate > instrument.maturityDate()) {
       continue;
     }
+    double interestPayment = 0;
+    double notional = instrument.cashflows().back()->amount();
     for (auto &c : instrument.cashflows()) {
       // today in the simulation may not coincide with the cash flow day
-      if (m_lastRepricingDate < c->date() && c->date() <= today)
-        totalPayment += c->amount();
+      if (m_lastRepricingDate < c->date() && c->date() <= today) {
+        if (instrument.maturityDate() <= today && c->amount() == notional) {
+          // just matured. total payment += withdrawal of the deposit
+          totalPayment += notional;
+          m_model->setData(valueIdx, instrument.notional());
+          m_model->setData(colorIdx, BRMS::TRANSPARENT);
+          emit withdrawPaymentMade(name, notional);
+        } else {
+          // not yet matured. add the interest payment
+          interestPayment += c->amount();
+        }
+      }
     }
-    auto valueIdx = m_model->index(i, TreeColumn::Value, index);
+    totalPayment += interestPayment;
     m_model->setData(valueIdx, instrument.notional());
+    if (interestPayment > 0)
+      emit interestPaymentMade(name, interestPayment);
   }
+  // this is for adjusting assets' cash
   if (totalPayment > 0) {
-    emit interestPaymentToMake(totalPayment);
+    emit interestAndWithdrawPaymentMade(totalPayment);
   }
 }
 

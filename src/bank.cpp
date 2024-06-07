@@ -13,8 +13,8 @@ Bank::Bank(QObject *parent) : QObject{parent} {
 
   connect(m_liabilities, SIGNAL(newDepositsTaken(double)), m_assets,
           SLOT(addCash(double)));
-  connect(m_liabilities, SIGNAL(interestPaymentToMake(double)), m_assets,
-          SLOT(deductCash(double)));
+  connect(m_liabilities, SIGNAL(interestAndWithdrawPaymentMade(double)),
+          m_assets, SLOT(deductCash(double)));
 }
 
 Bank::~Bank() {

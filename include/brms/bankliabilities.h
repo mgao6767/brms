@@ -51,7 +51,9 @@ public slots:
 signals:
   void totalLiabilitiesChanged(double totalLiabilities);
   void newDepositsTaken(double deposits);
-  void interestPaymentToMake(double payment);
+  void interestAndWithdrawPaymentMade(double payment);
+  void interestPaymentMade(QString name, double payment);
+  void withdrawPaymentMade(QString name, double payment);
 };
 
 #endif // BANKLIABILITIES_H

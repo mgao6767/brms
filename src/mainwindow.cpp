@@ -112,6 +112,7 @@ void MainWindow::setupUiCashflowChart() {
   m_cashflowAxisY = new QValueAxis();
   m_cashflowAxisX->setTickCount(5);
   m_cashflowAxisX->setFormat("dd MMM yyyy");
+  m_cashflowAxisY->setLabelFormat("%.0f");
   m_cashflowChart->addAxis(m_cashflowAxisX, Qt::AlignBottom);
   m_cashflowChart->addAxis(m_cashflowAxisY, Qt::AlignLeft);
   m_cashflowChart->legend()->hide();
@@ -170,11 +171,25 @@ void MainWindow::setupConnection() {
           &MainWindow::updateUi);
 
   // history
-  connect(m_bank->liabilities(), &BankLiabilities::interestPaymentToMake,
-          ui->textBrowser, [this](double amount) {
-            QString text("[%1] Interest payment or withdrawal on deposits. "
-                         "Cash <font style=\"color:#A6192E\">-%2</font><br>");
+  connect(m_bank->liabilities(), &BankLiabilities::withdrawPaymentMade,
+          ui->textBrowser, [this](QString name, double amount) {
+            QString text(
+                "[%1] <span style=\"text-decoration:underline\">%2</span> "
+                "matured. Cash <font "
+                "style=\"color:#A6192E\">-%3</font><br>");
             text = text.arg(m_todayInSimulation.toString("dd MMM yyyy"));
+            text = text.arg(name);
+            text = text.arg(m_locale.toString(amount, 'f', 2));
+            ui->textBrowser->insertHtml(text);
+          });
+  connect(m_bank->liabilities(), &BankLiabilities::interestPaymentMade,
+          ui->textBrowser, [this](QString name, double amount) {
+            QString text(
+                "[%1] <span style=\"text-decoration:underline\">%2</span> "
+                "interest payment made. Cash <font "
+                "style=\"color:#A6192E\">-%3</font><br>");
+            text = text.arg(m_todayInSimulation.toString("dd MMM yyyy"));
+            text = text.arg(name);
             text = text.arg(m_locale.toString(amount, 'f', 2));
             ui->textBrowser->insertHtml(text);
           });
