@@ -159,7 +159,7 @@ void BankAssets::repriceTreasurySecurities() {
       // update cash
       setCash(getCash() + totalPaymentAtMaturity);
       // set the instrument to "matured"
-      m_model->setData(valueIdx, "Matured");
+      m_model->setData(valueIdx, 0);
       m_model->setData(colorIdx, BRMS::TRANSPARENT);
       emit treasurySecurityMatured(name, totalPaymentAtMaturity);
     } else {

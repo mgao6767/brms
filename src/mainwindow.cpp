@@ -278,6 +278,22 @@ void MainWindow::advanceToNextPeriodInSimulation() {
 
   // update progress bar
   ui->progressBar->setValue(ui->progressBar->value() + 1);
+
+  // hide matured instruments
+  auto treeviews = {ui->assetsTreeView, ui->liabilitiesTreeView};
+  for (auto &v : treeviews) {
+    TreeModel *model = static_cast<TreeModel *>(v->model());
+    for (int i = 0; i < model->rowCount(); ++i) {
+      auto index = model->index(i, 0);
+      auto item = model->getItem(index);
+      for (int j = 0; j < item->childCount(); ++j) {
+        auto instrument = item->child(j);
+        if (instrument->data(TreeColumn::Value) == 0) {
+          v->setRowHidden(j, index, true);
+        }
+      }
+    }
+  }
 }
 
 void MainWindow::setTodaysDateLabel() {
