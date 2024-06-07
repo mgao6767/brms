@@ -3,7 +3,10 @@
 
 #include "bank.h"
 #include "yieldcurvewindow.h"
+#include <QBarCategoryAxis>
+#include <QBarSet>
 #include <QMainWindow>
+#include <QStackedBarSeries>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -61,18 +64,18 @@ private:
   QValueAxis *m_axisY;
 
   // cashflow chart
-  QLineSeries *m_cashflowSeries;
-  QLineSeries *m_cashoutflowSeries;
+  QBarSet *m_inflow, *m_outflow;
+  QStackedBarSeries *m_cf_series;
   QChart *m_cashflowChart;
   QChartView *m_cashflowChartView;
-  QDateTimeAxis *m_cashflowAxisX;
+  QBarCategoryAxis *m_cashflowAxisX;
   QValueAxis *m_cashflowAxisY;
 
   void advanceToNextPeriodInSimulation();
   void setupUiEquityEvolutionChart();
-  void setupUiCashflowChart();
+  void setupUiCashFlowChart();
   void updateEquityEvolutionChart();
-  void updateCashflowChart();
+  void updateCashFlowChart();
   void updateUi();
 
   void toggleYieldCurveWindow();

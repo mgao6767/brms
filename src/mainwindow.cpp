@@ -8,6 +8,14 @@
 #include <QStyleHints>
 #include <qDebug>
 
+#include <QBarCategoryAxis>
+#include <QBarSeries>
+#include <QBarSet>
+#include <QChart>
+#include <QLegend>
+#include <QStackedBarSeries>
+#include <QValueAxis>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
   m_locale = QLocale::system();
@@ -53,7 +61,7 @@ void MainWindow::setupUi() {
   }
 
   setupUiEquityEvolutionChart();
-  setupUiCashflowChart();
+  setupUiCashFlowChart();
 }
 
 void MainWindow::setupUiEquityEvolutionChart() {
@@ -96,46 +104,45 @@ void MainWindow::setupUiEquityEvolutionChart() {
   ui->gridLayout->replaceWidget(ui->placeholderChartView, m_chartView);
 }
 
-void MainWindow::setupUiCashflowChart() {
-  auto dates = m_yieldCurveWindow->dates();
-  auto inflows = m_bank->assets()->cashflows(dates);
-
-  m_cashflowChart = new QChart();
-  m_cashflowSeries = new QLineSeries();
-  m_cashoutflowSeries = new QLineSeries();
-  m_cashflowChartView = new QChartView(m_cashflowChart);
-  // check if the system is using dark theme?
-  if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
-    m_cashflowChartView->chart()->setTheme(QChart::ChartThemeDark);
+void MainWindow::setupUiCashFlowChart() {
+  m_inflow = new QBarSet("Inflow");
+  m_outflow = new QBarSet("Outflow");
+  m_outflow->setColor(BRMS::RED);
+  m_cf_series = new QStackedBarSeries;
+  m_cf_series->append(m_inflow);
+  m_cf_series->append(m_outflow);
+  auto zeroLine = new QLineSeries(this);
+  zeroLine->setName("Reference Line");
+  zeroLine->setColor(QColor(Qt::gray));
+  for (int t = 0; t < 30; ++t) {
+    zeroLine->append(QPoint(t, 0));
   }
-  m_cashflowChart->addSeries(m_cashflowSeries);
-  m_cashflowChart->addSeries(m_cashoutflowSeries);
-  m_cashflowAxisX = new QDateTimeAxis();
-  m_cashflowAxisY = new QValueAxis();
-  m_cashflowAxisX->setTickCount(5);
-  m_cashflowAxisX->setFormat("dd MMM yyyy");
-  m_cashflowAxisY->setLabelFormat("%.0f");
-  m_cashflowChart->addAxis(m_cashflowAxisX, Qt::AlignBottom);
-  m_cashflowChart->addAxis(m_cashflowAxisY, Qt::AlignLeft);
-  // m_cashflowChart->legend()->hide();
-  m_cashflowSeries->setName("Inflow");
-  m_cashflowSeries->attachAxis(m_cashflowAxisX);
-  m_cashflowSeries->attachAxis(m_cashflowAxisY);
-  m_cashoutflowSeries->setName("Outflow");
-  m_cashoutflowSeries->attachAxis(m_cashflowAxisX);
-  m_cashoutflowSeries->attachAxis(m_cashflowAxisY);
-  m_cashoutflowSeries->setColor(BRMS::RED);
-  m_cashflowChart->setTitle("Projected Cash Flows");
 
+  m_cashflowChart = new QChart;
+  m_cashflowChart->addSeries(m_cf_series);
+  m_cashflowChart->addSeries(zeroLine);
   QFont titleFont = QFont();
   titleFont.setWeight(QFont::Weight::Bold);
   m_cashflowChart->setTitleFont(titleFont);
   m_cashflowChart->layout()->setContentsMargins(0, 0, 0, 0);
-  m_cashflowChart->setAnimationOptions(QChart::SeriesAnimations);
-  m_cashflowChartView->setRenderHint(QPainter::Antialiasing);
+  m_cashflowChart->setTitle("30-Day Cashflow Projection");
+  m_cashflowChart->setAnimationOptions(QChart::NoAnimation);
+  m_cashflowChart->legend()->hide();
 
-  updateCashflowChart();
+  m_cashflowAxisX = new QBarCategoryAxis;
+  m_cashflowAxisY = new QValueAxis;
+  m_cashflowAxisY->setTickAnchor(0.0);
+  m_cashflowAxisY->setGridLineVisible(true);
+  m_cashflowChart->addAxis(m_cashflowAxisX, Qt::AlignBottom);
+  m_cashflowChart->addAxis(m_cashflowAxisY, Qt::AlignLeft);
+  m_cf_series->attachAxis(m_cashflowAxisX);
+  m_cf_series->attachAxis(m_cashflowAxisY);
+  zeroLine->attachAxis(m_cashflowAxisX);
+  zeroLine->attachAxis(m_cashflowAxisY);
 
+  m_cashflowChartView = new QChartView(m_cashflowChart);
+
+  updateCashFlowChart();
   ui->gridLayout->replaceWidget(ui->placeholderCashFlowChartView,
                                 m_cashflowChartView);
 }
@@ -238,12 +245,7 @@ MainWindow::~MainWindow() {
   delete ui;
   delete m_bank;
   delete m_equitySeries;
-  // delete m_equityChart;
-  // delete m_chartView; // will be deleted by ui
-  // delete m_axisX;
-  // delete m_axisY;
-  delete m_cashflowSeries;
-  delete m_cashoutflowSeries;
+  delete m_cf_series;
 }
 
 void MainWindow::updateEquityEvolutionChart() {
@@ -261,35 +263,31 @@ void MainWindow::updateEquityEvolutionChart() {
   m_axisY->setRange(0, maxY * 1.05);
 }
 
-void MainWindow::updateCashflowChart() {
-  m_cashflowSeries->clear();
-  m_cashoutflowSeries->clear();
+void MainWindow::updateCashFlowChart() {
+  QStringList m_categories;
+  m_inflow->remove(0, m_inflow->count());
+  m_outflow->remove(0, m_outflow->count());
   auto dates = m_yieldCurveWindow->dates();
   auto inflows = m_bank->assets()->cashflows(dates);
   auto outflows = m_bank->liabilities()->cashflows(dates);
-
-  QDateTime minDate, maxDate, dt;
-  minDate.setDate(m_todayInSimulation);
-  m_cashflowAxisX->setMin(minDate);
+  qreal maxY = -100, minY = 100;
+  int days = 0, maxDays = 30;
   for (size_t i = 0; i < dates.size(); i++) {
-    dt.setDate(dates[i]);
-    m_cashflowSeries->append(dt.toMSecsSinceEpoch(), inflows[i]);
-    m_cashoutflowSeries->append(dt.toMSecsSinceEpoch(), outflows[i]);
-  }
-  maxDate.setDate(m_todayInSimulation.addYears(1));
-  m_cashflowAxisX->setMax(maxDate);
-
-  qreal maxY = -100;
-  for (size_t i = 0; i < dates.size(); i++) {
-    if (dates[i] < m_todayInSimulation)
+    if ((dates[i] < m_todayInSimulation) | (days >= maxDays))
       continue;
-    if (dates[i] > maxDate.date())
-      break;
+    // m_categories.append(QString::number(m_todayInSimulation.daysTo(dates[i])));
+    // m_categories.append(dates[i].toString("dd MMM"));
+    m_categories.append(QString::number(days));
+    *m_inflow << inflows[i];
+    *m_outflow << -outflows[i];
     maxY = maxY < inflows[i] ? inflows[i] : maxY;
-    maxY = maxY < outflows[i] ? outflows[i] : maxY;
+    minY = minY > -outflows[i] ? -outflows[i] : minY;
+    days++;
   }
-
-  m_cashflowAxisY->setRange(0, maxY * 1.05);
+  auto maxVal = maxY > -minY ? maxY : -minY;
+  m_cashflowAxisX->clear();
+  m_cashflowAxisX->append(m_categories);
+  m_cashflowAxisY->setRange(-maxVal, maxVal);
 }
 
 void MainWindow::advanceToNextPeriodInSimulation() {
@@ -305,7 +303,8 @@ void MainWindow::advanceToNextPeriodInSimulation() {
 
   m_bank->reprice();
   updateEquityEvolutionChart();
-  updateCashflowChart();
+  // updateCashflowChart();
+  updateCashFlowChart();
   updateUi();
 
   // always showing the latest
