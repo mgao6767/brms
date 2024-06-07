@@ -62,6 +62,7 @@ private:
 
   // cashflow chart
   QLineSeries *m_cashflowSeries;
+  QLineSeries *m_cashoutflowSeries;
   QChart *m_cashflowChart;
   QChartView *m_cashflowChartView;
   QDateTimeAxis *m_cashflowAxisX;

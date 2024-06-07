@@ -98,16 +98,18 @@ void MainWindow::setupUiEquityEvolutionChart() {
 
 void MainWindow::setupUiCashflowChart() {
   auto dates = m_yieldCurveWindow->dates();
-  auto cfs = m_bank->assets()->cashflows(dates);
+  auto inflows = m_bank->assets()->cashflows(dates);
 
   m_cashflowChart = new QChart();
   m_cashflowSeries = new QLineSeries();
+  m_cashoutflowSeries = new QLineSeries();
   m_cashflowChartView = new QChartView(m_cashflowChart);
   // check if the system is using dark theme?
   if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
     m_cashflowChartView->chart()->setTheme(QChart::ChartThemeDark);
   }
   m_cashflowChart->addSeries(m_cashflowSeries);
+  m_cashflowChart->addSeries(m_cashoutflowSeries);
   m_cashflowAxisX = new QDateTimeAxis();
   m_cashflowAxisY = new QValueAxis();
   m_cashflowAxisX->setTickCount(5);
@@ -115,9 +117,14 @@ void MainWindow::setupUiCashflowChart() {
   m_cashflowAxisY->setLabelFormat("%.0f");
   m_cashflowChart->addAxis(m_cashflowAxisX, Qt::AlignBottom);
   m_cashflowChart->addAxis(m_cashflowAxisY, Qt::AlignLeft);
-  m_cashflowChart->legend()->hide();
+  // m_cashflowChart->legend()->hide();
+  m_cashflowSeries->setName("Inflow");
   m_cashflowSeries->attachAxis(m_cashflowAxisX);
   m_cashflowSeries->attachAxis(m_cashflowAxisY);
+  m_cashoutflowSeries->setName("Outflow");
+  m_cashoutflowSeries->attachAxis(m_cashflowAxisX);
+  m_cashoutflowSeries->attachAxis(m_cashflowAxisY);
+  m_cashoutflowSeries->setColor(BRMS::RED);
   m_cashflowChart->setTitle("Projected Cash Flows");
 
   QFont titleFont = QFont();
@@ -236,6 +243,7 @@ MainWindow::~MainWindow() {
   // delete m_axisX;
   // delete m_axisY;
   delete m_cashflowSeries;
+  delete m_cashoutflowSeries;
 }
 
 void MainWindow::updateEquityEvolutionChart() {
@@ -255,23 +263,32 @@ void MainWindow::updateEquityEvolutionChart() {
 
 void MainWindow::updateCashflowChart() {
   m_cashflowSeries->clear();
+  m_cashoutflowSeries->clear();
   auto dates = m_yieldCurveWindow->dates();
-  auto cfs = m_bank->assets()->cashflows(dates);
+  auto inflows = m_bank->assets()->cashflows(dates);
+  auto outflows = m_bank->liabilities()->cashflows(dates);
 
-  QDateTime dt;
-  dt.setDate(m_todayInSimulation);
-  m_cashflowAxisX->setMin(dt);
+  QDateTime minDate, maxDate, dt;
+  minDate.setDate(m_todayInSimulation);
+  m_cashflowAxisX->setMin(minDate);
   for (size_t i = 0; i < dates.size(); i++) {
     dt.setDate(dates[i]);
-    m_cashflowSeries->append(dt.toMSecsSinceEpoch(), cfs[i]);
+    m_cashflowSeries->append(dt.toMSecsSinceEpoch(), inflows[i]);
+    m_cashoutflowSeries->append(dt.toMSecsSinceEpoch(), outflows[i]);
   }
-  dt.setDate(dates[dates.size() - 1]);
-  m_cashflowAxisX->setMax(dt);
+  maxDate.setDate(m_todayInSimulation.addYears(1));
+  m_cashflowAxisX->setMax(maxDate);
 
   qreal maxY = -100;
-  for (auto &p : cfs) {
-    maxY = maxY < p ? p : maxY;
+  for (size_t i = 0; i < dates.size(); i++) {
+    if (dates[i] < m_todayInSimulation)
+      continue;
+    if (dates[i] > maxDate.date())
+      break;
+    maxY = maxY < inflows[i] ? inflows[i] : maxY;
+    maxY = maxY < outflows[i] ? outflows[i] : maxY;
   }
+
   m_cashflowAxisY->setRange(0, maxY * 1.05);
 }
 

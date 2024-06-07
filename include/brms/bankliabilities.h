@@ -34,6 +34,14 @@ public:
    */
   void addTermDeposits(QuantLib::FixedRateBond &deposit);
 
+  /**
+   * @brief Returns the cashflows.
+   *
+   * @param dates Dates
+   * @return std::vector<double>
+   */
+  std::vector<double> cashflows(std::vector<QDate> &dates) const;
+
 private:
   const QString DEPOSITS{"Deposits"};
 
