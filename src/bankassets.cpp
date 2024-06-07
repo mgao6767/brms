@@ -134,6 +134,7 @@ void BankAssets::updateCashColor(double startingCash, double endingCash) {
 void BankAssets::repriceTreasurySecurities() {
   QModelIndex index = m_model->find(TreeColumn::Name, TREASURY_SECURITIES);
   TreeItem *treasuryItem = m_model->getItem(index);
+  QuantLib::Date today = QuantLib::Settings::instance().evaluationDate();
   for (size_t i = 0; i < treasuryItem->childCount(); i++) {
     auto bond = treasuryItem->child(i);
     // j is the location of the bond in the vector
@@ -142,10 +143,14 @@ void BankAssets::repriceTreasurySecurities() {
     if (instrument.isExpired()) {
       continue;
     }
-    // if today is maturity date
     auto colorIdx = m_model->index(i, TreeColumn::BackgroundColor, index);
     auto valueIdx = m_model->index(i, TreeColumn::Value, index);
+    QString name =
+        m_model
+            ->data(valueIdx.siblingAtColumn(TreeColumn::Name), Qt::DisplayRole)
+            .toString();
     if (instrument.valuationDate() == instrument.maturityDate()) {
+      // if today is maturity date
       double totalPaymentAtMaturity = 0.0;
       for (auto &c : instrument.cashflows()) {
         totalPaymentAtMaturity +=
@@ -156,15 +161,20 @@ void BankAssets::repriceTreasurySecurities() {
       // set the instrument to "matured"
       m_model->setData(valueIdx, "Matured");
       m_model->setData(colorIdx, BRMS::TRANSPARENT);
-      QString name = m_model
-                         ->data(valueIdx.siblingAtColumn(TreeColumn::Name),
-                                Qt::DisplayRole)
-                         .toString();
       emit treasurySecurityMatured(name, totalPaymentAtMaturity);
     } else {
       // not yet matured
       auto npv = instrument.NPV();
       m_model->setData(valueIdx, npv);
+      double singlePayment = 0;
+      for (auto &c : instrument.cashflows()) {
+        // today in the simulation may not coincide with the cash flow day
+        if (m_lastRepricingDate < c->date() && c->date() <= today)
+          singlePayment += c->amount();
+      }
+      if (singlePayment > 0) {
+        emit treasurySecurityPaymentReceived(name, singlePayment);
+      }
     }
   }
 }

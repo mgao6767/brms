@@ -185,6 +185,17 @@ void MainWindow::setupConnection() {
             text = text.arg(m_locale.toString(amount, 'f', 2));
             ui->textBrowser->insertHtml(text);
           });
+  connect(m_bank->assets(), &BankAssets::treasurySecurityPaymentReceived,
+          ui->textBrowser, [this](QString name, double amount) {
+            QString text(
+                "[%1] <span style=\"text-decoration:underline\">%2</span> "
+                "interest payment received. Cash <font "
+                "style=\"color:#009174\">+%3</font><br>");
+            text = text.arg(m_todayInSimulation.toString("dd MMM yyyy"));
+            text = text.arg(name);
+            text = text.arg(m_locale.toString(amount, 'f', 2));
+            ui->textBrowser->insertHtml(text);
+          });
   connect(m_bank->assets(), &BankAssets::loanAmortizingPaymentReceived,
           ui->textBrowser, [this](QString name, double amount) {
             QString text(
