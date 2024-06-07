@@ -166,6 +166,9 @@ void MainWindow::setupConnection() {
   connect(ui->actionRestore, &QAction::triggered, this,
           &MainWindow::restoreAllViews);
 
+  connect(ui->checkBoxHideMatured, &QCheckBox::checkStateChanged, this,
+          &MainWindow::updateUi);
+
   // history
   connect(m_bank->liabilities(), &BankLiabilities::interestPaymentToMake,
           ui->textBrowser, [this](double amount) {
@@ -271,6 +274,7 @@ void MainWindow::advanceToNextPeriodInSimulation() {
   m_bank->reprice();
   updateEquityEvolutionChart();
   updateCashflowChart();
+  updateUi();
 
   // always showing the latest
   QScrollBar *sb = ui->textBrowser->verticalScrollBar();
@@ -278,8 +282,11 @@ void MainWindow::advanceToNextPeriodInSimulation() {
 
   // update progress bar
   ui->progressBar->setValue(ui->progressBar->value() + 1);
+}
 
+void MainWindow::updateUi() {
   // hide matured instruments
+  bool hideMatured = ui->checkBoxHideMatured->isChecked();
   auto treeviews = {ui->assetsTreeView, ui->liabilitiesTreeView};
   for (auto &v : treeviews) {
     TreeModel *model = static_cast<TreeModel *>(v->model());
@@ -288,9 +295,8 @@ void MainWindow::advanceToNextPeriodInSimulation() {
       auto item = model->getItem(index);
       for (int j = 0; j < item->childCount(); ++j) {
         auto instrument = item->child(j);
-        if (instrument->data(TreeColumn::Value) == 0) {
-          v->setRowHidden(j, index, true);
-        }
+        if (instrument->data(TreeColumn::Value) == 0)
+          v->setRowHidden(j, index, hideMatured);
       }
     }
   }

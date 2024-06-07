@@ -193,14 +193,24 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QGridLayout" name="gridLayout_2">
-     <item row="0" column="1">
-      <widget class="QTreeView" name="liabilitiesTreeView"/>
-     </item>
      <item row="1" column="1">
       <widget class="QTreeView" name="equityTreeView"/>
      </item>
      <item row="0" column="0" rowspan="2">
       <widget class="QTreeView" name="assetsTreeView"/>
+     </item>
+     <item row="0" column="1">
+      <widget class="QTreeView" name="liabilitiesTreeView"/>
+     </item>
+     <item row="2" column="0">
+      <widget class="QCheckBox" name="checkBoxHideMatured">
+       <property name="text">
+        <string>Hide matured assets and liabilities</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>

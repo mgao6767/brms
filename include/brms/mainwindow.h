@@ -72,6 +72,7 @@ private:
   void setupUiCashflowChart();
   void updateEquityEvolutionChart();
   void updateCashflowChart();
+  void updateUi();
 
   void toggleYieldCurveWindow();
   void toggleBalanceSheet();
