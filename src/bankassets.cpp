@@ -247,3 +247,33 @@ double BankAssets::getTotalValueOfLoans() const {
   }
   return totalValue;
 }
+
+std::vector<double> BankAssets::cashflows(std::vector<QDate> &dates) const {
+  auto cfs = std::vector<double>(dates.size(), 0);
+
+  for (size_t i = 0; i < dates.size(); i++) {
+    QDate t = dates[i];
+    QDate tm1 = i > 0 ? dates[i - 1] : t.addDays(-1);
+    // total cashflow for the date t
+    double cf = 0;
+    // cashflows from loans
+    auto assets = {m_loans, m_treasurySecurities};
+    // for each typo of asset, e.g. Treasury securites, loans
+    for (auto &asset : assets)
+      // for each instrument
+      for (auto &instrument : asset) {
+        if (instrument.isExpired())
+          continue;
+        double instrumentCashFlow = 0.0;
+        for (auto &c : instrument.cashflows()) {
+          QDate t_cf = qlDateToQDate(c->date());
+          if (tm1 < t_cf && t_cf <= t)
+            instrumentCashFlow += c->amount();
+        }
+        cf += instrumentCashFlow;
+      }
+    // total cashflows
+    cfs[i] = cf;
+  }
+  return cfs;
+}

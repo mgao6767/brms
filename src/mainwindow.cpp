@@ -4,9 +4,9 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QScrollBar>
+#include <QStyleFactory>
 #include <QStyleHints>
 #include <qDebug>
-#include <QStyleFactory>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
@@ -52,6 +52,11 @@ void MainWindow::setupUi() {
     }
   }
 
+  setupUiEquityEvolutionChart();
+  setupUiCashflowChart();
+}
+
+void MainWindow::setupUiEquityEvolutionChart() {
   // equity evolution
   m_equityChart = new QChart();
   m_equitySeries = new QLineSeries();
@@ -89,6 +94,42 @@ void MainWindow::setupUi() {
   updateEquityEvolutionChart();
 
   ui->gridLayout->replaceWidget(ui->placeholderChartView, m_chartView);
+}
+
+void MainWindow::setupUiCashflowChart() {
+  auto dates = m_yieldCurveWindow->dates();
+  auto cfs = m_bank->assets()->cashflows(dates);
+
+  m_cashflowChart = new QChart();
+  m_cashflowSeries = new QLineSeries();
+  m_cashflowChartView = new QChartView(m_cashflowChart);
+  // check if the system is using dark theme?
+  if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
+    m_cashflowChartView->chart()->setTheme(QChart::ChartThemeDark);
+  }
+  m_cashflowChart->addSeries(m_cashflowSeries);
+  m_cashflowAxisX = new QDateTimeAxis();
+  m_cashflowAxisY = new QValueAxis();
+  m_cashflowAxisX->setTickCount(5);
+  m_cashflowAxisX->setFormat("dd MMM yyyy");
+  m_cashflowChart->addAxis(m_cashflowAxisX, Qt::AlignBottom);
+  m_cashflowChart->addAxis(m_cashflowAxisY, Qt::AlignLeft);
+  m_cashflowChart->legend()->hide();
+  m_cashflowSeries->attachAxis(m_cashflowAxisX);
+  m_cashflowSeries->attachAxis(m_cashflowAxisY);
+  m_cashflowChart->setTitle("Projected Cash Flows");
+
+  QFont titleFont = QFont();
+  titleFont.setWeight(QFont::Weight::Bold);
+  m_cashflowChart->setTitleFont(titleFont);
+  m_cashflowChart->layout()->setContentsMargins(0, 0, 0, 0);
+  m_cashflowChart->setAnimationOptions(QChart::SeriesAnimations);
+  m_cashflowChartView->setRenderHint(QPainter::Antialiasing);
+
+  updateCashflowChart();
+
+  ui->gridLayout->replaceWidget(ui->placeholderCashFlowChartView,
+                                m_cashflowChartView);
 }
 
 void MainWindow::setupConnection() {
@@ -163,8 +204,9 @@ MainWindow::~MainWindow() {
   delete m_equitySeries;
   // delete m_equityChart;
   // delete m_chartView; // will be deleted by ui
-  delete m_axisX;
-  delete m_axisY;
+  // delete m_axisX;
+  // delete m_axisY;
+  delete m_cashflowSeries;
 }
 
 void MainWindow::updateEquityEvolutionChart() {
@@ -182,6 +224,28 @@ void MainWindow::updateEquityEvolutionChart() {
   m_axisY->setRange(0, maxY * 1.05);
 }
 
+void MainWindow::updateCashflowChart() {
+  m_cashflowSeries->clear();
+  auto dates = m_yieldCurveWindow->dates();
+  auto cfs = m_bank->assets()->cashflows(dates);
+
+  QDateTime dt;
+  dt.setDate(m_todayInSimulation);
+  m_cashflowAxisX->setMin(dt);
+  for (size_t i = 0; i < dates.size(); i++) {
+    dt.setDate(dates[i]);
+    m_cashflowSeries->append(dt.toMSecsSinceEpoch(), cfs[i]);
+  }
+  dt.setDate(dates[dates.size() - 1]);
+  m_cashflowAxisX->setMax(dt);
+
+  qreal maxY = -100;
+  for (auto &p : cfs) {
+    maxY = maxY < p ? p : maxY;
+  }
+  m_cashflowAxisY->setRange(0, maxY * 1.05);
+}
+
 void MainWindow::advanceToNextPeriodInSimulation() {
   auto dates = m_yieldCurveWindow->dates();
   auto it = std::find(dates.begin(), dates.end(), m_todayInSimulation);
@@ -195,13 +259,14 @@ void MainWindow::advanceToNextPeriodInSimulation() {
 
   m_bank->reprice();
   updateEquityEvolutionChart();
+  updateCashflowChart();
 
   // always showing the latest
   QScrollBar *sb = ui->textBrowser->verticalScrollBar();
   sb->setValue(sb->maximum());
 
   // update progress bar
-  ui->progressBar->setValue(ui->progressBar->value()+1);
+  ui->progressBar->setValue(ui->progressBar->value() + 1);
 }
 
 void MainWindow::setTodaysDateLabel() {

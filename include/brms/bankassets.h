@@ -96,6 +96,14 @@ public:
    */
   double totalAssets() const;
 
+  /**
+   * @brief Returns the cashflows.
+   *
+   * @param dates Dates
+   * @return std::vector<double>
+   */
+  std::vector<double> cashflows(std::vector<QDate> &dates) const;
+
 private:
   const QString CASH{"Cash and reserves"};
   const QString TREASURY_SECURITIES{"Treasury securities"};

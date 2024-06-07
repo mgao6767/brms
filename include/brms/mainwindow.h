@@ -53,14 +53,25 @@ private:
   YieldCurveWindow *m_yieldCurveWindow;
   QLocale m_locale;
 
+  // equity volution chart
   QLineSeries *m_equitySeries;
   QChart *m_equityChart;
   QChartView *m_chartView;
   QDateTimeAxis *m_axisX;
   QValueAxis *m_axisY;
 
+  // cashflow chart
+  QLineSeries *m_cashflowSeries;
+  QChart *m_cashflowChart;
+  QChartView *m_cashflowChartView;
+  QDateTimeAxis *m_cashflowAxisX;
+  QValueAxis *m_cashflowAxisY;
+
   void advanceToNextPeriodInSimulation();
+  void setupUiEquityEvolutionChart();
+  void setupUiCashflowChart();
   void updateEquityEvolutionChart();
+  void updateCashflowChart();
 
   void toggleYieldCurveWindow();
   void toggleBalanceSheet();
