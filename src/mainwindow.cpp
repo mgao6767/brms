@@ -16,6 +16,25 @@
 #include <QStackedBarSeries>
 #include <QValueAxis>
 
+namespace BRMS {
+// clang-format off
+QString aboutBRMS =
+    "<p><strong>BRMS - Bank Risk Management Simulation</strong></p>"
+    "<p>This program is developed by Dr. <a href=\"https://mingze-gao.com\">"
+    "Mingze Gao</a> from the Macquarie University.</p>"
+    "<p>BRMS is an educational tool designed to provide users with an in-depth " 
+    "understanding of bank risk management practices. It allows users to "
+    "simulate and respond to various risk scenarios, and analyze the impact on " 
+    "a bank's financial health.</p>"
+    "<p>This application is intended for educational purposes only. It is "
+    "designed to aid in the learning process and should not be used as a "
+    "substitute for professional risk management advice.</p>"
+    "<p>No liability or warranty of any kind is assumed in the use of this "
+    "application. For further information, please contact the developer at "
+    "<a href=\"mailto:mingze.gao@mq.edu.au\">mingze.gao@mq.edu.au</a>.</p>";
+// clang-format on
+} // namespace BRMS
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
   m_locale = QLocale::system();
@@ -157,6 +176,8 @@ void MainWindow::setupConnection() {
           &MainWindow::importYieldCurveData);
   connect(ui->nextPeriodPushButton, &QPushButton::clicked, this,
           &MainWindow::advanceToNextPeriodInSimulation);
+  connect(ui->actionAbout, &QAction::triggered, this,
+          [&]() { QMessageBox::about(this, "About BRMS", BRMS::aboutBRMS); });
 
   // views
   connect(ui->actionYield_Curve, &QAction::triggered, this,

@@ -139,7 +139,7 @@
      <x>0</x>
      <y>0</y>
      <width>1920</width>
-     <height>24</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -152,6 +152,7 @@
     <property name="title">
      <string>Help</string>
     </property>
+    <addaction name="actionAbout"/>
     <addaction name="actionAbout_Qt"/>
    </widget>
    <widget class="QMenu" name="menuView">
@@ -313,6 +314,11 @@
   <action name="actionRestore">
    <property name="text">
     <string>Restore default view</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
    </property>
   </action>
  </widget>
