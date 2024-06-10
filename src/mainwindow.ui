@@ -15,6 +15,16 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
+    <item row="1" column="6">
+     <widget class="QWidget" name="placeholderChartView" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
     <item row="0" column="6">
      <widget class="QWidget" name="progressWidget" native="true">
       <property name="font">
@@ -57,72 +67,6 @@
     </item>
     <item row="2" column="6">
      <widget class="QWidget" name="placeholderCashFlowChartView" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="6">
-     <widget class="QWidget" name="widget" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
-        <number>0</number>
-       </property>
-       <item>
-        <widget class="QPushButton" name="managementPushButton">
-         <property name="text">
-          <string>Management</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="nextPeriodPushButton">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Next Period</string>
-         </property>
-         <property name="icon">
-          <iconset theme="go-next"/>
-         </property>
-         <property name="shortcut">
-          <string>Return</string>
-         </property>
-         <property name="default">
-          <bool>true</bool>
-         </property>
-         <property name="flat">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item row="1" column="6">
-     <widget class="QWidget" name="placeholderChartView" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -268,6 +212,31 @@
     </layout>
    </widget>
   </widget>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>Toolbar</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextBesideIcon</enum>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionRun"/>
+   <addaction name="actionPause"/>
+   <addaction name="actionNextPeriod"/>
+   <addaction name="separator"/>
+   <addaction name="actionManagement"/>
+  </widget>
   <action name="actionAbout_Qt">
    <property name="text">
     <string>About Qt</string>
@@ -282,6 +251,9 @@
    </property>
    <property name="text">
     <string>Yield Curve</string>
+   </property>
+   <property name="toolTip">
+    <string>Show yield curve window</string>
    </property>
   </action>
   <action name="actionImport_yield_curve_data">
@@ -299,6 +271,9 @@
    <property name="text">
     <string>Balance Sheet</string>
    </property>
+   <property name="toolTip">
+    <string>Show balance sheet window</string>
+   </property>
   </action>
   <action name="actionHistory">
    <property name="checkable">
@@ -310,6 +285,9 @@
    <property name="text">
     <string>History</string>
    </property>
+   <property name="toolTip">
+    <string>Show history window</string>
+   </property>
   </action>
   <action name="actionRestore">
    <property name="text">
@@ -319,6 +297,62 @@
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionRun">
+   <property name="icon">
+    <iconset theme="media-playback-start"/>
+   </property>
+   <property name="text">
+    <string>Run</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::ApplicationSpecificRole</enum>
+   </property>
+  </action>
+  <action name="actionPause">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="media-playback-pause"/>
+   </property>
+   <property name="text">
+    <string>Pause</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::ApplicationSpecificRole</enum>
+   </property>
+  </action>
+  <action name="actionManagement">
+   <property name="icon">
+    <iconset theme="computer"/>
+   </property>
+   <property name="text">
+    <string>Management</string>
+   </property>
+   <property name="toolTip">
+    <string>Risk management</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::ApplicationSpecificRole</enum>
+   </property>
+  </action>
+  <action name="actionNextPeriod">
+   <property name="icon">
+    <iconset theme="media-skip-forward"/>
+   </property>
+   <property name="text">
+    <string>Next Period</string>
+   </property>
+   <property name="toolTip">
+    <string>Advance to next period in the simulation</string>
+   </property>
+   <property name="shortcut">
+    <string>Return</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::ApplicationSpecificRole</enum>
    </property>
   </action>
  </widget>

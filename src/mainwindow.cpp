@@ -38,6 +38,8 @@ QString aboutBRMS =
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
   m_locale = QLocale::system();
+  m_timer = new QTimer(this);
+  m_timer->setInterval(300);
   setupUi();
   setupConnection();
 }
@@ -174,10 +176,22 @@ void MainWindow::setupConnection() {
           &MainWindow::showYieldCurve);
   connect(ui->actionImport_yield_curve_data, &QAction::triggered, this,
           &MainWindow::importYieldCurveData);
-  connect(ui->nextPeriodPushButton, &QPushButton::clicked, this,
+  connect(ui->actionNextPeriod, &QAction::triggered, this,
           &MainWindow::advanceToNextPeriodInSimulation);
   connect(ui->actionAbout, &QAction::triggered, this,
           [&]() { QMessageBox::about(this, "About BRMS", BRMS::aboutBRMS); });
+  connect(m_timer, &QTimer::timeout, this,
+          &MainWindow::advanceToNextPeriodInSimulation);
+  connect(ui->actionRun, &QAction::triggered, this, [&]() {
+    ui->actionRun->setEnabled(false);
+    ui->actionPause->setEnabled(true);
+    m_timer->start();
+  });
+  connect(ui->actionPause, &QAction::triggered, m_timer, [&]() {
+    ui->actionRun->setEnabled(true);
+    ui->actionPause->setEnabled(false);
+    m_timer->stop();
+  });
 
   // views
   connect(ui->actionYield_Curve, &QAction::triggered, this,

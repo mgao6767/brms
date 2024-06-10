@@ -7,6 +7,7 @@
 #include <QBarSet>
 #include <QMainWindow>
 #include <QStackedBarSeries>
+#include <QTimer>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -55,6 +56,7 @@ private:
   Bank *m_bank;
   YieldCurveWindow *m_yieldCurveWindow;
   QLocale m_locale;
+  QTimer *m_timer;
 
   // equity volution chart
   QLineSeries *m_equitySeries;
