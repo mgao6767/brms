@@ -97,6 +97,7 @@ target_include_directories(brms PRIVATE "${CMAKE_CURRENT_LIST_DIR}/include")
 # Resources:
 set(brms_resource_files
     "resources/par_yields.csv"
+    "resources/treasury_futures.html"
 )
 
 qt_add_resources(brms "brms"
