@@ -9,6 +9,7 @@
 #include <QMainWindow>
 #include <QStackedBarSeries>
 #include <QTimer>
+#include <QEvent>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -55,6 +56,7 @@ public:
 
 protected:
   void closeEvent(QCloseEvent *event) override;
+  void changeEvent(QEvent *event) override;
 
 private:
   Ui::MainWindow *ui;
@@ -91,6 +93,7 @@ private:
   void toggleBalanceSheet();
   void toggleHistory();
   void restoreAllViews();
+  void changeChartTheme();
 };
 
 #endif // MAINWINDOW_H

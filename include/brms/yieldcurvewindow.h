@@ -42,6 +42,8 @@ public:
   const QuantLib::ext::shared_ptr<QuantLib::DiscountingBondEngine> &
   bondEngine();
 
+  void changeChartTheme();
+
 private:
   Ui::YieldCurveWindow *ui;
   QDate m_today;

@@ -20,6 +20,15 @@ void YieldCurveWindow::importYieldCurveData(QString filePath) {
   ui->tableView->selectRow(1);
 }
 
+void YieldCurveWindow::changeChartTheme() {
+  // check if the system is using dark theme?
+  if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
+    m_chartView->chart()->setTheme(QChart::ChartThemeDark);
+  } else {
+    m_chartView->chart()->setTheme(QChart::ChartThemeLight);
+  }
+}
+
 YieldCurveWindow::YieldCurveWindow(QWidget *parent)
     : QWidget(parent), ui(new Ui::YieldCurveWindow) {
   qDebug() << "Init Yield Curve Window";
@@ -36,11 +45,6 @@ YieldCurveWindow::YieldCurveWindow(QWidget *parent)
   // Pricing engine
   m_bondEngine =
       ext::make_shared<DiscountingBondEngine>(m_discountingTermStructure);
-
-  // check if the system is using dark theme?
-  if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
-    m_chartView->chart()->setTheme(QChart::ChartThemeDark);
-  }
 
   // setup table view
   ui->tableView->setModel(m_model);
@@ -93,6 +97,8 @@ YieldCurveWindow::YieldCurveWindow(QWidget *parent)
   m_chart->setTitleFont(titleFont);
   m_chart->layout()->setContentsMargins(0, 0, 0, 0);
   m_chartView->setRenderHint(QPainter::Antialiasing);
+
+  changeChartTheme();
 
   // add the chart to the window
   ui->chartGridLayout->replaceWidget(ui->chartPlaceholderWidget, m_chartView);

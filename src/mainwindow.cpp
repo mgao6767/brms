@@ -86,6 +86,7 @@ void MainWindow::setupUi() {
 
   setupUiEquityEvolutionChart();
   setupUiCashFlowChart();
+  changeChartTheme();
 }
 
 void MainWindow::setupUiEquityEvolutionChart() {
@@ -118,6 +119,7 @@ void MainWindow::setupUiEquityEvolutionChart() {
   m_equityChart->layout()->setContentsMargins(0, 0, 0, 0);
   m_equityChart->setTitle("Bank Equity Value");
   m_equityChart->setAnimationOptions(QChart::SeriesAnimations);
+  // m_equityChart->setBackgroundVisible(false);
   m_chartView->setRenderHint(QPainter::Antialiasing);
 
   QDateTime dt;
@@ -152,6 +154,7 @@ void MainWindow::setupUiCashFlowChart() {
   m_cashflowChart->setTitle("30-Day Cashflow Projection");
   m_cashflowChart->setAnimationOptions(QChart::NoAnimation);
   m_cashflowChart->legend()->hide();
+  // m_cashflowChart->setBackgroundVisible(false);
 
   m_cashflowAxisX = new QBarCategoryAxis;
   m_cashflowAxisY = new QValueAxis;
@@ -165,6 +168,7 @@ void MainWindow::setupUiCashFlowChart() {
   zeroLine->attachAxis(m_cashflowAxisY);
 
   m_cashflowChartView = new QChartView(m_cashflowChart);
+  m_cashflowChartView->setRenderHint(QPainter::Antialiasing);
 
   updateCashFlowChart();
   ui->gridLayout->replaceWidget(ui->placeholderCashFlowChartView,
@@ -455,4 +459,27 @@ void MainWindow::showManagement() {
   m_managementWindow->show();
   m_managementWindow->raise();
   m_managementWindow->activateWindow();
+}
+
+void MainWindow::changeChartTheme() {
+  if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
+    m_cashflowChartView->chart()->setTheme(QChart::ChartThemeDark);
+    m_chartView->chart()->setTheme(QChart::ChartThemeDark);
+    m_outflow->setColor(BRMS::RED);
+  } else {
+    m_cashflowChartView->chart()->setTheme(QChart::ChartThemeLight);
+    m_chartView->chart()->setTheme(QChart::ChartThemeLight);
+    m_outflow->setColor(BRMS::RED);
+  }
+  m_yieldCurveWindow->changeChartTheme();
+}
+
+void MainWindow::changeEvent(QEvent *event) {
+  if (event->type() == QEvent::ThemeChange) {
+    changeChartTheme();
+    event->accept();
+  } else {
+    event->accept();
+    QMainWindow::changeEvent(event);
+  }
 }
