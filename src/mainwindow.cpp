@@ -22,9 +22,9 @@ QString aboutBRMS =
     "<p><strong>BRMS - Bank Risk Management Simulation</strong></p>"
     "<p>This program is developed by Dr. <a href=\"https://mingze-gao.com\">"
     "Mingze Gao</a> from the Macquarie University.</p>"
-    "<p>BRMS is an educational tool designed to provide users with an in-depth " 
+    "<p>BRMS is an educational tool designed to provide users with an in-depth "
     "understanding of bank risk management practices. It allows users to "
-    "simulate and respond to various risk scenarios, and analyze the impact on " 
+    "simulate and respond to various risk scenarios, and analyze the impact on "
     "a bank's financial health.</p>"
     "<p>This application is intended for educational purposes only. It is "
     "designed to aid in the learning process and should not be used as a "
@@ -80,6 +80,9 @@ void MainWindow::setupUi() {
       view->resizeColumnToContents(c);
     }
   }
+
+  // risk management window
+  m_managementWindow = new ManagementWindow();
 
   setupUiEquityEvolutionChart();
   setupUiCashFlowChart();
@@ -174,6 +177,8 @@ void MainWindow::setupConnection() {
           [&]() { QMessageBox::aboutQt(this, "About Qt"); });
   connect(ui->actionYield_Curve, &QAction::triggered, this,
           &MainWindow::showYieldCurve);
+  connect(ui->actionManagement, &QAction::triggered, this,
+          &MainWindow::showManagement);
   connect(ui->actionImport_yield_curve_data, &QAction::triggered, this,
           &MainWindow::importYieldCurveData);
   connect(ui->actionNextPeriod, &QAction::triggered, this,
@@ -185,11 +190,17 @@ void MainWindow::setupConnection() {
   connect(ui->actionRun, &QAction::triggered, this, [&]() {
     ui->actionRun->setEnabled(false);
     ui->actionPause->setEnabled(true);
+    ui->actionManagement->setEnabled(false);
+    ui->actionNextPeriod->setEnabled(false);
+    m_managementWindow->setEnabled(false);
     m_timer->start();
   });
   connect(ui->actionPause, &QAction::triggered, m_timer, [&]() {
     ui->actionRun->setEnabled(true);
     ui->actionPause->setEnabled(false);
+    ui->actionManagement->setEnabled(true);
+    ui->actionNextPeriod->setEnabled(true);
+    m_managementWindow->setEnabled(true);
     m_timer->stop();
   });
 
@@ -438,4 +449,10 @@ void MainWindow::restoreAllViews() {
   addDockWidget(Qt::DockWidgetArea::LeftDockWidgetArea, ui->dockWidget_History);
   addDockWidget(Qt::DockWidgetArea::TopDockWidgetArea,
                 ui->dockWidget_YieldCurve);
+}
+
+void MainWindow::showManagement() {
+  m_managementWindow->show();
+  m_managementWindow->raise();
+  m_managementWindow->activateWindow();
 }

@@ -72,6 +72,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         include/brms/bankassets.h src/bankassets.cpp
         include/brms/bankliabilities.h src/bankliabilities.cpp
         include/brms/bankequity.h src/bankequity.cpp
+        include/brms/managementwindow.h src/managementwindow.cpp src/managementwindow.ui
     )
 endif()
 

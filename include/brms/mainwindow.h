@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "bank.h"
+#include "managementwindow.h"
 #include "yieldcurvewindow.h"
 #include <QBarCategoryAxis>
 #include <QBarSet>
@@ -43,6 +44,11 @@ public:
   void showYieldCurve();
 
   /**
+   * @brief Shows the Management Window
+   */
+  void showManagement();
+
+  /**
    * @brief Imports yield curve data
    */
   void importYieldCurveData();
@@ -55,6 +61,7 @@ private:
   QDate m_todayInSimulation;
   Bank *m_bank;
   YieldCurveWindow *m_yieldCurveWindow;
+  ManagementWindow *m_managementWindow;
   QLocale m_locale;
   QTimer *m_timer;
 
