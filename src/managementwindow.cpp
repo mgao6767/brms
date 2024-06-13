@@ -7,8 +7,8 @@ ManagementWindow::ManagementWindow(QWidget *parent)
     : QWidget(parent), ui(new Ui::ManagementWindow) {
   ui->setupUi(this);
   auto src = QUrl::fromLocalFile(":/resources/treasury_futures.html");
-  ui->treasuryFuturesTextBrowser->setSource(src, QTextDocument::HtmlResource);
-  ui->treasuryFuturesTextBrowser->viewport()->setAutoFillBackground(false);
+  ui->textBrowserTreasuryFutures->setSource(src, QTextDocument::HtmlResource);
+  ui->textBrowserTreasuryFutures->viewport()->setAutoFillBackground(false);
 }
 
 ManagementWindow::~ManagementWindow() { delete ui; }

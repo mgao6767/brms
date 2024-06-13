@@ -4,6 +4,7 @@
     border-spacing: 0;
     margin-top: 5px;
   }
+
   .tg td {
     border-color: black;
     border-style: solid;
@@ -14,6 +15,7 @@
     padding: 10px 5px;
     word-break: normal;
   }
+
   .tg th {
     border-color: black;
     border-style: solid;
@@ -25,15 +27,18 @@
     padding: 10px 5px;
     word-break: normal;
   }
+
   .tg .tg-cly1 {
     text-align: left;
     vertical-align: middle;
   }
+
   .tg .tg-wa1i {
     font-weight: bold;
     text-align: center;
     vertical-align: middle;
   }
+
   .tg .tg-7zrl {
     text-align: left;
     vertical-align: bottom;
@@ -125,11 +130,34 @@
 <p>
   <strong>Note:</strong> The deliverable maturity refers to the remaining
   maturity of the Treasury security delivered to settle the futures contract
-  when it matures.
+  when it matures. In practice, a range of maturities are allowed. In this
+  simulation, deliverable maturity matches exactly the underlying.
 </p>
 
-<br />
-<strong>Read More</strong>
+<h2>Contract Specifications</h2>
+
+<p>
+  Treasury futures have a <strong>quarterly cycle</strong> with expiration
+  months in March, June, September, and December. For each type of Treasury
+  futures, there are always four contracts trading simultaneously, each
+  corresponding to one of the quarterly expiration months.
+</p>
+
+<p>
+  As an example, suppose it is January 2024, the trading contracts are for March
+  2024, June 2024, September 2024, and December 2024. When the March 2024
+  contract approaches expiration, a new March 2025 contract will begin trading.
+</p>
+
+<p>
+  This means the maturity of each contract is typically less than a year. As one
+  contract nears expiration, positions will need to be rolled into the next
+  available contract to maintain continuous hedging against interest rate
+  movements.
+</p>
+
+<h2>Read More</h2>
+
 <p>
   For more information, see
   <a
