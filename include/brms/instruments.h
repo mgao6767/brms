@@ -6,6 +6,7 @@
 #include <ql/termstructures/yield/piecewiseyieldcurve.hpp>
 #include <ql/time/calendars/unitedstates.hpp>
 #include <ql/time/daycounters/actualactual.hpp>
+#include <ql/instruments/bondforward.hpp>
 
 class Instruments {
 public:
