@@ -38,8 +38,8 @@ set(PROJECT_SOURCES
 )
 
 # add_compile_definitions(QL_USE_STD_SHARED_PTR)
-set(QUANTLIB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include/ql")
-set(QUANTLIB_LIBRARY_DIR "${CMAKE_SOURCE_DIR}/lib")
+set(QUANTLIB_INCLUDE_DIR "C:/QuantLib-1.34")
+set(QUANTLIB_LIBRARY_DIR "${QUANTLIB_INCLUDE_DIR}/lib")
 include_directories(${QUANTLIB_INCLUDE_DIR})
 link_directories(${QUANTLIB_LIBRARY_DIR})
 
