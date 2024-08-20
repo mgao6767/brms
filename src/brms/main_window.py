@@ -5,6 +5,8 @@ from brms.controllers import BondCalculatorController, LoanCalculatorController
 from brms.models import BondModel, LoanModel
 from brms.views import BondCalculatorWidget, LoanCalculatorWidget
 
+from brms.resources import resource  # noqa isort:skip
+
 
 class MainWindow(QMainWindow):
 
