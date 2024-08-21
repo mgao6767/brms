@@ -4,9 +4,9 @@ from PySide6.QtWidgets import QApplication, QMainWindow
 from brms.controllers import BondCalculatorController, LoanCalculatorController
 from brms.models import BondModel, LoanModel
 from brms.views import BondCalculatorWidget, LoanCalculatorWidget
+from brms.views import BankBooksWidget
 
 from brms.resources import resource  # noqa isort:skip
-
 
 class MainWindow(QMainWindow):
 
@@ -33,6 +33,8 @@ class MainWindow(QMainWindow):
         self.loan_calculator_controller = LoanCalculatorController(
             self.loan_model, self.loan_calculator_widget
         )
+
+        self.bank_books_widget = BankBooksWidget(self)
 
         self.connect_signals_slots()
 
@@ -85,10 +87,20 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(self.stop_action)
 
         # View menu
+        self.risk_metrics_action = QAction(QIcon.fromTheme("dialog-information"), "Risk Metrics", self)
+        self.mgmt_action = QAction(QIcon.fromTheme("computer"), "Risk Management", self)
+        self.risk_metrics_action.setIconVisibleInMenu(False)
+        self.mgmt_action.setIconVisibleInMenu(False)
+
+        self.bank_books_action = QAction("Banking and Trading Books", self)
         self.fullscreen_action = QAction("Full Screen", self)
         self.fullscreen_action.setCheckable(True)
         self.fullscreen_action.setChecked(False)
 
+        view_menu.addAction(self.bank_books_action)
+        view_menu.addAction(self.risk_metrics_action)
+        view_menu.addAction(self.mgmt_action)
+        view_menu.addSeparator()
         view_menu.addAction(self.fullscreen_action)
 
         # Calculator menu
@@ -112,9 +124,6 @@ class MainWindow(QMainWindow):
         self.toolbar.addAction(self.pause_action)
         self.toolbar.addAction(self.stop_action)
         self.toolbar.addSeparator()
-
-        self.risk_metrics_action = QAction(QIcon.fromTheme("dialog-information"), "Risk Metrics", self)
-        self.mgmt_action = QAction(QIcon.fromTheme("computer"), "Risk Management", self)
         self.toolbar.addAction(self.risk_metrics_action)
         self.toolbar.addAction(self.mgmt_action)
 
@@ -141,6 +150,7 @@ class MainWindow(QMainWindow):
         to their corresponding slots, which are responsible for handling the events.
         """
         self.exit_action.triggered.connect(self.close)
+        self.bank_books_action.triggered.connect(self.bank_books_widget.show)
         self.fullscreen_action.triggered.connect(self.toggle_fullscreen)
         self.bond_calculator_action.triggered.connect(self.toggle_bond_calculator)
         self.loan_calculator_action.triggered.connect(self.toggle_loan_calculator)
