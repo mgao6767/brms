@@ -1,6 +1,14 @@
-from PySide6.QtGui import QAction, QIcon, Qt
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidgetAction, QLabel
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QAction, QDesktopServices, QIcon, Qt
+from PySide6.QtWidgets import (
+    QApplication,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QWidgetAction,
+)
 
+from brms import __about__, __version__, __github__
 from brms.controllers import BondCalculatorController, LoanCalculatorController
 from brms.models import BondModel, LoanModel
 from brms.views import BankBooksWidget, BondCalculatorWidget, LoanCalculatorWidget
@@ -15,6 +23,7 @@ class MainWindow(QMainWindow):
         self.read_settings()
         self.set_window_properties()
         self.center_window()
+        self.create_actions()
         self.create_menu_bar()
         self.create_toolbars()
         self.create_status_bar()
@@ -44,7 +53,7 @@ class MainWindow(QMainWindow):
         self.window_height = 720
 
     def set_window_properties(self):
-        self.setWindowTitle("BRMS - Bank Risk Management Simulation")
+        self.setWindowTitle(f"BRMS - Bank Risk Management Simulation v{__version__}")
         self.setWindowIcon(QIcon(":/icons/icon.png"))
         self.setGeometry(100, 100, self.window_width, self.window_height)
         self.setMinimumSize(800, 600)
@@ -56,6 +65,52 @@ class MainWindow(QMainWindow):
         window_geometry.moveCenter(screen_geometry.center())
         self.move(window_geometry.topLeft())
 
+    def create_actions(self):
+        # fmt: off
+        self.new_action = QAction("New", self)
+        self.open_action = QAction("Open", self)
+        self.save_action = QAction("Save", self)
+        self.exit_action = QAction("Exit", self)
+        self.exit_action.setShortcut("Ctrl+Q")
+
+        self.start_action = QAction(QIcon.fromTheme("media-playback-start"), "Start", self)
+        self.pause_action = QAction(QIcon.fromTheme("media-playback-pause"), "Pause", self)
+        self.stop_action = QAction(QIcon.fromTheme("media-playback-stop"), "Stop", self)
+        self.next_action = QAction(QIcon.fromTheme("media-skip-forward"), "Next", self)
+        self.risk_metrics_action = QAction(QIcon.fromTheme("dialog-information"), "Risk Metrics", self)
+        self.stress_test_action = QAction(QIcon.fromTheme("dialog-warning"), "Stress Test", self)
+        self.mgmt_action = QAction(QIcon.fromTheme("computer"), "Management", self)
+        self.log_action = QAction(QIcon.fromTheme("document-new"), "Log", self)
+        self.fullscreen_action = QAction("Full Screen", self)
+        self.bond_calculator_action = QAction("Fixed-Rate Bond Calculator", self)
+        self.loan_calculator_action = QAction("Amortizing Loan Calculator", self)
+        self.about_action = QAction("About", self)        
+        self.about_qt_action = QAction("About Qt", self)
+        self.github_action = QAction("Project GitHub", self)
+
+        self.next_action.setToolTip("Advance to next period in the simulation")
+        self.mgmt_action.setToolTip("Take actions to manage risk")
+
+        self.start_action.setIconVisibleInMenu(False)
+        self.next_action.setIconVisibleInMenu(False)
+        self.pause_action.setIconVisibleInMenu(False)
+        self.stop_action.setIconVisibleInMenu(False)
+        self.risk_metrics_action.setIconVisibleInMenu(False)
+        self.stress_test_action.setIconVisibleInMenu(False)
+        self.mgmt_action.setIconVisibleInMenu(False)
+        self.log_action.setIconVisibleInMenu(False)
+
+        self.pause_action.setDisabled(True)
+        self.stop_action.setDisabled(True)
+
+        self.fullscreen_action.setCheckable(True)
+        self.fullscreen_action.setChecked(False)
+        self.bond_calculator_action.setCheckable(True)
+        self.bond_calculator_action.setChecked(False)
+        self.loan_calculator_action.setCheckable(True)
+        self.loan_calculator_action.setChecked(False)
+        # fmt: on
+
     def create_menu_bar(self):
         menu_bar = self.menuBar()
         file_menu = menu_bar.addMenu("File")
@@ -65,60 +120,18 @@ class MainWindow(QMainWindow):
         help_menu = menu_bar.addMenu("Help")
 
         # File menu
-        self.new_action = QAction("New", self)
-        self.open_action = QAction("Open", self)
-        self.save_action = QAction("Save", self)
-        self.exit_action = QAction("Exit", self)
-        self.exit_action.setShortcut("Ctrl+Q")
-
         file_menu.addAction(self.new_action)
         file_menu.addAction(self.open_action)
         file_menu.addAction(self.save_action)
         file_menu.addAction(self.exit_action)
 
         # Edit menu
-        self.start_action = QAction(
-            QIcon.fromTheme("media-playback-start"), "Start", self
-        )
-        self.pause_action = QAction(
-            QIcon.fromTheme("media-playback-pause"), "Pause", self
-        )
-        self.stop_action = QAction(QIcon.fromTheme("media-playback-stop"), "Stop", self)
-        self.next_action = QAction(QIcon.fromTheme("media-skip-forward"), "Next", self)
-        self.next_action.setToolTip("Advance to next period in the simulation")
-
-        self.start_action.setIconVisibleInMenu(False)
-        self.next_action.setIconVisibleInMenu(False)
-        self.pause_action.setIconVisibleInMenu(False)
-        self.stop_action.setIconVisibleInMenu(False)
-        self.pause_action.setDisabled(True)
-        self.stop_action.setDisabled(True)
         edit_menu.addAction(self.next_action)
         edit_menu.addAction(self.start_action)
         edit_menu.addAction(self.pause_action)
         edit_menu.addAction(self.stop_action)
 
         # View menu
-        self.risk_metrics_action = QAction(
-            QIcon.fromTheme("dialog-information"), "Risk Metrics", self
-        )
-        self.stress_test_action = QAction(
-            QIcon.fromTheme("dialog-warning"), "Stress Test", self
-        )
-        self.mgmt_action = QAction(QIcon.fromTheme("computer"), "Management", self)
-        self.mgmt_action.setToolTip("Take actions to manage risk")
-
-        self.log_action = QAction(QIcon.fromTheme("document-new"), "Log", self)
-
-        self.risk_metrics_action.setIconVisibleInMenu(False)
-        self.stress_test_action.setIconVisibleInMenu(False)
-        self.mgmt_action.setIconVisibleInMenu(False)
-        self.log_action.setIconVisibleInMenu(False)
-
-        self.fullscreen_action = QAction("Full Screen", self)
-        self.fullscreen_action.setCheckable(True)
-        self.fullscreen_action.setChecked(False)
-
         view_menu.addAction(self.risk_metrics_action)
         view_menu.addAction(self.stress_test_action)
         view_menu.addAction(self.mgmt_action)
@@ -127,18 +140,14 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.fullscreen_action)
 
         # Calculator menu
-        self.bond_calculator_action = QAction("Fixed-Rate Bond Calculator", self)
-        self.bond_calculator_action.setCheckable(True)
-        self.bond_calculator_action.setChecked(False)
-        self.loan_calculator_action = QAction("Amortizing Loan Calculator", self)
-        self.loan_calculator_action.setCheckable(True)
-        self.loan_calculator_action.setChecked(False)
-
         calc_menu.addAction(self.bond_calculator_action)
         calc_menu.addAction(self.loan_calculator_action)
 
         # Help menu
-        pass
+        help_menu.addAction(self.github_action)
+        help_menu.addSeparator()
+        help_menu.addAction(self.about_action)
+        help_menu.addAction(self.about_qt_action)
 
     def create_toolbars(self):
 
@@ -187,6 +196,9 @@ class MainWindow(QMainWindow):
         This method connects the signals emitted by various UI elements in the main window
         to their corresponding slots, which are responsible for handling the events.
         """
+        self.github_action.triggered.connect(self.open_github)
+        self.about_qt_action.triggered.connect(QApplication.instance().aboutQt)
+        self.about_action.triggered.connect(self.show_about_dialog)
         self.exit_action.triggered.connect(self.close)
         self.fullscreen_action.triggered.connect(self.toggle_fullscreen)
         self.bond_calculator_action.triggered.connect(self.toggle_bond_calculator)
@@ -227,3 +239,9 @@ class MainWindow(QMainWindow):
     def uncheck_loan_calculator_action(self, event):
         self.loan_calculator_action.setChecked(False)
         event.accept()
+
+    def show_about_dialog(self):
+        QMessageBox.about(self, "About BRMS", __about__)
+
+    def open_github(self):
+        QDesktopServices.openUrl(QUrl(__github__))
