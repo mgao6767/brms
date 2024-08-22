@@ -18,7 +18,7 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 license = { text = "MIT License" }
-dependencies = ["PySide6", "QuantLib"]
+dependencies = ["PySide6", "QuantLib", "matplotlib", "numpy"]
 
 
 [build-system]

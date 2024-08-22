@@ -1,5 +1,8 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
     <file>icons/icon.png</file>
+    <file>icons/bar-chart.png</file>
+    <file>icons/line-chart.png</file>
+    <file>data/par_yields.csv</file>
 </qresource>
 </RCC>

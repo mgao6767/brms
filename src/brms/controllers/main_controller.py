@@ -26,6 +26,7 @@ class MainController:
         )
 
         self.connect_signals_slots()
+        self.post_init()
 
     def connect_signals_slots(self):
 
@@ -33,6 +34,15 @@ class MainController:
         self.view.start_action.triggered.connect(self.on_start_simulation)
         self.view.pause_action.triggered.connect(self.on_pause_simulation)
         self.view.stop_action.triggered.connect(self.on_stop_simulation)
+
+    def post_init(self):
+        # Load yield data from resources
+        try:
+            yields = ":/data/par_yields.csv"
+            self.view.yield_curve_controller.load_yield_data_from_qrc(yields)
+        except FileNotFoundError as err:
+            self.view.statusBar.showMessage("Failed to load yield data.")
+            print(err)
 
     # ====== Simulation ========================================================
     def on_next_simulation(self):

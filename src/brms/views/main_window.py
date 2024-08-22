@@ -8,10 +8,19 @@ from PySide6.QtWidgets import (
     QWidgetAction,
 )
 
-from brms import __about__, __version__, __github__
-from brms.controllers import BondCalculatorController, LoanCalculatorController
-from brms.models import BondModel, LoanModel
-from brms.views import BankBooksWidget, BondCalculatorWidget, LoanCalculatorWidget
+from brms import __about__, __github__, __version__
+from brms.controllers import (
+    BondCalculatorController,
+    LoanCalculatorController,
+    YieldCurveController,
+)
+from brms.models import BondModel, LoanModel, YieldCurveModel
+from brms.views import (
+    BankBooksWidget,
+    BondCalculatorWidget,
+    LoanCalculatorWidget,
+    YieldCurveWidget,
+)
 
 from brms.resources import resource  # noqa isort:skip
 
@@ -43,6 +52,12 @@ class MainWindow(QMainWindow):
         )
 
         self.bank_books_widget = BankBooksWidget(self, Qt.WindowType.Widget)
+
+        self.yield_curve_model = YieldCurveModel()
+        self.yield_curve_widget = YieldCurveWidget(self)
+        self.yield_curve_controller = YieldCurveController(
+            self.yield_curve_model, self.yield_curve_widget
+        )
 
         self.create_central_widget()
         self.connect_signals_slots()
@@ -77,11 +92,12 @@ class MainWindow(QMainWindow):
         self.pause_action = QAction(QIcon.fromTheme("media-playback-pause"), "Pause", self)
         self.stop_action = QAction(QIcon.fromTheme("media-playback-stop"), "Stop", self)
         self.next_action = QAction(QIcon.fromTheme("media-skip-forward"), "Next", self)
-        self.risk_metrics_action = QAction(QIcon.fromTheme("dialog-information"), "Risk Metrics", self)
+        self.risk_metrics_action = QAction(QIcon(":/icons/bar-chart.png"), "Risk Metrics", self)
         self.stress_test_action = QAction(QIcon.fromTheme("dialog-warning"), "Stress Test", self)
         self.mgmt_action = QAction(QIcon.fromTheme("computer"), "Management", self)
         self.log_action = QAction(QIcon.fromTheme("document-new"), "Log", self)
         self.fullscreen_action = QAction("Full Screen", self)
+        self.yield_curve_action = QAction(QIcon(":/icons/line-chart.png"), "Yield Curve", self)
         self.bond_calculator_action = QAction("Fixed-Rate Bond Calculator", self)
         self.loan_calculator_action = QAction("Amortizing Loan Calculator", self)
         self.about_action = QAction("About", self)        
@@ -91,15 +107,16 @@ class MainWindow(QMainWindow):
         self.next_action.setToolTip("Advance to next period in the simulation")
         self.mgmt_action.setToolTip("Take actions to manage risk")
 
-        self.start_action.setIconVisibleInMenu(False)
-        self.next_action.setIconVisibleInMenu(False)
-        self.pause_action.setIconVisibleInMenu(False)
-        self.stop_action.setIconVisibleInMenu(False)
-        self.risk_metrics_action.setIconVisibleInMenu(False)
-        self.stress_test_action.setIconVisibleInMenu(False)
-        self.mgmt_action.setIconVisibleInMenu(False)
-        self.log_action.setIconVisibleInMenu(False)
+        # self.start_action.setIconVisibleInMenu(False)
+        # self.next_action.setIconVisibleInMenu(False)
+        # self.pause_action.setIconVisibleInMenu(False)
+        # self.stop_action.setIconVisibleInMenu(False)
+        # self.risk_metrics_action.setIconVisibleInMenu(False)
+        # self.stress_test_action.setIconVisibleInMenu(False)
+        # self.mgmt_action.setIconVisibleInMenu(False)
+        # self.log_action.setIconVisibleInMenu(False)
 
+        # At init, only allow Next or Start.
         self.pause_action.setDisabled(True)
         self.stop_action.setDisabled(True)
 
@@ -132,6 +149,7 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(self.stop_action)
 
         # View menu
+        view_menu.addAction(self.yield_curve_action)
         view_menu.addAction(self.risk_metrics_action)
         view_menu.addAction(self.stress_test_action)
         view_menu.addAction(self.mgmt_action)
@@ -168,6 +186,7 @@ class MainWindow(QMainWindow):
         section2_action = QWidgetAction(self)
         section2_action.setDefaultWidget(section2_label)
         self.toolbar.addAction(section2_action)
+        self.toolbar.addAction(self.yield_curve_action)
         self.toolbar.addAction(self.risk_metrics_action)
         self.toolbar.addAction(self.stress_test_action)
         self.toolbar.addAction(self.mgmt_action)
@@ -200,6 +219,7 @@ class MainWindow(QMainWindow):
         self.about_qt_action.triggered.connect(QApplication.instance().aboutQt)
         self.about_action.triggered.connect(self.show_about_dialog)
         self.exit_action.triggered.connect(self.close)
+        self.yield_curve_action.triggered.connect(self.show_yield_curve)
         self.fullscreen_action.triggered.connect(self.toggle_fullscreen)
         self.bond_calculator_action.triggered.connect(self.toggle_bond_calculator)
         self.loan_calculator_action.triggered.connect(self.toggle_loan_calculator)
@@ -245,3 +265,6 @@ class MainWindow(QMainWindow):
 
     def open_github(self):
         QDesktopServices.openUrl(QUrl(__github__))
+
+    def show_yield_curve(self):
+        self.yield_curve_widget.show()
