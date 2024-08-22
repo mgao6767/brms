@@ -1,13 +1,12 @@
 import QuantLib as ql
 
-from brms.models.bond_model import BondModel
+from brms.models.instruments import InstrumentFactory
 from brms.utils import qdate_to_qldate
 from brms.views.bond_calculator_widget import BondCalculatorWidget
 
 
 class BondCalculatorController:
-    def __init__(self, model: BondModel, view: BondCalculatorWidget):
-        self.model = model
+    def __init__(self, view: BondCalculatorWidget):
         self.view = view
         self.view.payments_button.clicked.connect(self.update_bond_payments_schedule)
         self.view.calculate_button.clicked.connect(self.update_bond_value)
@@ -114,7 +113,7 @@ class BondCalculatorController:
 
         params = self.parse_view_params()
         try:
-            bond = self.model.build_fixed_rate_bond(*params[4:])
+            bond = InstrumentFactory.create_fixed_rate_bond(*params[4:])
         except RuntimeError as err:
             self.view.show_warning(str(err))
             return
@@ -124,8 +123,7 @@ class BondCalculatorController:
     def update_bond_payments_schedule(self):
 
         bond, params = self.build_bond()
-        payments = self.model.bond_payment_schedule(bond)
-        self.view.show_bond_payment_schedule(payments)
+        self.view.show_bond_payment_schedule(bond.payment_schedule())
 
         return bond, params
 
@@ -142,10 +140,8 @@ class BondCalculatorController:
         ) = params
 
         # Update bond value
-        npv, clean_price, dirty_price, accrued_interest = (
-            self.model.bond_value_fixed_forward_rate(
-                bond, valuation_date, fixed_forward_rate, compounding, comp_frequency
-            )
+        npv, clean_price, dirty_price, accrued_interest = bond.value(
+            valuation_date, fixed_forward_rate, compounding, comp_frequency
         )
         self.view.show_bond_value(npv, clean_price, dirty_price, accrued_interest)
 

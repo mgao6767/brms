@@ -1,13 +1,12 @@
 import QuantLib as ql
 
-from brms.models import LoanModel
+from brms.models.instruments import InstrumentFactory
 from brms.utils import qdate_to_qldate
 from brms.views import LoanCalculatorWidget
 
 
 class LoanCalculatorController:
-    def __init__(self, model: LoanModel, view: LoanCalculatorWidget):
-        self.model = model
+    def __init__(self, view: LoanCalculatorWidget):
         self.view = view
         self.view.payments_button.clicked.connect(self.update_loan_payments_schedule)
         self.view.calculate_button.clicked.connect(self.update_loan_value)
@@ -112,7 +111,7 @@ class LoanCalculatorController:
 
         params = self.parse_view_params()
         try:
-            loan = self.model.build_amortizing_bond(*params[4:])
+            loan = InstrumentFactory.create_fixed_rate_amortizing_loan(*params[4:])
         except RuntimeError as err:
             self.view.show_warning(str(err))
             return
@@ -122,9 +121,7 @@ class LoanCalculatorController:
     def update_loan_payments_schedule(self):
 
         loan, params = self.build_loan()
-        interest_pmt, principal_pmt, outstanding_amt = (
-            self.model.amortizing_loan_payment_schedule(loan)
-        )
+        interest_pmt, principal_pmt, outstanding_amt = loan.payment_schedule()
         self.view.show_loan_payment_schedule(
             interest_pmt, principal_pmt, outstanding_amt
         )
@@ -135,9 +132,7 @@ class LoanCalculatorController:
 
         # Update the loan payment schedule first
         loan, params = self.update_loan_payments_schedule()
-        interest_pmt, principal_pmt, outstanding_amt = (
-            self.model.amortizing_loan_payment_schedule(loan)
-        )
+        interest_pmt, principal_pmt, outstanding_amt = loan.payment_schedule()
 
         total_interest_pmt = sum(pmt for date, pmt in interest_pmt)
         total_principal_pmt = sum(pmt for date, pmt in principal_pmt)
@@ -150,8 +145,8 @@ class LoanCalculatorController:
         ) = params
 
         # Update loan value
-        npv, _, _, _ = self.model.bond_value_fixed_forward_rate(
-            loan, valuation_date, fixed_forward_rate, compounding, comp_frequency
+        npv, _, _, _ = loan.value(
+            valuation_date, fixed_forward_rate, compounding, comp_frequency
         )
         self.view.show_loan_value(
             npv,

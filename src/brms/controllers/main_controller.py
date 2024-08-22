@@ -39,7 +39,7 @@ class MainController:
         # Load yield data from resources
         try:
             yields = ":/data/par_yields.csv"
-            self.view.yield_curve_controller.load_yield_data_from_qrc(yields)
+            self.view.yield_curve_ctrl.load_yield_data_from_qrc(yields)
         except FileNotFoundError as err:
             self.view.statusBar.showMessage("Failed to load yield data.")
             print(err)

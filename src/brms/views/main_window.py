@@ -14,7 +14,7 @@ from brms.controllers import (
     LoanCalculatorController,
     YieldCurveController,
 )
-from brms.models import BondModel, LoanModel, YieldCurveModel
+from brms.models import YieldCurveModel
 from brms.views import (
     BankBooksWidget,
     BondCalculatorWidget,
@@ -39,25 +39,18 @@ class MainWindow(QMainWindow):
         self.create_dock_widgets()
         self.apply_styles()
 
-        self.bond_model = BondModel()
-        self.bond_calculator_widget = BondCalculatorWidget(self)
-        self.bond_calculator_controller = BondCalculatorController(
-            self.bond_model, self.bond_calculator_widget
-        )
-
-        self.loan_model = LoanModel()
-        self.loan_calculator_widget = LoanCalculatorWidget(self)
-        self.loan_calculator_controller = LoanCalculatorController(
-            self.loan_model, self.loan_calculator_widget
-        )
+        # fmt: off
+        self.bond_calculator = BondCalculatorWidget(self)
+        self.bond_calculator_ctrl = BondCalculatorController(self.bond_calculator)
+        self.loan_calculator = LoanCalculatorWidget(self)
+        self.loan_calculator_ctrl = LoanCalculatorController(self.loan_calculator)
 
         self.bank_books_widget = BankBooksWidget(self, Qt.WindowType.Widget)
 
         self.yield_curve_model = YieldCurveModel()
         self.yield_curve_widget = YieldCurveWidget(self)
-        self.yield_curve_controller = YieldCurveController(
-            self.yield_curve_model, self.yield_curve_widget
-        )
+        self.yield_curve_ctrl = YieldCurveController(self.yield_curve_model, self.yield_curve_widget)
+        # fmt: on
 
         self.create_central_widget()
         self.connect_signals_slots()
@@ -223,8 +216,8 @@ class MainWindow(QMainWindow):
         self.fullscreen_action.triggered.connect(self.toggle_fullscreen)
         self.bond_calculator_action.triggered.connect(self.toggle_bond_calculator)
         self.loan_calculator_action.triggered.connect(self.toggle_loan_calculator)
-        self.bond_calculator_widget.closeEvent = self.uncheck_bond_calculator_action
-        self.loan_calculator_widget.closeEvent = self.uncheck_loan_calculator_action
+        self.bond_calculator.closeEvent = self.uncheck_bond_calculator_action
+        self.loan_calculator.closeEvent = self.uncheck_loan_calculator_action
 
     def toggle_fullscreen(self):
         """
@@ -242,15 +235,15 @@ class MainWindow(QMainWindow):
 
     def toggle_bond_calculator(self):
         if self.bond_calculator_action.isChecked():
-            self.bond_calculator_widget.show()
+            self.bond_calculator.show()
         else:
-            self.bond_calculator_widget.close()
+            self.bond_calculator.close()
 
     def toggle_loan_calculator(self):
         if self.loan_calculator_action.isChecked():
-            self.loan_calculator_widget.show()
+            self.loan_calculator.show()
         else:
-            self.loan_calculator_widget.close()
+            self.loan_calculator.close()
 
     def uncheck_bond_calculator_action(self, event):
         self.bond_calculator_action.setChecked(False)
