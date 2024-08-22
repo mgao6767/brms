@@ -1,8 +1,7 @@
 from datetime import date, datetime
 
-import QuantLib as ql
 import numpy as np
-
+import QuantLib as ql
 from dateutil.relativedelta import relativedelta
 from PySide6.QtCore import QFile, Qt, QTextStream
 

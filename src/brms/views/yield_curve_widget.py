@@ -1,19 +1,19 @@
+import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
+    QFileDialog,
     QHBoxLayout,
     QHeaderView,
+    QPushButton,
     QStyledItemDelegate,
     QTableView,
     QVBoxLayout,
-    QHBoxLayout,
     QWidget,
-    QCheckBox,
-    QSizePolicy,
 )
-import numpy as np
 
 from brms.views.base import CustomSplitter, CustomWidget
 
@@ -82,18 +82,19 @@ class PlotWidget(QWidget):
         self.ax.set_title("Yield Curve", fontsize=11)
         # Checkboxes
         checkbox_layout = QHBoxLayout()
-        checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
         # Add checkbox for controlling y-axis rescaling
         self.rescale_checkbox = QCheckBox("Rescale Y-Axis", self)
         self.rescale_checkbox.setChecked(True)  # Default to rescaling
-        self.rescale_checkbox.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         checkbox_layout.addWidget(self.rescale_checkbox)
         # Add checkbox for controlling grid lines
         self.grid_checkbox = QCheckBox("Show Grid Lines", self)
         self.grid_checkbox.setChecked(True)  # Default to showing grid lines
-        self.grid_checkbox.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         checkbox_layout.addWidget(self.grid_checkbox)
-
+        # Add button for exporting plot to PNG
+        self.export_button = QPushButton("Export to PNG", self)
+        self.export_button.clicked.connect(self.export_plot)
+        checkbox_layout.addWidget(self.export_button)
         self.layout.addLayout(checkbox_layout)
 
     def update_plot(
@@ -119,3 +120,16 @@ class PlotWidget(QWidget):
         self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.2f}"))
         self.ax.legend(fontsize=9)
         self.canvas.draw()
+
+    def export_plot(self):
+        options = QFileDialog.Options()
+        plot_title = self.ax.get_title()
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Plot",
+            f"BRMS - {plot_title}",
+            "PNG Files (*.png);;All Files (*)",
+            options=options,
+        )
+        if file_path:
+            self.canvas.figure.savefig(file_path)
