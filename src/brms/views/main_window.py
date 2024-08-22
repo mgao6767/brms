@@ -1,12 +1,12 @@
-from PySide6.QtGui import Qt, QAction, QIcon
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtGui import QAction, QIcon, Qt
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidgetAction, QLabel
 
 from brms.controllers import BondCalculatorController, LoanCalculatorController
 from brms.models import BondModel, LoanModel
-from brms.views import BondCalculatorWidget, LoanCalculatorWidget
-from brms.views import BankBooksWidget
+from brms.views import BankBooksWidget, BondCalculatorWidget, LoanCalculatorWidget
 
 from brms.resources import resource  # noqa isort:skip
+
 
 class MainWindow(QMainWindow):
 
@@ -18,7 +18,6 @@ class MainWindow(QMainWindow):
         self.create_menu_bar()
         self.create_toolbars()
         self.create_status_bar()
-        self.create_central_widget()
         self.create_dock_widgets()
         self.apply_styles()
 
@@ -34,8 +33,9 @@ class MainWindow(QMainWindow):
             self.loan_model, self.loan_calculator_widget
         )
 
-        self.bank_books_widget = BankBooksWidget(self)
+        self.bank_books_widget = BankBooksWidget(self, Qt.WindowType.Widget)
 
+        self.create_central_widget()
         self.connect_signals_slots()
 
     def read_settings(self):
@@ -69,6 +69,7 @@ class MainWindow(QMainWindow):
         self.open_action = QAction("Open", self)
         self.save_action = QAction("Save", self)
         self.exit_action = QAction("Exit", self)
+        self.exit_action.setShortcut("Ctrl+Q")
 
         file_menu.addAction(self.new_action)
         file_menu.addAction(self.open_action)
@@ -76,30 +77,52 @@ class MainWindow(QMainWindow):
         file_menu.addAction(self.exit_action)
 
         # Edit menu
-        self.start_action = QAction(QIcon.fromTheme("media-playback-start"), "Start Simulation", self)
-        self.pause_action = QAction(QIcon.fromTheme("media-playback-pause"), "Pause Simulation", self)
-        self.stop_action = QAction(QIcon.fromTheme("media-playback-stop"), "Stop Simulation", self)
+        self.start_action = QAction(
+            QIcon.fromTheme("media-playback-start"), "Start", self
+        )
+        self.pause_action = QAction(
+            QIcon.fromTheme("media-playback-pause"), "Pause", self
+        )
+        self.stop_action = QAction(QIcon.fromTheme("media-playback-stop"), "Stop", self)
+        self.next_action = QAction(QIcon.fromTheme("media-skip-forward"), "Next", self)
+        self.next_action.setToolTip("Advance to next period in the simulation")
+
         self.start_action.setIconVisibleInMenu(False)
+        self.next_action.setIconVisibleInMenu(False)
         self.pause_action.setIconVisibleInMenu(False)
         self.stop_action.setIconVisibleInMenu(False)
+        self.pause_action.setDisabled(True)
+        self.stop_action.setDisabled(True)
+        edit_menu.addAction(self.next_action)
         edit_menu.addAction(self.start_action)
         edit_menu.addAction(self.pause_action)
         edit_menu.addAction(self.stop_action)
 
         # View menu
-        self.risk_metrics_action = QAction(QIcon.fromTheme("dialog-information"), "Risk Metrics", self)
-        self.mgmt_action = QAction(QIcon.fromTheme("computer"), "Risk Management", self)
-        self.risk_metrics_action.setIconVisibleInMenu(False)
-        self.mgmt_action.setIconVisibleInMenu(False)
+        self.risk_metrics_action = QAction(
+            QIcon.fromTheme("dialog-information"), "Risk Metrics", self
+        )
+        self.stress_test_action = QAction(
+            QIcon.fromTheme("dialog-warning"), "Stress Test", self
+        )
+        self.mgmt_action = QAction(QIcon.fromTheme("computer"), "Management", self)
+        self.mgmt_action.setToolTip("Take actions to manage risk")
 
-        self.bank_books_action = QAction("Banking and Trading Books", self)
+        self.log_action = QAction(QIcon.fromTheme("document-new"), "Log", self)
+
+        self.risk_metrics_action.setIconVisibleInMenu(False)
+        self.stress_test_action.setIconVisibleInMenu(False)
+        self.mgmt_action.setIconVisibleInMenu(False)
+        self.log_action.setIconVisibleInMenu(False)
+
         self.fullscreen_action = QAction("Full Screen", self)
         self.fullscreen_action.setCheckable(True)
         self.fullscreen_action.setChecked(False)
 
-        view_menu.addAction(self.bank_books_action)
         view_menu.addAction(self.risk_metrics_action)
+        view_menu.addAction(self.stress_test_action)
         view_menu.addAction(self.mgmt_action)
+        view_menu.addAction(self.log_action)
         view_menu.addSeparator()
         view_menu.addAction(self.fullscreen_action)
 
@@ -118,22 +141,37 @@ class MainWindow(QMainWindow):
         pass
 
     def create_toolbars(self):
+
         self.toolbar = self.addToolBar("Toolbar")
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
+        section1_label = QLabel("Simulation: ")
+        section1_action = QWidgetAction(self)
+        section1_action.setDefaultWidget(section1_label)
+        self.toolbar.addAction(section1_action)
+        self.toolbar.addAction(self.next_action)
         self.toolbar.addAction(self.start_action)
         self.toolbar.addAction(self.pause_action)
         self.toolbar.addAction(self.stop_action)
+
         self.toolbar.addSeparator()
+        section2_label = QLabel("Risk Management: ")
+        section2_action = QWidgetAction(self)
+        section2_action.setDefaultWidget(section2_label)
+        self.toolbar.addAction(section2_action)
         self.toolbar.addAction(self.risk_metrics_action)
+        self.toolbar.addAction(self.stress_test_action)
         self.toolbar.addAction(self.mgmt_action)
+        self.toolbar.addSeparator()
+
+        self.toolbar.addAction(self.log_action)
 
     def create_status_bar(self):
         self.statusBar = self.statusBar()
         self.statusBar.showMessage("Ready")
 
     def create_central_widget(self):
-        # Create and set the central widget here
-        pass
+        self.setCentralWidget(self.bank_books_widget)
 
     def create_dock_widgets(self):
         # Create dockable widgets here
@@ -150,7 +188,6 @@ class MainWindow(QMainWindow):
         to their corresponding slots, which are responsible for handling the events.
         """
         self.exit_action.triggered.connect(self.close)
-        self.bank_books_action.triggered.connect(self.bank_books_widget.show)
         self.fullscreen_action.triggered.connect(self.toggle_fullscreen)
         self.bond_calculator_action.triggered.connect(self.toggle_bond_calculator)
         self.loan_calculator_action.triggered.connect(self.toggle_loan_calculator)
@@ -165,8 +202,10 @@ class MainWindow(QMainWindow):
         If the window is currently in normal size, it will be switched to fullscreen mode.
         """
         if self.isFullScreen():
+            self.statusBar.showMessage("Restored normal view.")
             self.showNormal()
         else:
+            self.statusBar.showMessage("Entered full-screen view.")
             self.showFullScreen()
 
     def toggle_bond_calculator(self):

@@ -1,9 +1,10 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
-from brms.views.base import CustomSplitter, CustomWidget
 from brms.views.bank_banking_book_widget import BankBankingBookWidget
 from brms.views.bank_trading_book_widget import BankTradingBookWidget
+from brms.views.base import CustomSplitter, CustomWidget
+
 
 class BankBooksWidget(CustomWidget):
 
