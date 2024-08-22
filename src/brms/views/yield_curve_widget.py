@@ -96,16 +96,15 @@ class PlotWidget(QWidget):
 
         self.layout.addLayout(checkbox_layout)
 
-    def update_plot(self, maturities, yields, title, rescale_y=True, show_grid=True):
+    def update_plot(
+        self, maturities, yields, maturities_z, zero_rates, title, rescale_y, show_grid
+    ):
         self.ax.clear()
-        maturities = np.array(maturities)
-        yields = np.array(yields)
-        # Filter out NaN values
-        valid_indices = ~np.isnan(yields)
-        maturities = maturities[valid_indices]
-        yields = yields[valid_indices]
         self.ax.plot(
             maturities, yields, marker="o", color="blue", label="Treasury Par Yields"
+        )
+        self.ax.plot(
+            maturities_z, zero_rates, color="crimson", label="Interpolated Zero Rates"
         )
         self.ax.set_ylabel("Yield (%)", fontsize=11)
         # Rescale y-axis if checkbox is checked
