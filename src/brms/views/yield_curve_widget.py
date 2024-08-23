@@ -118,7 +118,7 @@ class PlotWidget(QWidget):
             self.ax.grid(True, linestyle="--", alpha=0.7)
         self.ax.tick_params(axis="both", which="major", labelsize=10)
         self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.2f}"))
-        self.ax.legend(fontsize=9)
+        self.ax.legend(fontsize=9, loc="lower right")
         self.canvas.draw()
 
     def export_plot(self):

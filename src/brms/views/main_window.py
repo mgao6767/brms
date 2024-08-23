@@ -5,6 +5,9 @@ from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
     QMessageBox,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
     QWidgetAction,
 )
 
@@ -192,7 +195,18 @@ class MainWindow(QMainWindow):
         self.statusBar.showMessage("Ready")
 
     def create_central_widget(self):
-        self.setCentralWidget(self.bank_books_widget)
+        central_widget = QWidget()
+        layout = QVBoxLayout()
+        self.current_date_label = QLabel("Current date: Not set")
+        self.current_date_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.current_date_label.setAlignment(Qt.AlignLeft)
+        self.bank_books_widget.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding
+        )
+        layout.addWidget(self.current_date_label)
+        layout.addWidget(self.bank_books_widget)
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
 
     def create_dock_widgets(self):
         # Create dockable widgets here

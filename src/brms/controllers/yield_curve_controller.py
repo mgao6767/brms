@@ -3,7 +3,7 @@ from datetime import date, datetime
 import numpy as np
 import QuantLib as ql
 from dateutil.relativedelta import relativedelta
-from PySide6.QtCore import QFile, Qt, QTextStream
+from PySide6.QtCore import QFile, QItemSelectionModel, Qt, QTextStream
 
 from brms.models import YieldCurveModel
 from brms.views import YieldCurveWidget
@@ -54,8 +54,39 @@ class YieldCurveController:
         # Update the model with the new yield data
         self.model.update_yield_data(yield_data)
 
-        if self.model.rowCount() > 0:
-            self.view.table_view.setCurrentIndex(self.model.index(0, 0))
+    def set_current_selection(self, row: int, column: int):
+        """
+        Set the current selection of the table_view.
+
+        :param row: The row index of the selection.
+        :param column: The column index of the selection.
+        """
+        model_index = self.model.index(row, column)
+        selection_model = self.view.table_view.selectionModel()
+        selection_model.setCurrentIndex(
+            model_index, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows
+        )
+
+    def get_all_dates(self):
+        """
+        Returns a list of all dates associated with the yields data.
+        Returns:
+            list: A list of dates.
+        """
+        return self.model.dates
+
+    def get_date_from_selection(self):
+        indexes = self.view.table_view.selectionModel().selectedRows()
+        if not indexes:
+            return
+
+        row = indexes[0].row()
+        model = self.model
+
+        # Retrieve the date from the vertical header
+        date_str = model.headerData(row, Qt.Vertical)
+
+        return datetime.strptime(date_str, "%Y-%m-%d")
 
     def get_yields_from_selection(self):
         indexes = self.view.table_view.selectionModel().selectedRows()

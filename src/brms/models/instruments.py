@@ -84,12 +84,17 @@ class BondLike(ABC):
 
         self.instrument.setPricingEngine(bond_engine)
 
+        # Just being cautious, restore previous evaluation date afterwards
+        old_evaluation_date = ql.Settings.instance().evaluationDate
+
         ql.Settings.instance().evaluationDate = reference_date
 
         npv = self.instrument.NPV()
         clean_price = self.instrument.cleanPrice()
         dirty_price = self.instrument.dirtyPrice()
         accrued_interest = self.instrument.accruedAmount()
+
+        ql.Settings.instance().evaluationDate = old_evaluation_date
 
         return npv, clean_price, dirty_price, accrued_interest
 

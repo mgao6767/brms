@@ -8,7 +8,7 @@ from brms.views.base import CustomSplitter, CustomWidget
 
 class BankBooksWidget(CustomWidget):
 
-    def __init__(self, parent: QWidget | None = ..., f = Qt.WindowType.Window) -> None:
+    def __init__(self, parent: QWidget | None = ..., f=Qt.WindowType.Window) -> None:
         super().__init__(parent, f)
 
         self.setWindowTitle("Banking and Trading Books")
@@ -19,12 +19,14 @@ class BankBooksWidget(CustomWidget):
         self.bank_trading_book_widget = BankTradingBookWidget(self)
 
         splitter = CustomSplitter()
+        splitter.setContentsMargins(0, 0, 0, 0)
         splitter.setOrientation(Qt.Orientation.Horizontal)
         splitter.addWidget(self.bank_banking_book_widget)
         splitter.addWidget(self.bank_trading_book_widget)
 
         layout = QVBoxLayout()
         layout.addWidget(splitter)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
         self.center_window()

@@ -32,6 +32,21 @@ def qldate_to_pydate(date: ql.Date):
     return datetime.date(date.year(), date.month(), date.dayOfMonth())
 
 
+def pydate_to_qldate(date: datetime.date):
+    """
+    Converts a Python date object to a QuantLib date object.
+
+    Args:
+        date (datetime.date): The Python date object to be converted.
+
+    Returns:
+        ql.Date: The corresponding QuantLib date object.
+    """
+
+    assert isinstance(date, datetime.date)
+    return ql.Date(date.day, date.month, date.year)
+
+
 def qldate_to_string(date: ql.Date):
     """
     Converts a QuantLib date to a string.
