@@ -280,8 +280,38 @@ class ConsumerLoan(Loan):
     pass
 
 
-class CILoan(Loan):
-    pass
+class CILoan(FixedRateBond):
+
+    instrument_type = "C&I Loans"
+
+    def __init__(
+        self,
+        face_value: float,
+        coupon_rate: float,
+        issue_date: ql.Date,
+        maturity_date: ql.Date,
+        frequency: ql.Period = ql.Monthly,
+        settlement_days: int = 0,
+        calendar: ql.Calendar = ql.NullCalendar(),
+        day_count: ql.DayCounter = ql.Thirty360(ql.Thirty360.BondBasis),
+        business_convention=ql.Unadjusted,
+        date_generation: ql.DateGeneration = ql.DateGeneration.Backward,
+        month_end=False,
+    ):
+
+        super().__init__(
+            face_value,
+            coupon_rate,
+            issue_date,
+            maturity_date,
+            frequency,
+            settlement_days,
+            calendar,
+            day_count,
+            business_convention,
+            date_generation,
+            month_end,
+        )
 
 
 class Mortgage(AmortizingFixedRateLoan):
@@ -519,4 +549,33 @@ class InstrumentFactory:
             calendar,
             day_count,
             business_convention,
+        )
+
+    @staticmethod
+    def create_ci_loan(
+        face_value: float,
+        coupon_rate: float,
+        issue_date: ql.Date,
+        maturity_date: ql.Date,
+        frequency: ql.Period = ql.Monthly,
+        settlement_days: int = 0,
+        calendar: ql.Calendar = ql.NullCalendar(),
+        day_count: ql.DayCounter = ql.Thirty360(ql.Thirty360.BondBasis),
+        business_convention=ql.Unadjusted,
+        date_generation: ql.DateGeneration = ql.DateGeneration.Backward,
+        month_end=False,
+    ):
+
+        return CILoan(
+            face_value,
+            coupon_rate,
+            issue_date,
+            maturity_date,
+            frequency,
+            settlement_days,
+            calendar,
+            day_count,
+            business_convention,
+            date_generation,
+            month_end,
         )

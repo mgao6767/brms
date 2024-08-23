@@ -138,6 +138,7 @@ class MainController(QObject):
         self.banking_book_controller.add_liability(depo)
 
         self._mock_mortgages()
+        self._mock_ci_loans()
         self._mock_treasury_notes()
         self._mock_treasury_bonds()
 
@@ -214,6 +215,61 @@ class MainController(QObject):
         )
         mortgage_5yr.set_pricing_engine(self.bond_pricing_engine)
         self.banking_book_controller.add_asset(mortgage_5yr)
+
+    def _mock_ci_loans(self):
+        from brms.models.instruments import InstrumentFactory
+
+        ctrl = self.view.bond_calculator_ctrl
+        _, params = ctrl.build_bond()
+
+        (
+            face_value,
+            coupon_rate,
+            issue_date,
+            maturity_date,
+            frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+            date_generation,
+        ) = params[4:]
+
+        ref_date = ql.Settings.instance().evaluationDate
+
+        # 8% 10yr C&I loan issued 8 months ago
+        issue_date = ref_date - ql.Period(8, ql.Months)
+        loan = InstrumentFactory.create_ci_loan(
+            5_000_000,
+            8.0 / 100,  # interest rate
+            issue_date,
+            issue_date + ql.Period(10, ql.Years),  # maturity_date,
+            frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+            date_generation,
+        )
+        loan.set_pricing_engine(self.bond_pricing_engine)
+        self.banking_book_controller.add_asset(loan)
+
+        # 7.5% 5yr C&I loan issued 2yrs ago
+        issue_date = ref_date - ql.Period(2, ql.Years)
+        loan = InstrumentFactory.create_ci_loan(
+            3_800_000,
+            7.5 / 100,  # interest rate
+            issue_date,
+            issue_date + ql.Period(5, ql.Years),  # maturity_date,
+            frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+            date_generation,
+        )
+        loan.set_pricing_engine(self.bond_pricing_engine)
+        self.banking_book_controller.add_asset(loan)
 
     def _mock_treasury_notes(self):
         from brms.models.instruments import InstrumentFactory
