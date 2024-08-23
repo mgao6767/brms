@@ -2,20 +2,34 @@
 The base class for Banking Book and Trading Book
 """
 
-class BankBookModel:
+from PySide6.QtCore import QObject, Signal
+
+from brms.models.instruments import Cash, Instrument
+
+
+class BankBookModel(QObject):
+
+    asset_added = Signal()
+    liability_added = Signal()
 
     def __init__(self) -> None:
+        super().__init__()
         self.assets = []
         self.liabilities = []
 
-    def add_asset(self, asset):
-        self.assets.append(asset)
+    def add_asset(self, asset: Instrument):
+        if isinstance(asset, Cash):
+            existing_cash = next((a for a in self.assets if isinstance(a, Cash)), None)
+            if existing_cash:
+                existing_cash.set_value(existing_cash.value() + asset.value())
+            else:
+                self.assets.append(asset)
+            self.asset_added.emit()
+            return
 
-    def remove_asset(self, asset_id):
-        self.assets = [asset for asset in self.assets if asset['id'] != asset_id]
+        self.assets.append(asset)
+        self.asset_added.emit()
 
     def add_liability(self, liability):
         self.liabilities.append(liability)
-
-    def remove_liability(self, liability_id):
-        self.liabilities = [liability for liability in self.liabilities if liability['id'] != liability_id]
+        self.liability_added.emit()

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QSplitter,
     QSplitterHandle,
+    QStyledItemDelegate,
     QTreeView,
     QVBoxLayout,
     QWidget,
@@ -175,6 +176,18 @@ class TreeModel(QAbstractItemModel):
                 self.setup_model_data(item_data["children"], item)
 
 
+class NumberFormatDelegate(QStyledItemDelegate):
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        option.displayAlignment = Qt.AlignRight | Qt.AlignVCenter
+
+    def displayText(self, value, locale):
+        try:
+            return f"{value:,.2f}"
+        except ValueError:
+            return str(value)
+
+
 class BankBookWidget(QWidget):
 
     def __init__(self, parent: QWidget | None = ..., book_name: str = "") -> None:
@@ -186,7 +199,9 @@ class BankBookWidget(QWidget):
         self.liabilities_tree_view = QTreeView()
         self.assets_tree_view.setAlternatingRowColors(True)
         self.liabilities_tree_view.setAlternatingRowColors(True)
-
+        self.num_delegate = NumberFormatDelegate()
+        self.assets_tree_view.setItemDelegateForColumn(1, self.num_delegate)
+        self.liabilities_tree_view.setItemDelegateForColumn(1, self.num_delegate)
         # Create a splitter to display the tree views side by side
         splitter = CustomSplitter()
         splitter.addWidget(self.assets_tree_view)

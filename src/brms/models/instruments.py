@@ -2,10 +2,50 @@ from abc import ABC, abstractmethod
 
 import QuantLib as ql
 
+from brms.utils import qldate_to_string
+
 
 class Instrument(ABC):
+
     def __init__(self, *args, **kwargs):
+        self.instrument = None
+
+    @property
+    @abstractmethod
+    def name(self):
         pass
+
+    @abstractmethod
+    def value_on_banking_book(self, date: ql.Date):
+        pass
+
+    @abstractmethod
+    def value_on_trading_book(self, date: ql.Date):
+        pass
+
+
+class Cash(Instrument):
+
+    instrument_type = "Cash"
+
+    def __init__(self, value: float):
+        self._value = value
+
+    @property
+    def name(self):
+        return "Cash"
+
+    def value(self):
+        return self._value
+
+    def set_value(self, new_value: float):
+        self._value = new_value
+
+    def value_on_banking_book(self, date: ql.Date):
+        return self.value()
+
+    def value_on_trading_book(self, date: ql.Date):
+        return self.value()
 
 
 class BondLike(ABC):
@@ -56,6 +96,8 @@ class BondLike(ABC):
 
 class FixedRateBond(Instrument, BondLike):
 
+    instrument_type = "Fixed Rate Bonds"
+
     def __init__(
         self,
         face_value: float,
@@ -86,6 +128,8 @@ class FixedRateBond(Instrument, BondLike):
             date_generation (ql.DateGeneration, optional): The date generation rule for coupon dates. Defaults to ql.DateGeneration.Backward.
             month_end (bool, optional): Whether the coupon dates should be adjusted to the end of the month. Defaults to False.
         """
+        maturity_date_str = qldate_to_string(maturity_date)
+        self._name = f"{coupon_rate*100:.2f}% {maturity_date_str}"
 
         coupons = [coupon_rate]
         tenor = ql.Period(frequency)
@@ -104,6 +148,16 @@ class FixedRateBond(Instrument, BondLike):
         self.instrument = ql.FixedRateBond(
             settlement_days, face_value, schedule, coupons, day_count
         )
+
+    @property
+    def name(self):
+        return self._name
+
+    def value_on_banking_book(self, date: ql.Date):
+        return self.instrument.notional(date)
+
+    def value_on_trading_book(self, date: ql.Date):
+        return self.instrument.NPV()
 
     def payment_schedule(self):
         """
@@ -133,6 +187,8 @@ class Loan(Instrument):
 
 class AmortizingFixedRateLoan(Loan, BondLike):
 
+    instrument_type = "Amortizing Loans"
+
     def __init__(
         self,
         face_value: float,
@@ -158,6 +214,9 @@ class AmortizingFixedRateLoan(Loan, BondLike):
             day_count (ql.DayCounter, optional): The day count convention used for interest calculations. Defaults to ql.Thirty360(ql.Thirty360.BondBasis).
             business_convention (int, optional): The business convention used for date adjustments. Defaults to ql.Unadjusted.
         """
+        maturity_date_str = qldate_to_string(issue_date + maturity)
+        self._name = f"{interest_rate*100:.2f}% {maturity_date_str}"
+
         coupons = [interest_rate]
         schedule = ql.sinkingSchedule(issue_date, maturity, frequency, calendar)
         notionals = ql.sinkingNotionals(maturity, frequency, interest_rate, face_value)
@@ -171,6 +230,16 @@ class AmortizingFixedRateLoan(Loan, BondLike):
             business_convention,
             issue_date,
         )
+
+    @property
+    def name(self):
+        return self._name
+
+    def value_on_banking_book(self, date: ql.Date):
+        return self.instrument.notional(date)
+
+    def value_on_trading_book(self, date: ql.Date):
+        return self.instrument.NPV()
 
     def payment_schedule(self):
         """
@@ -205,8 +274,34 @@ class CILoan(Loan):
     pass
 
 
-class Mortgage(Loan):
-    pass
+class Mortgage(AmortizingFixedRateLoan):
+
+    instrument_type = "Mortgages"
+
+    def __init__(
+        self,
+        face_value: float,
+        interest_rate: float,
+        issue_date: ql.Date,
+        maturity: ql.Period,
+        frequency: ql.Period = ql.Semiannual,
+        settlement_days: int = 0,
+        calendar: ql.Calendar = ql.NullCalendar(),
+        day_count: ql.DayCounter = ql.Thirty360(ql.Thirty360.BondBasis),
+        business_convention=ql.Unadjusted,
+    ):
+
+        super().__init__(
+            face_value,
+            interest_rate,
+            issue_date,
+            maturity,
+            frequency,
+            settlement_days,
+            calendar,
+            day_count,
+            business_convention,
+        )
 
 
 class CommercialPaper(Loan):
@@ -252,6 +347,10 @@ class TreasuryFutures(Instrument):
 class InstrumentFactory:
 
     @staticmethod
+    def create_cash(value: float):
+        return Cash(value)
+
+    @staticmethod
     def create_fixed_rate_bond(
         face_value: float,
         coupon_rate: float,
@@ -294,6 +393,31 @@ class InstrumentFactory:
     ) -> AmortizingFixedRateLoan:
 
         return AmortizingFixedRateLoan(
+            face_value,
+            interest_rate,
+            issue_date,
+            maturity,
+            frequency,
+            settlement_days,
+            calendar,
+            day_count,
+            business_convention,
+        )
+
+    @staticmethod
+    def create_fixed_rate_mortgage(
+        face_value: float,
+        interest_rate: float,
+        issue_date: ql.Date,
+        maturity: ql.Period,
+        frequency: ql.Period = ql.Semiannual,
+        settlement_days: int = 0,
+        calendar: ql.Calendar = ql.NullCalendar(),
+        day_count: ql.DayCounter = ql.Thirty360(ql.Thirty360.BondBasis),
+        business_convention=ql.Unadjusted,
+    ) -> Mortgage:
+
+        return Mortgage(
             face_value,
             interest_rate,
             issue_date,
