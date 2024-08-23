@@ -17,6 +17,9 @@ class YieldCurveController:
 
         self.view.set_model(self.model)
 
+        # QuantLib yield curve
+        self.yield_curve = ql.RelinkableYieldTermStructureHandle()
+
         # Connect the selection changed signal to the slot
         # fmt: off
         self.view.table_view.selectionModel().selectionChanged.connect(self.update_plot)
@@ -257,6 +260,7 @@ class YieldCurveController:
 
         # Build the yield curve
         yield_curve = ql.PiecewiseLogCubicDiscount(ql_date, rate_helpers, day_count)
-        # yield_curve = ql.PiecewiseLogLinearDiscount(ql_date, rate_helpers, day_count)
 
-        return yield_curve
+        self.yield_curve.linkTo(yield_curve)
+
+        return self.yield_curve

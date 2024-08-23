@@ -18,6 +18,9 @@ class BankingBookController:
         self.model.asset_added.connect(self.update_assets_tree_view)
         self.model.liability_added.connect(self.update_liabilities_tree_view)
 
+        self.update_assets_tree_view()
+        self.update_liabilities_tree_view()
+
     def add_asset(self, instrument: Instrument):
 
         self.model.add_asset(instrument)
@@ -41,7 +44,6 @@ class BankingBookController:
             grouped_assets[type(asset).instrument_type][asset.name].append(asset)
 
         eval_date = ql.Settings.instance().evaluationDate
-        eval_date = ql.Date(21, 10, 2021)
 
         # Create the data structure for the tree view
         data = []
@@ -61,8 +63,8 @@ class BankingBookController:
         self.view.assets_tree_view.setModel(TreeModel(headers, data))
 
         # fmt: off
-        self.view.assets_tree_view.header().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.view.assets_tree_view.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.view.assets_tree_view.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.view.assets_tree_view.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.view.assets_tree_view.expandAll()
         # fmt: on
 
@@ -75,6 +77,8 @@ class BankingBookController:
         for liability in self.model.liabilities:
             grouped_liabilities[type(liability).instrument_type][liability.name].append(liability)
 
+        eval_date = ql.Settings.instance().evaluationDate
+
         # Create the data structure for the tree view
         data = []
         # Each liability_type is like Loans, Mortgages, etc
@@ -86,7 +90,7 @@ class BankingBookController:
             }
             # Each liability within a type represents a specific liability
             for name, liabilities in liabilities_by_name.items():
-                total_value = sum(l.value() for l in liabilities)
+                total_value = sum(l.value_on_banking_book(eval_date) for l in liabilities)
                 liability_type_val += total_value
                 liability_type_data["children"].append({"data": [name, total_value]})
 

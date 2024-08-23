@@ -50,6 +50,9 @@ class Cash(Instrument):
 
 class BondLike(ABC):
 
+    def set_pricing_engine(self, engine: ql.PricingEngine):
+        self.instrument.setPricingEngine(engine)
+
     def value(
         self,
         reference_date: ql.Date,
@@ -178,12 +181,14 @@ class TreasuryBill(Instrument):
     pass
 
 
-class TreasuryNote(Instrument):
-    pass
+class TreasuryNote(FixedRateBond):
+
+    instrument_type = "Treasury Notes"
 
 
-class TreasuryBond(Instrument):
-    pass
+class TreasuryBond(FixedRateBond):
+
+    instrument_type = "Treasury Bonds"
 
 
 class Loan(Instrument):
@@ -318,7 +323,27 @@ class MediumTermNote(Loan):
 
 
 class DemandDeposit(Instrument):
-    pass
+
+    instrument_type = "Demand Deposits"
+
+    def __init__(self, value: float):
+        self._value = value
+
+    @property
+    def name(self):
+        return "Non-interest bearing"
+
+    def value(self):
+        return self._value
+
+    def set_value(self, new_value: float):
+        self._value = new_value
+
+    def value_on_banking_book(self, date: ql.Date):
+        return self.value()
+
+    def value_on_trading_book(self, date: ql.Date):
+        return self.value()
 
 
 class TermDeposit(Instrument):
@@ -352,6 +377,10 @@ class TreasuryFutures(Instrument):
 class InstrumentFactory:
 
     @staticmethod
+    def create_demand_deposits(value: float):
+        return DemandDeposit(value)
+
+    @staticmethod
     def create_cash(value: float):
         return Cash(value)
 
@@ -371,6 +400,64 @@ class InstrumentFactory:
     ) -> FixedRateBond:
 
         return FixedRateBond(
+            face_value,
+            coupon_rate,
+            issue_date,
+            maturity_date,
+            frequency,
+            settlement_days,
+            calendar,
+            day_count,
+            business_convention,
+            date_generation,
+            month_end,
+        )
+
+    @staticmethod
+    def create_treasury_note(
+        face_value: float,
+        coupon_rate: float,
+        issue_date: ql.Date,
+        maturity_date: ql.Date,
+        frequency: ql.Period = ql.Semiannual,
+        settlement_days: int = 0,
+        calendar: ql.Calendar = ql.NullCalendar(),
+        day_count: ql.DayCounter = ql.Thirty360(ql.Thirty360.BondBasis),
+        business_convention=ql.Unadjusted,
+        date_generation: ql.DateGeneration = ql.DateGeneration.Backward,
+        month_end=False,
+    ) -> TreasuryNote:
+
+        return TreasuryNote(
+            face_value,
+            coupon_rate,
+            issue_date,
+            maturity_date,
+            frequency,
+            settlement_days,
+            calendar,
+            day_count,
+            business_convention,
+            date_generation,
+            month_end,
+        )
+
+    @staticmethod
+    def create_treasury_bond(
+        face_value: float,
+        coupon_rate: float,
+        issue_date: ql.Date,
+        maturity_date: ql.Date,
+        frequency: ql.Period = ql.Semiannual,
+        settlement_days: int = 0,
+        calendar: ql.Calendar = ql.NullCalendar(),
+        day_count: ql.DayCounter = ql.Thirty360(ql.Thirty360.BondBasis),
+        business_convention=ql.Unadjusted,
+        date_generation: ql.DateGeneration = ql.DateGeneration.Backward,
+        month_end=False,
+    ) -> TreasuryBond:
+
+        return TreasuryBond(
             face_value,
             coupon_rate,
             issue_date,

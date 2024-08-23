@@ -20,6 +20,10 @@ class MainController(QObject):
         self.simulation_timer.setInterval(100)  # 0.1 seconds
         self.simulation_timer.timeout.connect(self.on_next_simulation)
 
+        # Create the pricing engine
+        handle = self.view.yield_curve_ctrl.yield_curve
+        self.bond_pricing_engine = ql.DiscountingBondEngine(handle)
+
         # Current date in the simulation
         self.dates_in_simulation = []
         self.current_date: ql.Date = ql.Date()
@@ -47,24 +51,6 @@ class MainController(QObject):
         self.view.start_action.triggered.connect(self.on_start_simulation)
         self.view.pause_action.triggered.connect(self.on_pause_simulation)
         self.view.stop_action.triggered.connect(self.on_stop_simulation)
-
-    def _test_setup(self):
-        from brms.models.instruments import InstrumentFactory
-
-        cash = InstrumentFactory.create_cash(1_000_000_000.0)
-        self.banking_book_controller.add_asset(cash)
-        self.banking_book_controller.add_asset(cash)
-
-        self.view.loan_calculator.calculate_button.clicked.connect(self._test_add_loan)
-
-    def _test_add_loan(self):
-
-        from brms.models.instruments import InstrumentFactory
-
-        _, params = self.view.loan_calculator_ctrl.build_loan()
-
-        loan = InstrumentFactory.create_fixed_rate_mortgage(*params[4:])
-        self.banking_book_controller.add_asset(loan)
 
     def post_init(self):
         # Load yield data from resources
@@ -95,6 +81,11 @@ class MainController(QObject):
         self.view.yield_curve_ctrl.set_current_selection(idx + 1, 0)
         next_date = self.dates_in_simulation[idx + 1]
         self.set_current_simulation_date(next_date)
+
+        self.banking_book_controller.update_assets_tree_view()
+        self.banking_book_controller.update_liabilities_tree_view()
+        self.trading_book_controller.update_assets_tree_view()
+        self.trading_book_controller.update_liabilities_tree_view()
 
     def on_start_simulation(self):
         self.view.statusBar.showMessage("Simulation started.")
@@ -130,3 +121,214 @@ class MainController(QObject):
         assert isinstance(self.current_date, ql.Date)
         ql.Settings.instance().evaluationDate = self.current_date
         self.view.current_date_label.setText(f"Current date: {self.current_date}")
+
+    # ====== Testing func to populate the books =================================
+    def _test_setup(self):
+        from brms.models.instruments import InstrumentFactory
+
+        cash = InstrumentFactory.create_cash(1_000_000.0)
+        self.banking_book_controller.add_asset(cash)
+
+        depo = InstrumentFactory.create_demand_deposits(2_000_000.0)
+        self.banking_book_controller.add_liability(depo)
+
+        self._mock_mortgages()
+        self._mock_treasury_notes()
+        self._mock_treasury_bonds()
+
+    def _mock_mortgages(self):
+        from brms.models.instruments import InstrumentFactory
+
+        ctrl = self.view.loan_calculator_ctrl
+        _, params = ctrl.build_loan()
+
+        (
+            principal,
+            annual_rate,
+            start_date,
+            maturity,
+            payment_frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+        ) = params[4:]
+
+        ref_date = ql.Settings.instance().evaluationDate
+
+        # Mock case 1: 30-year fixed-rate mortgage issued 1 year ago
+        start_date = ref_date - ql.Period(1, ql.Years)
+        mortgage_30yr = InstrumentFactory.create_fixed_rate_mortgage(
+            900_000,
+            5.5 / 100,
+            start_date,
+            ql.Period(30, ql.Years),  # term_years
+            payment_frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+        )
+        mortgage_30yr.set_pricing_engine(self.bond_pricing_engine)
+        self.banking_book_controller.add_asset(mortgage_30yr)
+
+        # Mock case 2: 15-year fixed-rate mortgage issued 6 months ago
+        start_date = ref_date - ql.Period(6, ql.Months)
+        mortgage_15yr = InstrumentFactory.create_fixed_rate_mortgage(
+            800_000,
+            6.2 / 100,  # interest rate
+            start_date,
+            ql.Period(15, ql.Years),  # term_years
+            payment_frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+        )
+        mortgage_15yr.set_pricing_engine(self.bond_pricing_engine)
+        self.banking_book_controller.add_asset(mortgage_15yr)
+
+        # Mock case 3: 20-year fixed-rate mortgage issued 3 months ago
+        start_date = ref_date - ql.Period(3, ql.Months)
+        mortgage_5yr = InstrumentFactory.create_fixed_rate_mortgage(
+            1_000_000,
+            6.5 / 100,  # interest rate,
+            start_date,
+            ql.Period(20, ql.Years),  # term_years
+            payment_frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+        )
+        mortgage_5yr.set_pricing_engine(self.bond_pricing_engine)
+        self.banking_book_controller.add_asset(mortgage_5yr)
+
+    def _mock_treasury_notes(self):
+        from brms.models.instruments import InstrumentFactory
+
+        ctrl = self.view.bond_calculator_ctrl
+        _, params = ctrl.build_bond()
+
+        (
+            face_value,
+            coupon_rate,
+            issue_date,
+            maturity_date,
+            frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+            date_generation,
+        ) = params[4:]
+
+        ref_date = ql.Settings.instance().evaluationDate
+        face_value = 10_000_000
+
+        # 0.45% 2yr TN issued 6m ago
+        issue_date = ref_date - ql.Period(6, ql.Months)
+        treasury_note = InstrumentFactory.create_treasury_note(
+            face_value,
+            0.45 / 100,  # coupon_rate
+            issue_date,
+            issue_date + ql.Period(2, ql.Years),  # maturity_date,
+            frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+            date_generation,
+        )
+        treasury_note.set_pricing_engine(self.bond_pricing_engine)
+        self.trading_book_controller.add_asset(treasury_note)
+
+        # 1.2% 5yr TN issued 10m ago
+        issue_date = ref_date - ql.Period(10, ql.Months)
+        treasury_note = InstrumentFactory.create_treasury_note(
+            face_value,
+            1.2 / 100,  # coupon_rate
+            issue_date,
+            issue_date + ql.Period(5, ql.Years),  # maturity_date,
+            frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+            date_generation,
+        )
+        treasury_note.set_pricing_engine(self.bond_pricing_engine)
+        self.trading_book_controller.add_asset(treasury_note)
+
+        # 1.5% 7yr TN issued 1m ago
+        issue_date = ref_date - ql.Period(1, ql.Months)
+        treasury_note = InstrumentFactory.create_treasury_note(
+            face_value,
+            1.5 / 100,  # coupon_rate
+            issue_date,
+            issue_date + ql.Period(7, ql.Years),  # maturity_date,
+            frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+            date_generation,
+        )
+        treasury_note.set_pricing_engine(self.bond_pricing_engine)
+        self.trading_book_controller.add_asset(treasury_note)
+
+    def _mock_treasury_bonds(self):
+        from brms.models.instruments import InstrumentFactory
+
+        ctrl = self.view.bond_calculator_ctrl
+        _, params = ctrl.build_bond()
+
+        (
+            face_value,
+            coupon_rate,
+            issue_date,
+            maturity_date,
+            frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+            date_generation,
+        ) = params[4:]
+
+        ref_date = ql.Settings.instance().evaluationDate
+        face_value = 10_000_000
+
+        # 2% 20yr TB issued 1yr ago
+        issue_date = ref_date - ql.Period(12, ql.Months)
+        treasury_bond = InstrumentFactory.create_treasury_bond(
+            face_value,
+            2.0 / 100,  # coupon_rate
+            issue_date,
+            issue_date + ql.Period(20, ql.Years),  # maturity_date,
+            frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+            date_generation,
+        )
+        treasury_bond.set_pricing_engine(self.bond_pricing_engine)
+        self.trading_book_controller.add_asset(treasury_bond)
+
+        # 3% 30yr TB issued 2yr ago
+        issue_date = ref_date - ql.Period(24, ql.Months)
+        treasury_bond = InstrumentFactory.create_treasury_bond(
+            face_value,
+            3.0 / 100,  # coupon_rate
+            issue_date,
+            issue_date + ql.Period(30, ql.Years),  # maturity_date,
+            frequency,
+            settlement_days,
+            calendar_ql,
+            day_count,
+            business_convention,
+            date_generation,
+        )
+        treasury_bond.set_pricing_engine(self.bond_pricing_engine)
+        self.trading_book_controller.add_asset(treasury_bond)
