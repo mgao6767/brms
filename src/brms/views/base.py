@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from PySide6.QtGui import QBrush, QColor
 
 
 class CustomDoubleSpinBox(QDoubleSpinBox):
@@ -126,6 +127,10 @@ class TreeModel(QAbstractItemModel):
         item = index.internalPointer()
         if role == Qt.DisplayRole:
             return item.data(index.column())
+        # Apply color to the value column
+        if role == Qt.ForegroundRole and index.column() == 1:
+            color = item.data(2)  # color string in the 3rd column
+            return QBrush(QColor(color))
         return None
 
     def flags(self, index):

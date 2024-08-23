@@ -34,18 +34,6 @@ class BankingBookController:
         pass
 
     def update_assets_tree_view(self):
-        # Example structure of `data`
-        # data = [
-        #     {"data": ["Cash", "3000"]},
-        #     {
-        #         "data": ["Loans", "10000"],
-        #         "children": [
-        #             {"data": ["C&I loans", "5000"]},
-        #             {"data": ["Consumer loans", "3000"]},
-        #             {"data": ["Mortgages", "2000"]},
-        #         ],
-        #     },
-        # ]
         headers = ["Asset", "Value"]
         data = self.model.assets_data()
         self.view.assets_tree_view.setModel(TreeModel(headers, data))

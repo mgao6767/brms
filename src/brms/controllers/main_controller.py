@@ -82,7 +82,9 @@ class MainController(QObject):
         self.view.yield_curve_ctrl.set_current_selection(idx + 1, 0)
         next_date = self.dates_in_simulation[idx + 1]
         self.set_current_simulation_date(next_date)
+
         # yield_curve_ctrl has updated its own `yield_curve`
+        # After this, instruments will be revalued, i.e., data in model changed
         self.relinkable_handle.linkTo(self.view.yield_curve_ctrl.yield_curve)
 
         self.banking_book_controller.update_assets_tree_view()
@@ -138,6 +140,12 @@ class MainController(QObject):
         self._mock_mortgages()
         self._mock_treasury_notes()
         self._mock_treasury_bonds()
+
+        # Manually refresh so that all colors start with black
+        self.banking_book_controller.update_assets_tree_view()
+        self.banking_book_controller.update_liabilities_tree_view()
+        self.trading_book_controller.update_assets_tree_view()
+        self.trading_book_controller.update_liabilities_tree_view()
 
     def _mock_mortgages(self):
         from brms.models.instruments import InstrumentFactory
@@ -322,7 +330,7 @@ class MainController(QObject):
         # 3% 30yr TB issued 2yr ago
         issue_date = ref_date - ql.Period(24, ql.Months)
         treasury_bond = InstrumentFactory.create_treasury_bond(
-            face_value,
+            face_value * 0.5,
             3.0 / 100,  # coupon_rate
             issue_date,
             issue_date + ql.Period(30, ql.Years),  # maturity_date,
@@ -334,4 +342,4 @@ class MainController(QObject):
             date_generation,
         )
         treasury_bond.set_pricing_engine(self.bond_pricing_engine)
-        self.trading_book_controller.add_asset(treasury_bond)
+        self.trading_book_controller.add_liability(treasury_bond)
