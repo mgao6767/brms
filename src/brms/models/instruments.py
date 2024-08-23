@@ -28,12 +28,13 @@ class Cash(Instrument):
 
     instrument_type = "Cash"
 
-    def __init__(self, value: float):
+    def __init__(self, value: float, name="Cash"):
+        self._name = name
         self._value = value
 
     @property
     def name(self):
-        return "Cash"
+        return self._name
 
     def value(self):
         return self._value
@@ -46,6 +47,14 @@ class Cash(Instrument):
 
     def value_on_trading_book(self, date: ql.Date):
         return self.value()
+
+
+class CommonEquity(Cash):
+
+    instrument_type = "Common Equity"
+
+    def __init__(self, value: float, name="Common Equity"):
+        super().__init__(value, name)
 
 
 class BondLike(ABC):
@@ -413,6 +422,10 @@ class InstrumentFactory:
     @staticmethod
     def create_cash(value: float):
         return Cash(value)
+
+    @staticmethod
+    def create_common_equity(value: float):
+        return CommonEquity(value)
 
     @staticmethod
     def create_fixed_rate_bond(

@@ -137,6 +137,9 @@ class MainController(QObject):
         depo = InstrumentFactory.create_demand_deposits(2_000_000.0)
         self.banking_book_controller.add_liability(depo)
 
+        eqty = InstrumentFactory.create_common_equity(500_000.0)
+        self.banking_book_controller.add_liability(eqty)
+
         self._mock_mortgages()
         self._mock_ci_loans()
         self._mock_treasury_notes()
