@@ -2,6 +2,7 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QAction, QDesktopServices, QIcon, Qt
 from PySide6.QtWidgets import (
     QApplication,
+    QHBoxLayout,
     QLabel,
     QMainWindow,
     QMessageBox,
@@ -100,6 +101,8 @@ class MainWindow(QMainWindow):
         self.about_qt_action = QAction("About Qt", self)
         self.github_action = QAction("Project GitHub", self)
 
+        self.speed_up_action = QAction(QIcon(":/icons/plus-key.png"), "Speed Up", self)
+        self.speed_down_action = QAction(QIcon(":/icons/minus-key.png"), "Slow Down", self)
         self.next_action.setToolTip("Advance to next period in the simulation")
         self.mgmt_action.setToolTip("Take actions to manage risk")
 
@@ -115,6 +118,8 @@ class MainWindow(QMainWindow):
         # At init, only allow Next or Start.
         self.pause_action.setDisabled(True)
         self.stop_action.setDisabled(True)
+        self.speed_up_action.setDisabled(True)
+        self.speed_down_action.setDisabled(True)
 
         self.fullscreen_action.setCheckable(True)
         self.fullscreen_action.setChecked(False)
@@ -176,6 +181,8 @@ class MainWindow(QMainWindow):
         self.toolbar.addAction(self.start_action)
         self.toolbar.addAction(self.pause_action)
         self.toolbar.addAction(self.stop_action)
+        self.toolbar.addAction(self.speed_up_action)
+        self.toolbar.addAction(self.speed_down_action)
 
         self.toolbar.addSeparator()
         section2_label = QLabel("Risk Management: ")
@@ -196,17 +203,22 @@ class MainWindow(QMainWindow):
 
     def create_central_widget(self):
         central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+
+        # fmt: off
+        self.bank_books_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout = QVBoxLayout()
-        self.current_date_label = QLabel("Current date: Not set")
-        self.current_date_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.current_date_label.setAlignment(Qt.AlignLeft)
-        self.bank_books_widget.setSizePolicy(
-            QSizePolicy.Expanding, QSizePolicy.Expanding
-        )
-        layout.addWidget(self.current_date_label)
+        top_panel_layout = QHBoxLayout()
+        top_panel_layout.setAlignment(Qt.AlignLeft)
+        self.current_date_label = QLabel("Current Date: <u>October 21st, 1994</u>")
+        self.simulation_speed_label = QLabel("Speed: <u>0.5</u> sec/day")
+
+        top_panel_layout.addWidget(self.simulation_speed_label)
+        top_panel_layout.addWidget(QLabel("|"))
+        top_panel_layout.addWidget(self.current_date_label)
+        layout.addLayout(top_panel_layout)
         layout.addWidget(self.bank_books_widget)
         central_widget.setLayout(layout)
-        self.setCentralWidget(central_widget)
 
     def create_dock_widgets(self):
         # Create dockable widgets here

@@ -17,8 +17,8 @@ class MainController(QObject):
 
         # Initialize the timer
         self.simulation_timer = QTimer()
-        self.simulation_timer.setInterval(100)  # 0.1 seconds
         self.simulation_timer.timeout.connect(self.on_next_simulation)
+        self.set_simulation_speed(500)  # o.5 seconds per day
 
         # Create the pricing engine
         self.relinkable_handle = ql.RelinkableYieldTermStructureHandle()
@@ -51,6 +51,8 @@ class MainController(QObject):
         self.view.start_action.triggered.connect(self.on_start_simulation)
         self.view.pause_action.triggered.connect(self.on_pause_simulation)
         self.view.stop_action.triggered.connect(self.on_stop_simulation)
+        self.view.speed_up_action.triggered.connect(self.on_speed_up_simulation)
+        self.view.speed_down_action.triggered.connect(self.on_speed_down_simulation)
 
     def post_init(self):
         # Load yield data from resources
@@ -73,6 +75,21 @@ class MainController(QObject):
         self.relinkable_handle.linkTo(self.view.yield_curve_ctrl.yield_curve)
 
     # ====== Simulation ========================================================
+    def set_simulation_speed(self, interval=500):
+        self.simulation_timer.setInterval(interval)
+        self.view.simulation_speed_label.setText(
+            f"Speed: <u>{interval/1000}</u> sec/day"
+        )
+
+    def on_speed_down_simulation(self):
+        new_interval = self.simulation_timer.interval() + 100
+        self.set_simulation_speed(new_interval)
+
+    def on_speed_up_simulation(self):
+        # min interval 100ms or 0.1s
+        new_interval = max(100, self.simulation_timer.interval() - 100)
+        self.set_simulation_speed(new_interval)
+
     def on_next_simulation(self):
         self.view.statusBar.showMessage("Simulation moved to next period.")
         idx = self.dates_in_simulation.index(self.current_date)
@@ -98,6 +115,8 @@ class MainController(QObject):
         self.view.start_action.setDisabled(True)
         self.view.pause_action.setEnabled(True)
         self.view.stop_action.setEnabled(True)
+        self.view.speed_up_action.setEnabled(True)
+        self.view.speed_down_action.setEnabled(True)
         # Start the timer with an interval of 100 milliseconds (0.1 second)
         self.simulation_timer.start()
 
@@ -116,6 +135,8 @@ class MainController(QObject):
         self.view.start_action.setDisabled(True)
         self.view.pause_action.setDisabled(True)
         self.view.stop_action.setDisabled(True)
+        self.view.speed_up_action.setDisabled(True)
+        self.view.speed_down_action.setDisabled(True)
         # Stop the timer
         self.simulation_timer.stop()
 
@@ -125,7 +146,9 @@ class MainController(QObject):
         self.current_date = date
         assert isinstance(self.current_date, ql.Date)
         ql.Settings.instance().evaluationDate = self.current_date
-        self.view.current_date_label.setText(f"Current date: {self.current_date}")
+        self.view.current_date_label.setText(
+            f"Current Date: <u>{self.current_date}</u>"
+        )
 
     # ====== Testing func to populate the books =================================
     def _test_setup(self):

@@ -3,6 +3,8 @@
     <file>icons/icon.png</file>
     <file>icons/bar-chart.png</file>
     <file>icons/line-chart.png</file>
+    <file>icons/plus-key.png</file>
+    <file>icons/minus-key.png</file>
     <file>data/par_yields.csv</file>
 </qresource>
 </RCC>
