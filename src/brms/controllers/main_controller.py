@@ -21,8 +21,8 @@ class MainController(QObject):
         self.simulation_timer.timeout.connect(self.on_next_simulation)
 
         # Create the pricing engine
-        handle = self.view.yield_curve_ctrl.yield_curve
-        self.bond_pricing_engine = ql.DiscountingBondEngine(handle)
+        self.relinkable_handle = ql.RelinkableYieldTermStructureHandle()
+        self.bond_pricing_engine = ql.DiscountingBondEngine(self.relinkable_handle)
 
         # Current date in the simulation
         self.dates_in_simulation = []
@@ -70,6 +70,7 @@ class MainController(QObject):
         self.view.yield_curve_ctrl.set_current_selection(0, 0)
         current_date = self.view.yield_curve_ctrl.get_date_from_selection()
         self.set_current_simulation_date(current_date)
+        self.relinkable_handle.linkTo(self.view.yield_curve_ctrl.yield_curve)
 
     # ====== Simulation ========================================================
     def on_next_simulation(self):
@@ -81,6 +82,8 @@ class MainController(QObject):
         self.view.yield_curve_ctrl.set_current_selection(idx + 1, 0)
         next_date = self.dates_in_simulation[idx + 1]
         self.set_current_simulation_date(next_date)
+        # yield_curve_ctrl has updated its own `yield_curve`
+        self.relinkable_handle.linkTo(self.view.yield_curve_ctrl.yield_curve)
 
         self.banking_book_controller.update_assets_tree_view()
         self.banking_book_controller.update_liabilities_tree_view()

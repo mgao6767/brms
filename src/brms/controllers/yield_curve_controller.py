@@ -18,7 +18,7 @@ class YieldCurveController:
         self.view.set_model(self.model)
 
         # QuantLib yield curve
-        self.yield_curve = ql.RelinkableYieldTermStructureHandle()
+        self.yield_curve = None
 
         # Connect the selection changed signal to the slot
         # fmt: off
@@ -190,6 +190,8 @@ class YieldCurveController:
         )
 
     def build_yield_curve(self):
+        # Here, the relinkable handle is relinked to new curve, which will trigger
+        # revaluation of all assets whose pricing engine is based on this handle.
 
         ref_date, dates, yields = self.get_yields_from_selection()
 
@@ -259,8 +261,8 @@ class YieldCurveController:
         rate_helpers = zcb_helpers + bond_helpers
 
         # Build the yield curve
-        yield_curve = ql.PiecewiseLogCubicDiscount(ql_date, rate_helpers, day_count)
-
-        self.yield_curve.linkTo(yield_curve)
+        self.yield_curve = ql.PiecewiseLogCubicDiscount(
+            ql_date, rate_helpers, day_count
+        )
 
         return self.yield_curve
