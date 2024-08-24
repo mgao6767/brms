@@ -27,6 +27,7 @@ class MainController(QObject):
         # Current date in the simulation
         self.dates_in_simulation = []
         self.current_date: ql.Date = ql.Date()
+        self.previous_date: ql.Date = ql.Date()
 
         # book models
         self.banking_book = self.model.banking_book
@@ -98,12 +99,28 @@ class MainController(QObject):
             return
         self.view.yield_curve_ctrl.set_current_selection(idx + 1, 0)
         next_date = self.dates_in_simulation[idx + 1]
-        self.set_current_simulation_date(next_date)
 
+        self.set_current_simulation_date(next_date)
+        self.before_repricing()
+        self.repricing()
+        self.after_repricing()
+
+    def before_repricing(self):
+        pass
+
+    def repricing(self):
         # yield_curve_ctrl has updated its own `yield_curve`
         # After this, instruments will be revalued, i.e., data in model changed
         self.relinkable_handle.linkTo(self.view.yield_curve_ctrl.yield_curve)
 
+        self.banking_book_controller.calculate_payments(
+            self.previous_date, self.current_date
+        )
+        self.trading_book_controller.calculate_payments(
+            self.previous_date, self.current_date
+        )
+
+    def after_repricing(self):
         self.banking_book_controller.update_assets_tree_view()
         self.banking_book_controller.update_liabilities_tree_view()
         self.trading_book_controller.update_assets_tree_view()
@@ -143,6 +160,7 @@ class MainController(QObject):
     def set_current_simulation_date(self, date: ql.Date | datetime.date):
         if isinstance(date, datetime.date):
             date = pydate_to_qldate(date)
+        self.previous_date = self.current_date
         self.current_date = date
         assert isinstance(self.current_date, ql.Date)
         ql.Settings.instance().evaluationDate = self.current_date
@@ -193,6 +211,7 @@ class MainController(QObject):
         ) = params[4:]
 
         ref_date = ql.Settings.instance().evaluationDate
+        payment_frequency = ql.Monthly
 
         # Mock case 1: 30-year fixed-rate mortgage issued 1 year ago
         start_date = ref_date - ql.Period(1, ql.Years)
@@ -242,6 +261,15 @@ class MainController(QObject):
         mortgage_5yr.set_pricing_engine(self.bond_pricing_engine)
         self.banking_book_controller.add_asset(mortgage_5yr)
 
+        # fmt: off
+        mortgage_30yr.payments_paid.connect(self.banking_book_controller.process_payments_paid)
+        mortgage_15yr.payments_paid.connect(self.banking_book_controller.process_payments_paid)
+        mortgage_5yr.payments_paid.connect(self.banking_book_controller.process_payments_paid)
+        mortgage_30yr.payments_received.connect(self.banking_book_controller.process_payments_received)
+        mortgage_15yr.payments_received.connect(self.banking_book_controller.process_payments_received)
+        mortgage_5yr.payments_received.connect(self.banking_book_controller.process_payments_received)
+        # fmt: on
+
     def _mock_ci_loans(self):
         from brms.models.instruments import InstrumentFactory
 
@@ -262,9 +290,10 @@ class MainController(QObject):
         ) = params[4:]
 
         ref_date = ql.Settings.instance().evaluationDate
+        frequency = ql.Monthly
 
         # 8% 10yr C&I loan issued 8 months ago
-        issue_date = ref_date - ql.Period(8, ql.Months)
+        issue_date = ref_date - ql.Period(8, ql.Months) - ql.Period(3, ql.Weeks)
         loan = InstrumentFactory.create_ci_loan(
             5_000_000,
             8.0 / 100,  # interest rate
@@ -279,9 +308,13 @@ class MainController(QObject):
         )
         loan.set_pricing_engine(self.bond_pricing_engine)
         self.banking_book_controller.add_asset(loan)
+        loan.payments_received.connect(
+            self.banking_book_controller.process_payments_received
+        )
+        loan.payments_paid.connect(self.banking_book_controller.process_payments_paid)
 
         # 7.5% 5yr C&I loan issued 2yrs ago
-        issue_date = ref_date - ql.Period(2, ql.Years)
+        issue_date = ref_date - ql.Period(2, ql.Years) - ql.Period(2, ql.Weeks)
         loan = InstrumentFactory.create_ci_loan(
             3_800_000,
             7.5 / 100,  # interest rate
@@ -296,6 +329,10 @@ class MainController(QObject):
         )
         loan.set_pricing_engine(self.bond_pricing_engine)
         self.banking_book_controller.add_asset(loan)
+        loan.payments_received.connect(
+            self.banking_book_controller.process_payments_received
+        )
+        loan.payments_paid.connect(self.banking_book_controller.process_payments_paid)
 
     def _mock_treasury_notes(self):
         from brms.models.instruments import InstrumentFactory
@@ -335,6 +372,12 @@ class MainController(QObject):
         )
         treasury_note.set_pricing_engine(self.bond_pricing_engine)
         self.trading_book_controller.add_asset(treasury_note)
+        treasury_note.payments_received.connect(
+            self.banking_book_controller.process_payments_received
+        )
+        treasury_note.payments_paid.connect(
+            self.banking_book_controller.process_payments_paid
+        )
 
         # 1.2% 5yr TN issued 10m ago
         issue_date = ref_date - ql.Period(10, ql.Months)
@@ -352,6 +395,12 @@ class MainController(QObject):
         )
         treasury_note.set_pricing_engine(self.bond_pricing_engine)
         self.trading_book_controller.add_asset(treasury_note)
+        treasury_note.payments_received.connect(
+            self.banking_book_controller.process_payments_received
+        )
+        treasury_note.payments_paid.connect(
+            self.banking_book_controller.process_payments_paid
+        )
 
         # 1.5% 7yr TN issued 1m ago
         issue_date = ref_date - ql.Period(1, ql.Months)
@@ -369,6 +418,12 @@ class MainController(QObject):
         )
         treasury_note.set_pricing_engine(self.bond_pricing_engine)
         self.trading_book_controller.add_asset(treasury_note)
+        treasury_note.payments_received.connect(
+            self.banking_book_controller.process_payments_received
+        )
+        treasury_note.payments_paid.connect(
+            self.banking_book_controller.process_payments_paid
+        )
 
     def _mock_treasury_bonds(self):
         from brms.models.instruments import InstrumentFactory
@@ -408,9 +463,15 @@ class MainController(QObject):
         )
         treasury_bond.set_pricing_engine(self.bond_pricing_engine)
         self.trading_book_controller.add_asset(treasury_bond)
+        treasury_bond.payments_received.connect(
+            self.banking_book_controller.process_payments_received
+        )
+        treasury_bond.payments_paid.connect(
+            self.banking_book_controller.process_payments_paid
+        )
 
         # 3% 30yr TB issued 2yr ago
-        issue_date = ref_date - ql.Period(24, ql.Months)
+        issue_date = ref_date - ql.Period(24, ql.Months) - ql.Period(2, ql.Weeks)
         treasury_bond = InstrumentFactory.create_treasury_bond(
             face_value * 0.5,
             3.0 / 100,  # coupon_rate
@@ -425,3 +486,10 @@ class MainController(QObject):
         )
         treasury_bond.set_pricing_engine(self.bond_pricing_engine)
         self.trading_book_controller.add_liability(treasury_bond)
+        # This is liability. Signals are connected in opposite order
+        treasury_bond.payments_received.connect(
+            self.banking_book_controller.process_payments_paid
+        )
+        treasury_bond.payments_paid.connect(
+            self.banking_book_controller.process_payments_received
+        )

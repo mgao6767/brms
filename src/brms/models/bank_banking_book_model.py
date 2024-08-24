@@ -2,6 +2,8 @@ from collections import defaultdict
 
 import QuantLib as ql
 
+from brms.models.instruments import Cash
+
 from .bank_book_model import BankBookModel
 
 
@@ -9,6 +11,21 @@ class BankBankingBookModel(BankBookModel):
 
     def __init__(self) -> None:
         super().__init__()
+
+    def get_cash(self) -> float:
+        existing_cash = next((a for a in self.assets if isinstance(a, Cash)), None)
+        if existing_cash:
+            return existing_cash.value()  # float value
+        else:
+            raise RuntimeError("No cash in the bank!")
+
+    def set_cash(self, cash: float):
+        assert isinstance(cash, float)
+        existing_cash = next((a for a in self.assets if isinstance(a, Cash)), None)
+        if existing_cash:
+            existing_cash.set_value(cash)
+        else:
+            raise RuntimeError("No cash in the bank!")
 
     def assets_data(self):
 

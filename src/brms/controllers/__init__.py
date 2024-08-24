@@ -1,5 +1,4 @@
-from .banking_book_controller import BankingBookController
 from .bond_calculator_controller import BondCalculatorController
+from .book_controller import BankingBookController, TradingBookController
 from .loan_calculator_controller import LoanCalculatorController
-from .trading_book_controller import TradingBookController
 from .yield_curve_controller import YieldCurveController

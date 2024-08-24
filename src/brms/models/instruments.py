@@ -1,27 +1,28 @@
-from abc import ABC, abstractmethod
-
 import QuantLib as ql
+from PySide6.QtCore import QObject, Signal
 
 from brms.utils import qldate_to_string
 
 
-class Instrument(ABC):
+class Instrument(QObject):
+
+    payments_received = Signal(float)
+    payments_paid = Signal(float)
+    matured = Signal()
 
     def __init__(self, *args, **kwargs):
+        super().__init__()
         self.instrument = None
 
     @property
-    @abstractmethod
     def name(self):
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def value_on_banking_book(self, date: ql.Date):
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def value_on_trading_book(self, date: ql.Date):
-        pass
+        raise NotImplementedError
 
 
 class Cash(Instrument):
@@ -57,7 +58,10 @@ class CommonEquity(Cash):
         super().__init__(value, name)
 
 
-class BondLike(ABC):
+class BondLike(Instrument):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def set_pricing_engine(self, engine: ql.PricingEngine):
         self.instrument.setPricingEngine(engine)
@@ -111,7 +115,7 @@ class BondLike(ABC):
         return npv, clean_price, dirty_price, accrued_interest
 
 
-class FixedRateBond(Instrument, BondLike):
+class FixedRateBond(BondLike):
 
     instrument_type = "Fixed Rate Bonds"
 
@@ -145,6 +149,7 @@ class FixedRateBond(Instrument, BondLike):
             date_generation (ql.DateGeneration, optional): The date generation rule for coupon dates. Defaults to ql.DateGeneration.Backward.
             month_end (bool, optional): Whether the coupon dates should be adjusted to the end of the month. Defaults to False.
         """
+        super().__init__()
         maturity_date_str = qldate_to_string(maturity_date)
         self._name = f"{coupon_rate*100:.2f}% {maturity_date_str}"
 
@@ -201,10 +206,12 @@ class TreasuryBond(FixedRateBond):
 
 
 class Loan(Instrument):
-    pass
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
-class AmortizingFixedRateLoan(Loan, BondLike):
+class AmortizingFixedRateLoan(BondLike):
 
     instrument_type = "Amortizing Loans"
 
@@ -233,6 +240,8 @@ class AmortizingFixedRateLoan(Loan, BondLike):
             day_count (ql.DayCounter, optional): The day count convention used for interest calculations. Defaults to ql.Thirty360(ql.Thirty360.BondBasis).
             business_convention (int, optional): The business convention used for date adjustments. Defaults to ql.Unadjusted.
         """
+        super().__init__()
+
         maturity_date_str = qldate_to_string(issue_date + maturity)
         self._name = f"{interest_rate*100:.2f}% {maturity_date_str}"
 
