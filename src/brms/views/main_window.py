@@ -79,8 +79,8 @@ class MainWindow(QMainWindow):
 
     def create_actions(self):
         # fmt: off
-        self.new_action = QAction("New", self)
-        self.open_action = QAction("Open", self)
+        self.new_action = QAction("New simulation", self)
+        self.open_action = QAction("Load scenario", self)
         self.save_action = QAction("Save", self)
         self.exit_action = QAction("Exit", self)
         self.exit_action.setShortcut("Ctrl+Q")

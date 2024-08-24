@@ -1,10 +1,13 @@
 import datetime
 
+import pandas as pd
 import QuantLib as ql
 from PySide6.QtCore import QObject, QTimer
+from PySide6.QtWidgets import QFileDialog
 
 from brms.controllers import BankingBookController, TradingBookController
 from brms.models.bank_model import BankModel
+from brms.models.instruments import InstrumentFactory
 from brms.utils import pydate_to_qldate, qldate_to_pydate
 from brms.views.main_window import MainWindow
 
@@ -44,10 +47,9 @@ class MainController(QObject):
         self.connect_signals_slots()
         self.post_init()
 
-        self._test_setup()
-
     def connect_signals_slots(self):
 
+        self.view.open_action.triggered.connect(self.on_open_action)
         self.view.next_action.triggered.connect(self.on_next_simulation)
         self.view.start_action.triggered.connect(self.on_start_simulation)
         self.view.pause_action.triggered.connect(self.on_pause_simulation)
@@ -169,22 +171,32 @@ class MainController(QObject):
         )
 
     # ====== Testing func to populate the books =================================
-    def _test_setup(self):
-        from brms.models.instruments import InstrumentFactory
 
-        cash = InstrumentFactory.create_cash(1_000_000.0)
-        self.banking_book_controller.add_asset(cash)
+    def on_open_action(self):
+        file_dialog = QFileDialog()
+        file_path, _ = file_dialog.getOpenFileName(
+            self.view, "Load Scenario Data", "", "Excel Files (*.xlsx)"
+        )
+        if not file_path:
+            return
+        # TODO: Should clear existing models and views
+        self.load_scenario(file_path)
 
-        depo = InstrumentFactory.create_demand_deposits(2_000_000.0)
-        self.banking_book_controller.add_liability(depo)
+    def load_scenario(self, file_path: str):
 
-        eqty = InstrumentFactory.create_common_equity(500_000.0)
-        self.banking_book_controller.add_liability(eqty)
+        self._scenario_file_path = file_path
 
-        self._mock_mortgages()
-        self._mock_ci_loans()
-        self._mock_treasury_notes()
-        self._mock_treasury_bonds()
+        try:
+            self._load_meta()
+            self._load_mortgages()
+            self._load_ci_loans()
+            self._load_treasury_notes(long_position=True)
+            self._load_treasury_notes(long_position=False)
+            self._load_treasury_bonds(long_position=True)
+            self._load_treasury_bonds(long_position=False)
+        except Exception as err:
+            self.view.statusBar.showMessage("Failed to load scenario data")
+            print(err)
 
         # Manually refresh so that all colors start with black
         self.banking_book_controller.update_assets_tree_view()
@@ -192,304 +204,201 @@ class MainController(QObject):
         self.trading_book_controller.update_assets_tree_view()
         self.trading_book_controller.update_liabilities_tree_view()
 
-    def _mock_mortgages(self):
-        from brms.models.instruments import InstrumentFactory
+    def _load_meta(self):
 
-        ctrl = self.view.loan_calculator_ctrl
-        _, params = ctrl.build_loan()
+        df = pd.read_excel(self._scenario_file_path, sheet_name="Meta", header=None)
+        df.columns = ["item", "value"]
 
-        (
-            principal,
-            annual_rate,
-            start_date,
-            maturity,
-            payment_frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-        ) = params[4:]
+        cash_value = df.loc[df["item"] == "Cash", "value"].values[0]
+        cash = InstrumentFactory.create_cash(cash_value)
+        self.banking_book_controller.add_asset(cash)
 
-        ref_date = ql.Settings.instance().evaluationDate
-        payment_frequency = ql.Monthly
+        deposits_value = df.loc[df["item"] == "Demand deposits", "value"].values[0]
+        deposits = InstrumentFactory.create_demand_deposits(deposits_value)
+        self.banking_book_controller.add_liability(deposits)
 
-        # Mock case 1: 30-year fixed-rate mortgage issued 1 year ago
-        start_date = ref_date - ql.Period(1, ql.Years)
-        mortgage_30yr = InstrumentFactory.create_fixed_rate_mortgage(
-            900_000,
-            5.5 / 100,
-            start_date,
-            ql.Period(30, ql.Years),  # term_years
-            payment_frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-        )
-        mortgage_30yr.set_pricing_engine(self.bond_pricing_engine)
-        self.banking_book_controller.add_asset(mortgage_30yr)
+        equity_value = df.loc[df["item"] == "Common equity", "value"].values[0]
+        equity = InstrumentFactory.create_common_equity(equity_value)
+        self.banking_book_controller.add_liability(equity)
 
-        # Mock case 2: 15-year fixed-rate mortgage issued 6 months ago
-        start_date = ref_date - ql.Period(6, ql.Months)
-        mortgage_15yr = InstrumentFactory.create_fixed_rate_mortgage(
-            800_000,
-            6.2 / 100,  # interest rate
-            start_date,
-            ql.Period(15, ql.Years),  # term_years
-            payment_frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-        )
-        mortgage_15yr.set_pricing_engine(self.bond_pricing_engine)
-        self.banking_book_controller.add_asset(mortgage_15yr)
+    def _load_mortgages(self):
 
-        # Mock case 3: 20-year fixed-rate mortgage issued 3 months ago
-        start_date = ref_date - ql.Period(3, ql.Months)
-        mortgage_5yr = InstrumentFactory.create_fixed_rate_mortgage(
-            1_000_000,
-            6.5 / 100,  # interest rate,
-            start_date,
-            ql.Period(20, ql.Years),  # term_years
-            payment_frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-        )
-        mortgage_5yr.set_pricing_engine(self.bond_pricing_engine)
-        self.banking_book_controller.add_asset(mortgage_5yr)
+        df = pd.read_excel(self._scenario_file_path, sheet_name="Mortgages")
+        if not isinstance(df, pd.DataFrame):
+            return
+
+        settlement_days = 0
+        calendar_ql = ql.NullCalendar()
+        day_count = ql.ActualActual(ql.ActualActual.ISDA)
+        business_convention = ql.Following
+
+        for _, row in df.iterrows():
+            principal = row["principal"]
+            annual_rate = row["interest_rate"]
+            start_date = pydate_to_qldate(row["issue_date"])
+            maturity = ql.Period(row["maturity_years"], ql.Years)
+            match row["payment_frequency"]:
+                case "quarterly" | "Quarterly":
+                    payment_frequency = ql.Quarterly
+                case _:
+                    payment_frequency = ql.Monthly
+            try:
+                mortgage = InstrumentFactory.create_fixed_rate_mortgage(
+                    principal,
+                    annual_rate,
+                    start_date,
+                    maturity,
+                    payment_frequency,
+                    settlement_days,
+                    calendar_ql,
+                    day_count,
+                    business_convention,
+                )
+            except Exception:
+                continue
+            # fmt: off
+            mortgage.set_pricing_engine(self.bond_pricing_engine)
+            mortgage.payments_paid.connect(self.banking_book_controller.process_payments_paid)
+            mortgage.payments_received.connect(self.banking_book_controller.process_payments_received)
+            self.banking_book_controller.add_asset(mortgage)
+
+    def _load_ci_loans(self):
+
+        df = pd.read_excel(self._scenario_file_path, sheet_name="C&I Loans")
+        if not isinstance(df, pd.DataFrame):
+            return
+
+        settlement_days = 0
+        calendar_ql = ql.NullCalendar()
+        day_count = ql.ActualActual(ql.ActualActual.ISDA)
+        business_convention = ql.Following
+        date_generation = ql.DateGeneration.Backward
+
+        for _, row in df.iterrows():
+            principal = row["principal"]
+            annual_rate = row["interest_rate"]
+            issue_date = pydate_to_qldate(row["issue_date"])
+            maturity_date = pydate_to_qldate(row["maturity_date"])
+            match row["payment_frequency"]:
+                case "quarterly" | "Quarterly":
+                    payment_frequency = ql.Quarterly
+                case _:
+                    payment_frequency = ql.Monthly
+            try:
+                loan = InstrumentFactory.create_ci_loan(
+                    principal,
+                    annual_rate,
+                    issue_date,
+                    maturity_date,
+                    payment_frequency,
+                    settlement_days,
+                    calendar_ql,
+                    day_count,
+                    business_convention,
+                    date_generation,
+                )
+            except Exception:
+                continue
+            # fmt: off
+            loan.set_pricing_engine(self.bond_pricing_engine)
+            loan.payments_paid.connect(self.banking_book_controller.process_payments_paid)
+            loan.payments_received.connect(self.banking_book_controller.process_payments_received)
+            self.banking_book_controller.add_asset(loan)
+
+    def _load_treasury_notes(self, long_position=True):
 
         # fmt: off
-        mortgage_30yr.payments_paid.connect(self.banking_book_controller.process_payments_paid)
-        mortgage_15yr.payments_paid.connect(self.banking_book_controller.process_payments_paid)
-        mortgage_5yr.payments_paid.connect(self.banking_book_controller.process_payments_paid)
-        mortgage_30yr.payments_received.connect(self.banking_book_controller.process_payments_received)
-        mortgage_15yr.payments_received.connect(self.banking_book_controller.process_payments_received)
-        mortgage_5yr.payments_received.connect(self.banking_book_controller.process_payments_received)
+        if long_position:
+            df = pd.read_excel(self._scenario_file_path, sheet_name="Treasury Notes (Long)")
+        else:
+            df = pd.read_excel(self._scenario_file_path, sheet_name="Treasury Notes (Short)")
+        if not isinstance(df, pd.DataFrame):
+            return
         # fmt: on
 
-    def _mock_ci_loans(self):
-        from brms.models.instruments import InstrumentFactory
+        settlement_days = 0
+        calendar_ql = ql.NullCalendar()
+        day_count = ql.ActualActual(ql.ActualActual.ISDA)
+        business_convention = ql.Following
+        date_generation = ql.DateGeneration.Backward
 
-        ctrl = self.view.bond_calculator_ctrl
-        _, params = ctrl.build_bond()
+        for _, row in df.iterrows():
+            principal = row["principal"]
+            annual_rate = row["interest_rate"]
+            issue_date = pydate_to_qldate(row["issue_date"])
+            maturity_date = pydate_to_qldate(row["maturity_date"])
+            payment_frequency = ql.Semiannual
+            try:
+                tn = InstrumentFactory.create_treasury_note(
+                    principal,
+                    annual_rate,
+                    issue_date,
+                    maturity_date,
+                    payment_frequency,
+                    settlement_days,
+                    calendar_ql,
+                    day_count,
+                    business_convention,
+                    date_generation,
+                )
+            except Exception:
+                continue
+            # fmt: off
+            tn.set_pricing_engine(self.bond_pricing_engine)
+            if long_position:
+                tn.payments_paid.connect(self.banking_book_controller.process_payments_paid)
+                tn.payments_received.connect(self.banking_book_controller.process_payments_received)
+                self.trading_book_controller.add_asset(tn)
+            else:
+                tn.payments_paid.connect(self.banking_book_controller.process_payments_received)
+                tn.payments_received.connect(self.banking_book_controller.process_payments_paid)
+                self.trading_book_controller.add_liability(tn)
 
-        (
-            face_value,
-            coupon_rate,
-            issue_date,
-            maturity_date,
-            frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-            date_generation,
-        ) = params[4:]
+    def _load_treasury_bonds(self, long_position=True):
 
-        ref_date = ql.Settings.instance().evaluationDate
-        frequency = ql.Monthly
+        # fmt: off
+        if long_position:
+            df = pd.read_excel(self._scenario_file_path, sheet_name="Treasury Bonds (Long)")
+        else:
+            df = pd.read_excel(self._scenario_file_path, sheet_name="Treasury Bonds (Short)")
+        if not isinstance(df, pd.DataFrame):
+            return
+        # fmt: on
 
-        # 8% 10yr C&I loan issued 8 months ago
-        issue_date = ref_date - ql.Period(8, ql.Months) - ql.Period(3, ql.Weeks)
-        loan = InstrumentFactory.create_ci_loan(
-            5_000_000,
-            8.0 / 100,  # interest rate
-            issue_date,
-            issue_date + ql.Period(10, ql.Years),  # maturity_date,
-            frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-            date_generation,
-        )
-        loan.set_pricing_engine(self.bond_pricing_engine)
-        self.banking_book_controller.add_asset(loan)
-        loan.payments_received.connect(
-            self.banking_book_controller.process_payments_received
-        )
-        loan.payments_paid.connect(self.banking_book_controller.process_payments_paid)
+        settlement_days = 0
+        calendar_ql = ql.NullCalendar()
+        day_count = ql.ActualActual(ql.ActualActual.ISDA)
+        business_convention = ql.Following
+        date_generation = ql.DateGeneration.Backward
 
-        # 7.5% 5yr C&I loan issued 2yrs ago
-        issue_date = ref_date - ql.Period(2, ql.Years) - ql.Period(2, ql.Weeks)
-        loan = InstrumentFactory.create_ci_loan(
-            3_800_000,
-            7.5 / 100,  # interest rate
-            issue_date,
-            issue_date + ql.Period(5, ql.Years),  # maturity_date,
-            frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-            date_generation,
-        )
-        loan.set_pricing_engine(self.bond_pricing_engine)
-        self.banking_book_controller.add_asset(loan)
-        loan.payments_received.connect(
-            self.banking_book_controller.process_payments_received
-        )
-        loan.payments_paid.connect(self.banking_book_controller.process_payments_paid)
-
-    def _mock_treasury_notes(self):
-        from brms.models.instruments import InstrumentFactory
-
-        ctrl = self.view.bond_calculator_ctrl
-        _, params = ctrl.build_bond()
-
-        (
-            face_value,
-            coupon_rate,
-            issue_date,
-            maturity_date,
-            frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-            date_generation,
-        ) = params[4:]
-
-        ref_date = ql.Settings.instance().evaluationDate
-        face_value = 10_000_000
-
-        # 0.45% 2yr TN issued 6m ago
-        issue_date = ref_date - ql.Period(6, ql.Months)
-        treasury_note = InstrumentFactory.create_treasury_note(
-            face_value,
-            0.45 / 100,  # coupon_rate
-            issue_date,
-            issue_date + ql.Period(2, ql.Years),  # maturity_date,
-            frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-            date_generation,
-        )
-        treasury_note.set_pricing_engine(self.bond_pricing_engine)
-        self.trading_book_controller.add_asset(treasury_note)
-        treasury_note.payments_received.connect(
-            self.banking_book_controller.process_payments_received
-        )
-        treasury_note.payments_paid.connect(
-            self.banking_book_controller.process_payments_paid
-        )
-
-        # 1.2% 5yr TN issued 10m ago
-        issue_date = ref_date - ql.Period(10, ql.Months)
-        treasury_note = InstrumentFactory.create_treasury_note(
-            face_value,
-            1.2 / 100,  # coupon_rate
-            issue_date,
-            issue_date + ql.Period(5, ql.Years),  # maturity_date,
-            frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-            date_generation,
-        )
-        treasury_note.set_pricing_engine(self.bond_pricing_engine)
-        self.trading_book_controller.add_asset(treasury_note)
-        treasury_note.payments_received.connect(
-            self.banking_book_controller.process_payments_received
-        )
-        treasury_note.payments_paid.connect(
-            self.banking_book_controller.process_payments_paid
-        )
-
-        # 1.5% 7yr TN issued 1m ago
-        issue_date = ref_date - ql.Period(1, ql.Months)
-        treasury_note = InstrumentFactory.create_treasury_note(
-            face_value,
-            1.5 / 100,  # coupon_rate
-            issue_date,
-            issue_date + ql.Period(7, ql.Years),  # maturity_date,
-            frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-            date_generation,
-        )
-        treasury_note.set_pricing_engine(self.bond_pricing_engine)
-        self.trading_book_controller.add_asset(treasury_note)
-        treasury_note.payments_received.connect(
-            self.banking_book_controller.process_payments_received
-        )
-        treasury_note.payments_paid.connect(
-            self.banking_book_controller.process_payments_paid
-        )
-
-    def _mock_treasury_bonds(self):
-        from brms.models.instruments import InstrumentFactory
-
-        ctrl = self.view.bond_calculator_ctrl
-        _, params = ctrl.build_bond()
-
-        (
-            face_value,
-            coupon_rate,
-            issue_date,
-            maturity_date,
-            frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-            date_generation,
-        ) = params[4:]
-
-        ref_date = ql.Settings.instance().evaluationDate
-        face_value = 10_000_000
-
-        # 2% 20yr TB issued 1yr ago
-        issue_date = ref_date - ql.Period(12, ql.Months)
-        treasury_bond = InstrumentFactory.create_treasury_bond(
-            face_value,
-            2.0 / 100,  # coupon_rate
-            issue_date,
-            issue_date + ql.Period(20, ql.Years),  # maturity_date,
-            frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-            date_generation,
-        )
-        treasury_bond.set_pricing_engine(self.bond_pricing_engine)
-        self.trading_book_controller.add_asset(treasury_bond)
-        treasury_bond.payments_received.connect(
-            self.banking_book_controller.process_payments_received
-        )
-        treasury_bond.payments_paid.connect(
-            self.banking_book_controller.process_payments_paid
-        )
-
-        # 3% 30yr TB issued 2yr ago
-        issue_date = ref_date - ql.Period(24, ql.Months) - ql.Period(2, ql.Weeks)
-        treasury_bond = InstrumentFactory.create_treasury_bond(
-            face_value * 0.5,
-            3.0 / 100,  # coupon_rate
-            issue_date,
-            issue_date + ql.Period(30, ql.Years),  # maturity_date,
-            frequency,
-            settlement_days,
-            calendar_ql,
-            day_count,
-            business_convention,
-            date_generation,
-        )
-        treasury_bond.set_pricing_engine(self.bond_pricing_engine)
-        self.trading_book_controller.add_liability(treasury_bond)
-        # This is liability. Signals are connected in opposite order
-        treasury_bond.payments_received.connect(
-            self.banking_book_controller.process_payments_paid
-        )
-        treasury_bond.payments_paid.connect(
-            self.banking_book_controller.process_payments_received
-        )
+        for _, row in df.iterrows():
+            principal = row["principal"]
+            annual_rate = row["interest_rate"]
+            issue_date = pydate_to_qldate(row["issue_date"])
+            maturity_date = pydate_to_qldate(row["maturity_date"])
+            payment_frequency = ql.Semiannual
+            try:
+                tn = InstrumentFactory.create_treasury_bond(
+                    principal,
+                    annual_rate,
+                    issue_date,
+                    maturity_date,
+                    payment_frequency,
+                    settlement_days,
+                    calendar_ql,
+                    day_count,
+                    business_convention,
+                    date_generation,
+                )
+            except Exception:
+                continue
+            # fmt: off
+            tn.set_pricing_engine(self.bond_pricing_engine)
+            if long_position:
+                tn.payments_paid.connect(self.banking_book_controller.process_payments_paid)
+                tn.payments_received.connect(self.banking_book_controller.process_payments_received)
+                self.trading_book_controller.add_asset(tn)
+            else:
+                tn.payments_paid.connect(self.banking_book_controller.process_payments_received)
+                tn.payments_received.connect(self.banking_book_controller.process_payments_paid)
+                self.trading_book_controller.add_liability(tn)

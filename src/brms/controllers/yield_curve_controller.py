@@ -22,6 +22,7 @@ class YieldCurveController:
 
         # Connect the selection changed signal to the slot
         # fmt: off
+        self.view.visibility_changed.connect(self.update_plot)
         self.view.table_view.selectionModel().selectionChanged.connect(self.update_plot)
         self.view.plot_widget.rescale_checkbox.stateChanged.connect(self.update_plot)
         self.view.plot_widget.grid_checkbox.stateChanged.connect(self.update_plot)
@@ -155,8 +156,13 @@ class YieldCurveController:
 
     def update_plot(self):
 
-        ref_date, dates, yields = self.get_yields_from_selection()
         yield_curve = self.build_yield_curve()
+
+        # Update only when the yield curve widget is visible?
+        if not self.view.is_visible:
+            return
+
+        ref_date, dates, yields = self.get_yields_from_selection()
         calendar = ql.ActualActual(ql.ActualActual.ISDA)
         zero_rates = []
 

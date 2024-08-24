@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QFileDialog,
@@ -37,8 +37,12 @@ class YieldItemDelegate(QStyledItemDelegate):
 
 
 class YieldCurveWidget(CustomWidget):
+
+    visibility_changed = Signal()
+
     def __init__(self, parent):
         super().__init__(parent)
+        self.is_visible = False
         self.setWindowTitle("Yield Curve")
         self.setGeometry(100, 100, 1400, 450)
         self.setMinimumSize(800, 400)
@@ -70,6 +74,16 @@ class YieldCurveWidget(CustomWidget):
         table_view_size = int(total_size * 0.5)
         plot_widget_size = total_size - table_view_size
         self.splitter.setSizes([table_view_size, plot_widget_size])
+
+    def showEvent(self, event: QEvent):
+        self.is_visible = True
+        self.visibility_changed.emit()
+        super().showEvent(event)
+
+    def closeEvent(self, event: QEvent):
+        self.is_visible = False
+        self.visibility_changed.emit()
+        super().closeEvent(event)
 
 
 class PlotWidget(QWidget):

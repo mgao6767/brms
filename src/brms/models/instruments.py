@@ -171,6 +171,8 @@ class FixedRateBond(BondLike):
             settlement_days, face_value, schedule, coupons, day_count
         )
 
+        self._payment_schedule = None
+
     @property
     def name(self):
         return self._name
@@ -188,7 +190,11 @@ class FixedRateBond(BondLike):
         Returns:
             list: A list of tuples representing the payment schedule. Each tuple contains the payment date and amount.
         """
-        return [(cf.date(), cf.amount()) for cf in self.instrument.cashflows()]
+        if self._payment_schedule is None:
+            self._payment_schedule = [
+                (cf.date(), cf.amount()) for cf in self.instrument.cashflows()
+            ]
+        return self._payment_schedule
 
 
 class TreasuryBill(Instrument):
@@ -259,6 +265,8 @@ class AmortizingFixedRateLoan(BondLike):
             issue_date,
         )
 
+        self._payment_schedule = None
+
     @property
     def name(self):
         return self._name
@@ -278,6 +286,9 @@ class AmortizingFixedRateLoan(BondLike):
                 - principal_pmt: A list of tuples representing the date and amount of principal payments.
                 - outstanding: A list of tuples representing the date and outstanding balance after each payment.
         """
+        if self._payment_schedule is not None:
+            return self._payment_schedule
+
         loan = self.instrument
         interest_pmt = []
         principal_pmt = []
@@ -291,7 +302,8 @@ class AmortizingFixedRateLoan(BondLike):
                 outstanding.append((cf.date(), last_outstanding - cf.amount()))
                 _, last_outstanding = outstanding[-1]
 
-        return interest_pmt, principal_pmt, outstanding
+        self._payment_schedule = (interest_pmt, principal_pmt, outstanding)
+        return self._payment_schedule
 
 
 class ConsumerLoan(Loan):
@@ -379,7 +391,7 @@ class DemandDeposit(Instrument):
 
     @property
     def name(self):
-        return "Non-interest bearing"
+        return "Non-interest-bearing"
 
     def value(self):
         return self._value
