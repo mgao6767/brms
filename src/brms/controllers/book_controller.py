@@ -20,6 +20,8 @@ class BookController:
     ):
         self.model = model
         self.view = view
+        self.assets_tree_model = None
+        self.liabilities_tree_model = None
         self.assets_tree_view_header = assets_tree_view_header
         self.liabilities_tree_view_header = liabilities_tree_view_header
 
@@ -28,6 +30,10 @@ class BookController:
 
         self.update_assets_tree_view()
         self.update_liabilities_tree_view()
+
+    def expand_all_tree_view(self):
+        self.view.assets_tree_view.expandAll()
+        self.view.liabilities_tree_view.expandAll()
 
     def add_asset(self, instrument: Instrument):
         self.model.add_asset(instrument)
@@ -38,21 +44,55 @@ class BookController:
     def update_assets_tree_view(self):
         headers = self.assets_tree_view_header
         data = self.model.assets_data()
-        self.view.assets_tree_view.setModel(TreeModel(headers, data))
+        new_model = TreeModel(headers, data)
+
+        # Save the expanded state
+        expanded_indices = []
+        if self.assets_tree_model:
+            for index in range(self.assets_tree_model.rowCount()):
+                item_index = self.assets_tree_model.index(index, 0)
+                if self.view.assets_tree_view.isExpanded(item_index):
+                    expanded_indices.append((item_index.row(), item_index.column()))
+
+        self.assets_tree_model = new_model
+        self.view.assets_tree_view.setModel(self.assets_tree_model)
+
+        # Restore the expanded state
+        for row, column in expanded_indices:
+            new_index = self.assets_tree_model.index(row, column)
+            self.view.assets_tree_view.expand(new_index)
+
         # fmt: off
         self.view.assets_tree_view.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.view.assets_tree_view.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.view.assets_tree_view.expandAll()
+        # self.view.assets_tree_view.expandAll()
         # fmt: on
 
     def update_liabilities_tree_view(self):
         headers = self.liabilities_tree_view_header
         data = self.model.liabilities_data()
-        self.view.liabilities_tree_view.setModel(TreeModel(headers, data))
+        new_model = TreeModel(headers, data)
+
+        # Save the expanded state
+        expanded_indices = []
+        if self.liabilities_tree_model:
+            for index in range(self.liabilities_tree_model.rowCount()):
+                item_index = self.liabilities_tree_model.index(index, 0)
+                if self.view.liabilities_tree_view.isExpanded(item_index):
+                    expanded_indices.append((item_index.row(), item_index.column()))
+
+        self.liabilities_tree_model = new_model
+        self.view.liabilities_tree_view.setModel(self.liabilities_tree_model)
+
+        # Restore the expanded state
+        for row, column in expanded_indices:
+            new_index = self.liabilities_tree_model.index(row, column)
+            self.view.liabilities_tree_view.expand(new_index)
+
         # fmt: off
         self.view.liabilities_tree_view.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.view.liabilities_tree_view.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.view.liabilities_tree_view.expandAll()
+        # self.view.liabilities_tree_view.expandAll()
         # fmt: on
 
     def calculate_payments(self, prev_date: ql.Date, curr_date: ql.Date):

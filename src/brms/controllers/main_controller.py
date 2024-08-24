@@ -198,6 +198,8 @@ class MainController(QObject):
             self.view.statusBar.showMessage("Failed to load scenario data")
             print(err)
 
+        self.banking_book_controller.expand_all_tree_view()
+        self.trading_book_controller.expand_all_tree_view()
         # Manually refresh so that all colors start with black
         self.banking_book_controller.update_assets_tree_view()
         self.banking_book_controller.update_liabilities_tree_view()
