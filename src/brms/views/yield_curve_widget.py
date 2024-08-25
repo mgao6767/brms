@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from brms.views.base import CustomSplitter, CustomWidget
+from brms.views.base import BRMSSplitter, BRMSWidget
 
 
 class RightAlignHeaderView(QHeaderView):
@@ -36,7 +36,7 @@ class YieldItemDelegate(QStyledItemDelegate):
             return value
 
 
-class YieldCurveWidget(CustomWidget):
+class YieldCurveWidget(BRMSWidget):
 
     visibility_changed = Signal()
 
@@ -55,7 +55,7 @@ class YieldCurveWidget(CustomWidget):
 
         self.plot_widget = PlotWidget(self)
 
-        self.splitter = CustomSplitter()
+        self.splitter = BRMSSplitter()
         self.splitter.addWidget(self.table_view)
         self.splitter.addWidget(self.plot_widget)
 

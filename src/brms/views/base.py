@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 
-class CustomDoubleSpinBox(QDoubleSpinBox):
+class BRMSDoubleSpinBox(QDoubleSpinBox):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -23,7 +23,7 @@ class CustomDoubleSpinBox(QDoubleSpinBox):
         return self.locale().toString(value, "f", 2)
 
 
-class CustomSplitterHandle(QSplitterHandle):
+class BRMSSplitterHandle(QSplitterHandle):
     def __init__(self, orientation, parent):
         super().__init__(orientation, parent)
         self.default_color = "transparent"
@@ -41,12 +41,12 @@ class CustomSplitterHandle(QSplitterHandle):
         super().leaveEvent(event)
 
 
-class CustomSplitter(QSplitter):
+class BRMSSplitter(QSplitter):
     def createHandle(self):
-        return CustomSplitterHandle(self.orientation(), self)
+        return BRMSSplitterHandle(self.orientation(), self)
 
 
-class CustomWidget(QWidget):
+class BRMSWidget(QWidget):
 
     def __init__(
         self, parent: QWidget | None = ..., f: Qt.WindowType = Qt.WindowType.Window
@@ -60,20 +60,13 @@ class CustomWidget(QWidget):
         window_geometry.moveCenter(screen_geometry.center())
         self.move(window_geometry.topLeft())
 
-
-class BaseCalculatorWidget(CustomWidget):
-    def __init__(self, parent=None, name="Calculator", size=(600, 560)):
-        super().__init__(parent, Qt.WindowType.Window)
-        self.setWindowTitle(name)
-        self.setGeometry(100, 100, *size)
-        self.center_window()
-
-    def show_warning(self, message: str = "Error"):
+    def show_warning(self, message="Error", informative_text=""):
         msg_box = QMessageBox(self)
         msg_box.setIcon(QMessageBox.Warning)
         msg_box.setWindowTitle("Warning")
         msg_box.setText(message)
-        msg_box.setInformativeText("Please check input parameters.")
+        if len(informative_text):
+            msg_box.setInformativeText(informative_text)
         msg_box.setStandardButtons(QMessageBox.Ok)
         msg_box.exec()
 
@@ -208,7 +201,7 @@ class BankBookWidget(QWidget):
         self.assets_tree_view.setItemDelegateForColumn(1, self.num_delegate)
         self.liabilities_tree_view.setItemDelegateForColumn(1, self.num_delegate)
         # Create a splitter to display the tree views side by side
-        splitter = CustomSplitter()
+        splitter = BRMSSplitter()
         splitter.addWidget(self.assets_tree_view)
         splitter.addWidget(self.liabilities_tree_view)
 

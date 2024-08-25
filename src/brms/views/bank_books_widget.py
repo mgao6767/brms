@@ -3,10 +3,10 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from brms.views.bank_banking_book_widget import BankBankingBookWidget
 from brms.views.bank_trading_book_widget import BankTradingBookWidget
-from brms.views.base import CustomSplitter, CustomWidget
+from brms.views.base import BRMSSplitter, BRMSWidget
 
 
-class BankBooksWidget(CustomWidget):
+class BankBooksWidget(BRMSWidget):
 
     def __init__(self, parent: QWidget | None = ..., f=Qt.WindowType.Window) -> None:
         super().__init__(parent, f)
@@ -18,7 +18,7 @@ class BankBooksWidget(CustomWidget):
         self.bank_banking_book_widget = BankBankingBookWidget(self)
         self.bank_trading_book_widget = BankTradingBookWidget(self)
 
-        splitter = CustomSplitter()
+        splitter = BRMSSplitter()
         splitter.setContentsMargins(0, 0, 0, 0)
         splitter.setOrientation(Qt.Orientation.Horizontal)
         splitter.addWidget(self.bank_banking_book_widget)
