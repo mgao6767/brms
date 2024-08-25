@@ -26,7 +26,7 @@ class CustomDoubleSpinBox(QDoubleSpinBox):
 class CustomSplitterHandle(QSplitterHandle):
     def __init__(self, orientation, parent):
         super().__init__(orientation, parent)
-        self.default_color = "none"
+        self.default_color = "transparent"
         self.hover_color = "lightblue"
         self.setStyleSheet(f"background-color: {self.default_color};")
 

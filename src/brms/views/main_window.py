@@ -1,5 +1,5 @@
 from PySide6.QtCore import QUrl
-from PySide6.QtGui import QAction, QDesktopServices, QIcon, Qt
+from PySide6.QtGui import QAction, QDesktopServices, QFont, QIcon, Qt
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -106,20 +106,19 @@ class MainWindow(QMainWindow):
         self.next_action.setToolTip("Advance to next period in the simulation")
         self.mgmt_action.setToolTip("Take actions to manage risk")
 
-        # self.start_action.setIconVisibleInMenu(False)
-        # self.next_action.setIconVisibleInMenu(False)
-        # self.pause_action.setIconVisibleInMenu(False)
-        # self.stop_action.setIconVisibleInMenu(False)
-        # self.risk_metrics_action.setIconVisibleInMenu(False)
-        # self.stress_test_action.setIconVisibleInMenu(False)
-        # self.mgmt_action.setIconVisibleInMenu(False)
-        # self.log_action.setIconVisibleInMenu(False)
+        self.start_action.setIconVisibleInMenu(False)
+        self.next_action.setIconVisibleInMenu(False)
+        self.pause_action.setIconVisibleInMenu(False)
+        self.stop_action.setIconVisibleInMenu(False)
+        self.yield_curve_action.setIconVisibleInMenu(False)
+        self.risk_metrics_action.setIconVisibleInMenu(False)
+        self.stress_test_action.setIconVisibleInMenu(False)
+        self.mgmt_action.setIconVisibleInMenu(False)
+        self.log_action.setIconVisibleInMenu(False)
 
         # At init, only allow Next or Start.
         self.pause_action.setDisabled(True)
         self.stop_action.setDisabled(True)
-        self.speed_up_action.setDisabled(True)
-        self.speed_down_action.setDisabled(True)
 
         self.fullscreen_action.setCheckable(True)
         self.fullscreen_action.setChecked(False)
@@ -225,7 +224,87 @@ class MainWindow(QMainWindow):
         pass
 
     def apply_styles(self):
-        pass
+
+        # MQ's style guide
+        # https://gem.mq.edu.au/guidelines
+        Color_Red = "#A6192E"
+        Color_Charcoal = "#373A36"
+        Color_Sand_Light = "#EDEBE5"
+        Color_Purple = "#80225F"
+        Color_Deep_Red = "#76232F"
+        Color_Bright_Red = "#D6001C"
+        Color_Magenta = "#C6007E"
+        Color_Success = "#009174"
+        Color_Alert = "#BC4700"
+        Color_Information = "#415364"
+        Color_Sand = "#D6D2C4"
+        Color_Dark_Purple = "#6F1D46"
+
+        app_font = QFont("Work Sans", 10)
+        QApplication.setFont(app_font)
+
+        app_style = f"""
+        QWidget {{
+            background-color: {Color_Sand_Light};
+            color: {Color_Charcoal};
+        }}
+        QPushButton {{
+            background-color: {Color_Success};
+            color: {Color_Sand_Light};
+            border: 1px solid {Color_Charcoal};
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: {Color_Alert};
+        }}
+        QPushButton:pressed {{
+            background-color: {Color_Deep_Red};
+        }}
+        QMenuBar {{
+            background-color: {Color_Charcoal};
+            color: {Color_Sand_Light};
+        }}
+        QMenuBar::item {{
+            background-color: {Color_Charcoal};
+            color: {Color_Sand_Light};
+        }}
+        QMenuBar::item:selected {{
+            background-color: {Color_Purple};
+        }}
+        QMenu {{
+            background-color: {Color_Charcoal};
+            color: {Color_Sand_Light};
+        }}
+        QMenu::item:selected {{
+            background-color: {Color_Purple};
+        }}
+        QToolBar {{
+            background-color: {Color_Sand};
+        }}
+        QToolBar QWidget {{
+            background-color: {Color_Sand};
+        }}
+        QToolButton {{
+            background-color: {Color_Sand};
+        }}
+        QToolButton:hover {{
+            background-color: {Color_Red};
+            color: {Color_Sand_Light};
+        }}
+        QStatusBar {{
+            background-color: {Color_Sand};
+            color: {Color_Charcoal};
+        }}
+        QHeaderView::section {{
+            background-color: {Color_Sand};
+            border: none;
+            padding: 3px;
+        }}
+        QTableCornerButton::section {{
+            background-color: {Color_Sand};
+        }}
+        """
+        self.setStyleSheet(app_style)
 
     def connect_signals_slots(self):
         """
