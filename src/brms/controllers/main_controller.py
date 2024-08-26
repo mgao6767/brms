@@ -2,26 +2,27 @@ import datetime
 
 import pandas as pd
 import QuantLib as ql
-from PySide6.QtCore import QObject, QTimer
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QFileDialog
 
 from brms.controllers import BankingBookController, TradingBookController
+from brms.controllers.base import BRMSController
 from brms.models.bank_model import BankModel
 from brms.models.instruments import InstrumentFactory
-from brms.utils import pydate_to_qldate, qldate_to_pydate
+from brms.utils import pydate_to_qldate
 from brms.views.main_window import MainWindow
 
 
-class MainController(QObject):
+class MainController(BRMSController):
 
     def __init__(self, model: BankModel, view: MainWindow):
         self.model = model
         self.view = view
 
         # Initialize the timer
+        self.simulation_interval = 500  # o.5 seconds per day
         self.simulation_timer = QTimer()
-        self.simulation_timer.timeout.connect(self.on_next_simulation)
-        self.set_simulation_speed(500)  # o.5 seconds per day
+        self.set_simulation_speed(self.simulation_interval)
 
         # Create the pricing engine
         self.relinkable_handle = ql.RelinkableYieldTermStructureHandle()
@@ -44,20 +45,31 @@ class MainController(QObject):
         self.banking_book_controller = BankingBookController(self.banking_book, self.banking_book_widget)
         self.trading_book_controller = TradingBookController(self.trading_book, self.trading_book_widget)
 
+        # All controllers
+        self._controllers = [
+            self.banking_book_controller,
+            self.trading_book_controller,
+        ]
+
         self.connect_signals_slots()
         self.post_init()
 
     def connect_signals_slots(self):
 
+        self.simulation_timer.timeout.connect(self.on_next_simulation)
+        self.view.exit_action.triggered.connect(self.on_exit_action)
+        self.view.new_action.triggered.connect(self.on_new_action)
         self.view.open_action.triggered.connect(self.on_open_action)
         self.view.next_action.triggered.connect(self.on_next_simulation)
-        self.view.start_action.triggered.connect(self.on_start_simulation)
-        self.view.pause_action.triggered.connect(self.on_pause_simulation)
-        self.view.stop_action.triggered.connect(self.on_stop_simulation)
-        self.view.speed_up_action.triggered.connect(self.on_speed_up_simulation)
-        self.view.speed_down_action.triggered.connect(self.on_speed_down_simulation)
+        self.view.start_action.triggered.connect(self.on_start_action)
+        self.view.pause_action.triggered.connect(self.on_pause_action)
+        self.view.stop_action.triggered.connect(self.on_stop_action)
+        self.view.speed_up_action.triggered.connect(self.on_speed_up_action)
+        self.view.speed_down_action.triggered.connect(self.on_speed_down_action)
+        self.view.yield_curve_action.triggered.connect(self.on_yield_curve_action)
 
     def post_init(self):
+        # TODO: yield data should come from scenario data
         # Load yield data from resources
         try:
             yields = ":/data/par_yields.csv"
@@ -77,21 +89,31 @@ class MainController(QObject):
         self.set_current_simulation_date(current_date)
         self.relinkable_handle.linkTo(self.view.yield_curve_ctrl.yield_curve)
 
+    def reset(self):
+        # Reset all child controllers
+        for controller in self._controllers:
+            controller.reset()
+        # Reset main controller itself
+        self.simulation_timer.stop()
+        self.set_simulation_speed(500)
+
     # ====== Simulation ========================================================
-    def set_simulation_speed(self, interval=500):
-        self.simulation_timer.setInterval(interval)
-        self.view.simulation_speed_label.setText(
-            f"Speed: <u>{interval/1000}</u> sec/day"
+
+    def on_exit_action(self):
+        self.view.close()
+
+    def on_new_action(self):
+        self.reset()
+
+    def on_open_action(self):
+        file_dialog = QFileDialog()
+        file_path, _ = file_dialog.getOpenFileName(
+            self.view, "Load Scenario Data", "", "Excel Files (*.xlsx)"
         )
-
-    def on_speed_down_simulation(self):
-        new_interval = self.simulation_timer.interval() + 100
-        self.set_simulation_speed(new_interval)
-
-    def on_speed_up_simulation(self):
-        # min interval 100ms or 0.1s
-        new_interval = max(100, self.simulation_timer.interval() - 100)
-        self.set_simulation_speed(new_interval)
+        if not file_path:
+            return
+        self.reset()
+        self.load_scenario(file_path)
 
     def on_next_simulation(self):
         self.view.statusBar.showMessage("Simulation moved to next period.")
@@ -107,6 +129,47 @@ class MainController(QObject):
         self.repricing()
         self.after_repricing()
 
+    def on_start_action(self):
+        self.view.statusBar.showMessage("Simulation started.")
+        self.view.next_action.setDisabled(True)
+        self.view.start_action.setDisabled(True)
+        self.view.pause_action.setEnabled(True)
+        self.view.stop_action.setEnabled(True)
+        self.view.speed_up_action.setEnabled(True)
+        self.view.speed_down_action.setEnabled(True)
+        self.simulation_timer.start()
+
+    def on_pause_action(self):
+        self.view.statusBar.showMessage("Simulation paused.")
+        self.view.next_action.setEnabled(True)
+        self.view.start_action.setEnabled(True)
+        self.view.pause_action.setDisabled(True)
+        self.view.stop_action.setDisabled(True)
+        self.simulation_timer.stop()
+
+    def on_stop_action(self):
+        self.view.statusBar.showMessage("Simulation stopped.")
+        self.view.next_action.setDisabled(True)
+        self.view.start_action.setDisabled(True)
+        self.view.pause_action.setDisabled(True)
+        self.view.stop_action.setDisabled(True)
+        self.view.speed_up_action.setDisabled(True)
+        self.view.speed_down_action.setDisabled(True)
+        self.simulation_timer.stop()
+
+    def on_speed_up_action(self):
+        # min interval 100ms or 0.1s
+        self.simulation_interval = max(100, self.simulation_timer.interval() - 100)
+        self.set_simulation_speed(self.simulation_interval)
+
+    def on_speed_down_action(self):
+        self.simulation_interval = self.simulation_timer.interval() + 100
+        self.set_simulation_speed(self.simulation_interval)
+
+    def on_yield_curve_action(self):
+        self.view.yield_curve_widget.show()
+
+    # ==========================================================================
     def before_repricing(self):
         pass
 
@@ -128,36 +191,11 @@ class MainController(QObject):
         self.trading_book_controller.update_assets_tree_view()
         self.trading_book_controller.update_liabilities_tree_view()
 
-    def on_start_simulation(self):
-        self.view.statusBar.showMessage("Simulation started.")
-        self.view.next_action.setDisabled(True)
-        self.view.start_action.setDisabled(True)
-        self.view.pause_action.setEnabled(True)
-        self.view.stop_action.setEnabled(True)
-        self.view.speed_up_action.setEnabled(True)
-        self.view.speed_down_action.setEnabled(True)
-        # Start the timer with an interval of 100 milliseconds (0.1 second)
-        self.simulation_timer.start()
-
-    def on_pause_simulation(self):
-        self.view.statusBar.showMessage("Simulation paused.")
-        self.view.next_action.setEnabled(True)
-        self.view.start_action.setEnabled(True)
-        self.view.pause_action.setDisabled(True)
-        self.view.stop_action.setDisabled(True)
-        # Stop the timer
-        self.simulation_timer.stop()
-
-    def on_stop_simulation(self):
-        self.view.statusBar.showMessage("Simulation stopped.")
-        self.view.next_action.setDisabled(True)
-        self.view.start_action.setDisabled(True)
-        self.view.pause_action.setDisabled(True)
-        self.view.stop_action.setDisabled(True)
-        self.view.speed_up_action.setDisabled(True)
-        self.view.speed_down_action.setDisabled(True)
-        # Stop the timer
-        self.simulation_timer.stop()
+    def set_simulation_speed(self, interval=500):
+        text = f"Speed: <u>{interval/1000}</u> sec/day"
+        self.simulation_interval = interval
+        self.simulation_timer.setInterval(interval)
+        self.view.simulation_speed_label.setText(text)
 
     def set_current_simulation_date(self, date: ql.Date | datetime.date):
         if isinstance(date, datetime.date):
@@ -169,18 +207,6 @@ class MainController(QObject):
         self.view.current_date_label.setText(
             f"Current Date: <u>{self.current_date}</u>"
         )
-
-    # ====== Testing func to populate the books =================================
-
-    def on_open_action(self):
-        file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName(
-            self.view, "Load Scenario Data", "", "Excel Files (*.xlsx)"
-        )
-        if not file_path:
-            return
-        # TODO: Should clear existing models and views
-        self.load_scenario(file_path)
 
     def load_scenario(self, file_path: str):
 

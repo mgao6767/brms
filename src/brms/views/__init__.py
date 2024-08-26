@@ -1,3 +1,3 @@
-from .bank_books_widget import BankBooksWidget
+from .bank_book_widget import BankBooksWidget
 from .calculator_widget import BondCalculatorWidget, LoanCalculatorWidget
 from .yield_curve_widget import YieldCurveWidget

@@ -1,15 +1,14 @@
 import QuantLib as ql
 from PySide6.QtWidgets import QHeaderView
 
-from brms.models.bank_banking_book_model import BankBankingBookModel
-from brms.models.bank_trading_book_model import BankTradingBookModel
+from brms.controllers.base import BRMSController
+from brms.models.bank_book_model import BankBankingBookModel, BankTradingBookModel
 from brms.models.instruments import AmortizingFixedRateLoan, FixedRateBond, Instrument
-from brms.views.bank_banking_book_widget import BankBankingBookWidget
-from brms.views.bank_trading_book_widget import BankTradingBookWidget
+from brms.views.bank_book_widget import BankBankingBookWidget, BankTradingBookWidget
 from brms.views.base import TreeModel
 
 
-class BookController:
+class BookController(BRMSController):
 
     def __init__(
         self,
@@ -18,6 +17,7 @@ class BookController:
         assets_tree_view_header=["Asset", "Value"],
         liabilities_tree_view_header=["Liabilities & Equity", "Value"],
     ):
+        super().__init__()
         self.model = model
         self.view = view
         self.assets_tree_model = None
@@ -28,6 +28,11 @@ class BookController:
         self.model.asset_added.connect(self.update_assets_tree_view)
         self.model.liability_added.connect(self.update_liabilities_tree_view)
 
+        self.update_assets_tree_view()
+        self.update_liabilities_tree_view()
+
+    def reset(self):
+        self.model.reset()
         self.update_assets_tree_view()
         self.update_liabilities_tree_view()
 

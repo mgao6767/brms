@@ -3,13 +3,10 @@ from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QApplication,
     QDoubleSpinBox,
-    QGroupBox,
     QMessageBox,
     QSplitter,
     QSplitterHandle,
     QStyledItemDelegate,
-    QTreeView,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -184,33 +181,3 @@ class NumberFormatDelegate(QStyledItemDelegate):
             return f"{value:,.2f}"
         except ValueError:
             return str(value)
-
-
-class BankBookWidget(QWidget):
-
-    def __init__(self, parent: QWidget | None = ..., book_name: str = "") -> None:
-        super().__init__(parent)
-        self.book_name = book_name
-
-        group_box = QGroupBox(book_name)
-        self.assets_tree_view = QTreeView()
-        self.liabilities_tree_view = QTreeView()
-        self.assets_tree_view.setAlternatingRowColors(True)
-        self.liabilities_tree_view.setAlternatingRowColors(True)
-        self.num_delegate = NumberFormatDelegate()
-        self.assets_tree_view.setItemDelegateForColumn(1, self.num_delegate)
-        self.liabilities_tree_view.setItemDelegateForColumn(1, self.num_delegate)
-        # Create a splitter to display the tree views side by side
-        splitter = BRMSSplitter()
-        splitter.addWidget(self.assets_tree_view)
-        splitter.addWidget(self.liabilities_tree_view)
-
-        # Create a layout for the widget and add the splitter
-        layout = QVBoxLayout()
-        layout.addWidget(splitter)
-
-        group_box.setLayout(layout)
-
-        book_layout = QVBoxLayout()
-        book_layout.addWidget(group_box)
-        self.setLayout(book_layout)

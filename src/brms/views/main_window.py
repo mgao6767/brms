@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QWidget,
-    QWidgetAction,
 )
 
 from brms import __about__, __github__, __version__
@@ -33,6 +32,8 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self._all_actions = []
+
         self.read_settings()
         self.set_window_properties()
         self.center_window()
@@ -40,13 +41,12 @@ class MainWindow(QMainWindow):
         self.create_menu_bar()
         self.create_toolbars()
         self.create_status_bar()
-        self.create_dock_widgets()
         self.apply_styles()
 
         # fmt: off
         self.bond_calculator = BondCalculatorWidget(self)
-        self.bond_calculator_ctrl = BondCalculatorController(self.bond_calculator)
         self.loan_calculator = LoanCalculatorWidget(self)
+        self.bond_calculator_ctrl = BondCalculatorController(self.bond_calculator)
         self.loan_calculator_ctrl = LoanCalculatorController(self.loan_calculator)
 
         self.bank_books_widget = BankBooksWidget(self, Qt.WindowType.Widget)
@@ -84,7 +84,6 @@ class MainWindow(QMainWindow):
         self.save_action = QAction("Save", self)
         self.exit_action = QAction("Exit", self)
         self.exit_action.setShortcut("Ctrl+Q")
-
         self.start_action = QAction(QIcon.fromTheme("media-playback-start"), "Start", self)
         self.pause_action = QAction(QIcon.fromTheme("media-playback-pause"), "Pause", self)
         self.stop_action = QAction(QIcon.fromTheme("media-playback-stop"), "Stop", self)
@@ -100,21 +99,39 @@ class MainWindow(QMainWindow):
         self.about_action = QAction("About", self)        
         self.about_qt_action = QAction("About Qt", self)
         self.github_action = QAction("Project GitHub", self)
-
         self.speed_up_action = QAction(QIcon(":/icons/plus-key.png"), "Speed Up", self)
         self.speed_down_action = QAction(QIcon(":/icons/minus-key.png"), "Slow Down", self)
         self.next_action.setToolTip("Advance to next period in the simulation")
         self.mgmt_action.setToolTip("Take actions to manage risk")
+        # fmt: on
 
-        self.start_action.setIconVisibleInMenu(False)
-        self.next_action.setIconVisibleInMenu(False)
-        self.pause_action.setIconVisibleInMenu(False)
-        self.stop_action.setIconVisibleInMenu(False)
-        self.yield_curve_action.setIconVisibleInMenu(False)
-        self.risk_metrics_action.setIconVisibleInMenu(False)
-        self.stress_test_action.setIconVisibleInMenu(False)
-        self.mgmt_action.setIconVisibleInMenu(False)
-        self.log_action.setIconVisibleInMenu(False)
+        self._all_actions.extend(
+            [
+                self.new_action,
+                self.open_action,
+                self.save_action,
+                self.exit_action,
+                self.next_action,
+                self.start_action,
+                self.pause_action,
+                self.stop_action,
+                self.speed_up_action,
+                self.speed_down_action,
+                self.risk_metrics_action,
+                self.stress_test_action,
+                self.mgmt_action,
+                self.log_action,
+                self.fullscreen_action,
+                self.yield_curve_action,
+                self.bond_calculator_action,
+                self.loan_calculator_action,
+                self.about_action,
+                self.about_qt_action,
+                self.github_action,
+            ]
+        )
+        for action in self._all_actions:
+            action.setIconVisibleInMenu(False)
 
         # At init, only allow Next or Start.
         self.pause_action.setDisabled(True)
@@ -172,10 +189,6 @@ class MainWindow(QMainWindow):
         self.toolbar = self.addToolBar("Toolbar")
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
-        section1_label = QLabel("Simulation: ")
-        section1_action = QWidgetAction(self)
-        section1_action.setDefaultWidget(section1_label)
-        self.toolbar.addAction(section1_action)
         self.toolbar.addAction(self.next_action)
         self.toolbar.addAction(self.start_action)
         self.toolbar.addAction(self.pause_action)
@@ -184,16 +197,12 @@ class MainWindow(QMainWindow):
         self.toolbar.addAction(self.speed_down_action)
 
         self.toolbar.addSeparator()
-        section2_label = QLabel("Risk Management: ")
-        section2_action = QWidgetAction(self)
-        section2_action.setDefaultWidget(section2_label)
-        self.toolbar.addAction(section2_action)
         self.toolbar.addAction(self.yield_curve_action)
         self.toolbar.addAction(self.risk_metrics_action)
         self.toolbar.addAction(self.stress_test_action)
         self.toolbar.addAction(self.mgmt_action)
-        self.toolbar.addSeparator()
 
+        self.toolbar.addSeparator()
         self.toolbar.addAction(self.log_action)
 
     def create_status_bar(self):
@@ -218,10 +227,6 @@ class MainWindow(QMainWindow):
         layout.addLayout(top_panel_layout)
         layout.addWidget(self.bank_books_widget)
         central_widget.setLayout(layout)
-
-    def create_dock_widgets(self):
-        # Create dockable widgets here
-        pass
 
     def apply_styles(self):
 
@@ -307,17 +312,9 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(app_style)
 
     def connect_signals_slots(self):
-        """
-        Connects the signals and slots for the main window.
-
-        This method connects the signals emitted by various UI elements in the main window
-        to their corresponding slots, which are responsible for handling the events.
-        """
         self.github_action.triggered.connect(self.open_github)
         self.about_qt_action.triggered.connect(QApplication.instance().aboutQt)
         self.about_action.triggered.connect(self.show_about_dialog)
-        self.exit_action.triggered.connect(self.close)
-        self.yield_curve_action.triggered.connect(self.show_yield_curve)
         self.fullscreen_action.triggered.connect(self.toggle_fullscreen)
         self.bond_calculator_action.triggered.connect(self.toggle_bond_calculator)
         self.loan_calculator_action.triggered.connect(self.toggle_loan_calculator)
@@ -325,12 +322,6 @@ class MainWindow(QMainWindow):
         self.loan_calculator.closeEvent = self.uncheck_loan_calculator_action
 
     def toggle_fullscreen(self):
-        """
-        Toggles the fullscreen mode of the main window.
-
-        If the window is currently in fullscreen mode, it will be restored to its normal size.
-        If the window is currently in normal size, it will be switched to fullscreen mode.
-        """
         if self.isFullScreen():
             self.statusBar.showMessage("Restored normal view.")
             self.showNormal()
@@ -363,6 +354,3 @@ class MainWindow(QMainWindow):
 
     def open_github(self):
         QDesktopServices.openUrl(QUrl(__github__))
-
-    def show_yield_curve(self):
-        self.yield_curve_widget.show()
