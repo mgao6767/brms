@@ -111,6 +111,11 @@ class PlotWidget(QWidget):
         checkbox_layout.addWidget(self.export_button)
         self.layout.addLayout(checkbox_layout)
 
+    def clear_plot(self):
+        self.ax.clear()
+        self.ax.set_title("Yield Curve", fontsize=11)
+        self.canvas.draw()
+
     def update_plot(
         self, maturities, yields, maturities_z, zero_rates, title, rescale_y, show_grid
     ):

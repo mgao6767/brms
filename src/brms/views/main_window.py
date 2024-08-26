@@ -15,7 +15,6 @@ from brms import __about__, __github__, __version__
 from brms.controllers import (
     BondCalculatorController,
     LoanCalculatorController,
-    YieldCurveController,
 )
 from brms.models import YieldCurveModel
 from brms.views import (
@@ -51,9 +50,9 @@ class MainWindow(QMainWindow):
 
         self.bank_books_widget = BankBooksWidget(self, Qt.WindowType.Widget)
 
-        self.yield_curve_model = YieldCurveModel()
+        # self.yield_curve_model = YieldCurveModel()
         self.yield_curve_widget = YieldCurveWidget(self)
-        self.yield_curve_ctrl = YieldCurveController(self.yield_curve_model, self.yield_curve_widget)
+        # self.yield_curve_ctrl = YieldCurveController(self.yield_curve_model, self.yield_curve_widget)
         # fmt: on
 
         self.create_central_widget()
@@ -218,8 +217,8 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
         top_panel_layout = QHBoxLayout()
         top_panel_layout.setAlignment(Qt.AlignLeft)
-        self.current_date_label = QLabel("Current Date: <u>October 21st, 1994</u>")
-        self.simulation_speed_label = QLabel("Speed: <u>0.5</u> sec/day")
+        self.current_date_label = QLabel()
+        self.simulation_speed_label = QLabel()
 
         top_panel_layout.addWidget(self.simulation_speed_label)
         top_panel_layout.addWidget(QLabel("|"))
@@ -354,3 +353,13 @@ class MainWindow(QMainWindow):
 
     def open_github(self):
         QDesktopServices.openUrl(QUrl(__github__))
+
+    def show_warning(self, message="Error", informative_text=""):
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Warning)
+        msg_box.setWindowTitle("Warning")
+        msg_box.setText(message)
+        if len(informative_text):
+            msg_box.setInformativeText(informative_text)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        msg_box.exec()

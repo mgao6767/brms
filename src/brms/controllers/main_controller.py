@@ -5,8 +5,13 @@ import QuantLib as ql
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QFileDialog
 
-from brms.controllers import BankingBookController, TradingBookController
+from brms.controllers import (
+    BankingBookController,
+    TradingBookController,
+    YieldCurveController,
+)
 from brms.controllers.base import BRMSController
+from brms.models import YieldCurveModel
 from brms.models.bank_model import BankModel
 from brms.models.instruments import InstrumentFactory
 from brms.utils import pydate_to_qldate
@@ -22,7 +27,6 @@ class MainController(BRMSController):
         # Initialize the timer
         self.simulation_interval = 500  # o.5 seconds per day
         self.simulation_timer = QTimer()
-        self.set_simulation_speed(self.simulation_interval)
 
         # Create the pricing engine
         self.relinkable_handle = ql.RelinkableYieldTermStructureHandle()
@@ -33,6 +37,10 @@ class MainController(BRMSController):
         self.current_date: ql.Date = ql.Date()
         self.previous_date: ql.Date = ql.Date()
 
+        self.yield_curve_model = YieldCurveModel()
+        self.yield_curve_controller = YieldCurveController(
+            self.yield_curve_model, self.view.yield_curve_widget
+        )
         # book models
         self.banking_book = self.model.banking_book
         self.trading_book = self.model.trading_book
@@ -47,12 +55,31 @@ class MainController(BRMSController):
 
         # All controllers
         self._controllers = [
+            self.yield_curve_controller,
             self.banking_book_controller,
             self.trading_book_controller,
         ]
 
         self.connect_signals_slots()
-        self.post_init()
+
+        self.set_current_simulation_date(self.current_date)
+        self.set_simulation_speed(self.simulation_interval)
+
+    def reset(self):
+        # Reset all child controllers
+        for controller in self._controllers:
+            controller.reset()
+        # Reset main controller itself
+        self.simulation_timer.stop()
+        self.set_simulation_speed(500)
+        # Current date in the simulation
+        self.dates_in_simulation.clear()
+        self.set_current_simulation_date(ql.Date())
+        # At init, only allow Next or Start.
+        self.view.next_action.setEnabled(True)
+        self.view.start_action.setEnabled(True)
+        self.view.pause_action.setDisabled(True)
+        self.view.stop_action.setDisabled(True)
 
     def connect_signals_slots(self):
 
@@ -67,35 +94,6 @@ class MainController(BRMSController):
         self.view.speed_up_action.triggered.connect(self.on_speed_up_action)
         self.view.speed_down_action.triggered.connect(self.on_speed_down_action)
         self.view.yield_curve_action.triggered.connect(self.on_yield_curve_action)
-
-    def post_init(self):
-        # TODO: yield data should come from scenario data
-        # Load yield data from resources
-        try:
-            yields = ":/data/par_yields.csv"
-            self.view.yield_curve_ctrl.load_yield_data_from_qrc(yields)
-        except FileNotFoundError as err:
-            self.view.statusBar.showMessage("Failed to load yield data.")
-            print(err)
-            return
-
-        # The dates of yields become dates in the simulation
-        self.dates_in_simulation = [
-            pydate_to_qldate(date)
-            for date in self.view.yield_curve_ctrl.get_all_dates()
-        ]
-        self.view.yield_curve_ctrl.set_current_selection(0, 0)
-        current_date = self.view.yield_curve_ctrl.get_date_from_selection()
-        self.set_current_simulation_date(current_date)
-        self.relinkable_handle.linkTo(self.view.yield_curve_ctrl.yield_curve)
-
-    def reset(self):
-        # Reset all child controllers
-        for controller in self._controllers:
-            controller.reset()
-        # Reset main controller itself
-        self.simulation_timer.stop()
-        self.set_simulation_speed(500)
 
     # ====== Simulation ========================================================
 
@@ -116,12 +114,18 @@ class MainController(BRMSController):
         self.load_scenario(file_path)
 
     def on_next_simulation(self):
+        if len(self.dates_in_simulation) == 0:
+            self.view.show_warning("No data")
+            self.on_stop_action()
+            self.reset()
+            return
+
         self.view.statusBar.showMessage("Simulation moved to next period.")
         idx = self.dates_in_simulation.index(self.current_date)
         if idx >= len(self.dates_in_simulation) - 1:
             self.on_stop_simulation()
             return
-        self.view.yield_curve_ctrl.set_current_selection(idx + 1, 0)
+        self.yield_curve_controller.set_current_selection(idx + 1, 0)
         next_date = self.dates_in_simulation[idx + 1]
 
         self.set_current_simulation_date(next_date)
@@ -176,7 +180,7 @@ class MainController(BRMSController):
     def repricing(self):
         # yield_curve_ctrl has updated its own `yield_curve`
         # After this, instruments will be revalued, i.e., data in model changed
-        self.relinkable_handle.linkTo(self.view.yield_curve_ctrl.yield_curve)
+        self.relinkable_handle.linkTo(self.yield_curve_controller.yield_curve)
 
         self.banking_book_controller.calculate_payments(
             self.previous_date, self.current_date
@@ -214,6 +218,7 @@ class MainController(BRMSController):
 
         try:
             self._load_meta()
+            self._load_yield_curve()
             self._load_mortgages()
             self._load_ci_loans()
             self._load_treasury_notes(long_position=True)
@@ -248,6 +253,33 @@ class MainController(BRMSController):
         equity_value = df.loc[df["item"] == "Common equity", "value"].values[0]
         equity = InstrumentFactory.create_common_equity(equity_value)
         self.banking_book_controller.add_liability(equity)
+
+    def _load_yield_curve(self):
+        try:
+            df = pd.read_excel(self._scenario_file_path, sheet_name="Yield Curve")
+        except ValueError as error:
+            message = "Failed to load yield curve"
+            informative_text = str(error)
+            self.view.show_warning(message, informative_text)
+            return
+        yield_data = {}
+        maturities = df.columns[1:]
+        length = len(maturities)
+        for _, row in df.iterrows():
+            query_date = row.iloc[0]
+            yields = [(maturities[i], float(row.iloc[i + 1])) for i in range(length)]
+            yield_data[query_date] = yields
+        self.yield_curve_model.update_yield_data(yield_data)
+
+        # TODO: These should be in a separate fucntion
+        self.dates_in_simulation = [
+            pydate_to_qldate(date)
+            for date in self.yield_curve_controller.get_all_dates()
+        ]
+        self.yield_curve_controller.set_current_selection(0, 0)
+        current_date = self.yield_curve_controller.get_date_from_selection()
+        self.set_current_simulation_date(current_date)
+        self.relinkable_handle.linkTo(self.yield_curve_controller.yield_curve)
 
     def _load_mortgages(self):
 

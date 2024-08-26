@@ -3,7 +3,7 @@ from datetime import date, datetime
 import numpy as np
 import QuantLib as ql
 from dateutil.relativedelta import relativedelta
-from PySide6.QtCore import QFile, QItemSelectionModel, Qt, QTextStream
+from PySide6.QtCore import QItemSelectionModel, Qt
 
 from brms.models import YieldCurveModel
 from brms.views import YieldCurveWidget
@@ -28,35 +28,9 @@ class YieldCurveController:
         self.view.plot_widget.grid_checkbox.stateChanged.connect(self.update_plot)
         # fmt: on
 
-    def load_yield_data_from_qrc(self, resource_path: str):
-        """
-        Load yield curve data from a CSV file embedded in QRC and update the model.
-
-        :param resource_path: Path to the resource in QRC.
-        """
-        file = QFile(resource_path)
-        if not file.open(QFile.ReadOnly | QFile.Text):
-            raise FileNotFoundError(f"Resource {resource_path} not found")
-
-        stream = QTextStream(file)
-        headers = stream.readLine().split(",")
-        maturities = headers[1:]  # Assuming the first column is the date
-
-        yield_data = {}
-
-        while not stream.atEnd():
-            line = stream.readLine()
-            row = line.split(",")
-            query_date = date.fromisoformat(row[0])
-            yields = [
-                (maturities[i], float(row[i + 1])) for i in range(len(maturities))
-            ]
-            yield_data[query_date] = yields
-
-        file.close()
-
-        # Update the model with the new yield data
-        self.model.update_yield_data(yield_data)
+    def reset(self):
+        self.model.reset()
+        self.clear_plot()
 
     def set_current_selection(self, row: int, column: int):
         """
@@ -154,23 +128,31 @@ class YieldCurveController:
 
         return reference_date, maturity_dates[valid_indices], yields[valid_indices]
 
+    def clear_plot(self):
+        self.view.plot_widget.clear_plot()
+
     def update_plot(self):
 
         yield_curve = self.build_yield_curve()
 
+        if yield_curve is None:
+            return
         # Update only when the yield curve widget is visible?
         if not self.view.is_visible:
             return
 
-        ref_date, dates, yields = self.get_yields_from_selection()
+        yield_data = self.get_yields_from_selection()
+        if yield_data is None:
+            return
+        ref_date, dates, yields = yield_data
         calendar = ql.ActualActual(ql.ActualActual.ISDA)
         zero_rates = []
 
         # Generate T evenly spaced dates between ref_date and longest_maturity_date
         # Therefore the interpolated zero curve can have more obs
         longest_maturity_date = max(dates)
-        T = 50  # Number of dates to generate
-        date_range = np.linspace(0, (longest_maturity_date - ref_date).days, T)
+        n_date = 50  # Number of dates to generate
+        date_range = np.linspace(0, (longest_maturity_date - ref_date).days, n_date)
         evenly_spaced_dates = [
             ref_date + relativedelta(days=int(days)) for days in date_range
         ]
@@ -198,8 +180,10 @@ class YieldCurveController:
     def build_yield_curve(self):
         # Here, the relinkable handle is relinked to new curve, which will trigger
         # revaluation of all assets whose pricing engine is based on this handle.
-
-        ref_date, dates, yields = self.get_yields_from_selection()
+        yield_data = self.get_yields_from_selection()
+        if yield_data is None:
+            return
+        ref_date, dates, yields = yield_data
 
         # Convert date to QuantLib Date
         ql_date = ql.Date(ref_date.day, ref_date.month, ref_date.year)

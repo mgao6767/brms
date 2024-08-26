@@ -27,6 +27,12 @@ class YieldCurveModel(QAbstractTableModel):
         self.dates = list(self.yield_data.keys())
         self.maturities = self.MATURITIES
 
+    def reset(self):
+        self.yield_data.clear()
+        self.dates.clear()
+        # To trigger update of view
+        self.update_yield_data(self.yield_data)
+
     def get_yield_data(self, query_date: date) -> List[Tuple[str, float]]:
         """
         Given a date, return the yield data for various maturities.
