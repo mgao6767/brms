@@ -254,5 +254,6 @@ class YieldCurveController:
         self.yield_curve = ql.PiecewiseLogCubicDiscount(
             ql_date, rate_helpers, day_count
         )
+        self.yield_curve.enableExtrapolation()
 
         return self.yield_curve
