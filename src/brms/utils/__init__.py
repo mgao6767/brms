@@ -1,7 +1,21 @@
 import datetime
+import time
+from functools import wraps
 
 import QuantLib as ql
 from PySide6.QtCore import QDate
+
+
+def timeit(func):
+    @wraps(func)
+    def timed(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(f"{func.__name__} took {(end_time - start_time)*1000:.4f} ms")
+        return result
+
+    return timed
 
 
 def qdate_to_qldate(date: QDate):

@@ -93,17 +93,13 @@ class BookController(BRMSController):
 
     def calculate_payments(self, prev_date: ql.Date, curr_date: ql.Date):
 
-        for instrument in [*self.model.assets, *self.model.liabilities]:
+        for instrument in (*self.model.assets, *self.model.liabilities):
             if isinstance(instrument, AmortizingFixedRateLoan):
                 interest_pmt, principal_pmt, _ = instrument.payment_schedule()
 
-                for pmt_date, pmt in interest_pmt:
+                for (pmt_date, pmt_i), (_, pmt_p) in zip(interest_pmt, principal_pmt):
                     if prev_date < pmt_date <= curr_date:
-                        instrument.payments_received.emit(pmt)
-
-                for pmt_date, pmt in principal_pmt:
-                    if prev_date < pmt_date <= curr_date:
-                        instrument.payments_received.emit(pmt)
+                        instrument.payments_received.emit(pmt_i + pmt_p)
 
             elif isinstance(instrument, FixedRateBond):
                 payments = instrument.payment_schedule()
