@@ -17,9 +17,6 @@ class YieldCurveController:
 
         self.view.set_model(self.model)
 
-        # QuantLib yield curve
-        self.yield_curve = None
-
         # Connect the selection changed signal to the slot
         # fmt: off
         self.view.visibility_changed.connect(self.update_plot)
@@ -42,7 +39,9 @@ class YieldCurveController:
         model_index = self.model.index(row, column)
         selection_model = self.view.table_view.selectionModel()
         selection_model.setCurrentIndex(
-            model_index, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows
+            model_index,
+            QItemSelectionModel.SelectionFlag.ClearAndSelect
+            | QItemSelectionModel.SelectionFlag.Rows,
         )
 
     def get_all_dates(self):
@@ -51,7 +50,7 @@ class YieldCurveController:
         Returns:
             list: A list of dates.
         """
-        return self.model.dates
+        return self.model.reference_dates()
 
     def get_date_from_selection(self):
         indexes = self.view.table_view.selectionModel().selectedRows()
@@ -178,82 +177,6 @@ class YieldCurveController:
         )
 
     def build_yield_curve(self):
-        # Here, the relinkable handle is relinked to new curve, which will trigger
-        # revaluation of all assets whose pricing engine is based on this handle.
+
         yield_data = self.get_yields_from_selection()
-        if yield_data is None:
-            return
-        ref_date, dates, yields = yield_data
-
-        # Convert date to QuantLib Date
-        ql_date = ql.Date(ref_date.day, ref_date.month, ref_date.year)
-        ql.Settings.instance().evaluationDate = ql_date
-
-        calendar = ql.UnitedStates(ql.UnitedStates.NYSE)
-        business_convention = ql.Following
-        end_of_month = False
-        day_count = ql.ActualActual(ql.ActualActual.ISDA)
-
-        # Maturity<=1yr
-        zcb_data = []
-        coupon_bond_data = []
-        # Add another week to be sure
-        one_year_later = ref_date + relativedelta(years=1) + relativedelta(weeks=1)
-        for maturity_date, y in zip(dates, yields):
-            if maturity_date <= one_year_later:
-                zcb_data.append((maturity_date, float(y) / 100))
-            else:
-                # Assuming price is 100.0 for simplicity
-                coupon_bond_data.append((maturity_date, float(y) / 100, 100.0))
-
-        # Create zero-coupon bond helpers for the short end
-        zcb_helpers = []
-        for maturity_date, rate in zcb_data:
-            maturity_period = ql.Period((maturity_date - ref_date).days, ql.Days)
-            zcb_helpers.append(
-                ql.DepositRateHelper(
-                    ql.QuoteHandle(ql.SimpleQuote(rate)),
-                    maturity_period,
-                    0,  # settlement days
-                    calendar,
-                    business_convention,
-                    end_of_month,
-                    day_count,
-                )
-            )
-
-        # Create fixed rate bond helpers for the long end
-        bond_helpers = []
-        for maturity_date, coupon_rate, price in coupon_bond_data:
-            maturity_period = ql.Period((maturity_date - ref_date).days, ql.Days)
-            schedule = ql.Schedule(
-                ql_date,
-                ql_date + maturity_period,
-                ql.Period(ql.Semiannual),
-                calendar,
-                business_convention,
-                business_convention,
-                ql.DateGeneration.Backward,
-                end_of_month,
-            )
-            bond_helpers.append(
-                ql.FixedRateBondHelper(
-                    ql.QuoteHandle(ql.SimpleQuote(price)),
-                    0,  # settlement days
-                    100.0,  # face value
-                    schedule,
-                    [coupon_rate],
-                    day_count,
-                )
-            )
-
-        # Combine the helpers
-        rate_helpers = zcb_helpers + bond_helpers
-
-        # Build the yield curve
-        self.yield_curve = ql.PiecewiseLogCubicDiscount(
-            ql_date, rate_helpers, day_count
-        )
-        self.yield_curve.enableExtrapolation()
-
-        return self.yield_curve
+        return self.model.build_yield_curve(yield_data)

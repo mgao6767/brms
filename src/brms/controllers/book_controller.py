@@ -139,11 +139,3 @@ class BankingBookController(BookController):
         super().__init__(
             model, view, assets_tree_view_header, liabilities_tree_view_header
         )
-
-    def process_payments_received(self, payment):
-        cash = self.model.get_cash()
-        self.model.set_cash(cash + payment)
-
-    def process_payments_paid(self, payment):
-        cash = self.model.get_cash()
-        self.model.set_cash(cash - payment)

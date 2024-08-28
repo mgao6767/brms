@@ -21,8 +21,8 @@ class BankBookModel(QObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self.assets = []
-        self.liabilities = []
+        self.assets: list[Instrument] = []
+        self.liabilities: list[Instrument] = []
 
         # Example structure of `self._assets_data`
         # This is used to store old data
@@ -37,8 +37,8 @@ class BankBookModel(QObject):
         #         ],
         #     },
         # ]
-        self._assets_data = []
-        self._liabilities_data = []
+        self._assets_data: list[dict[str, list[str]]] = []
+        self._liabilities_data: list[dict[str, list[str]]] = []
 
     def reset(self):
         self.assets.clear()
@@ -46,22 +46,25 @@ class BankBookModel(QObject):
         self._assets_data.clear()
         self._liabilities_data.clear()
 
-    def add_asset(self, asset: Instrument):
+    def add_asset(self, asset: Instrument, emit_signal=True):
         if isinstance(asset, Cash):
             existing_cash = next((a for a in self.assets if isinstance(a, Cash)), None)
             if existing_cash:
                 existing_cash.set_value(existing_cash.value() + asset.value())
             else:
                 self.assets.append(asset)
-            self.asset_added.emit()
+            if emit_signal:
+                self.asset_added.emit()
             return
 
         self.assets.append(asset)
-        self.asset_added.emit()
+        if emit_signal:
+            self.asset_added.emit()
 
-    def add_liability(self, liability):
+    def add_liability(self, liability, emit_signal=True):
         self.liabilities.append(liability)
-        self.liability_added.emit()
+        if emit_signal:
+            self.liability_added.emit()
 
     def _determine_color(self, current_value, old_value):
         if old_value is None:
@@ -102,9 +105,9 @@ class BankBankingBookModel(BankBookModel):
         if existing_cash:
             return existing_cash.value()  # float value
         else:
-            raise RuntimeError("No cash in the bank!")
+            return 0.0
 
-    def set_cash(self, cash: float):
+    def set_cash(self, cash: float) -> None:
         assert isinstance(cash, float)
         existing_cash = next((a for a in self.assets if isinstance(a, Cash)), None)
         if existing_cash:

@@ -12,10 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from brms import __about__, __github__, __version__
-from brms.controllers import (
-    BondCalculatorController,
-    LoanCalculatorController,
-)
+from brms.controllers import BondCalculatorController, LoanCalculatorController
 from brms.models import YieldCurveModel
 from brms.views import (
     BankBooksWidget,

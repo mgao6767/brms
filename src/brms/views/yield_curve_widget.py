@@ -2,7 +2,8 @@ import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
-from PySide6.QtCore import QEvent, Qt, Signal
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QCloseEvent, QShowEvent
 from PySide6.QtWidgets import (
     QCheckBox,
     QFileDialog,
@@ -75,12 +76,12 @@ class YieldCurveWidget(BRMSWidget):
         plot_widget_size = total_size - table_view_size
         self.splitter.setSizes([table_view_size, plot_widget_size])
 
-    def showEvent(self, event: QEvent):
+    def showEvent(self, event: QShowEvent):
         self.is_visible = True
         self.visibility_changed.emit()
         super().showEvent(event)
 
-    def closeEvent(self, event: QEvent):
+    def closeEvent(self, event: QCloseEvent):
         self.is_visible = False
         self.visibility_changed.emit()
         super().closeEvent(event)

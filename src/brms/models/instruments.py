@@ -37,16 +37,16 @@ class Cash(Instrument):
     def name(self):
         return self._name
 
-    def value(self):
+    def value(self) -> float:
         return self._value
 
-    def set_value(self, new_value: float):
+    def set_value(self, new_value: float) -> None:
         self._value = new_value
 
-    def value_on_banking_book(self, date: ql.Date):
+    def value_on_banking_book(self, date: ql.Date) -> float:
         return self.value()
 
-    def value_on_trading_book(self, date: ql.Date):
+    def value_on_trading_book(self, date: ql.Date) -> float:
         return self.value()
 
 
