@@ -6,7 +6,7 @@ from brms.views.base import BRMSSplitter, BRMSWidget, NumberFormatDelegate
 
 class BankBookWidget(QWidget):
 
-    def __init__(self, parent: QWidget | None = ..., book_name: str = "") -> None:
+    def __init__(self, parent: QWidget | None = None, book_name: str = "") -> None:
         super().__init__(parent)
         self.book_name = book_name
 
@@ -36,19 +36,19 @@ class BankBookWidget(QWidget):
 
 class BankBankingBookWidget(BankBookWidget):
 
-    def __init__(self, parent: QWidget | None = ...) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent, book_name="Banking Book")
 
 
 class BankTradingBookWidget(BankBookWidget):
 
-    def __init__(self, parent: QWidget | None = ...) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent, book_name="Trading Book")
 
 
 class BankBooksWidget(BRMSWidget):
 
-    def __init__(self, parent: QWidget | None = ..., f=Qt.WindowType.Window) -> None:
+    def __init__(self, parent: QWidget | None = None, f=Qt.WindowType.Window) -> None:
         super().__init__(parent, f)
 
         self.setWindowTitle("Banking and Trading Books")

@@ -14,8 +14,8 @@ class BookController(BRMSController):
         self,
         model: BankBankingBookModel | BankTradingBookModel,
         view: BankBankingBookWidget | BankTradingBookWidget,
-        assets_tree_view_header=["Asset", "Value"],
-        liabilities_tree_view_header=["Liabilities & Equity", "Value"],
+        assets_tree_view_header=["Assets", "Value"],
+        liabilities_tree_view_header=["Liabilities", "Value"],
     ):
         super().__init__()
         self.model = model
@@ -115,8 +115,8 @@ class TradingBookController(BookController):
         self,
         model: BankTradingBookModel,
         view: BankTradingBookWidget,
-        assets_tree_view_header=["Asset (Long)", "Value"],
-        liabilities_tree_view_header=["Liability (Short)", "Value"],
+        assets_tree_view_header=["Assets (Long)", "Value"],
+        liabilities_tree_view_header=["Liabilities (Short)", "Value"],
     ):
         super().__init__(
             model, view, assets_tree_view_header, liabilities_tree_view_header
@@ -129,8 +129,8 @@ class BankingBookController(BookController):
         self,
         model: BankBankingBookModel,
         view: BankBankingBookWidget,
-        assets_tree_view_header=["Asset", "Value"],
-        liabilities_tree_view_header=["Liabilities & Equity", "Value"],
+        assets_tree_view_header=["Assets", "Value"],
+        liabilities_tree_view_header=["Liabilities", "Value"],
     ):
         super().__init__(
             model, view, assets_tree_view_header, liabilities_tree_view_header
