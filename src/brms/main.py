@@ -15,6 +15,7 @@ class App(QApplication):
         self.model = ScenarioModel()
         self.controller = MainController(self.model, self.view)
         self.view.show()
+        self.view.show_load_scenario_messagebox()
 
 
 def main():

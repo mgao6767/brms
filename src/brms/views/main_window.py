@@ -360,3 +360,14 @@ class MainWindow(QMainWindow):
             msg_box.setInformativeText(informative_text)
         msg_box.setStandardButtons(QMessageBox.Ok)
         msg_box.exec()
+
+    def show_load_scenario_messagebox(self):
+        reply = QMessageBox.question(
+            self,
+            "Load Scenario",
+            "Do you want to load scenario data?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply == QMessageBox.Yes:
+            self.open_action.trigger()
