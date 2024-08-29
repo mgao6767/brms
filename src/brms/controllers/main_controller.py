@@ -1,4 +1,5 @@
 import datetime
+import time
 
 import QuantLib as ql
 from PySide6.QtCore import QTimer
@@ -111,7 +112,8 @@ class MainController(BRMSController):
             self.reset()
             return
 
-        self.view.statusBar.showMessage("Simulation moved to next period.")
+        start_time = time.time()
+
         idx = self.dates_in_simulation.index(self.current_date)
         if idx >= len(self.dates_in_simulation) - 1:
             self.on_stop_action()
@@ -123,6 +125,12 @@ class MainController(BRMSController):
         self.before_repricing()
         self.repricing()
         self.after_repricing()
+
+        end_time = time.time()
+        elapsed_time = (end_time - start_time) * 1000
+        self.view.statusBar.showMessage(
+            f"Simulation completed in {elapsed_time:.2f} ms."
+        )
 
     def on_start_action(self):
         self.view.statusBar.showMessage("Simulation started.")
