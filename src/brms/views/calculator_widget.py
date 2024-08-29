@@ -29,7 +29,7 @@ class BaseCalculatorWidget(BRMSWidget):
 
 class BondCalculatorWidget(BaseCalculatorWidget):
     def __init__(self, parent=None):
-        super().__init__(parent, name="Fixed-Rate Bond Calculator", size=(600, 560))
+        super().__init__(parent, name="Fixed-Rate Bond Calculator", size=(660, 560))
 
         # Create the form layout
         calculator_layout = QHBoxLayout()
@@ -288,7 +288,7 @@ class BondCalculatorWidget(BaseCalculatorWidget):
 class LoanCalculatorWidget(BaseCalculatorWidget):
     def __init__(self, parent=None):
 
-        super().__init__(parent, name="Amortizing Loan Calculator", size=(1000, 560))
+        super().__init__(parent, name="Amortizing Loan Calculator", size=(1100, 560))
 
         # Create the form layout
         calculator_layout = QHBoxLayout()
