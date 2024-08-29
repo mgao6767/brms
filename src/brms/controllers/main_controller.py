@@ -30,24 +30,19 @@ class MainController(BRMSController):
         self.current_date: ql.Date = ql.Date()
         self.previous_date: ql.Date = ql.Date()
 
+        # Controllers
         self.yield_curve_controller = YieldCurveController(
-            self.scenario.yield_curve_model(), self.view.yield_curve_widget
+            self.scenario.yield_curve_model(),  # model
+            self.view.yield_curve_widget,  # view
         )
-        # book models
-        self.banking_book = self.scenario.bank_model().banking_book
-        self.trading_book = self.scenario.bank_model().trading_book
-
-        # book view/widget
-        self.banking_book_widget = self.view.bank_books_widget.bank_banking_book_widget
-        self.trading_book_widget = self.view.bank_books_widget.bank_trading_book_widget
-
         self.banking_book_controller = BankingBookController(
-            self.banking_book, self.banking_book_widget
+            self.scenario.bank_model().banking_book,  # banking book model
+            self.view.bank_books_widget.bank_banking_book_widget,  # view
         )
         self.trading_book_controller = TradingBookController(
-            self.trading_book, self.trading_book_widget
+            self.scenario.bank_model().trading_book,  # trading book model
+            self.view.bank_books_widget.bank_trading_book_widget,  # view
         )
-
         # All controllers
         self._controllers = [
             self.yield_curve_controller,

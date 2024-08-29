@@ -5,6 +5,10 @@
     <file>icons/line-chart.png</file>
     <file>icons/plus-key.png</file>
     <file>icons/minus-key.png</file>
+    <file>icons/spreadsheet.png</file>
+    <file>icons/line-chart-axis.png</file>
+    <file>icons/table-and-graph.png</file>
+    <file>icons/export.png</file>
     <file>data/par_yields.csv</file>
 </qresource>
 </RCC>

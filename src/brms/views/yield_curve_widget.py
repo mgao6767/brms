@@ -2,16 +2,16 @@ import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QCloseEvent, QShowEvent
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QAction, QCloseEvent, QIcon, QShowEvent
 from PySide6.QtWidgets import (
     QCheckBox,
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
-    QPushButton,
     QStyledItemDelegate,
     QTableView,
+    QToolBar,
     QVBoxLayout,
     QWidget,
 )
@@ -43,10 +43,31 @@ class YieldCurveWidget(BRMSWidget):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self._single_view_size = (700, 500)
+        self._all_views_size = (1400, 500)
         self.is_visible = False
         self.setWindowTitle("Yield Curve")
-        self.setGeometry(100, 100, 1400, 450)
-        self.setMinimumSize(800, 400)
+        self.setGeometry(100, 100, *self._single_view_size)
+        self.setMinimumSize(*self._single_view_size)
+
+        self.toolbar = QToolBar()
+        self.toolbar.setMovable(False)
+        self.toolbar.setFloatable(False)
+        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.toolbar.setIconSize(QSize(32, 32))
+        self.toolbar.setMaximumHeight(32)
+
+        # fmt: off
+        save_action = QAction(QIcon(":/icons/export.png"), "Export Plot", self)
+        table_action = QAction(QIcon(":/icons/spreadsheet.png"), "Show Table", self)
+        figure_action = QAction(QIcon(":/icons/line-chart-axis.png"), "Show Plot", self)
+        all_view_action = QAction(QIcon(":/icons/table-and-graph.png"), "Show Both", self)
+        # fmt: on
+
+        self.toolbar.addAction(table_action)
+        self.toolbar.addAction(figure_action)
+        self.toolbar.addAction(all_view_action)
+        self.toolbar.addAction(save_action)
 
         self.table_view = QTableView()
         self.table_view.setHorizontalHeader(RightAlignHeaderView(Qt.Horizontal))
@@ -60,21 +81,40 @@ class YieldCurveWidget(BRMSWidget):
         self.splitter.addWidget(self.table_view)
         self.splitter.addWidget(self.plot_widget)
 
-        main_layout = QHBoxLayout(self)
+        main_layout = QVBoxLayout(self)
+        main_layout.addWidget(self.toolbar)
         main_layout.addWidget(self.splitter)
         self.setLayout(main_layout)
 
-        self.set_default_splitter()
+        self.splitter.setContentsMargins(10, 10, 10, 10)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        all_view_action.triggered.connect(self.set_default_view)
+        table_action.triggered.connect(self.set_table_view)
+        figure_action.triggered.connect(self.set_figure_view)
+        save_action.triggered.connect(self.plot_widget.export_plot)
+
+        self.set_figure_view()
         self.center_window()
 
     def set_model(self, model):
         self.table_view.setModel(model)
 
-    def set_default_splitter(self):
+    def set_default_view(self):
+        self.resize(*self._all_views_size)
         total_size = 1000  # Arbitrary total size
         table_view_size = int(total_size * 0.5)
         plot_widget_size = total_size - table_view_size
         self.splitter.setSizes([table_view_size, plot_widget_size])
+
+    def set_table_view(self):
+        self.resize(*self._single_view_size)
+        self.splitter.setSizes([1, 0])
+
+    def set_figure_view(self):
+        self.resize(*self._single_view_size)
+        self.splitter.setSizes([0, 1])
 
     def showEvent(self, event: QShowEvent):
         self.is_visible = True
@@ -97,7 +137,7 @@ class PlotWidget(QWidget):
         self.ax.set_title("Yield Curve", fontsize=11)
         # Checkboxes
         checkbox_layout = QHBoxLayout()
-        checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
+        checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         # Add checkbox for controlling y-axis rescaling
         self.rescale_checkbox = QCheckBox("Rescale Y-Axis", self)
         self.rescale_checkbox.setChecked(True)  # Default to rescaling
@@ -107,9 +147,9 @@ class PlotWidget(QWidget):
         self.grid_checkbox.setChecked(True)  # Default to showing grid lines
         checkbox_layout.addWidget(self.grid_checkbox)
         # Add button for exporting plot to PNG
-        self.export_button = QPushButton("Export to PNG", self)
-        self.export_button.clicked.connect(self.export_plot)
-        checkbox_layout.addWidget(self.export_button)
+        # self.export_button = QPushButton("Export to PNG", self)
+        # self.export_button.clicked.connect(self.export_plot)
+        # checkbox_layout.addWidget(self.export_button)
         self.layout.addLayout(checkbox_layout)
 
     def clear_plot(self):
