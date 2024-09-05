@@ -155,7 +155,7 @@ class PlotWidget(QWidget):
     def clear_plot(self):
         self.ax.clear()
         self.ax.set_title("Yield Curve", fontsize=11)
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def update_plot(
         self, maturities, yields, maturities_z, zero_rates, title, rescale_y, show_grid
@@ -179,7 +179,7 @@ class PlotWidget(QWidget):
         self.ax.tick_params(axis="both", which="major", labelsize=10)
         self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.2f}"))
         self.ax.legend(fontsize=9, loc="lower right")
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def export_plot(self):
         options = QFileDialog.Options()
