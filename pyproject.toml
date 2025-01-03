@@ -1,0 +1,20 @@
+[project]
+name = "brms"
+version = "0.1.0"
+description = "A bank risk management simulation framework."
+readme = "README.md"
+authors = [{ name = "Mingze Gao", email = "adrian.gao@outlook.com" }]
+requires-python = ">=3.12"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+dependencies = ["pyside6>=6.8.1.1"]
+
+[dependency-groups]
+dev = ["isort>=5.13.2", "pytest>=8.3.4", "ruff>=0.8.5"]
+
+[tool.ruff]
+select = ["ALL"]
+line-length = 120
