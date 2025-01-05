@@ -3,7 +3,8 @@
 from abc import ABC, abstractmethod
 
 from brms.instruments.base import Instrument
-from brms.models.bank import BalanceSheetCategory, Bank
+from brms.models.bank import Bank
+from brms.models.base import BalanceSheetCategory, BookType
 
 
 class Command(ABC):
@@ -38,6 +39,24 @@ class CompositeCommand(Command):
         """Undo all commands in reverse order."""
         for command in reversed(self.commands):
             command.undo()
+
+
+class SetInstrumentBookTypeCommand(Command):
+    """Command to set book type of an instrument."""
+
+    def __init__(self, instrument: Instrument, book_type: BookType) -> None:
+        """Initialize the SetInstrumentBookTypeCommand with an instrument and book type."""
+        self.instrument = instrument
+        self.book_type = book_type
+        self.original_book_type = self.instrument.book_type
+
+    def execute(self) -> None:
+        """Set the book type of the instrument."""
+        self.instrument.book_type = self.book_type
+
+    def undo(self) -> None:
+        """Reset the book type of the instrument."""
+        self.instrument.book_type = self.original_book_type
 
 
 class AddInstrumentCommand(Command):
