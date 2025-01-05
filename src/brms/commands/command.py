@@ -2,8 +2,8 @@
 
 from abc import ABC, abstractmethod
 
-from brms.instruments.base import BalanceSheetCategory, Instrument
-from brms.models.bank import Bank
+from brms.instruments.base import Instrument
+from brms.models.bank import BalanceSheetCategory, Bank
 
 
 class Command(ABC):
