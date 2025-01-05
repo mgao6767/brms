@@ -11,5 +11,5 @@ class BankingBookValuationVisitor(ValuationVisitor):
     """A visitor for banking book valuation."""
 
 
-class TradingBookValuationVistor(ValuationVisitor):
+class TradingBookValuationVisitor(ValuationVisitor):
     """A visitor for trading book valuation."""
