@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Optional
 
+from .valuation import ValuationVisitor
+
 
 class BookType(Enum):
     """Enumeration for different types of books.
@@ -26,7 +28,12 @@ class BalanceSheetCategory(Enum):
 
 
 class Instrument(ABC):
-    """Abstract base class for financial instruments."""
+    """Base class for financial instruments."""
+
+    def __init__(self, name: str, parent: Optional["Instrument"] = None) -> None:
+        """Initialize a financial instrument."""
+        self.name = name
+        self._parent = parent
 
     @property
     def parent(self) -> Optional["Instrument"]:
@@ -42,8 +49,8 @@ class Instrument(ABC):
         return False
 
     @abstractmethod
-    def value(self, scenario: dict) -> float:
-        """Calculate the instrument's value based on the given scenario."""
+    def accept(self, visitor: ValuationVisitor, scenario: dict) -> float:
+        """Accept a valuation visitor to calculate the instrument's value."""
 
 
 class CompositeInstrument(Instrument):
@@ -53,8 +60,9 @@ class CompositeInstrument(Instrument):
     It can be used to represent a collection of assets, liabilities, or equities for a bank.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, name: str, parent: Instrument | None = None) -> None:
         """Initialize a composite instrument with an empty list of instruments."""
+        super().__init__(name, parent)
         self._instruments: list[Instrument] = []
 
     def add(self, instrument: Instrument) -> None:
@@ -69,6 +77,6 @@ class CompositeInstrument(Instrument):
         """Check if the instrument is composite."""
         return True
 
-    def value(self, scenario: dict) -> float:
-        """Calculate the composite instrument's value based on the given scenario."""
-        return sum(instrument.value(scenario) for instrument in self._instruments)
+    def accept(self, visitor: ValuationVisitor, scenario: dict) -> float:
+        """Accept a valuation visitor to calculate the composite instrument's value."""
+        return sum(instrument.accept(visitor, scenario) for instrument in self._instruments)
