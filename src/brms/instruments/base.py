@@ -1,9 +1,11 @@
 """Define the base classes and enumerations for financial instruments."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from typing import Optional
 
-from .valuation import ValuationVisitor
+from brms.instruments.valuation import ValuationVisitor
+from brms.models.bank import BookType
 
 
 class Instrument(ABC):
@@ -22,6 +24,15 @@ class Instrument(ABC):
     @parent.setter
     def parent(self, parent: "Instrument") -> None:
         self._parent = parent
+
+    @property
+    def book_type(self) -> BookType | None:
+        """Get the book type of the instrument."""
+        return self._book_type
+
+    @book_type.setter
+    def book_type(self, book_type: BookType) -> None:
+        self._book_type = book_type
 
     def is_composite(self) -> bool:
         """Check if the instrument is composite."""
@@ -59,3 +70,7 @@ class CompositeInstrument(Instrument):
     def accept(self, visitor: ValuationVisitor, scenario: dict) -> float:
         """Accept a valuation visitor to calculate the composite instrument's value."""
         return sum(instrument.accept(visitor, scenario) for instrument in self._instruments)
+
+    def __iter__(self) -> Iterator[Instrument]:
+        """Return an iterator over the instruments in the composite."""
+        return iter(self._instruments)
