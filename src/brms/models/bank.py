@@ -20,6 +20,6 @@ class Bank:
 
     def __init__(self) -> None:
         """Initialize the Bank with assets, liabilities, and equities."""
-        self.assets = AssetComposite()
-        self.liabilities = LiabilityComposite()
-        self.equities = EquityComposite()
+        self.assets = AssetComposite(name="Assets")
+        self.liabilities = LiabilityComposite(name="Liabilities")
+        self.equities = EquityComposite(name="Equities")
