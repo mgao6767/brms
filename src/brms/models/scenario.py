@@ -49,8 +49,9 @@ class ScenarioManager:
         """Clear all scenarios."""
         self.scenarios.clear()
 
-    def add_scenario(self, date: datetime.date, data: dict) -> None:
-        """TODO: Add a new scenario."""
+    def add_scenario(self, date: datetime.date, scenario: Scenario) -> None:
+        """Add a scenario by date."""
+        self.scenarios[date] = scenario
 
     def get_scenario(self, date: datetime.date) -> Scenario | None:
         """Retrieve a scenario by date."""
