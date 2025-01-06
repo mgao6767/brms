@@ -19,3 +19,9 @@ class BalanceSheetCategory(Enum):
     ASSET = "Asset"
     LIABILITY = "Liability"
     EQUITY = "Equity"
+
+
+class ScenarioData(Enum):
+    """Enumeration for different types of scenario data."""
+
+    YIELD_TERM_STRUCTURE = "Yield Term Structure"

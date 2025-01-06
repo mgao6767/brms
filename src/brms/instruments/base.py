@@ -6,6 +6,7 @@ from typing import Optional
 
 from brms.instruments.valuation import ValuationVisitor
 from brms.models.bank import BookType
+from brms.models.scenario import Scenario
 
 
 class Instrument(ABC):
@@ -39,7 +40,7 @@ class Instrument(ABC):
         return False
 
     @abstractmethod
-    def accept(self, visitor: ValuationVisitor, scenario: dict) -> float:
+    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
         """Accept a valuation visitor to calculate the instrument's value."""
 
 
@@ -67,7 +68,7 @@ class CompositeInstrument(Instrument):
         """Check if the instrument is composite."""
         return True
 
-    def accept(self, visitor: ValuationVisitor, scenario: dict) -> float:
+    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
         """Accept a valuation visitor to calculate the composite instrument's value."""
         return sum(instrument.accept(visitor, scenario) for instrument in self._instruments)
 

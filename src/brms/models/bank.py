@@ -5,6 +5,7 @@ from collections.abc import Generator
 from brms.instruments.base import CompositeInstrument, Instrument
 from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
 from brms.models.base import BookType
+from brms.models.scenario import Scenario
 
 
 class AssetComposite(CompositeInstrument):
@@ -46,7 +47,7 @@ class Bank:
             if instrument.book_type == BookType.TRADING_BOOK:
                 yield instrument
 
-    def valuation(self, scenario: dict) -> None:
+    def valuation(self, scenario: Scenario) -> None:
         """Perform valuation on banking and trading book instruments."""
         # TODO: Equities' valuation
 
