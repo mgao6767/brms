@@ -82,3 +82,7 @@ class FixedRateBond(Instrument):
     def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
         """Accept a valuation visitor to calculate the instrument's value."""
         return visitor.value_fixed_rate_bond(self, scenario)
+
+    def set_pricing_engine(self, engine: ql.PricingEngine) -> None:
+        """Set the pricing engine."""
+        self.instrument.setPricingEngine(engine)
