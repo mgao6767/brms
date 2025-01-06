@@ -10,7 +10,7 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
-dependencies = ["pyside6>=6.8.1.1"]
+dependencies = ["pyside6==6.8.1", "quantlib>=1.36"]
 
 [dependency-groups]
 dev = ["isort>=5.13.2", "pytest>=8.3.4", "ruff>=0.8.5"]
@@ -18,3 +18,11 @@ dev = ["isort>=5.13.2", "pytest>=8.3.4", "ruff>=0.8.5"]
 [tool.ruff]
 select = ["ALL"]
 line-length = 120
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  # QuantLib
+  'ignore:builtin type SwigPyPacked has no __module__ attribute',
+  'ignore:builtin type SwigPyObject has no __module__ attribute',
+  'ignore:builtin type swigvarlink has no __module__ attribute',
+]
