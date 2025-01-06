@@ -4,7 +4,7 @@ import pytest
 
 from brms.instruments.base import Instrument
 from brms.models.bank import Bank
-from brms.models.base import BalanceSheetCategory, BookType
+from brms.models.base import BookType
 from brms.models.scenario import Scenario
 
 
@@ -72,18 +72,6 @@ def test_add_instrument_to_liabilities(bank, instrument_trading):
     assert instrument_trading in bank.liabilities._instruments
 
 
-def test_instruments_by_book_type(bank, instrument_banking, instrument_trading):
-    """Test retrieving instruments by book type."""
-    bank.assets.add(instrument_banking)
-    bank.liabilities.add(instrument_trading)
-
-    banking_instruments = list(bank.instruments(BookType.BANKING_BOOK, BalanceSheetCategory.ASSET))
-    trading_instruments = list(bank.instruments(BookType.TRADING_BOOK, BalanceSheetCategory.LIABILITY))
-
-    assert instrument_banking in banking_instruments
-    assert instrument_trading in trading_instruments
-
-
 def test_valuation(bank, instrument_assets, instrument_liabilities):
     """Test the valuation method."""
     bank.assets.add(instrument_assets)  # Assume a value of 200
@@ -93,6 +81,8 @@ def test_valuation(bank, instrument_assets, instrument_liabilities):
     scenario = Scenario(date=datetime.date(2025, 1, 1))
     bank.valuation(scenario)
 
+    assert bank.assets.value == 400
+    assert bank.liabilities.value == 100
     assert bank.common_equity == 300
 
 

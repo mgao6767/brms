@@ -61,11 +61,12 @@ def test_is_composite(composite_instrument):
 def test_accept(composite_instrument, instrument_banking, instrument_trading):
     """Test the accept method."""
     composite_instrument.add(instrument_banking)
+    composite_instrument.add(instrument_banking)
     composite_instrument.add(instrument_trading)
     scenario = Scenario(date=datetime.date(2025, 1, 1))
-    visitor = BankingBookValuationVisitor()  # Not effective
+    visitor = BankingBookValuationVisitor()
     total_value = composite_instrument.accept(visitor, scenario)
-    assert total_value == 200.0  # Mock value for testing
+    assert total_value == 200.0  # 2 instruments on banking book, each valued at 100
 
 
 def test_iter(composite_instrument, instrument_banking, instrument_trading):

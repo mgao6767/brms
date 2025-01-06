@@ -1,6 +1,6 @@
-import pytest
 import datetime
 
+import pytest
 import QuantLib as ql
 
 from brms.models.bank import Bank
