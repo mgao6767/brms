@@ -1,5 +1,6 @@
 """Define the `Bank` class."""
 
+import itertools
 from collections.abc import Generator
 
 from brms.instruments.base import CompositeInstrument, Instrument
@@ -29,22 +30,10 @@ class Bank:
         self.liabilities = LiabilityComposite(name="Liabilities")
         self.equities = EquityComposite(name="Equities")
 
-    def banking_book_instruments(self) -> Generator[Instrument, None, None]:
-        """Yield instruments in the banking book."""
-        for instrument in self.assets:
-            if instrument.book_type == BookType.BANKING_BOOK:
-                yield instrument
-        for instrument in self.liabilities:
-            if instrument.book_type == BookType.BANKING_BOOK:
-                yield instrument
-
-    def trading_book_instruments(self) -> Generator[Instrument, None, None]:
-        """Yield instruments in the trading book."""
-        for instrument in self.assets:
-            if instrument.book_type == BookType.TRADING_BOOK:
-                yield instrument
-        for instrument in self.liabilities:
-            if instrument.book_type == BookType.TRADING_BOOK:
+    def instruments(self, book_type: BookType) -> Generator[Instrument, None, None]:
+        """Yield instruments in the given book."""
+        for instrument in itertools.chain(self.assets, self.liabilities):
+            if instrument.book_type == book_type:
                 yield instrument
 
     def valuation(self, scenario: Scenario) -> None:
@@ -54,7 +43,7 @@ class Bank:
         banking_book_visitor = BankingBookValuationVisitor()
         trading_book_visitor = TradingBookValuationVisitor()
 
-        for instrument in self.banking_book_instruments():
+        for instrument in self.instruments(BookType.BANKING_BOOK):
             instrument.accept(banking_book_visitor, scenario)
-        for instrument in self.trading_book_instruments():
+        for instrument in self.instruments(BookType.TRADING_BOOK):
             instrument.accept(trading_book_visitor, scenario)
