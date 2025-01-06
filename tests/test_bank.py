@@ -4,7 +4,7 @@ import pytest
 
 from brms.instruments.base import Instrument
 from brms.models.bank import Bank
-from brms.models.base import BookType
+from brms.models.base import BalanceSheetCategory, BookType
 from brms.models.scenario import Scenario
 
 
@@ -25,6 +25,16 @@ class MockInstrument(Instrument):
         self._book_type = book_type
 
 
+class MockInstrumentOnAssets(MockInstrument):
+    def accept(self, visitor, scenario):
+        return 200
+
+
+class MockInstrumentOnLiabilities(MockInstrument):
+    def accept(self, visitor, scenario):
+        return 100
+
+
 @pytest.fixture
 def bank():
     return Bank()
@@ -38,6 +48,16 @@ def instrument_banking():
 @pytest.fixture
 def instrument_trading():
     return MockInstrument(name="Trading Instrument", book_type=BookType.TRADING_BOOK)
+
+
+@pytest.fixture
+def instrument_assets():
+    return MockInstrumentOnAssets(name="Instrument as Assets", book_type=BookType.BANKING_BOOK)
+
+
+@pytest.fixture
+def instrument_liabilities():
+    return MockInstrumentOnLiabilities(name="Instrument as Liabilities", book_type=BookType.BANKING_BOOK)
 
 
 def test_add_instrument_to_assets(bank, instrument_banking):
@@ -57,23 +77,23 @@ def test_instruments_by_book_type(bank, instrument_banking, instrument_trading):
     bank.assets.add(instrument_banking)
     bank.liabilities.add(instrument_trading)
 
-    banking_instruments = list(bank.instruments(BookType.BANKING_BOOK))
-    trading_instruments = list(bank.instruments(BookType.TRADING_BOOK))
+    banking_instruments = list(bank.instruments(BookType.BANKING_BOOK, BalanceSheetCategory.ASSET))
+    trading_instruments = list(bank.instruments(BookType.TRADING_BOOK, BalanceSheetCategory.LIABILITY))
 
     assert instrument_banking in banking_instruments
     assert instrument_trading in trading_instruments
 
 
-@pytest.mark.skip("Not yet implemented")
-def test_valuation(bank, instrument_banking, instrument_trading):
+def test_valuation(bank, instrument_assets, instrument_liabilities):
     """Test the valuation method."""
-    bank.assets.add(instrument_banking)
-    bank.liabilities.add(instrument_trading)
+    bank.assets.add(instrument_assets)  # Assume a value of 200
+    bank.assets.add(instrument_assets)  # Assume a value of 200
+    bank.liabilities.add(instrument_liabilities)  # Assume a value of 100
 
     scenario = Scenario(date=datetime.date(2025, 1, 1))
     bank.valuation(scenario)
 
-    assert True
+    assert bank.common_equity == 300
 
 
 if __name__ == "__main__":
