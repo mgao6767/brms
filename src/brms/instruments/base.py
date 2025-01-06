@@ -2,13 +2,11 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
-from brms.instruments.valuation import ValuationVisitor
+from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor, ValuationVisitor
+from brms.models.base import BookType
 from brms.models.scenario import Scenario
-
-if TYPE_CHECKING:
-    from brms.models.bank import BookType
 
 
 class Instrument(ABC):
@@ -82,8 +80,19 @@ class CompositeInstrument(Instrument):
 
     def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
         """Accept a valuation visitor to calculate the composite instrument's value."""
-        self.value = sum(instrument.accept(visitor, scenario) for instrument in self._instruments)
-        return self.value
+        if isinstance(visitor, BankingBookValuationVisitor):
+            return sum(
+                instrument.accept(visitor, scenario)
+                for instrument in self._instruments
+                if instrument.book_type == BookType.BANKING_BOOK
+            )
+        if isinstance(visitor, TradingBookValuationVisitor):
+            return sum(
+                instrument.accept(visitor, scenario)
+                for instrument in self._instruments
+                if instrument.book_type == BookType.TRADING_BOOK
+            )
+        return 0.0
 
     def __iter__(self) -> Iterator[Instrument]:
         """Return an iterator over the instruments in the composite."""

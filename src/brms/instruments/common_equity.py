@@ -14,5 +14,4 @@ class CommonEquity(Instrument):
 
     def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
         """Accept a valuation visitor to calculate the instrument's value."""
-        self.value = visitor.value_common_equity(self, scenario)
-        return self.value
+        return visitor.value_common_equity(self, scenario)

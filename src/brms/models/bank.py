@@ -1,11 +1,8 @@
 """Define the `Bank` class."""
 
-from collections.abc import Generator
-
-from brms.instruments.base import CompositeInstrument, Instrument
+from brms.instruments.base import CompositeInstrument
 from brms.instruments.common_equity import CommonEquity
 from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
-from brms.models.base import BalanceSheetCategory, BookType
 from brms.models.scenario import Scenario
 
 
@@ -42,33 +39,20 @@ class Bank:
     def common_equity(self, value: float) -> None:
         self._common_equity.value = value
 
-    def instruments(self, book_type: BookType, category: BalanceSheetCategory) -> Generator[Instrument, None, None]:
-        """Yield instruments in the given book and balance sheet category."""
-        match category:
-            case BalanceSheetCategory.ASSET:
-                instruments: CompositeInstrument = self.assets
-            case BalanceSheetCategory.LIABILITY:
-                instruments: CompositeInstrument = self.liabilities
-            case BalanceSheetCategory.EQUITY:
-                instruments: CompositeInstrument = self.equities
-        for instrument in instruments:
-            if instrument.book_type == book_type:
-                yield instrument
-
     def valuation(self, scenario: Scenario) -> None:
         """Perform valuation on banking and trading book instruments."""
-        assets_value = 0.0
-        liabilities_value = 0.0
         banking_book_visitor = BankingBookValuationVisitor()
         trading_book_visitor = TradingBookValuationVisitor()
 
-        for instrument in self.instruments(BookType.BANKING_BOOK, BalanceSheetCategory.ASSET):
-            assets_value += instrument.accept(banking_book_visitor, scenario)
-        for instrument in self.instruments(BookType.TRADING_BOOK, BalanceSheetCategory.ASSET):
-            assets_value += instrument.accept(banking_book_visitor, scenario)
-        for instrument in self.instruments(BookType.BANKING_BOOK, BalanceSheetCategory.LIABILITY):
-            liabilities_value += instrument.accept(banking_book_visitor, scenario)
-        for instrument in self.instruments(BookType.TRADING_BOOK, BalanceSheetCategory.LIABILITY):
-            liabilities_value += instrument.accept(trading_book_visitor, scenario)
+        assets_value = 0.0
+        liabilities_value = 0.0
+        assets_value += self.assets.accept(banking_book_visitor, scenario)
+        assets_value += self.assets.accept(trading_book_visitor, scenario)
+        liabilities_value += self.liabilities.accept(banking_book_visitor, scenario)
+        liabilities_value += self.liabilities.accept(trading_book_visitor, scenario)
 
-        self.common_equity = assets_value - liabilities_value
+        # Store the computed the value
+        self.assets.value = assets_value
+        self.liabilities.value = liabilities_value
+        # FIXME: EquityComposite's value is not updated
+        self.common_equity = self.assets.value - self.liabilities.value
