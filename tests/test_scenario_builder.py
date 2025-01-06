@@ -1,6 +1,6 @@
 """Tests for the ScenarioBuilder class."""
 
-from datetime import datetime
+import datetime
 
 import pytest
 import QuantLib as ql  # noqa: N813
@@ -12,14 +12,14 @@ from brms.models.scenario import ScenarioBuilder
 @pytest.fixture
 def scenario_builder() -> ScenarioBuilder:
     """Fixture to create a ScenarioBuilder with a specific date."""
-    date = datetime(2023, 1, 1)  # noqa: DTZ001
+    date = datetime.date(2023, 1, 1)
     return ScenarioBuilder(date)
 
 
 def test_initialization(scenario_builder: ScenarioBuilder) -> None:
     """Test the initialization of the ScenarioBuilder."""
     scenario = scenario_builder.build()
-    assert scenario.date == datetime(2023, 1, 1)  # noqa: DTZ001
+    assert scenario.date == datetime.date(2023, 1, 1)
     assert scenario.data == {}
 
 
