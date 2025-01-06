@@ -10,11 +10,16 @@ from brms.models.scenario import Scenario
 from brms.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
+    from brms.instruments.common_equity import CommonEquity
     from brms.instruments.fixed_rate_bond import FixedRateBond
 
 
 class ValuationVisitor(ABC):
     """Abstract base class for valuation visitors."""
+
+    def value_common_equity(self, instrument: "CommonEquity", scenario: Scenario) -> float:
+        """Value common equity given a scenario."""
+        return instrument.value
 
     @abstractmethod
     def value_fixed_rate_bond(self, instrument: "FixedRateBond", scenario: Scenario) -> float:
