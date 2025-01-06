@@ -2,11 +2,13 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from brms.instruments.valuation import ValuationVisitor
-from brms.models.bank import BookType
 from brms.models.scenario import Scenario
+
+if TYPE_CHECKING:
+    from brms.models.bank import BookType
 
 
 class Instrument(ABC):
@@ -27,12 +29,12 @@ class Instrument(ABC):
         self._parent = parent
 
     @property
-    def book_type(self) -> BookType | None:
+    def book_type(self) -> Optional["BookType"]:
         """Get the book type of the instrument."""
         return self._book_type
 
     @book_type.setter
-    def book_type(self, book_type: BookType) -> None:
+    def book_type(self, book_type: "BookType") -> None:
         self._book_type = book_type
 
     def is_composite(self) -> bool:
