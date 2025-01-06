@@ -12,15 +12,7 @@ class CommonEquity(Instrument):
         """Initialize a CommonEquity instance."""
         super().__init__(name, parent)
 
-    @property
-    def value(self) -> float:
-        """Get the equity value."""
-        return self._value
-
-    @value.setter
-    def value(self, value: float) -> None:
-        self._value = value
-
     def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
         """Accept a valuation visitor to calculate the instrument's value."""
-        return visitor.value_common_equity(self, scenario)
+        self.value = visitor.value_common_equity(self, scenario)
+        return self.value

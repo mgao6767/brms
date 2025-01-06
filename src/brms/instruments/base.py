@@ -18,6 +18,7 @@ class Instrument(ABC):
         """Initialize a financial instrument."""
         self.name = name
         self._parent = parent
+        self._value: float = 0.0
 
     @property
     def parent(self) -> Optional["Instrument"]:
@@ -36,6 +37,15 @@ class Instrument(ABC):
     @book_type.setter
     def book_type(self, book_type: "BookType") -> None:
         self._book_type = book_type
+
+    @property
+    def value(self) -> float:
+        """Get the instrument's value."""
+        return self._value
+
+    @value.setter
+    def value(self, value: float) -> None:
+        self._value = value
 
     def is_composite(self) -> bool:
         """Check if the instrument is composite."""
@@ -72,7 +82,8 @@ class CompositeInstrument(Instrument):
 
     def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
         """Accept a valuation visitor to calculate the composite instrument's value."""
-        return sum(instrument.accept(visitor, scenario) for instrument in self._instruments)
+        self.value = sum(instrument.accept(visitor, scenario) for instrument in self._instruments)
+        return self.value
 
     def __iter__(self) -> Iterator[Instrument]:
         """Return an iterator over the instruments in the composite."""
