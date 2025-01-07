@@ -111,7 +111,7 @@ class StandardisedApproach(RWAApproach):
     def _compute_covered_bonds_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for covered bonds exposures.
 
-        For covered bonds with issue-specific ratings, the risk weight is determined in Table 8. 
+        For covered bonds with issue-specific ratings, the risk weight is determined in Table 8.
         For unrated covered bonds, the risk weight is inferred from the issuer's ECRA or SCRA risk weight in Table 9.
 
         TODO: Address unrated covered bonds.
@@ -172,9 +172,9 @@ class RiskWeightTable:
     _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {}
 
     @classmethod
-    def get_risk_weight(cls, instrument: Instrument) -> float:
-        """Get the risk weight for a given issuer."""
-        rating = instrument.issuer.credit_rating
+    def get_risk_weight(cls, instrument: Instrument, use_issuer_rating: bool = True) -> float:
+        """Get the risk weight."""
+        rating = instrument.issuer.credit_rating if use_issuer_rating else instrument.credit_rating
         for rating_range, risk_weight in cls._risk_weight_table.items():
             if rating_range[0] >= rating >= rating_range[1]:
                 return risk_weight
@@ -266,9 +266,9 @@ class RiskWeightTableForMDBExposures(RiskWeightTable):
     ]
 
     @classmethod
-    def get_risk_weight(cls, instrument: Instrument) -> float:
+    def get_risk_weight(cls, instrument: Instrument, use_issuer_rating: bool = True) -> float:
         """Get the risk weight for a given issuer."""
-        risk_weight = super().get_risk_weight(instrument)
+        risk_weight = super().get_risk_weight(instrument, use_issuer_rating)
         if instrument.issuer.name in cls._mdb_with_zero_risk_weight:
             risk_weight = 0
         return risk_weight
@@ -317,3 +317,9 @@ class RiskWeightTableForRatedCoveredBondExposures(RiskWeightTable):
         (CreditRating.BB_PLUS, CreditRating.B_MINUS): 0.5,
         (CreditRating.B_PLUS, CreditRating.D): 1.0,
     }
+
+    @classmethod
+    def get_risk_weight(cls, instrument: Instrument, use_issuer_rating: bool = False) -> float:
+        """Get the risk weight based on the instrument's credit rating."""
+        risk_weight = super().get_risk_weight(instrument, use_issuer_rating)
+        return risk_weight
