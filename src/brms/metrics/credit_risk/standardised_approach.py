@@ -39,7 +39,9 @@ class StandardisedApproach(RWAApproach):
         """Compute the RWA for sovereign exposures."""
         total_rwa = 0.0
         for instrument in bank.banking_book_assets():
-            rating = instrument.credit_rating
+            if not instrument.issuer.is_sovereign():
+                continue
+            rating = instrument.issuer.credit_rating
             # Risk-weighting based on credit ratings
             risk_weight = RiskWeightTableForSovereignExposures.get_risk_weight(rating)
             total_rwa += instrument.value * risk_weight
@@ -48,7 +50,16 @@ class StandardisedApproach(RWAApproach):
 
     def _compute_PSE_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for PSE exposures."""
-        raise NotImplementedError
+        total_rwa = 0.0
+        for instrument in bank.banking_book_assets():
+            if not instrument.issuer.is_PSE():
+                continue
+            rating = instrument.issuer.credit_rating
+            # Risk-weighting based on credit ratings
+            risk_weight = RiskWeightTableForPSEBasedOnExternalRatingOfPSE.get_risk_weight(rating)
+            total_rwa += instrument.value * risk_weight
+            # TODO: An alternative to use the external ratings of sovereign, see CRE20.11.
+        return total_rwa
 
     def _compute_MDB_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for MDB exposures."""
@@ -107,20 +118,10 @@ class StandardisedApproach(RWAApproach):
         raise NotImplementedError
 
 
-class RiskWeightTableForSovereignExposures:
-    """Class to represent the risk weight table for sovereigns and central banks.
+class RiskWeightTable:
+    """Base class for risk weight tables."""
 
-    This is Table 1 of CRE20.7.
-    """
-
-    _risk_weight_table: ClassVar[dict] = {
-        (CreditRating.AAA, CreditRating.AA_MINUS): 0.0,  # AAA to AA-: 0% risk weight
-        (CreditRating.A_PLUS, CreditRating.A_MINUS): 0.2,  # A+ to A-: 20% risk weight
-        (CreditRating.BBB_PLUS, CreditRating.BBB_MINUS): 0.5,  # BBB+ to BBB-: 50% risk weight
-        (CreditRating.BB_PLUS, CreditRating.B_MINUS): 1.0,  # BB+ to B-: 100% risk weight
-        (CreditRating.B_PLUS, CreditRating.D): 1.5,  # B+ to D: 150% risk weight
-        (CreditRating.UNRATED, CreditRating.UNRATED): 1.0,  # Unrated: 100% risk weight
-    }
+    _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {}
 
     @classmethod
     def get_risk_weight(cls, rating: CreditRating) -> float:
@@ -130,3 +131,51 @@ class RiskWeightTableForSovereignExposures:
                 return risk_weight
         error_message = f"Invalid rating: {rating}"
         raise ValueError(error_message)
+
+
+class RiskWeightTableForSovereignExposures(RiskWeightTable):
+    """Class to represent the risk weight table for sovereigns and central banks.
+
+    This is Table 1 of CRE20.7.
+    """
+
+    _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {
+        (CreditRating.AAA, CreditRating.AA_MINUS): 0.0,  # AAA to AA-: 0% risk weight
+        (CreditRating.A_PLUS, CreditRating.A_MINUS): 0.2,  # A+ to A-: 20% risk weight
+        (CreditRating.BBB_PLUS, CreditRating.BBB_MINUS): 0.5,  # BBB+ to BBB-: 50% risk weight
+        (CreditRating.BB_PLUS, CreditRating.B_MINUS): 1.0,  # BB+ to B-: 100% risk weight
+        (CreditRating.B_PLUS, CreditRating.D): 1.5,  # B+ to D: 150% risk weight
+        (CreditRating.UNRATED, CreditRating.UNRATED): 1.0,  # Unrated: 100% risk weight
+    }
+
+
+class RiskWeightTableForPSEBasedOnExternalRatingOfSovereign(RiskWeightTable):
+    """Class to represent the risk weight table for domestic PSEs based on external ratings of sovereign.
+
+    This is Table 3 of CRE20.11.
+    """
+
+    _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {
+        (CreditRating.AAA, CreditRating.AA_MINUS): 0.2,
+        (CreditRating.A_PLUS, CreditRating.A_MINUS): 0.5,
+        (CreditRating.BBB_PLUS, CreditRating.BBB_MINUS): 1.0,
+        (CreditRating.BB_PLUS, CreditRating.B_MINUS): 1.0,
+        (CreditRating.B_PLUS, CreditRating.D): 1.5,
+        (CreditRating.UNRATED, CreditRating.UNRATED): 1.0,
+    }
+
+
+class RiskWeightTableForPSEBasedOnExternalRatingOfPSE(RiskWeightTable):
+    """Class to represent the risk weight table for domestic PSEs based on external ratings of PSE.
+
+    This is Table 4 of CRE20.11.
+    """
+
+    _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {
+        (CreditRating.AAA, CreditRating.AA_MINUS): 0.2,
+        (CreditRating.A_PLUS, CreditRating.A_MINUS): 0.5,
+        (CreditRating.BBB_PLUS, CreditRating.BBB_MINUS): 0.5,
+        (CreditRating.BB_PLUS, CreditRating.B_MINUS): 1.0,
+        (CreditRating.B_PLUS, CreditRating.D): 1.5,
+        (CreditRating.UNRATED, CreditRating.UNRATED): 0.5,
+    }
