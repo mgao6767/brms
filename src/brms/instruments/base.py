@@ -199,6 +199,7 @@ class IssuerType(Enum):
     MDB = "Multilateral Development Bank"
     BANK = "Bank"
     CORPORATE = "Corporate"
+    SECURITIES_FIRM = "Securities Firm"
     FINANCIAL_INSTITUTION = "Financial Institution"
     INSURANCE_COMPANY = "Insurance Company"
     MUTUAL_FUND = "Mutual Fund"
@@ -242,3 +243,7 @@ class Issuer:
     def is_bank(self) -> bool:
         """Check if the issuer is depositary institution or bank."""
         return self.issuer_type == IssuerType.BANK
+
+    def is_securities_firm(self) -> bool:
+        """Check if the issuer is securities firm."""
+        return self.issuer_type == IssuerType.SECURITIES_FIRM

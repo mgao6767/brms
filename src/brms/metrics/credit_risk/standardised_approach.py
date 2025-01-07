@@ -3,7 +3,7 @@
 To calculate credit RWA for banking book exposures.
 """
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import ClassVar
 
 from brms.instruments.base import CreditRating, Instrument
@@ -70,7 +70,12 @@ class StandardisedApproach(RWAApproach):
             (instrument for instrument in bank.banking_book_assets() if instrument.issuer.is_MDB()),
         )
 
-    def _compute_bank_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
+    def _compute_bank_exposures(
+        self,
+        bank: Bank,
+        scenario_manager: ScenarioManager,
+        instrument_filter: Callable | None = None,
+    ) -> float:
         """Compute the RWA for bank exposures.
 
         Bank exposures will be risk-weighted based on the following hierarchy:
@@ -79,6 +84,9 @@ class StandardisedApproach(RWAApproach):
 
         When the bank is not rated (by an eligible credit assessment institution (ECAI)), SCRA applies.
         """
+
+        def issuer_is_bank(instrument: Instrument) -> bool:
+            return instrument.issuer.is_bank()
 
         def instrument_is_short_term(instrument: Instrument) -> bool:
             # Exposures to banks with an original maturity of three months or less,
@@ -90,10 +98,12 @@ class StandardisedApproach(RWAApproach):
             # Currently we assume no short-term exposure. The resulting RWA will be more conservative.
             return False
 
+        _filter = instrument_filter or issuer_is_bank
+
         total_rwa = 0.0
         for instrument in bank.banking_book_assets():
             issuer = instrument.issuer
-            if not issuer.is_bank():
+            if not _filter(instrument):
                 continue
             if issuer.credit_rating > CreditRating.UNRATED:
                 # Apply ECRA
@@ -123,8 +133,19 @@ class StandardisedApproach(RWAApproach):
         )
 
     def _compute_securities_firms_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
-        """Compute the RWA for securities firms and other financial institutions exposures."""
-        raise NotImplementedError
+        """Compute the RWA for securities firms and other financial institutions exposures.
+
+        Exposures to securities firms and other financial institutions will be treated as exposures to banks
+        provided that these firms are subject to prudential standards and a level of supervision equivalent to
+        those applied to banks (including capital and liquidity requirements).
+
+        Exposures to all other securities firms and financial institutions will be treated as exposures to corporates.
+        """
+
+        def issuer_is_securities_firm(instrument: Instrument) -> bool:
+            return instrument.issuer.is_securities_firm()
+
+        return self._compute_bank_exposures(bank, scenario_manager, instrument_filter=issuer_is_securities_firm)
 
     def _compute_corporate_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for corporate exposures."""
