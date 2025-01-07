@@ -39,7 +39,7 @@ class StandardisedApproach(RWAApproach):
     def _compute_rwa(self, risk_table: type["RiskWeightTable"], instruments: Iterable[Instrument]) -> float:
         total_rwa = 0.0
         for instrument in instruments:
-            total_rwa += risk_table.get_risk_weight(instrument.issuer) * instrument.value
+            total_rwa += risk_table.get_risk_weight(instrument) * instrument.value
         return total_rwa
 
     def _compute_sovereign_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
@@ -96,10 +96,11 @@ class StandardisedApproach(RWAApproach):
                 continue
             if issuer.credit_rating > CreditRating.UNRATED:
                 # Apply ECRA
-                if not instrument_is_short_term(instrument):
-                    total_rwa += instrument.value * RiskWeightTableForExposuresToBanks.get_risk_weight(issuer)
+                if instrument_is_short_term(instrument):
+                    weight = RiskWeightTableForShortTermExposuresToBanks.get_risk_weight(instrument)
                 else:
-                    total_rwa += instrument.value * RiskWeightTableForShortTermExposuresToBanks.get_risk_weight(issuer)
+                    weight = RiskWeightTableForExposuresToBanks.get_risk_weight(instrument)
+                total_rwa += instrument.value * weight
             else:
                 # Apply SCRA
                 raise NotImplementedError
@@ -161,9 +162,9 @@ class RiskWeightTable:
     _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {}
 
     @classmethod
-    def get_risk_weight(cls, issuer: Issuer) -> float:
+    def get_risk_weight(cls, instrument: Instrument) -> float:
         """Get the risk weight for a given issuer."""
-        rating = issuer.credit_rating
+        rating = instrument.issuer.credit_rating
         for rating_range, risk_weight in cls._risk_weight_table.items():
             if rating_range[0] >= rating >= rating_range[1]:
                 return risk_weight
@@ -255,10 +256,10 @@ class RiskWeightTableForMDBExposures(RiskWeightTable):
     ]
 
     @classmethod
-    def get_risk_weight(cls, issuer: Issuer) -> float:
+    def get_risk_weight(cls, instrument: Instrument) -> float:
         """Get the risk weight for a given issuer."""
-        risk_weight = super().get_risk_weight(issuer)
-        if issuer.name in cls._mdb_with_zero_risk_weight:
+        risk_weight = super().get_risk_weight(instrument)
+        if instrument.issuer.name in cls._mdb_with_zero_risk_weight:
             risk_weight = 0
         return risk_weight
 
