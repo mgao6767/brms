@@ -18,6 +18,7 @@ class Instrument(ABC):
         self.name = name
         self._parent = parent
         self._value: float = 0.0
+        self._credit_rating = CreditRating.UNRATED
 
     @property
     def parent(self) -> Optional["Instrument"]:
@@ -45,6 +46,15 @@ class Instrument(ABC):
     @value.setter
     def value(self, value: float) -> None:
         self._value = value
+
+    @property
+    def credit_rating(self) -> "CreditRating":
+        """Get the instrument's credit rating."""
+        return self._credit_rating
+
+    @credit_rating.setter
+    def credit_rating(self, credit_rating: "CreditRating") -> None:
+        self._credit_rating = credit_rating
 
     def is_composite(self) -> bool:
         """Check if the instrument is composite."""
