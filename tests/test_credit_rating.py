@@ -13,6 +13,9 @@ def test_credit_rating_comparison():
     assert CreditRating.BBB_MINUS >= CreditRating.BBB_MINUS
     assert CreditRating.CCC < CreditRating.BBB
     assert CreditRating.D < CreditRating.CCC
+    assert CreditRating.AAA >= CreditRating.AAA >= CreditRating.AA_PLUS
+    assert CreditRating.AAA >= CreditRating.AA_PLUS > CreditRating.A_PLUS
+    assert CreditRating.BBB >= CreditRating.BBB >= CreditRating.BBB
 
 
 def test_credit_rating_investment_grade():
