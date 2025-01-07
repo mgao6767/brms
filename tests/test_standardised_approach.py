@@ -1,8 +1,10 @@
 import pytest
 
 from brms.instruments.base import CreditRating, Instrument, Issuer, IssuerType
+from brms.instruments.covered_bond import CoveredBond
 from brms.metrics.credit_risk.standardised_approach import (
     RiskWeightTableForMDBExposures,
+    RiskWeightTableForRatedCoveredBondExposures,
     RiskWeightTableForSovereignExposures,
     RiskWeightTableForPSEBasedOnExternalRatingOfPSE,
     StandardisedApproach,
@@ -156,6 +158,31 @@ def test_compute_mdb_exposures():
     # Instrument4 is not issued by MDB. It does not affect RWA for PSE exposures.
     bank.assets.add(instrument4)
     rwa = standardised_approach._compute_MDB_exposures(bank, scenario_manager)
+    assert rwa == expected_rwa
+
+
+def test_compute_covered_bond_exposures():
+    standardised_approach = StandardisedApproach()
+    bank = Bank()
+    scenario_manager = ScenarioManager()
+    risk_table = RiskWeightTableForRatedCoveredBondExposures
+
+    instrument1 = CoveredBond("Covered Bond 1", book_type=BookType.BANKING_BOOK, credit_rating=CreditRating.AAA)
+    instrument2 = CoveredBond("Covered Bond 2", book_type=BookType.BANKING_BOOK, credit_rating=CreditRating.A_PLUS)
+
+    instrument1.issuer = Issuer("Bank 1", IssuerType.BANK)
+    instrument2.issuer = Issuer("Bank 2", IssuerType.BANK)
+
+    bank.assets.add(instrument1)
+    bank.assets.add(instrument2)
+
+    rwa = standardised_approach._compute_covered_bonds_exposures(bank, scenario_manager)
+    expected_rwa = sum(
+        [
+            instrument1.value * risk_table.get_risk_weight(instrument1),
+            instrument2.value * risk_table.get_risk_weight(instrument2),
+        ],
+    )
     assert rwa == expected_rwa
 
 
