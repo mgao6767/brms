@@ -216,5 +216,10 @@ def test_compute_corporate_exposures():
     assert rwa == expected_rwa
 
 
+@pytest.mark.skip("Not yet implemented")
+def test_compute_retail_exposures():
+    pass
+
+
 if __name__ == "__main__":
     pytest.main()

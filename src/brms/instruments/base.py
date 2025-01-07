@@ -256,3 +256,7 @@ class Issuer:
     def is_SME(self) -> bool:
         """Check if the issuer is SME corporate."""
         return self.is_corporate() and (IssuerType.SME in self.issuer_type)
+
+    def is_individual(self) -> bool:
+        """Check if the issuer is individual."""
+        return self.issuer_type == IssuerType.INDIVIDUAL

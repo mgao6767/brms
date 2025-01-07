@@ -169,8 +169,56 @@ class StandardisedApproach(RWAApproach):
         raise NotImplementedError
 
     def _compute_retail_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
-        """Compute the RWA for retail exposures."""
-        raise NotImplementedError
+        """Compute the RWA for retail exposures.
+
+        The risk weights that apply to exposures in the retail asset class are as follows:
+        1. Regulatory retail exposures that do not arise from exposures to transactors (as defined in CRE20.66)
+            will be risk weighted at 75%.
+        2. Regulatory retail exposures that arise from exposures to transactors (as defined in CRE20.66)
+            will be risk weighted at 45%.
+        3. Other retail exposures will be risk weighted at 100%.
+
+        Retail exposure class includes:
+        1. exposures to an individual person or persons; and
+        2. exposures to SMEs (as defined in CRE20.47) that meet the “regulatory retail” criteria set out in
+            CRE20.65(1) to CRE20.65(3) below.
+
+        "Regulatory retail" exposures are defined as retail exposures that meet ALL of the criteria listed below:
+        1. Product criterion: the exposure takes the form of any of the following:
+            - revolving credits and lines of credit (including credit cards, charge cards and overdrafts),
+            - personal term loans and leases (eg instalment loans, auto loans and leases, student and educational loans,
+                personal finance) and small business facilities and commitments.
+            - Mortgage loans, derivatives and other securities are specifically **excluded** from this category.
+        2. Low value of individual exposures: the maximum aggregated exposure to one counterparty cannot exceed an
+            absolute threshold of €1 million.
+        3. Granularity criterion: ...
+        """
+
+        def _filter(instrument: Instrument) -> bool:
+            """Get qualifying instruments."""
+            return instrument.issuer.is_individual() or instrument.issuer.is_SME()
+
+        def is_regulatory_retail(instrument: Instrument, bank: Bank) -> bool:
+            """TODO: Check if the exposure qualifies regulatory retail."""
+            return False
+
+        def is_transactor(instrument: Instrument, bank: Bank) -> bool:
+            """TODO: Check if the obligator qualifies transactor."""
+            return False
+
+        def _get_risk_weight(instrument: Instrument) -> float:
+            if is_regulatory_retail(instrument, bank):
+                if not is_transactor(instrument, bank):
+                    return 0.75
+                return 0.45
+            return 1.0
+
+        total_rwa = 0.0
+        for instrument in bank.banking_book_assets():
+            if not _filter(instrument):
+                continue
+            total_rwa += instrument.value * _get_risk_weight(instrument)
+        return total_rwa
 
     def _compute_real_estate_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for real estate exposures."""
