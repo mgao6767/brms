@@ -70,8 +70,41 @@ class StandardisedApproach(RWAApproach):
         )
 
     def _compute_bank_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
-        """Compute the RWA for bank exposures."""
-        raise NotImplementedError
+        """Compute the RWA for bank exposures.
+
+        Bank exposures will be risk-weighted based on the following hierarchy:
+        1. External Credit Risk Assessment Approach (ECRA)
+        2. Standardised Credit Risk Assessment Approach (SCRA)
+
+        When the bank is not rated (by an eligible credit assessment institution (ECAI)), SCRA applies.
+        """
+
+        def instrument_is_short_term(instrument: Instrument) -> bool:
+            # Exposures to banks with an original maturity of three months or less,
+            # as well as exposures to banks that arise from the movement of goods across national borders
+            # with an original maturity of six months or less can be assigned a risk weight that correspond to
+            # the risk weights for short term exposures in Table 6.
+            #
+            # TODO: Check if instrument is short term.
+            # Currently we assume no short-term exposure. The resulting RWA will be more conservative.
+            return False
+
+        total_rwa = 0.0
+        for instrument in bank.banking_book_assets():
+            issuer = instrument.issuer
+            if not issuer.is_bank():
+                continue
+            if issuer.credit_rating > CreditRating.UNRATED:
+                # Apply ECRA
+                if not instrument_is_short_term(instrument):
+                    total_rwa += instrument.value * RiskWeightTableForExposuresToBanks.get_risk_weight(issuer)
+                else:
+                    total_rwa += instrument.value * RiskWeightTableForShortTermExposuresToBanks.get_risk_weight(issuer)
+            else:
+                # Apply SCRA
+                raise NotImplementedError
+
+        return total_rwa
 
     def _compute_covered_bonds_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for covered bonds exposures."""
@@ -228,3 +261,33 @@ class RiskWeightTableForMDBExposures(RiskWeightTable):
         if issuer.name in cls._mdb_with_zero_risk_weight:
             risk_weight = 0
         return risk_weight
+
+
+class RiskWeightTableForExposuresToBanks(RiskWeightTable):
+    """Class to represent the risk weight table for exposures to banks.
+
+    This is first panel of Table 6 of CRE20.18.
+    """
+
+    _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {
+        (CreditRating.AAA, CreditRating.AA_MINUS): 0.2,
+        (CreditRating.A_PLUS, CreditRating.A_MINUS): 0.3,
+        (CreditRating.BBB_PLUS, CreditRating.BBB_MINUS): 0.5,
+        (CreditRating.BB_PLUS, CreditRating.B_MINUS): 1.0,
+        (CreditRating.B_PLUS, CreditRating.D): 1.5,
+    }
+
+
+class RiskWeightTableForShortTermExposuresToBanks(RiskWeightTable):
+    """Class to represent the risk weight table for short-term exposures to banks.
+
+    This is second panel of Table 6 of CRE20.18.
+    """
+
+    _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {
+        (CreditRating.AAA, CreditRating.AA_MINUS): 0.2,
+        (CreditRating.A_PLUS, CreditRating.A_MINUS): 0.2,
+        (CreditRating.BBB_PLUS, CreditRating.BBB_MINUS): 0.2,
+        (CreditRating.BB_PLUS, CreditRating.B_MINUS): 0.5,
+        (CreditRating.B_PLUS, CreditRating.D): 1.5,
+    }
