@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
+from enum import Enum
 from typing import Optional
 
 from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor, ValuationVisitor
@@ -97,3 +98,59 @@ class CompositeInstrument(Instrument):
     def __iter__(self) -> Iterator[Instrument]:
         """Return an iterator over the instruments in the composite."""
         return iter(self._instruments)
+
+
+class CreditRating(Enum):
+    """Enumeration of S&P credit ratings."""
+
+    AAA = 1
+    AA_PLUS = 2
+    AA = 3
+    AA_MINUS = 4
+    A_PLUS = 5
+    A = 6
+    A_MINUS = 7
+    BBB_PLUS = 8
+    BBB = 9
+    BBB_MINUS = 10
+    BB_PLUS = 11
+    BB = 12
+    BB_MINUS = 13
+    B_PLUS = 14
+    B = 15
+    B_MINUS = 16
+    CCC_PLUS = 17
+    CCC = 18
+    CCC_MINUS = 19
+    CC = 20
+    C = 21
+    D = 22
+    UNRATED = 23
+
+    def __lt__(self, other: "CreditRating") -> bool:
+        """Compare if this credit rating is worse than another."""
+        if isinstance(other, CreditRating):
+            return self.value > other.value
+        return NotImplemented
+
+    def __le__(self, other: "CreditRating") -> bool:
+        """Compare if this credit rating is worse than or equal to another."""
+        if isinstance(other, CreditRating):
+            return self.value >= other.value
+        return NotImplemented
+
+    def __gt__(self, other: "CreditRating") -> bool:
+        """Compare if this credit rating is better than another."""
+        if isinstance(other, CreditRating):
+            return self.value < other.value
+        return NotImplemented
+
+    def __ge__(self, other: "CreditRating") -> bool:
+        """Compare if this credit rating is better than or equal to another."""
+        if isinstance(other, CreditRating):
+            return self.value <= other.value
+        return NotImplemented
+
+    def is_investment_grade(self) -> bool:
+        """Check if the credit rating is investment grade."""
+        return self >= CreditRating.BBB_MINUS
