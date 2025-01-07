@@ -196,6 +196,7 @@ class IssuerType(Enum):
 
     SOVEREIGN = "Sovereign"
     PSE = "Public Sector Entity"
+    MDB = "Multilateral Development Bank"
     CORPORATE = "Corporate"
     FINANCIAL_INSTITUTION = "Financial Institution"
     INSURANCE_COMPANY = "Insurance Company"
@@ -232,3 +233,6 @@ class Issuer:
     def is_PSE(self) -> bool:
         """Check if the issuer is public sector entity (PSE)."""
         return self.issuer_type == IssuerType.PSE
+
+    def is_MDB(self) -> bool:
+        return self.issuer_type == IssuerType.MDB

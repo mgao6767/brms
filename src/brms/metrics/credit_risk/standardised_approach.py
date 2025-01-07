@@ -3,9 +3,10 @@
 To calculate credit RWA for banking book exposures.
 """
 
+from collections.abc import Iterable
 from typing import ClassVar
 
-from brms.instruments.base import CreditRating
+from brms.instruments.base import CreditRating, Instrument, Issuer
 from brms.metrics.base import RWAApproach
 from brms.models.bank import Bank
 from brms.models.scenario import ScenarioManager
@@ -35,35 +36,38 @@ class StandardisedApproach(RWAApproach):
         rwa += self._compute_other_assets_exposures(bank, scenario_manager)
         return rwa
 
-    def _compute_sovereign_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
-        """Compute the RWA for sovereign exposures."""
+    def _compute_rwa(self, risk_table: type["RiskWeightTable"], instruments: Iterable[Instrument]) -> float:
         total_rwa = 0.0
-        for instrument in bank.banking_book_assets():
-            if not instrument.issuer.is_sovereign():
-                continue
-            rating = instrument.issuer.credit_rating
-            # Risk-weighting based on credit ratings
-            risk_weight = RiskWeightTableForSovereignExposures.get_risk_weight(rating)
-            total_rwa += instrument.value * risk_weight
-            # TODO: An alternative to use country risk scores by Export Credit Agencies (ECAs), see CRE20.9.
+        for instrument in instruments:
+            total_rwa += risk_table.get_risk_weight(instrument.issuer) * instrument.value
         return total_rwa
 
+    def _compute_sovereign_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
+        """Compute the RWA for sovereign exposures.
+
+        TODO: An alternative to use country risk scores by Export Credit Agencies (ECAs), see CRE20.9.
+        """
+        return self._compute_rwa(
+            RiskWeightTableForSovereignExposures,
+            (instrument for instrument in bank.banking_book_assets() if instrument.issuer.is_sovereign()),
+        )
+
     def _compute_PSE_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
-        """Compute the RWA for PSE exposures."""
-        total_rwa = 0.0
-        for instrument in bank.banking_book_assets():
-            if not instrument.issuer.is_PSE():
-                continue
-            rating = instrument.issuer.credit_rating
-            # Risk-weighting based on credit ratings
-            risk_weight = RiskWeightTableForPSEBasedOnExternalRatingOfPSE.get_risk_weight(rating)
-            total_rwa += instrument.value * risk_weight
-            # TODO: An alternative to use the external ratings of sovereign, see CRE20.11.
-        return total_rwa
+        """Compute the RWA for PSE exposures.
+
+        TODO: An alternative to use the external ratings of sovereign, see CRE20.11.
+        """
+        return self._compute_rwa(
+            RiskWeightTableForPSEBasedOnExternalRatingOfPSE,
+            (instrument for instrument in bank.banking_book_assets() if instrument.issuer.is_PSE()),
+        )
 
     def _compute_MDB_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for MDB exposures."""
-        raise NotImplementedError
+        return self._compute_rwa(
+            RiskWeightTableForMDBExposures,
+            (instrument for instrument in bank.banking_book_assets() if instrument.issuer.is_MDB()),
+        )
 
     def _compute_bank_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for bank exposures."""
@@ -124,8 +128,9 @@ class RiskWeightTable:
     _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {}
 
     @classmethod
-    def get_risk_weight(cls, rating: CreditRating) -> float:
-        """Get the risk weight for a given credit rating."""
+    def get_risk_weight(cls, issuer: Issuer) -> float:
+        """Get the risk weight for a given issuer."""
+        rating = issuer.credit_rating
         for rating_range, risk_weight in cls._risk_weight_table.items():
             if rating_range[0] >= rating >= rating_range[1]:
                 return risk_weight
@@ -179,3 +184,47 @@ class RiskWeightTableForPSEBasedOnExternalRatingOfPSE(RiskWeightTable):
         (CreditRating.B_PLUS, CreditRating.D): 1.5,
         (CreditRating.UNRATED, CreditRating.UNRATED): 0.5,
     }
+
+
+class RiskWeightTableForMDBExposures(RiskWeightTable):
+    """Class to represent the risk weight table for multilateral development banks (MDBs).
+
+    This is Table 5 of CRE20.15.
+    MDBs with a zero risk weight are listed in footnote 8 of CRE20.14.
+    """
+
+    _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {
+        (CreditRating.AAA, CreditRating.AA_MINUS): 0.2,
+        (CreditRating.A_PLUS, CreditRating.A_MINUS): 0.3,
+        (CreditRating.BBB_PLUS, CreditRating.BBB_MINUS): 0.5,
+        (CreditRating.BB_PLUS, CreditRating.B_MINUS): 1.0,
+        (CreditRating.B_PLUS, CreditRating.D): 1.5,
+        (CreditRating.UNRATED, CreditRating.UNRATED): 0.5,
+    }
+
+    _mdb_with_zero_risk_weight: ClassVar[list[str]] = [
+        "International Bank for Reconstruction and Development",
+        "International Finance Corporation",
+        "Multilateral Investment Guarantee Agency",
+        "International Development Association",
+        "Asian Development Bank",
+        "African Development Bank",
+        "European Bank for Reconstruction and Development",
+        "Inter-American Development Bank",
+        "European Investment Bank",
+        "European Investment Fund",
+        "Nordic Investment Bank",
+        "Caribbean Development Bank",
+        "Islamic Development Bank",
+        "Council of Europe Development Bank",
+        "International Finance Facility for Immunization",
+        "Asian Infrastructure Investment Bank",
+    ]
+
+    @classmethod
+    def get_risk_weight(cls, issuer: Issuer) -> float:
+        """Get the risk weight for a given issuer."""
+        risk_weight = super().get_risk_weight(issuer)
+        if issuer.name in cls._mdb_with_zero_risk_weight:
+            risk_weight = 0
+        return risk_weight
