@@ -16,14 +16,6 @@ class MockInstrument(Instrument):
     def accept(self, visitor, scenario):
         pass
 
-    @property
-    def book_type(self):
-        return self._book_type
-
-    @book_type.setter
-    def book_type(self, book_type):
-        self._book_type = book_type
-
 
 class MockInstrumentOnAssets(MockInstrument):
     def accept(self, visitor, scenario):
