@@ -6,7 +6,8 @@ To calculate credit RWA for banking book exposures.
 from collections.abc import Iterable
 from typing import ClassVar
 
-from brms.instruments.base import CreditRating, Instrument, Issuer
+from brms.instruments.base import CreditRating, Instrument
+from brms.instruments.covered_bond import CoveredBond
 from brms.metrics.base import RWAApproach
 from brms.models.bank import Bank
 from brms.models.scenario import ScenarioManager
@@ -108,8 +109,17 @@ class StandardisedApproach(RWAApproach):
         return total_rwa
 
     def _compute_covered_bonds_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
-        """Compute the RWA for covered bonds exposures."""
-        raise NotImplementedError
+        """Compute the RWA for covered bonds exposures.
+
+        For covered bonds with issue-specific ratings, the risk weight is determined in Table 8. 
+        For unrated covered bonds, the risk weight is inferred from the issuer's ECRA or SCRA risk weight in Table 9.
+
+        TODO: Address unrated covered bonds.
+        """
+        return self._compute_rwa(
+            RiskWeightTableForRatedCoveredBondExposures,
+            (instrument for instrument in bank.banking_book_assets() if isinstance(instrument, CoveredBond)),
+        )
 
     def _compute_securities_firms_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for securities firms and other financial institutions exposures."""
@@ -291,4 +301,19 @@ class RiskWeightTableForShortTermExposuresToBanks(RiskWeightTable):
         (CreditRating.BBB_PLUS, CreditRating.BBB_MINUS): 0.2,
         (CreditRating.BB_PLUS, CreditRating.B_MINUS): 0.5,
         (CreditRating.B_PLUS, CreditRating.D): 1.5,
+    }
+
+
+class RiskWeightTableForRatedCoveredBondExposures(RiskWeightTable):
+    """Class to represent the risk weight table for rated covered bond exposures.
+
+    This is Table 8 of CRE20.38.
+    """
+
+    _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {
+        (CreditRating.AAA, CreditRating.AA_MINUS): 0.1,
+        (CreditRating.A_PLUS, CreditRating.A_MINUS): 0.2,
+        (CreditRating.BBB_PLUS, CreditRating.BBB_MINUS): 0.2,
+        (CreditRating.BB_PLUS, CreditRating.B_MINUS): 0.5,
+        (CreditRating.B_PLUS, CreditRating.D): 1.0,
     }

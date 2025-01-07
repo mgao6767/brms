@@ -13,6 +13,9 @@ class MockValuationVisitor(ValuationVisitor):
     def value_fixed_rate_bond(self, instrument, scenario):
         return 100.0  # Mock value for testing
 
+    def value_covered_bond(self, instrument, scenario):
+        pass  # Not used
+
 
 @pytest.fixture
 def fixed_rate_bond():

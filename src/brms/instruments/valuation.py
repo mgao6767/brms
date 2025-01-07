@@ -11,6 +11,7 @@ from brms.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
     from brms.instruments.common_equity import CommonEquity
+    from brms.instruments.covered_bond import CoveredBond
     from brms.instruments.fixed_rate_bond import FixedRateBond
 
 
@@ -25,6 +26,9 @@ class ValuationVisitor(ABC):
     def value_fixed_rate_bond(self, instrument: "FixedRateBond", scenario: Scenario) -> float:
         """Value a fixed rate bond given a scenario."""
 
+    @abstractmethod
+    def value_covered_bond(self, instrument: "CoveredBond", scenario: Scenario) -> float:
+        """Value a covered bond given a scenario."""
 
 class BankingBookValuationVisitor(ValuationVisitor):
     """A visitor for banking book valuation."""
@@ -34,6 +38,9 @@ class BankingBookValuationVisitor(ValuationVisitor):
         valuation_date = scenario.date
         return instrument.notional(valuation_date)
 
+    def value_covered_bond(self, instrument: "CoveredBond", scenario: Scenario) -> float:
+        """Value a covered bond given a scenario."""
+        raise NotImplementedError
 
 class TradingBookValuationVisitor(ValuationVisitor):
     """A visitor for trading book valuation."""
@@ -53,3 +60,7 @@ class TradingBookValuationVisitor(ValuationVisitor):
         ql.Settings.instance().evaluationDate = old_evaluation_date
 
         return npv
+
+    def value_covered_bond(self, instrument: "CoveredBond", scenario: Scenario) -> float:
+        """Value a covered bond given a scenario."""
+        raise NotImplementedError
