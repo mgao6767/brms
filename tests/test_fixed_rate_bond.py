@@ -19,6 +19,9 @@ class MockValuationVisitor(ValuationVisitor):
     def value_personal_loan(self, instrument, scenario):
         pass  # Not used
 
+    def value_credit_card(self, instrument, scenario):
+        pass  # Not used
+
 
 @pytest.fixture
 def fixed_rate_bond():
