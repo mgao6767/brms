@@ -9,11 +9,6 @@ from brms.models.scenario import ScenarioManager
 class RWAApproach(ABC):
     """Abstract base class for computing Risk-Weighted Assets (RWA)."""
 
-    def __init__(self) -> None:
-        """Initialize the RWAApproach with default values."""
-        self.bank: Bank | None = None
-        self.scenario_manager: ScenarioManager | None = None
-
     @abstractmethod
     def compute_rwa(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the Risk-Weighted Assets (RWA) for a given bank and scenario."""
