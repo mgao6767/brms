@@ -115,6 +115,7 @@ class StandardisedApproach(RWAApproach):
         For unrated covered bonds, the risk weight is inferred from the issuer's ECRA or SCRA risk weight in Table 9.
 
         TODO: Address unrated covered bonds.
+        TODO: Check if the covered bond is eligible based on CRE20.34 to CRE20.36.
         """
         return self._compute_rwa(
             RiskWeightTableForRatedCoveredBondExposures,
