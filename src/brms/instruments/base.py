@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from enum import Enum
+from enum import Enum, Flag, auto
 from typing import Optional
 
 from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor, ValuationVisitor
@@ -191,23 +191,24 @@ class CreditRating(Enum):
         return self >= CreditRating.BBB_MINUS
 
 
-class IssuerType(Enum):
+class IssuerType(Flag):
     """Enumeration of issuer types."""
 
-    SOVEREIGN = "Sovereign"
-    PSE = "Public Sector Entity"
-    MDB = "Multilateral Development Bank"
-    BANK = "Bank"
-    CORPORATE = "Corporate"
-    SECURITIES_FIRM = "Securities Firm"
-    FINANCIAL_INSTITUTION = "Financial Institution"
-    INSURANCE_COMPANY = "Insurance Company"
-    MUTUAL_FUND = "Mutual Fund"
-    HEDGE_FUND = "Hedge Fund"
-    SUPRANATIONAL = "Supranational"
-    MUNICIPAL = "Municipal"
-    INDIVIDUAL = "Individual"
-    UNSPECIFIED = "Unspecified"
+    SOVEREIGN = auto()
+    PSE = auto()
+    MDB = auto()
+    BANK = auto()
+    CORPORATE = auto()
+    SME = auto()
+    SECURITIES_FIRM = auto()
+    FINANCIAL_INSTITUTION = auto()
+    INSURANCE_COMPANY = auto()
+    MUTUAL_FUND = auto()
+    HEDGE_FUND = auto()
+    SUPRANATIONAL = auto()
+    MUNICIPAL = auto()
+    INDIVIDUAL = auto()
+    UNSPECIFIED = auto()
 
 
 class Issuer:
@@ -250,4 +251,8 @@ class Issuer:
 
     def is_corporate(self) -> bool:
         """Check if the issuer is corporate."""
-        return self.issuer_type == IssuerType.CORPORATE
+        return IssuerType.CORPORATE in self.issuer_type
+
+    def is_SME(self) -> bool:
+        """Check if the issuer is SME corporate."""
+        return self.is_corporate() and (IssuerType.SME in self.issuer_type)
