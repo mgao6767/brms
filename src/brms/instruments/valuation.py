@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from brms.instruments.common_equity import CommonEquity
     from brms.instruments.covered_bond import CoveredBond
     from brms.instruments.fixed_rate_bond import FixedRateBond
+    from brms.instruments.personal_loan import PersonalLoan
 
 
 class ValuationVisitor(ABC):
@@ -30,6 +31,11 @@ class ValuationVisitor(ABC):
     def value_covered_bond(self, instrument: "CoveredBond", scenario: Scenario) -> float:
         """Value a covered bond given a scenario."""
 
+    @abstractmethod
+    def value_personal_loan(self, instrument: "PersonalLoan", scenario: Scenario) -> float:
+        """Value a personal loan given a scenario."""
+
+
 class BankingBookValuationVisitor(ValuationVisitor):
     """A visitor for banking book valuation."""
 
@@ -41,6 +47,11 @@ class BankingBookValuationVisitor(ValuationVisitor):
     def value_covered_bond(self, instrument: "CoveredBond", scenario: Scenario) -> float:
         """Value a covered bond given a scenario."""
         raise NotImplementedError
+
+    def value_personal_loan(self, instrument: "PersonalLoan", scenario: Scenario) -> float:
+        """Value a personal loan given a scenario."""
+        raise NotImplementedError
+
 
 class TradingBookValuationVisitor(ValuationVisitor):
     """A visitor for trading book valuation."""
@@ -63,4 +74,8 @@ class TradingBookValuationVisitor(ValuationVisitor):
 
     def value_covered_bond(self, instrument: "CoveredBond", scenario: Scenario) -> float:
         """Value a covered bond given a scenario."""
+        raise NotImplementedError
+
+    def value_personal_loan(self, instrument: "PersonalLoan", scenario: Scenario) -> float:
+        """Value a personal loan given a scenario."""
         raise NotImplementedError
