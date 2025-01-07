@@ -148,8 +148,21 @@ class StandardisedApproach(RWAApproach):
         return self._compute_bank_exposures(bank, scenario_manager, instrument_filter=issuer_is_securities_firm)
 
     def _compute_corporate_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
-        """Compute the RWA for corporate exposures."""
-        raise NotImplementedError
+        """Compute the RWA for corporate exposures.
+
+        The corporate exposure class includes exposures to insurance companies and other financial corporates that
+        do not meet the definitions of exposures to banks, or securities firms and other financial institutions,
+        as determined in CRE20.16 and CRE20.40 respectively.
+        The corporate exposure class does not include exposures to individuals.
+        The corporate exposure class differentiates between the following subcategories:
+        1. General corporate exposures;
+        TODO 2. Specialised lending exposures, as defined in CRE20.48.
+        """
+        # TODO: Unrated SME and unrated "investment grade" corporate have different risk weights.
+        return self._compute_rwa(
+            RiskWeightTableForCorporateExposures,
+            (instrument for instrument in bank.banking_book_assets() if instrument.issuer.is_corporate()),
+        )
 
     def _compute_subordinated_debt_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for subordinated debt, equity and other capital instruments exposures."""
@@ -345,3 +358,19 @@ class RiskWeightTableForRatedCoveredBondExposures(RiskWeightTable):
         """Get the risk weight based on the instrument's credit rating."""
         risk_weight = super().get_risk_weight(instrument, use_issuer_rating)
         return risk_weight
+
+
+class RiskWeightTableForCorporateExposures(RiskWeightTable):
+    """Class to represent the risk weight table for exposures to corporate.
+
+    This is Table 10 of CRE20.43.
+    """
+
+    _risk_weight_table: ClassVar[dict[tuple[CreditRating, CreditRating], float]] = {
+        (CreditRating.AAA, CreditRating.AA_MINUS): 0.2,
+        (CreditRating.A_PLUS, CreditRating.A_MINUS): 0.5,
+        (CreditRating.BBB_PLUS, CreditRating.BBB_MINUS): 0.75,
+        (CreditRating.BB_PLUS, CreditRating.B_MINUS): 1.0,
+        (CreditRating.B_PLUS, CreditRating.D): 1.5,
+        (CreditRating.UNRATED, CreditRating.UNRATED): 1.0,
+    }

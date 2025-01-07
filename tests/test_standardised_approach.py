@@ -3,10 +3,11 @@ import pytest
 from brms.instruments.base import CreditRating, Instrument, Issuer, IssuerType
 from brms.instruments.covered_bond import CoveredBond
 from brms.metrics.credit_risk.standardised_approach import (
+    RiskWeightTableForCorporateExposures,
     RiskWeightTableForMDBExposures,
+    RiskWeightTableForPSEBasedOnExternalRatingOfPSE,
     RiskWeightTableForRatedCoveredBondExposures,
     RiskWeightTableForSovereignExposures,
-    RiskWeightTableForPSEBasedOnExternalRatingOfPSE,
     StandardisedApproach,
 )
 from brms.models.bank import Bank
@@ -181,6 +182,35 @@ def test_compute_covered_bond_exposures():
         [
             instrument1.value * risk_table.get_risk_weight(instrument1),
             instrument2.value * risk_table.get_risk_weight(instrument2),
+        ],
+    )
+    assert rwa == expected_rwa
+
+
+def test_compute_corporate_exposures():
+    standardised_approach = StandardisedApproach()
+    bank = Bank()
+    scenario_manager = ScenarioManager()
+    risk_table = RiskWeightTableForCorporateExposures
+
+    instrument1 = MockInstrument("C&I loan 1", book_type=BookType.BANKING_BOOK)
+    instrument2 = MockInstrument("C&I loan 2", book_type=BookType.BANKING_BOOK)
+    instrument3 = MockInstrument("C&I loan 3", book_type=BookType.BANKING_BOOK)
+
+    instrument1.issuer = Issuer("Firm 1", IssuerType.CORPORATE, credit_rating=CreditRating.AAA)
+    instrument2.issuer = Issuer("Firm 2", IssuerType.CORPORATE, credit_rating=CreditRating.B_MINUS)
+    instrument3.issuer = Issuer("Firm 3", IssuerType.CORPORATE, credit_rating=CreditRating.UNRATED)
+
+    bank.assets.add(instrument1)
+    bank.assets.add(instrument2)
+    bank.assets.add(instrument3)
+
+    rwa = standardised_approach._compute_corporate_exposures(bank, scenario_manager)
+    expected_rwa = sum(
+        [
+            instrument1.value * risk_table.get_risk_weight(instrument1),
+            instrument2.value * risk_table.get_risk_weight(instrument2),
+            instrument3.value * risk_table.get_risk_weight(instrument3),
         ],
     )
     assert rwa == expected_rwa

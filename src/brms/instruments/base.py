@@ -247,3 +247,7 @@ class Issuer:
     def is_securities_firm(self) -> bool:
         """Check if the issuer is securities firm."""
         return self.issuer_type == IssuerType.SECURITIES_FIRM
+
+    def is_corporate(self) -> bool:
+        """Check if the issuer is corporate."""
+        return self.issuer_type == IssuerType.CORPORATE
