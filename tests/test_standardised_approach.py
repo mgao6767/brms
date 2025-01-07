@@ -1,7 +1,11 @@
 import pytest
 
 from brms.instruments.base import CreditRating, Instrument, Issuer, IssuerType
-from brms.metrics.credit_risk.standardised_approach import RiskWeightTableForSovereignExposures, StandardisedApproach
+from brms.metrics.credit_risk.standardised_approach import (
+    RiskWeightTableForSovereignExposures,
+    RiskWeightTableForPSEBasedOnExternalRatingOfPSE,
+    StandardisedApproach,
+)
 from brms.models.bank import Bank
 from brms.models.base import BookType
 from brms.models.scenario import ScenarioManager
@@ -20,6 +24,7 @@ def test_compute_sovereign_exposures():
     standardised_approach = StandardisedApproach()
     bank = Bank()
     scenario_manager = ScenarioManager()
+    risk_table = RiskWeightTableForSovereignExposures
 
     instrument1 = MockInstrument("1", book_type=BookType.BANKING_BOOK)
     instrument2 = MockInstrument("2", book_type=BookType.BANKING_BOOK)
@@ -33,33 +38,81 @@ def test_compute_sovereign_exposures():
 
     bank.assets.add(instrument1)
     rwa = standardised_approach._compute_sovereign_exposures(bank, scenario_manager)
-    expected_rwa = 100 * RiskWeightTableForSovereignExposures.get_risk_weight(instrument1.issuer.credit_rating)
+    expected_rwa = instrument1.value * risk_table.get_risk_weight(instrument1.issuer.credit_rating)
     assert rwa == expected_rwa
 
     bank.assets.add(instrument2)
     rwa = standardised_approach._compute_sovereign_exposures(bank, scenario_manager)
-    # fmt: off
-    expected_rwa = (
-        100 * RiskWeightTableForSovereignExposures.get_risk_weight(instrument1.issuer.credit_rating) # 0%
-      + 100 * RiskWeightTableForSovereignExposures.get_risk_weight(instrument2.issuer.credit_rating) # 20%
+    expected_rwa = sum(
+        [
+            instrument1.value * risk_table.get_risk_weight(instrument1.issuer.credit_rating),
+            instrument2.value * risk_table.get_risk_weight(instrument2.issuer.credit_rating),
+        ],
     )
-    # fmt: on
     assert rwa == expected_rwa
 
     bank.assets.add(instrument3)
     rwa = standardised_approach._compute_sovereign_exposures(bank, scenario_manager)
-    # fmt: off
-    expected_rwa = (
-        100 * RiskWeightTableForSovereignExposures.get_risk_weight(instrument1.issuer.credit_rating) # 0%
-      + 100 * RiskWeightTableForSovereignExposures.get_risk_weight(instrument2.issuer.credit_rating) # 20%
-      + 100 * RiskWeightTableForSovereignExposures.get_risk_weight(instrument3.issuer.credit_rating) # 100%
+    expected_rwa = sum(
+        [
+            instrument1.value * risk_table.get_risk_weight(instrument1.issuer.credit_rating),
+            instrument2.value * risk_table.get_risk_weight(instrument2.issuer.credit_rating),
+            instrument3.value * risk_table.get_risk_weight(instrument3.issuer.credit_rating),
+        ],
     )
-    # fmt: on
     assert rwa == expected_rwa
 
     # Instrument4 is not issued by sovereigns or central banks. It does not affect RWA for sovereign exposures
     bank.assets.add(instrument4)
     rwa = standardised_approach._compute_sovereign_exposures(bank, scenario_manager)
+    assert rwa == expected_rwa
+
+
+def test_compute_pse_exposures():
+    standardised_approach = StandardisedApproach()
+    bank = Bank()
+    scenario_manager = ScenarioManager()
+    risk_table = RiskWeightTableForPSEBasedOnExternalRatingOfPSE
+
+    instrument1 = MockInstrument("1", book_type=BookType.BANKING_BOOK)
+    instrument2 = MockInstrument("2", book_type=BookType.BANKING_BOOK)
+    instrument3 = MockInstrument("3", book_type=BookType.BANKING_BOOK)
+    instrument4 = MockInstrument("4", book_type=BookType.BANKING_BOOK)
+
+    instrument1.issuer = Issuer("PSE", IssuerType.PSE, credit_rating=CreditRating.AAA)
+    instrument2.issuer = Issuer("PSE", IssuerType.PSE, credit_rating=CreditRating.A_PLUS)
+    instrument3.issuer = Issuer("PSE", IssuerType.PSE, credit_rating=CreditRating.UNRATED)
+    instrument4.issuer = Issuer("Central Bank", IssuerType.SOVEREIGN, credit_rating=CreditRating.AAA)
+
+    bank.assets.add(instrument1)
+    rwa = standardised_approach._compute_PSE_exposures(bank, scenario_manager)
+    expected_rwa = instrument1.value * risk_table.get_risk_weight(instrument1.issuer.credit_rating)
+    assert rwa == expected_rwa
+
+    bank.assets.add(instrument2)
+    rwa = standardised_approach._compute_PSE_exposures(bank, scenario_manager)
+    expected_rwa = sum(
+        [
+            instrument1.value * risk_table.get_risk_weight(instrument1.issuer.credit_rating),
+            instrument2.value * risk_table.get_risk_weight(instrument2.issuer.credit_rating),
+        ],
+    )
+    assert rwa == expected_rwa
+
+    bank.assets.add(instrument3)
+    rwa = standardised_approach._compute_PSE_exposures(bank, scenario_manager)
+    expected_rwa = sum(
+        [
+            instrument1.value * risk_table.get_risk_weight(instrument1.issuer.credit_rating),
+            instrument2.value * risk_table.get_risk_weight(instrument2.issuer.credit_rating),
+            instrument3.value * risk_table.get_risk_weight(instrument3.issuer.credit_rating),
+        ],
+    )
+    assert rwa == expected_rwa
+
+    # Instrument4 is not issued by PSE. It does not affect RWA for PSE exposures.
+    bank.assets.add(instrument4)
+    rwa = standardised_approach._compute_PSE_exposures(bank, scenario_manager)
     assert rwa == expected_rwa
 
 
