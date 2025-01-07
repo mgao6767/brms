@@ -13,12 +13,21 @@ from brms.models.scenario import Scenario
 class Instrument(ABC):
     """Base class for financial instruments."""
 
-    def __init__(self, name: str, parent: Optional["Instrument"] = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        book_type: BookType | None = None,
+        credit_rating: Optional["CreditRating"] = None,
+        issuer: Optional["Issuer"] = None,
+        parent: Optional["Instrument"] = None,
+    ) -> None:
         """Initialize a financial instrument."""
         self.name = name
         self._parent = parent
         self._value: float = 0.0
-        self._credit_rating = CreditRating.UNRATED
+        self._credit_rating = credit_rating or CreditRating.UNRATED
+        self._book_type = book_type or BookType.BANKING_BOOK  # Defaults to banking book.
+        self._issuer = issuer or Issuer("unknown", IssuerType.UNSPECIFIED)
 
     @property
     def parent(self) -> Optional["Instrument"]:
@@ -56,6 +65,15 @@ class Instrument(ABC):
     def credit_rating(self, credit_rating: "CreditRating") -> None:
         self._credit_rating = credit_rating
 
+    @property
+    def issuer(self) -> "Issuer":
+        """Get the instrument's issuer."""
+        return self._issuer
+
+    @issuer.setter
+    def issuer(self, issuer: "Issuer") -> None:
+        self._issuer = issuer
+
     def is_composite(self) -> bool:
         """Check if the instrument is composite."""
         return False
@@ -72,9 +90,16 @@ class CompositeInstrument(Instrument):
     It can be used to represent a collection of assets, liabilities, or equities for a bank.
     """
 
-    def __init__(self, name: str, parent: Instrument | None = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        book_type: BookType | None = None,
+        credit_rating: Optional["CreditRating"] = None,
+        issuer: Optional["Issuer"] = None,
+        parent: Optional["Instrument"] = None,
+    ) -> None:
         """Initialize a composite instrument with an empty list of instruments."""
-        super().__init__(name, parent)
+        super().__init__(name, book_type, credit_rating, issuer, parent)
         self._instruments: list[Instrument] = []
 
     def add(self, instrument: Instrument) -> None:
@@ -164,3 +189,46 @@ class CreditRating(Enum):
     def is_investment_grade(self) -> bool:
         """Check if the credit rating is investment grade."""
         return self >= CreditRating.BBB_MINUS
+
+
+class IssuerType(Enum):
+    """Enumeration of issuer types."""
+
+    SOVEREIGN = "Sovereign"
+    PSE = "Public Sector Entity"
+    CORPORATE = "Corporate"
+    FINANCIAL_INSTITUTION = "Financial Institution"
+    INSURANCE_COMPANY = "Insurance Company"
+    MUTUAL_FUND = "Mutual Fund"
+    HEDGE_FUND = "Hedge Fund"
+    SUPRANATIONAL = "Supranational"
+    MUNICIPAL = "Municipal"
+    INDIVIDUAL = "Individual"
+    UNSPECIFIED = "Unspecified"
+
+
+class Issuer:
+    """Class representing an issuer of financial instruments."""
+
+    def __init__(self, name: str, issuer_type: IssuerType, credit_rating: CreditRating | None = None) -> None:
+        """Initialize an issuer with a name and type."""
+        self.name = name
+        self.issuer_type = issuer_type
+        self._credit_rating = credit_rating or CreditRating.UNRATED
+
+    @property
+    def credit_rating(self) -> CreditRating:
+        """Get the issuer's credit rating."""
+        return self._credit_rating
+
+    @credit_rating.setter
+    def credit_rating(self, credit_rating: CreditRating) -> None:
+        self._credit_rating = credit_rating
+
+    def is_sovereign(self) -> bool:
+        """Check if the issuer is sovereign."""
+        return self.issuer_type == IssuerType.SOVEREIGN
+
+    def is_PSE(self) -> bool:
+        """Check if the issuer is public sector entity (PSE)."""
+        return self.issuer_type == IssuerType.PSE
