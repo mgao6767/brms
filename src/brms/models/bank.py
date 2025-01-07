@@ -1,8 +1,12 @@
 """Define the `Bank` class."""
 
-from brms.instruments.base import CompositeInstrument
+from collections.abc import Generator
+from typing import Any
+
+from brms.instruments.base import CompositeInstrument, Instrument
 from brms.instruments.common_equity import CommonEquity
 from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
+from brms.models.base import BookType
 from brms.models.scenario import Scenario
 
 
@@ -38,6 +42,18 @@ class Bank:
     @common_equity.setter
     def common_equity(self, value: float) -> None:
         self._common_equity.value = value
+
+    def banking_book_assets(self) -> Generator[Instrument, Any, None]:
+        """Yield all banking book assets."""
+        for instrument in self.assets:
+            if instrument.book_type == BookType.BANKING_BOOK:
+                yield instrument
+
+    def trading_book_assets(self) -> Generator[Instrument, Any, None]:
+        """Yield all trading book assets."""
+        for instrument in self.assets:
+            if instrument.book_type == BookType.TRADING_BOOK:
+                yield instrument
 
     def valuation(self, scenario: Scenario) -> None:
         """Perform valuation on banking and trading book instruments."""

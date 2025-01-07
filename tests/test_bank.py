@@ -86,5 +86,25 @@ def test_valuation(bank, instrument_assets, instrument_liabilities):
     assert bank.common_equity == 300
 
 
+def test_banking_book_assets(bank, instrument_banking, instrument_trading):
+    """Test the banking_book_assets method."""
+    bank.assets.add(instrument_banking)
+    bank.assets.add(instrument_trading)
+
+    banking_book_assets = list(bank.banking_book_assets())
+    assert instrument_banking in banking_book_assets
+    assert instrument_trading not in banking_book_assets
+
+
+def test_trading_book_assets(bank, instrument_banking, instrument_trading):
+    """Test the trading_book_assets method."""
+    bank.assets.add(instrument_banking)
+    bank.assets.add(instrument_trading)
+
+    trading_book_assets = list(bank.trading_book_assets())
+    assert instrument_trading in trading_book_assets
+    assert instrument_banking not in trading_book_assets
+
+
 if __name__ == "__main__":
     pytest.main()
