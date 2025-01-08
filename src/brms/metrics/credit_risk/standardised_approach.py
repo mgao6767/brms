@@ -92,6 +92,16 @@ class ExposureChecker:
         return instrument.issuer.is_securities_firm()
 
     @staticmethod
+    def is_credit_derivative_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument qualifies credit derivative exposure."""
+        return False
+
+    @staticmethod
+    def is_defaulted_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument qualifies defaulted exposure."""
+        return False
+
+    @staticmethod
     def is_cash_exposure(instrument: Instrument, bank: Bank) -> bool:
         """Check if the instrument is cash."""
         return isinstance(instrument, Cash)
@@ -110,6 +120,8 @@ class ExposureChecker:
                 ExposureChecker.is_corporate_exposure(instrument, bank),
                 ExposureChecker.is_bank_exposure(instrument, bank),
                 ExposureChecker.is_securities_firm_exposure(instrument, bank),
+                ExposureChecker.is_credit_derivative_exposure(instrument, bank),
+                ExposureChecker.is_defaulted_exposure(instrument, bank),
             ],
         )
 
