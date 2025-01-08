@@ -31,3 +31,15 @@ class RetailInstrumentRegistry(InstrumentRegistry):
 
 class TreasuryInstrumentRegistry(InstrumentRegistry):
     """Registry for treasury instrument types."""
+
+
+class PSEInstrumentRegistry(InstrumentRegistry):
+    """Registry for PSE instrument types."""
+
+
+class MDBInstrumentRegistry(InstrumentRegistry):
+    """Registry for MDB instrument types."""
+
+
+class CorporateInstrumentRegistry(InstrumentRegistry):
+    """Registry for corporate instrument types."""

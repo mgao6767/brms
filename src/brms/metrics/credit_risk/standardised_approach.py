@@ -9,7 +9,14 @@ from typing import ClassVar
 
 from brms.instruments.base import CreditRating, Instrument
 from brms.instruments.covered_bond import CoveredBond
-from brms.instruments.registry import RealEstateInstrumentRegistry, RetailInstrumentRegistry
+from brms.instruments.registry import (
+    CorporateInstrumentRegistry,
+    MDBInstrumentRegistry,
+    PSEInstrumentRegistry,
+    RealEstateInstrumentRegistry,
+    RetailInstrumentRegistry,
+    TreasuryInstrumentRegistry,
+)
 from brms.metrics.base import RWAApproach
 from brms.models.bank import Bank
 from brms.models.scenario import ScenarioManager
@@ -34,6 +41,39 @@ class ExposureChecker:
             return False
         # Must be from individuals or certain SMEs
         return instrument.issuer.is_individual() or instrument.issuer.is_SME()
+
+    @staticmethod
+    def is_sovereign_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument qualifies sovereign or central bank exposure."""
+        if TreasuryInstrumentRegistry.has_instrument(instrument):
+            return True
+        return instrument.issuer.is_sovereign()
+
+    @staticmethod
+    def is_PSE_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument qualifies PSE exposure."""
+        if PSEInstrumentRegistry.has_instrument(instrument):
+            return True
+        return instrument.issuer.is_PSE()
+
+    @staticmethod
+    def is_MDB_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument qualifies MDB exposure."""
+        if MDBInstrumentRegistry.has_instrument(instrument):
+            return True
+        return instrument.issuer.is_MDB()
+
+    @staticmethod
+    def is_covered_bond_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument qualifies covered bond exposure."""
+        return isinstance(instrument, CoveredBond)
+
+    @staticmethod
+    def is_corporate_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument qualifies corporate exposure."""
+        if CorporateInstrumentRegistry.has_instrument(instrument):
+            return True
+        return instrument.issuer.is_corporate()
 
 
 class StandardisedApproach(RWAApproach):
@@ -71,27 +111,21 @@ class StandardisedApproach(RWAApproach):
 
         TODO: An alternative to use country risk scores by Export Credit Agencies (ECAs), see CRE20.9.
         """
-        return self._compute_rwa(
-            RiskWeightTableForSovereignExposures,
-            (instrument for instrument in bank.banking_book_assets() if instrument.issuer.is_sovereign()),
-        )
+        instruments = (i for i in bank.banking_book_assets() if ExposureChecker.is_sovereign_exposure(i, bank))
+        return self._compute_rwa(RiskWeightTableForSovereignExposures, instruments)
 
     def _compute_PSE_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for PSE exposures.
 
         TODO: An alternative to use the external ratings of sovereign, see CRE20.11.
         """
-        return self._compute_rwa(
-            RiskWeightTableForPSEBasedOnExternalRatingOfPSE,
-            (instrument for instrument in bank.banking_book_assets() if instrument.issuer.is_PSE()),
-        )
+        instruments = (i for i in bank.banking_book_assets() if ExposureChecker.is_PSE_exposure(i, bank))
+        return self._compute_rwa(RiskWeightTableForPSEBasedOnExternalRatingOfPSE, instruments)
 
     def _compute_MDB_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for MDB exposures."""
-        return self._compute_rwa(
-            RiskWeightTableForMDBExposures,
-            (instrument for instrument in bank.banking_book_assets() if instrument.issuer.is_MDB()),
-        )
+        instruments = (i for i in bank.banking_book_assets() if ExposureChecker.is_MDB_exposure(i, bank))
+        return self._compute_rwa(RiskWeightTableForMDBExposures, instruments)
 
     def _compute_bank_exposures(
         self,
@@ -150,10 +184,8 @@ class StandardisedApproach(RWAApproach):
         TODO: Address unrated covered bonds.
         TODO: Check if the covered bond is eligible based on CRE20.34 to CRE20.36.
         """
-        return self._compute_rwa(
-            RiskWeightTableForRatedCoveredBondExposures,
-            (instrument for instrument in bank.banking_book_assets() if isinstance(instrument, CoveredBond)),
-        )
+        instruments = (i for i in bank.banking_book_assets() if ExposureChecker.is_covered_bond_exposure(i, bank))
+        return self._compute_rwa(RiskWeightTableForRatedCoveredBondExposures, instruments)
 
     def _compute_securities_firms_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for securities firms and other financial institutions exposures.
@@ -182,10 +214,8 @@ class StandardisedApproach(RWAApproach):
         TODO 2. Specialised lending exposures, as defined in CRE20.48.
         """
         # TODO: Unrated SME and unrated "investment grade" corporate have different risk weights.
-        return self._compute_rwa(
-            RiskWeightTableForCorporateExposures,
-            (instrument for instrument in bank.banking_book_assets() if instrument.issuer.is_corporate()),
-        )
+        instruments = (i for i in bank.banking_book_assets() if ExposureChecker.is_corporate_exposure(i, bank))
+        return self._compute_rwa(RiskWeightTableForCorporateExposures, instruments)
 
     def _compute_subordinated_debt_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for subordinated debt, equity and other capital instruments exposures."""
