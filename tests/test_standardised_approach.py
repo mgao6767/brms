@@ -221,5 +221,10 @@ def test_compute_retail_exposures():
     pass
 
 
+@pytest.mark.skip("Not yet implemented")
+def test_compute_real_estate_exposures():
+    pass
+
+
 if __name__ == "__main__":
     pytest.main()
