@@ -47,3 +47,7 @@ class CorporateInstrumentRegistry(InstrumentRegistry):
 
 class OffBalanceSheetInstrumentRegistry(InstrumentRegistry):
     """Registry for off-balance-sheet instrument types."""
+
+
+class LoanInstrumentRegistry(InstrumentRegistry):
+    """Registry for loan instrument types."""

@@ -12,6 +12,7 @@ from brms.instruments.cash import Cash
 from brms.instruments.covered_bond import CoveredBond
 from brms.instruments.registry import (
     CorporateInstrumentRegistry,
+    LoanInstrumentRegistry,
     MDBInstrumentRegistry,
     PSEInstrumentRegistry,
     RealEstateInstrumentRegistry,
@@ -79,7 +80,11 @@ class ExposureChecker:
     @staticmethod
     def is_bank_exposure(instrument: Instrument, bank: Bank) -> bool:
         """Check if the instrument qualifies bank exposure."""
-        return instrument.issuer.is_bank()
+        if not instrument.issuer.is_bank():
+            return False
+        # TODO: Should exclude subordinated debt on DIs.
+        # TODO: Should be true for senior debt instruments too.
+        return LoanInstrumentRegistry.has_instrument(instrument)
 
     @staticmethod
     def is_short_term_exposure(instrument: Instrument, bank: Bank) -> bool:
