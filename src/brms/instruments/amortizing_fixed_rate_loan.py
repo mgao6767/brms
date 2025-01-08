@@ -9,6 +9,9 @@ from brms.utils import pydate_to_qldate, qldate_to_string
 
 
 class AmortizingFixedRateLoan(Instrument):
+    """A class representing an amortizing fixed rate loan."""
+
+    # TODO: book_type, etc. for Instrument's init
     def __init__(
         self,
         face_value: float,

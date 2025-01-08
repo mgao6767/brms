@@ -11,6 +11,7 @@ from brms.utils import pydate_to_qldate, qldate_to_string
 class FixedRateBond(Instrument):
     """A class representing a fixed rate bond."""
 
+    # TODO: book_type, etc. for Instrument's init
     def __init__(
         self,
         face_value: float,
