@@ -51,3 +51,7 @@ class OffBalanceSheetInstrumentRegistry(InstrumentRegistry):
 
 class LoanInstrumentRegistry(InstrumentRegistry):
     """Registry for loan instrument types."""
+
+
+class MortgageInstrumentRegistry(InstrumentRegistry):
+    """Registry for mortgage instrument types."""
