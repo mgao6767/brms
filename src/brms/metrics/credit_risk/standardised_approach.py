@@ -73,8 +73,13 @@ class ExposureChecker:
     @staticmethod
     def is_corporate_exposure(instrument: Instrument, bank: Bank) -> bool:
         """Check if the instrument qualifies corporate exposure."""
-        if CorporateInstrumentRegistry.has_instrument(instrument):
-            return True
+        # Must not be real estate exposures
+        if ExposureChecker.is_real_estate_exposure(instrument, bank):
+            return False
+        # Must be some kinds of corporate instruments
+        if not CorporateInstrumentRegistry.has_instrument(instrument):
+            return False
+        # Must be from corporate
         return instrument.issuer.is_corporate()
 
     @staticmethod

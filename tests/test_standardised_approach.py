@@ -3,6 +3,7 @@ import pytest
 from brms.instruments.base import CreditRating, Instrument, Issuer, IssuerType
 from brms.instruments.cash import Cash
 from brms.instruments.covered_bond import CoveredBond
+from brms.instruments.registry import CorporateInstrumentRegistry
 from brms.metrics.credit_risk.standardised_approach import (
     RiskWeightTableForCorporateExposures,
     RiskWeightTableForMDBExposures,
@@ -23,6 +24,13 @@ class MockInstrument(Instrument):
 
     def accept(self, visitor, scenario) -> float:
         pass
+
+
+class MockCorporateInstrument(MockInstrument):
+    pass
+
+
+CorporateInstrumentRegistry.register(MockCorporateInstrument)
 
 
 def test_compute_sovereign_exposures():
@@ -194,9 +202,9 @@ def test_compute_corporate_exposures():
     scenario_manager = ScenarioManager()
     risk_table = RiskWeightTableForCorporateExposures
 
-    instrument1 = MockInstrument("C&I loan 1", book_type=BookType.BANKING_BOOK)
-    instrument2 = MockInstrument("C&I loan 2", book_type=BookType.BANKING_BOOK)
-    instrument3 = MockInstrument("C&I loan 3", book_type=BookType.BANKING_BOOK)
+    instrument1 = MockCorporateInstrument("C&I loan 1", book_type=BookType.BANKING_BOOK)
+    instrument2 = MockCorporateInstrument("C&I loan 2", book_type=BookType.BANKING_BOOK)
+    instrument3 = MockCorporateInstrument("C&I loan 3", book_type=BookType.BANKING_BOOK)
 
     instrument1.issuer = Issuer("Firm 1", IssuerType.CORPORATE, credit_rating=CreditRating.AAA)
     instrument2.issuer = Issuer("Firm 2", IssuerType.CORPORATE, credit_rating=CreditRating.B_MINUS)
