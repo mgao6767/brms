@@ -134,25 +134,34 @@ class ExposureChecker:
 class StandardisedApproach(RWAApproach):
     """The standardised approach for calculating credit RWA."""
 
-    def compute_rwa(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
+    def compute_rwa(self, bank: Bank, scenario_manager: ScenarioManager, verbose: bool = False) -> float:
         """Compute the Risk-Weighted Assets (RWA) for a given bank and scenario."""
         rwa = 0.0
-        rwa += self._compute_sovereign_exposures(bank, scenario_manager)
-        rwa += self._compute_PSE_exposures(bank, scenario_manager)
-        rwa += self._compute_MDB_exposures(bank, scenario_manager)
-        rwa += self._compute_bank_exposures(bank, scenario_manager)
-        rwa += self._compute_covered_bonds_exposures(bank, scenario_manager)
-        rwa += self._compute_securities_firms_exposures(bank, scenario_manager)
-        rwa += self._compute_corporate_exposures(bank, scenario_manager)
-        rwa += self._compute_subordinated_debt_exposures(bank, scenario_manager)
-        rwa += self._compute_retail_exposures(bank, scenario_manager)
-        rwa += self._compute_real_estate_exposures(bank, scenario_manager)
-        rwa += self._compute_currency_mismatch_exposures(bank, scenario_manager)
-        rwa += self._compute_off_balance_sheet_items(bank, scenario_manager)
-        rwa += self._compute_counterparty_credit_risk_exposures(bank, scenario_manager)
-        rwa += self._compute_credit_derivatives_exposures(bank, scenario_manager)
-        rwa += self._compute_defaulted_exposures(bank, scenario_manager)
-        rwa += self._compute_other_assets_exposures(bank, scenario_manager)
+        exposures: list[tuple[str, Callable[[Bank, ScenarioManager], float]]] = [
+            ("sovereign exposures", self._compute_sovereign_exposures),
+            ("PSE exposures", self._compute_PSE_exposures),
+            ("MDB exposures", self._compute_MDB_exposures),
+            ("bank exposures", self._compute_bank_exposures),
+            ("covered bonds exposures", self._compute_covered_bonds_exposures),
+            ("securities firms exposures", self._compute_securities_firms_exposures),
+            ("corporate exposures", self._compute_corporate_exposures),
+            # ("subordinated debt exposures", self._compute_subordinated_debt_exposures),
+            ("retail exposures", self._compute_retail_exposures),
+            ("real estate exposures", self._compute_real_estate_exposures),
+            # ("currency mismatch exposures", self._compute_currency_mismatch_exposures),
+            # ("off-balance sheet items", self._compute_off_balance_sheet_items),
+            ("counterparty credit risk exposures", self._compute_counterparty_credit_risk_exposures),
+            # ("credit derivatives exposures", self._compute_credit_derivatives_exposures),
+            # ("defaulted exposures", self._compute_defaulted_exposures),
+            ("other assets exposures", self._compute_other_assets_exposures),
+        ]
+
+        for exposure_name, compute_func in exposures:
+            exposure_rwa = compute_func(bank, scenario_manager)
+            rwa += exposure_rwa
+            if verbose:
+                print(f"RWA for {exposure_name}: {exposure_rwa}")
+
         return rwa
 
     def _compute_rwa(self, risk_table: type["RiskWeightTable"], instruments: Iterable[Instrument]) -> float:
