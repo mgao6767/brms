@@ -45,13 +45,19 @@ class StandardisedApproach(RWAApproach):
         """
         bucket_1_upper_bound = 1_000_000_000
         bucket_2_upper_bound = 30_000_000_000
-        if bi <= bucket_1_upper_bound:
-            alpha = 0.12
-        elif bi <= bucket_2_upper_bound:
-            alpha = 0.15
-        else:
-            alpha = 0.18
-        return bi * alpha
+        alpha1 = 0.12
+        alpha2 = 0.15
+        alpha3 = 0.18
+
+        if 0 < bi <= bucket_1_upper_bound:
+            return bi * alpha1
+        if bucket_1_upper_bound < bi <= bucket_2_upper_bound:
+            return bucket_1_upper_bound * alpha1 + (bi - bucket_1_upper_bound) * alpha2
+        return (
+            bucket_1_upper_bound * alpha1
+            + (bucket_2_upper_bound - bucket_1_upper_bound) * alpha2
+            + (bi - bucket_2_upper_bound) * alpha3
+        )
 
     def _compute_internal_loss_multiplier(
         self,
