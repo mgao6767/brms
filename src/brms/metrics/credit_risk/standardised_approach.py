@@ -75,6 +75,21 @@ class ExposureChecker:
             return True
         return instrument.issuer.is_corporate()
 
+    @staticmethod
+    def is_bank_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument qualifies bank exposure."""
+        return instrument.issuer.is_bank()
+
+    @staticmethod
+    def is_short_term_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument qualifies short-term exposure."""
+        return False  # TODO: check instrument maturity, which needs current scenario!
+
+    @staticmethod
+    def is_securities_firm_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument qualifies securities firm exposure."""
+        return instrument.issuer.is_securities_firm()
+
 
 class StandardisedApproach(RWAApproach):
     """The standardised approach for calculating credit RWA."""
@@ -141,30 +156,16 @@ class StandardisedApproach(RWAApproach):
 
         When the bank is not rated (by an eligible credit assessment institution (ECAI)), SCRA applies.
         """
-
-        def issuer_is_bank(instrument: Instrument) -> bool:
-            return instrument.issuer.is_bank()
-
-        def instrument_is_short_term(instrument: Instrument) -> bool:
-            # Exposures to banks with an original maturity of three months or less,
-            # as well as exposures to banks that arise from the movement of goods across national borders
-            # with an original maturity of six months or less can be assigned a risk weight that correspond to
-            # the risk weights for short term exposures in Table 6.
-            #
-            # TODO: Check if instrument is short term.
-            # Currently we assume no short-term exposure. The resulting RWA will be more conservative.
-            return False
-
-        _filter = instrument_filter or issuer_is_bank
+        _filter = instrument_filter or ExposureChecker.is_bank_exposure
 
         total_rwa = 0.0
         for instrument in bank.banking_book_assets():
             issuer = instrument.issuer
-            if not _filter(instrument):
+            if not _filter(instrument, bank):
                 continue
             if issuer.credit_rating > CreditRating.UNRATED:
                 # Apply ECRA
-                if instrument_is_short_term(instrument):
+                if ExposureChecker.is_short_term_exposure(instrument, bank):
                     weight = RiskWeightTableForShortTermExposuresToBanks.get_risk_weight(instrument)
                 else:
                     weight = RiskWeightTableForExposuresToBanks.get_risk_weight(instrument)
@@ -196,11 +197,7 @@ class StandardisedApproach(RWAApproach):
 
         Exposures to all other securities firms and financial institutions will be treated as exposures to corporates.
         """
-
-        def issuer_is_securities_firm(instrument: Instrument) -> bool:
-            return instrument.issuer.is_securities_firm()
-
-        return self._compute_bank_exposures(bank, scenario_manager, instrument_filter=issuer_is_securities_firm)
+        return self._compute_bank_exposures(bank, scenario_manager, ExposureChecker.is_securities_firm_exposure)
 
     def _compute_corporate_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for corporate exposures.
