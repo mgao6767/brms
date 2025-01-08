@@ -1,6 +1,7 @@
 """Define the CreditCard class representing credit card instruments."""
 
 from brms.instruments.base import Instrument
+from brms.instruments.registry import RetailInstrumentRegistry
 from brms.instruments.valuation import ValuationVisitor
 from brms.models.scenario import Scenario
 
@@ -11,3 +12,6 @@ class CreditCard(Instrument):
     def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
         """Accept a valuation visitor to calculate the instrument's value."""
         return visitor.value_credit_card(self, scenario)
+
+
+RetailInstrumentRegistry.register(CreditCard)
