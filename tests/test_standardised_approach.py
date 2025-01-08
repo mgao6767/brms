@@ -290,6 +290,15 @@ def test_compute_rwa():
     expected_rwa += 0.5 * instrument2.value
     assert rwa == expected_rwa
 
+    # Corporate exposure by an unrated firm, risk weight is 1.
+    instrument3 = MockCorporateInstrument("C&I loan 1", book_type=BookType.BANKING_BOOK)
+    instrument3.issuer = Issuer("Firm 1", IssuerType.CORPORATE, credit_rating=CreditRating.UNRATED)
+    instrument3.value = 30000
+    bank.assets.add(instrument3)
+    rwa = standardised_approach.compute_rwa(bank, scenario_manager)
+    expected_rwa += 1.0 * instrument3.value
+    assert rwa == expected_rwa
+
 
 if __name__ == "__main__":
     pytest.main()
