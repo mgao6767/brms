@@ -17,12 +17,12 @@ from brms.models.scenario import ScenarioManager
 
 
 class MockInstrument(Instrument):
+    def __init__(self, name, book_type=None, credit_rating=None, issuer=None, parent=None):
+        super().__init__(name, book_type, credit_rating, issuer, parent)
+        self.value = 100  # mock value
+
     def accept(self, visitor, scenario) -> float:
         pass
-
-    @property
-    def value(self) -> float:
-        return 100  # mock value
 
 
 def test_compute_sovereign_exposures():
@@ -247,6 +247,39 @@ def test_compute_other_exposures():
 
     rwa = standardised_approach._compute_other_assets_exposures(bank, scenario_manager)
     expected_rwa = 0
+    assert rwa == expected_rwa
+
+
+def test_compute_rwa():
+    standardised_approach = StandardisedApproach()
+    bank = Bank()
+    scenario_manager = ScenarioManager()
+
+    expected_rwa = 0
+
+    # Cash has a risk weight of 0
+    cash = Cash("Cash")
+    cash.value = 1000
+    bank.assets.add(cash)
+    rwa = standardised_approach.compute_rwa(bank, scenario_manager)
+    assert rwa == expected_rwa
+
+    # Rated covered bond by a bank with AAA rating, risk weight is 0.1
+    instrument1 = CoveredBond("Covered Bond 1", book_type=BookType.BANKING_BOOK, credit_rating=CreditRating.AAA)
+    instrument1.issuer = Issuer("Bank 1", IssuerType.BANK)
+    instrument1.value = 20000
+    bank.assets.add(instrument1)
+    rwa = standardised_approach.compute_rwa(bank, scenario_manager)
+    expected_rwa += 0.1 * instrument1.value
+    assert rwa == expected_rwa
+
+    # Sovereign exposure by a sovereign with BBB+ rating, risk weight is 0.5
+    instrument2 = MockInstrument("Sovereign Bond", book_type=BookType.BANKING_BOOK)
+    instrument2.issuer = Issuer("Central Bank", IssuerType.SOVEREIGN, credit_rating=CreditRating.BBB_PLUS)
+    instrument2.value = 10000
+    bank.assets.add(instrument2)
+    rwa = standardised_approach.compute_rwa(bank, scenario_manager)
+    expected_rwa += 0.5 * instrument2.value
     assert rwa == expected_rwa
 
 
