@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 
 from brms.instruments.base import CreditRating, Instrument, Issuer, IssuerType
@@ -58,7 +60,8 @@ def test_compute_rwa():
     bank.assets.add(instrument3)
     expected_rwa += 1.0 * instrument3.value
 
-    rwa = credit_rwa.compute_rwa(bank, scenario_manager)
+    today = datetime.date(2025, 1, 1)
+    rwa = credit_rwa.compute_rwa(bank, today, scenario_manager)
     assert rwa == expected_rwa
 
 

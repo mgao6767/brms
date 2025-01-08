@@ -3,6 +3,7 @@
 To calculate credit RWA for banking book exposures.
 """
 
+import datetime
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from typing import ClassVar
@@ -139,7 +140,9 @@ class ExposureChecker:
 class StandardisedApproach(RWAApproach):
     """The standardised approach for calculating credit RWA."""
 
-    def compute_rwa(self, bank: Bank, scenario_manager: ScenarioManager, verbose: bool = False) -> float:
+    def compute_rwa(
+        self, bank: Bank, date: datetime.date, scenario_manager: ScenarioManager, verbose: bool = False
+    ) -> float:
         """Compute the Risk-Weighted Assets (RWA) for a given bank and scenario."""
         rwa = 0.0
         exposures: list[tuple[str, Callable[[Bank, ScenarioManager], float]]] = [

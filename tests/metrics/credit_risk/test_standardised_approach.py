@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 
 from brms.instruments.base import CreditRating, Instrument, Issuer, IssuerType
@@ -263,13 +265,14 @@ def test_compute_rwa():
     bank = Bank()
     scenario_manager = ScenarioManager()
 
+    today = datetime.date(2025, 1, 1)
     expected_rwa = 0
 
     # Cash has a risk weight of 0
     cash = Cash("Cash")
     cash.value = 1000
     bank.assets.add(cash)
-    rwa = standardised_approach.compute_rwa(bank, scenario_manager)
+    rwa = standardised_approach.compute_rwa(bank, today, scenario_manager)
     assert rwa == expected_rwa
 
     # Rated covered bond by a bank with AAA rating, risk weight is 0.1
@@ -277,7 +280,7 @@ def test_compute_rwa():
     instrument1.issuer = Issuer("Bank 1", IssuerType.BANK)
     instrument1.value = 20000
     bank.assets.add(instrument1)
-    rwa = standardised_approach.compute_rwa(bank, scenario_manager)
+    rwa = standardised_approach.compute_rwa(bank, today, scenario_manager)
     expected_rwa += 0.1 * instrument1.value
     assert rwa == expected_rwa
 
@@ -286,7 +289,7 @@ def test_compute_rwa():
     instrument2.issuer = Issuer("Central Bank", IssuerType.SOVEREIGN, credit_rating=CreditRating.BBB_PLUS)
     instrument2.value = 10000
     bank.assets.add(instrument2)
-    rwa = standardised_approach.compute_rwa(bank, scenario_manager)
+    rwa = standardised_approach.compute_rwa(bank, today, scenario_manager)
     expected_rwa += 0.5 * instrument2.value
     assert rwa == expected_rwa
 
@@ -295,7 +298,7 @@ def test_compute_rwa():
     instrument3.issuer = Issuer("Firm 1", IssuerType.CORPORATE, credit_rating=CreditRating.UNRATED)
     instrument3.value = 30000
     bank.assets.add(instrument3)
-    rwa = standardised_approach.compute_rwa(bank, scenario_manager)
+    rwa = standardised_approach.compute_rwa(bank, today, scenario_manager)
     expected_rwa += 1.0 * instrument3.value
     assert rwa == expected_rwa
 

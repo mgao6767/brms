@@ -1,20 +1,16 @@
 """Module defining classes for calculating Credit Risk Weighted Assets (RWA)."""
 
+import datetime
+
 from brms.metrics.base import RWAApproach, RWAComponent
 from brms.metrics.credit_risk import (
-    CentralCounterpartyRiskDefaultApproach,
-    CounterpartyRiskDefaultApproach,
-    FallBackApproach,
-    InternalAssessmentApproach,
-    InternalRatingsBasedApproach,
-    LookThroughApproach,
-    MandateBasedApproach,
+    CentralCounterpartyRiskDefaultApproach, CounterpartyRiskDefaultApproach,
+    FallBackApproach, InternalAssessmentApproach, InternalRatingsBasedApproach,
+    LookThroughApproach, MandateBasedApproach,
     SecuritisationExternalRatingsBasedApproach,
     SecuritisationInternalRatingsBasedApproach,
-    SecuritisationStandardisedApproach,
-    StandardisedApproach,
-    UnsettledTransactionsFailedTradesDefaultApproach,
-)
+    SecuritisationStandardisedApproach, StandardisedApproach,
+    UnsettledTransactionsFailedTradesDefaultApproach)
 from brms.models.bank import Bank
 from brms.models.scenario import ScenarioManager
 
@@ -106,9 +102,9 @@ class RWACreditRisk:
         self.set_approach_for_exposures_to_central_counterparties(CentralCounterpartyRiskDefaultApproach())
         self.set_approach_for_unsettled_transactions_failed_trades(UnsettledTransactionsFailedTradesDefaultApproach())
 
-    def compute_rwa(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
+    def compute_rwa(self, bank: Bank, date: datetime.date, scenario_manager: ScenarioManager) -> float:
         """Compute the total Credit RWA for the bank under the given scenario."""
-        return sum(component.compute_rwa(bank, scenario_manager) for component in self._rwa_components)
+        return sum(component.compute_rwa(bank, date, scenario_manager) for component in self._rwa_components)
 
     def set_approach_for_banking_book_exposures(self, approach: RWAApproach) -> None:
         """Set the approach for banking book exposures."""
