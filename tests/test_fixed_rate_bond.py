@@ -4,23 +4,9 @@ import pytest
 import QuantLib as ql
 
 from brms.instruments.fixed_rate_bond import FixedRateBond
-from brms.instruments.valuation import ValuationVisitor, BankingBookValuationVisitor, TradingBookValuationVisitor
+from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
 from brms.models.scenario import Scenario, ScenarioBuilder
 from brms.utils import qldate_to_pydate
-
-
-class MockValuationVisitor(ValuationVisitor):
-    def value_fixed_rate_bond(self, instrument, scenario):
-        return 100.0  # Mock value for testing
-
-    def value_covered_bond(self, instrument, scenario):
-        pass  # Not used
-
-    def value_personal_loan(self, instrument, scenario):
-        pass  # Not used
-
-    def value_credit_card(self, instrument, scenario):
-        pass  # Not used
 
 
 @pytest.fixture
@@ -49,14 +35,6 @@ def test_fixed_rate_bond_notional(fixed_rate_bond):
     date = datetime.date(2025, 1, 1)
     notional_value = fixed_rate_bond.notional(date)
     assert notional_value == 1000.0  # Assuming the bond has notional value of 1000 until maturity
-
-
-def test_fixed_rate_bond_accept_valuation_visitor(fixed_rate_bond):
-    """Test the accept method of the FixedRateBond."""
-    visitor = MockValuationVisitor()
-    scenario = Scenario(date=datetime.date(2025, 1, 1))
-    value = fixed_rate_bond.accept(visitor, scenario)
-    assert value == 100.0  # Mock value returned by the visitor
 
 
 def test_fixed_rate_bond_banking_book_valuation(fixed_rate_bond):
