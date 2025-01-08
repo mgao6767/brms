@@ -9,9 +9,31 @@ from typing import ClassVar
 
 from brms.instruments.base import CreditRating, Instrument
 from brms.instruments.covered_bond import CoveredBond
+from brms.instruments.registry import RealEstateInstrumentRegistry, RetailInstrumentRegistry
 from brms.metrics.base import RWAApproach
 from brms.models.bank import Bank
 from brms.models.scenario import ScenarioManager
+
+
+class ExposureChecker:
+    """Class to check different types of exposures."""
+
+    @staticmethod
+    def is_real_estate_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument is a real estate exposure."""
+        return RealEstateInstrumentRegistry.has_instrument(instrument)
+
+    @staticmethod
+    def is_retail_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the exposure qualifies regulatory retail."""
+        # Must not be real estate exposures
+        if ExposureChecker.is_real_estate_exposure(instrument, bank):
+            return False
+        # Must be some kinds of retail instruments
+        if not RetailInstrumentRegistry.has_instrument(instrument):
+            return False
+        # Must be from individuals or certain SMEs
+        return instrument.issuer.is_individual() or instrument.issuer.is_SME()
 
 
 class StandardisedApproach(RWAApproach):
@@ -195,10 +217,6 @@ class StandardisedApproach(RWAApproach):
         3. Granularity criterion: ...
         """
 
-        def _filter(instrument: Instrument) -> bool:
-            """Get qualifying instruments."""
-            return instrument.issuer.is_individual() or instrument.issuer.is_SME()
-
         def is_regulatory_retail(instrument: Instrument, bank: Bank) -> bool:
             """TODO: Check if the exposure qualifies regulatory retail."""
             return False
@@ -216,9 +234,8 @@ class StandardisedApproach(RWAApproach):
 
         total_rwa = 0.0
         for instrument in bank.banking_book_assets():
-            if not _filter(instrument):
-                continue
-            total_rwa += instrument.value * _get_risk_weight(instrument)
+            if ExposureChecker.is_retail_exposure(instrument, bank):
+                total_rwa += instrument.value * _get_risk_weight(instrument)
         return total_rwa
 
     def _compute_real_estate_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
