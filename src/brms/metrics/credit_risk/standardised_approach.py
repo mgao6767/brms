@@ -239,8 +239,51 @@ class StandardisedApproach(RWAApproach):
         return total_rwa
 
     def _compute_real_estate_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
-        """Compute the RWA for real estate exposures."""
-        raise NotImplementedError
+        """Compute the RWA for real estate exposures.
+
+        The real estate exposure asset class consists of:
+        1. Exposures secured by real estate that are classified as "regulatory real estate" exposures.
+        2. Exposures secured by real estate that are classified as "other real estate" exposures.
+        3. Exposures that are classified as "land acquisition, development and construction" (ADC) exposures.
+        """
+
+        def is_regulatory_residential(instrument: Instrument) -> bool:
+            """TODO: Check if the exposure qualifies regulatory residential."""
+            return False
+
+        def is_regulatory_commercial(instrument: Instrument) -> bool:
+            """TODO: Check if the exposure qualifies regulatory commercial."""
+            return False
+
+        def is_dependent_on_cash_flows_of_property(instrument: Instrument) -> bool:
+            """TODO: Check if dependent on cash flows from the property."""
+            return False
+
+        def is_land_adc_exposure(instrument: Instrument) -> bool:
+            """TODO: Check if the exposure qualifies land acquisition, development and construction exposures."""
+            return False
+
+        total_rwa = 0.0
+        for instrument in bank.banking_book_assets():
+            if not ExposureChecker.is_real_estate_exposure(instrument, bank):
+                continue
+            if is_regulatory_residential(instrument):
+                if not is_dependent_on_cash_flows_of_property(instrument):
+                    weight = RiskWeightTableForResidentialRealEstateNotDependentOnCashFlows.get_risk_weight(instrument)
+                else:
+                    weight = RiskWeightTableForResidentialRealEstateDependentOnCashFlows.get_risk_weight(instrument)
+            elif is_regulatory_commercial(instrument):
+                if not is_dependent_on_cash_flows_of_property(instrument):
+                    weight = RiskWeightTableForCommercialRealEstateNotDependentOnCashFlows.get_risk_weight(instrument)
+                else:
+                    weight = RiskWeightTableForCommercialRealEstateDependentOnCashFlows.get_risk_weight(instrument)
+            elif is_land_adc_exposure(instrument):
+                weight = RiskWeightTableForLandADCExposure.get_risk_weight(instrument)
+            else:
+                weight = RiskWeightTableForOtherRealEstate.get_risk_weight(instrument)
+
+            total_rwa += instrument.value * weight
+        return total_rwa
 
     def _compute_currency_mismatch_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for risk weight multiplier to certain exposures with currency mismatch."""
