@@ -10,6 +10,7 @@ from brms.models.scenario import Scenario
 from brms.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
+    from brms.instruments.amortizing_fixed_rate_loan import AmortizingFixedRateLoan
     from brms.instruments.cash import Cash
     from brms.instruments.common_equity import CommonEquity
     from brms.instruments.covered_bond import CoveredBond
@@ -34,6 +35,10 @@ class ValuationVisitor(ABC):
         """Value a fixed rate bond given a scenario."""
 
     @abstractmethod
+    def value_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan", scenario: Scenario) -> float:
+        """Value an amortizing fixed rate bond given a scenario."""
+
+    @abstractmethod
     def value_covered_bond(self, instrument: "CoveredBond", scenario: Scenario) -> float:
         """Value a covered bond given a scenario."""
 
@@ -51,6 +56,11 @@ class BankingBookValuationVisitor(ValuationVisitor):
 
     def value_fixed_rate_bond(self, instrument: "FixedRateBond", scenario: Scenario) -> float:
         """Value a fixed rate bond given a scenario."""
+        valuation_date = scenario.date
+        return instrument.notional(valuation_date)
+
+    def value_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan", scenario: Scenario) -> float:
+        """Value an amortizing fixed rate bond given a scenario."""
         valuation_date = scenario.date
         return instrument.notional(valuation_date)
 
@@ -72,6 +82,22 @@ class TradingBookValuationVisitor(ValuationVisitor):
 
     def value_fixed_rate_bond(self, instrument: "FixedRateBond", scenario: Scenario) -> float:
         """Value a fixed rate bond given a scenario."""
+        valuation_date = scenario.date
+
+        term_structure: ql.YieldTermStructureHandle = scenario.data[ScenarioData.YIELD_TERM_STRUCTURE]
+        bond_engine = ql.DiscountingBondEngine(term_structure)
+        instrument.set_pricing_engine(bond_engine)
+
+        # Just being cautious, restore previous evaluation date afterwards
+        old_evaluation_date = ql.Settings.instance().evaluationDate
+        ql.Settings.instance().evaluationDate = pydate_to_qldate(valuation_date)
+        npv = instrument.instrument.NPV()
+        ql.Settings.instance().evaluationDate = old_evaluation_date
+
+        return npv
+
+    def value_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan", scenario: Scenario) -> float:
+        """Value an amortizing fixed rate bond given a scenario."""
         valuation_date = scenario.date
 
         term_structure: ql.YieldTermStructureHandle = scenario.data[ScenarioData.YIELD_TERM_STRUCTURE]
