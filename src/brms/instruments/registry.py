@@ -27,3 +27,7 @@ class RealEstateInstrumentRegistry(InstrumentRegistry):
 
 class RetailInstrumentRegistry(InstrumentRegistry):
     """Registry for retail instrument types."""
+
+
+class TreasuryInstrumentRegistry(InstrumentRegistry):
+    """Registry for treasury instrument types."""

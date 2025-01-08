@@ -2,6 +2,7 @@
 
 from brms.instruments.base import Instrument
 from brms.instruments.fixed_rate_bond import FixedRateBond
+from brms.instruments.registry import TreasuryInstrumentRegistry
 
 
 class TreasuryBill(Instrument):
@@ -14,3 +15,8 @@ class TreasuryNote(FixedRateBond):
 
 class TreasuryBond(FixedRateBond):
     """Represents a Treasury Bond with a fixed interest rate and maturity greater than ten years."""
+
+
+TreasuryInstrumentRegistry.register(TreasuryBill)
+TreasuryInstrumentRegistry.register(TreasuryNote)
+TreasuryInstrumentRegistry.register(TreasuryBond)
