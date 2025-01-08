@@ -24,34 +24,52 @@ class InstrumentRegistry:
 class RealEstateInstrumentRegistry(InstrumentRegistry):
     """Registry for real estate instrument types."""
 
+    _instrument_types: ClassVar[set[type]] = set()
+
 
 class RetailInstrumentRegistry(InstrumentRegistry):
     """Registry for retail instrument types."""
+
+    _instrument_types: ClassVar[set[type]] = set()
 
 
 class TreasuryInstrumentRegistry(InstrumentRegistry):
     """Registry for treasury instrument types."""
 
+    _instrument_types: ClassVar[set[type]] = set()
+
 
 class PSEInstrumentRegistry(InstrumentRegistry):
     """Registry for PSE instrument types."""
+
+    _instrument_types: ClassVar[set[type]] = set()
 
 
 class MDBInstrumentRegistry(InstrumentRegistry):
     """Registry for MDB instrument types."""
 
+    _instrument_types: ClassVar[set[type]] = set()
+
 
 class CorporateInstrumentRegistry(InstrumentRegistry):
     """Registry for corporate instrument types."""
+
+    _instrument_types: ClassVar[set[type]] = set()
 
 
 class OffBalanceSheetInstrumentRegistry(InstrumentRegistry):
     """Registry for off-balance-sheet instrument types."""
 
+    _instrument_types: ClassVar[set[type]] = set()
+
 
 class LoanInstrumentRegistry(InstrumentRegistry):
     """Registry for loan instrument types."""
 
+    _instrument_types: ClassVar[set[type]] = set()
+
 
 class MortgageInstrumentRegistry(InstrumentRegistry):
     """Registry for mortgage instrument types."""
+
+    _instrument_types: ClassVar[set[type]] = set()
