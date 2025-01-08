@@ -36,7 +36,13 @@ class StandardisedApproach(RWAApproach):
 
         BI = ILDC + SC + FC
         """
-        raise NotImplementedError
+        return sum(
+            [
+                ILDCCalculator.compute(bank, date, scenario_manager),
+                SCCalculator.compute(bank, date, scenario_manager),
+                FCCalculator.compute(bank, date, scenario_manager),
+            ],
+        )
 
     def _compute_business_indicator_component(self, bi: float) -> float:
         """Compute the Business Indicator Component (BIC).
@@ -70,8 +76,68 @@ class StandardisedApproach(RWAApproach):
 
         It is a scaling factor that is based on a bank's average historical losses and the BIC.
         """
-        average_annual_operational_risk_losses = 10000  # FIXME: compute average over the previous 10 years
         # Loss Component (LC)
-        lc = 15 * average_annual_operational_risk_losses
+        lc = LCCalculator.compute(bank, date, scenario_manager)
         # ILM
         return math.log(math.e - 1 + (lc / bic) ** 0.8)
+
+
+class ILDCCalculator:
+    """Calculator for the Interest, Leases, and Dividend Component (ILDC)."""
+
+    @staticmethod
+    def compute(bank: Bank, date: datetime.date, scenario_manager: ScenarioManager) -> float:
+        """Compute the Interest, Leases, and Dividend Component (ILDC).
+
+        ILDC is the sum of the following two:
+        1. the minimum of
+            - 3yr_avg(abs(interest income - interest expense))
+            - 3yr_avg(interest earning assets) * 2.25%
+        2. 3yr_avg(dividend income)
+        """
+        return 0.0
+
+
+class SCCalculator:
+    """Calculator for the Services Component (SC)."""
+
+    @staticmethod
+    def compute(bank: Bank, date: datetime.date, scenario_manager: ScenarioManager) -> float:
+        """Compute the Services Component (SC).
+
+        SC is the sum of the following two:
+        1. the maximum of
+            - 3yr_avg(other operating income)
+            - 3yr_avg(other operating expense)
+        2. the maximum of
+            - 3yr_avg(fee income)
+            - 3yr_avg(fee expense)
+        """
+        return 0.0
+
+
+class FCCalculator:
+    """Calculator for the Financial Component (FC)."""
+
+    @staticmethod
+    def compute(bank: Bank, date: datetime.date, scenario_manager: ScenarioManager) -> float:
+        """Compute the Financial Component (FC).
+
+        FC is the sum of the following two:
+        1. 3yr_avg(abs(net P&L trading book))
+        1. 3yr_avg(abs(net P&L banking book))
+        """
+        return 0.0
+
+
+class LCCalculator:
+    """Calculator for the Loss Component (LC)."""
+
+    @staticmethod
+    def compute(bank: Bank, date: datetime.date, scenario_manager: ScenarioManager) -> float:
+        """Compute the Loss Component (LC).
+
+        LC is equal to 15 times average annual operational risk losses incurred over the previous 10 years
+        """
+        average_annual_operational_risk_losses = 10000  # FIXME: compute average over the previous 10 years
+        return 15 * average_annual_operational_risk_losses
