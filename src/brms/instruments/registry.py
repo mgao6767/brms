@@ -43,3 +43,7 @@ class MDBInstrumentRegistry(InstrumentRegistry):
 
 class CorporateInstrumentRegistry(InstrumentRegistry):
     """Registry for corporate instrument types."""
+
+
+class OffBalanceSheetInstrumentRegistry(InstrumentRegistry):
+    """Registry for off-balance-sheet instrument types."""
