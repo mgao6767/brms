@@ -8,6 +8,7 @@ from collections.abc import Callable, Iterable
 from typing import ClassVar
 
 from brms.instruments.base import CreditRating, Instrument
+from brms.instruments.cash import Cash
 from brms.instruments.covered_bond import CoveredBond
 from brms.instruments.registry import (
     CorporateInstrumentRegistry,
@@ -89,6 +90,28 @@ class ExposureChecker:
     def is_securities_firm_exposure(instrument: Instrument, bank: Bank) -> bool:
         """Check if the instrument qualifies securities firm exposure."""
         return instrument.issuer.is_securities_firm()
+
+    @staticmethod
+    def is_cash_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument is cash."""
+        return isinstance(instrument, Cash)
+
+    @staticmethod
+    def is_other_exposure(instrument: Instrument, bank: Bank) -> bool:
+        """Check if the instrument does not qualify all other exposures."""
+        return not any(
+            [
+                ExposureChecker.is_real_estate_exposure(instrument, bank),
+                ExposureChecker.is_retail_exposure(instrument, bank),
+                ExposureChecker.is_sovereign_exposure(instrument, bank),
+                ExposureChecker.is_PSE_exposure(instrument, bank),
+                ExposureChecker.is_MDB_exposure(instrument, bank),
+                ExposureChecker.is_covered_bond_exposure(instrument, bank),
+                ExposureChecker.is_corporate_exposure(instrument, bank),
+                ExposureChecker.is_bank_exposure(instrument, bank),
+                ExposureChecker.is_securities_firm_exposure(instrument, bank),
+            ],
+        )
 
 
 class StandardisedApproach(RWAApproach):
@@ -337,7 +360,16 @@ class StandardisedApproach(RWAApproach):
 
     def _compute_other_assets_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for other assets."""
-        raise NotImplementedError
+        total_rwa = 0.0
+        for instrument in bank.banking_book_assets():
+            weight = 1.0
+            if ExposureChecker.is_other_exposure(instrument, bank):
+                if ExposureChecker.is_cash_exposure(instrument, bank):
+                    weight = 0.0
+                elif False:  # TODO: A 20% risk weight will apply to cash items in the process of collection.
+                    weight = 0.2
+            total_rwa += instrument.value * weight
+        return total_rwa
 
 
 class RiskWeightTable(ABC):

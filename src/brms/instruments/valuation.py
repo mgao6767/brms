@@ -10,6 +10,7 @@ from brms.models.scenario import Scenario
 from brms.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
+    from brms.instruments.cash import Cash
     from brms.instruments.common_equity import CommonEquity
     from brms.instruments.covered_bond import CoveredBond
     from brms.instruments.credit_card import CreditCard
@@ -19,6 +20,10 @@ if TYPE_CHECKING:
 
 class ValuationVisitor(ABC):
     """Abstract base class for valuation visitors."""
+
+    def value_cash(self, instrument: "Cash", scenario: Scenario) -> float:
+        """Value cash given a scenario."""
+        return instrument.value
 
     def value_common_equity(self, instrument: "CommonEquity", scenario: Scenario) -> float:
         """Value common equity given a scenario."""
