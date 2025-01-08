@@ -380,7 +380,7 @@ class StandardisedApproach(RWAApproach):
                     weight = 0.0
                 elif False:  # TODO: A 20% risk weight will apply to cash items in the process of collection.
                     weight = 0.2
-            total_rwa += instrument.value * weight
+                total_rwa += instrument.value * weight
         return total_rwa
 
 
