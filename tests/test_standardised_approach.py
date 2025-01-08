@@ -1,6 +1,7 @@
 import pytest
 
 from brms.instruments.base import CreditRating, Instrument, Issuer, IssuerType
+from brms.instruments.cash import Cash
 from brms.instruments.covered_bond import CoveredBond
 from brms.metrics.credit_risk.standardised_approach import (
     RiskWeightTableForCorporateExposures,
@@ -224,6 +225,29 @@ def test_compute_retail_exposures():
 @pytest.mark.skip("Not yet implemented")
 def test_compute_real_estate_exposures():
     pass
+
+
+def test_compute_other_exposures():
+    standardised_approach = StandardisedApproach()
+    bank = Bank()
+    scenario_manager = ScenarioManager()
+
+    cash = Cash("Cash")
+    cash.value = 1000
+    bank.assets.add(cash)
+
+    rwa = standardised_approach._compute_other_assets_exposures(bank, scenario_manager)
+    expected_rwa = 0
+    assert rwa == expected_rwa
+
+    # Adding other assets should have no effect
+    instrument1 = CoveredBond("Covered Bond 1", book_type=BookType.BANKING_BOOK, credit_rating=CreditRating.AAA)
+    instrument1.issuer = Issuer("Bank 1", IssuerType.BANK)
+    bank.assets.add(instrument1)
+
+    rwa = standardised_approach._compute_other_assets_exposures(bank, scenario_manager)
+    expected_rwa = 0
+    assert rwa == expected_rwa
 
 
 if __name__ == "__main__":
