@@ -321,8 +321,11 @@ class StandardisedApproach(RWAApproach):
         raise NotImplementedError
 
     def _compute_counterparty_credit_risk_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
-        """Compute the RWA for exposures that give rise to counterparty credit risk."""
-        raise NotImplementedError
+        """Compute the RWA for exposures that give rise to counterparty credit risk.
+
+        This is done in `brms.metrics.credit_risk.rwa.CreditRWACounterpartyCreditRisk` under the rules set out in CRE50 to CRE54.
+        """
+        return 0.0
 
     def _compute_credit_derivatives_exposures(self, bank: Bank, scenario_manager: ScenarioManager) -> float:
         """Compute the RWA for credit derivatives."""
