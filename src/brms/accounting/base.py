@@ -1,5 +1,6 @@
-from abc import ABC, abstractmethod
 from enum import Enum
+
+from brms.utils import Observable, Observer
 
 
 class AccountNormalBalance(Enum):
@@ -29,35 +30,6 @@ class AccountType(Enum):
             case _:
                 error_message = f"Unknown account type: {account_type}"
                 raise ValueError(error_message)
-
-
-class Observable:
-    """Base class for observable components."""
-
-    def __init__(self) -> None:
-        """Initialize the Observable with an empty list of observers."""
-        self._observers: list[Observer] = []
-
-    def add_observer(self, observer: "Observer") -> None:
-        """Add an observer to the list of observers."""
-        self._observers.append(observer)
-
-    def remove_observer(self, observer: "Observer") -> None:
-        """Remove an observer from the list of observers."""
-        self._observers.remove(observer)
-
-    def notify_observers(self) -> None:
-        """Notify all observers about a change."""
-        for observer in self._observers:
-            observer.update(self)
-
-
-class Observer(ABC):
-    """Base class for observers."""
-
-    @abstractmethod
-    def update(self, observable: Observable) -> None:
-        """Update when a observable notifies of a change."""
 
 
 class Account(Observable):
