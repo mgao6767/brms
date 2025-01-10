@@ -50,7 +50,7 @@ class SimpleEntry(JournalEntry):
 
 
 @dataclass
-class CompoundJournalEntry(JournalEntry):
+class CompoundEntry(JournalEntry):
     """Represent a compound journal entry that can affect multiple accounts."""
 
     debit_accounts: dict[TAccount, float]
