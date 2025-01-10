@@ -78,9 +78,7 @@ class TAccount(Observable):
 
     @debit_value.setter
     def debit_value(self, value: float) -> None:
-        if self.is_composite():
-            error_message = "Cannot set value directly on a composite account"
-            raise ValueError(error_message)
+        self._check_value_setting()
         self._debit_value = value
         self.notify_observers()  # Notify parent (if any) of the value change
 
@@ -91,14 +89,16 @@ class TAccount(Observable):
 
     @credit_value.setter
     def credit_value(self, value: float) -> None:
-        if self.is_composite():
-            error_message = "Cannot set value directly on a composite account"
-            raise ValueError(error_message)
+        self._check_value_setting()
         self._credit_value = value
         self.notify_observers()  # Notify parent (if any) of the value change
 
     def is_composite(self) -> bool:
         """Check if the T-account is composite."""
+        return False
+
+    def has_sub_account(self) -> bool:
+        """Check if the T-account has any sub account."""
         return False
 
     def balance(self) -> float:
@@ -108,6 +108,15 @@ class TAccount(Observable):
                 return self.debit_value - self.credit_value
             case AccountNormalBalance.CREDIT_NORMAL:
                 return self.credit_value - self.debit_value
+
+    def _check_value_setting(self) -> None:
+        """Check if a debit/credit value can be set.
+
+        The value of a composite account with sub accounts should be the sum of sub accounts' values.
+        """
+        if self.is_composite() and self.has_sub_account():
+            error_message = "Cannot set value directly on a composite account with sub accounts"
+            raise ValueError(error_message)
 
 
 class CompositeTAccount(TAccount, Observable, Observer):
@@ -128,6 +137,10 @@ class CompositeTAccount(TAccount, Observable, Observer):
     def is_composite(self) -> bool:
         """Check if the T-account is composite."""
         return True
+
+    def has_sub_account(self) -> bool:
+        """Check if the T-account has any sub account."""
+        return len(self.sub_accounts) > 0
 
     def add(self, account: TAccount) -> None:
         """Add a T-account as a child and observe it."""

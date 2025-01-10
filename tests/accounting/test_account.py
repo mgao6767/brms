@@ -55,9 +55,10 @@ def test_t_account_type_mismatch(composite_t_account):
 
 def test_set_value_directly_on_composite_t_account(composite_t_account):
     """Test setting values directly on a composite T-account should raise an error."""
-    with pytest.raises(ValueError):
-        composite_t_account.debit_value = 100
+    composite_t_account.debit_value = 100  # no error since the composite account has no sub accounts
 
+    t_account = TAccount("Some assets", AccountType.ASSET, debit=100)
+    composite_t_account.add(t_account)
     with pytest.raises(ValueError):
         composite_t_account.credit_value = 100
 
