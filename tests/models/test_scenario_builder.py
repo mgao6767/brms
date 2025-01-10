@@ -34,3 +34,7 @@ def test_with_term_structure(scenario_builder: ScenarioBuilder) -> None:
     scenario = scenario_builder.build()
     assert ScenarioData.YIELD_TERM_STRUCTURE in scenario.data
     assert scenario.data[ScenarioData.YIELD_TERM_STRUCTURE] == term_structure
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

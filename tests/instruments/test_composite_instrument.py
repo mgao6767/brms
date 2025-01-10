@@ -81,4 +81,4 @@ def test_iter(composite_instrument, instrument_banking, instrument_trading):
 
 
 if __name__ == "__main__":
-    pytest.main()
+    pytest.main([__file__])

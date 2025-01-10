@@ -133,4 +133,4 @@ def test_chart_of_accounts_builder_incorrect_account_type():
 
 
 if __name__ == "__main__":
-    pytest.main()
+    pytest.main([__file__])

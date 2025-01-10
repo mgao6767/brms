@@ -105,4 +105,4 @@ def test_fixed_rate_bond_trading_book_valuation_not_par(fixed_rate_bond):
 
 
 if __name__ == "__main__":
-    pytest.main()
+    pytest.main([__file__])
