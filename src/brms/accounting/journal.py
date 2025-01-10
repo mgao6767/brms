@@ -1,18 +1,71 @@
+"""Module for handling journal entries in accounting."""
+
 import datetime
 from dataclasses import dataclass, field
+from typing import Protocol
 
 from brms.accounting.account import TAccount
 
 
+class JournalEntry(Protocol):
+    """Protocol for a journal entry."""
+
+    date: datetime.date | None
+    description: str
+
+    def involves_account(self, account: TAccount) -> bool:
+        """Check if the journal entry involves a specific account."""
+
+
 @dataclass
-class JournalEntry:
-    """Represent a journal entry with debit and credit accounts and a value."""
+class SimpleEntry:
+    """Represent a simple journal entry with debit and credit accounts and a value."""
 
     debit_account: TAccount
     credit_account: TAccount
     value: float
     date: datetime.date | None = None
     description: str = ""
+
+    def involves_account(self, account: TAccount) -> bool:
+        """Check if the journal entry involves a specific account."""
+        return account in {self.debit_account, self.credit_account}
+
+
+@dataclass
+class CompoundJournalEntry:
+    """Represent a compound journal entry that can affect multiple accounts."""
+
+    debit_accounts: dict[TAccount, float]
+    credit_accounts: dict[TAccount, float]
+    date: datetime.date | None = None
+    description: str = ""
+
+    def __post_init__(self) -> None:
+        """Post-initialization processing to validate the compound journal entry."""
+        self.validate()
+
+    def validate(self) -> None:
+        """Assert sum of debit entries equals sum of credit entries."""
+        if not self.is_balanced():
+            error_message = "Compound journal entry is not balanced"
+            raise ValueError(error_message)
+
+    def total_debits(self) -> float:
+        """Calculate the total debits for the compound entry."""
+        return sum(self.debit_accounts.values())
+
+    def total_credits(self) -> float:
+        """Calculate the total credits for the compound entry."""
+        return sum(self.credit_accounts.values())
+
+    def is_balanced(self) -> bool:
+        """Check if the compound entry is balanced."""
+        return self.total_debits() == self.total_credits()
+
+    def involves_account(self, account: TAccount) -> bool:
+        """Check if the journal entry involves a specific account."""
+        return account in self.debit_accounts or account in self.credit_accounts
 
 
 @dataclass
@@ -31,7 +84,7 @@ class Journal:
 
     def get_entries_by_account(self, account: TAccount) -> list[JournalEntry]:
         """Get all journal entries involving a specific account."""
-        return [entry for entry in self.entries if account in {entry.debit_account, entry.credit_account}]
+        return [entry for entry in self.entries if entry.involves_account(account)]
 
     def get_entries_by_description(self, description: str) -> list[JournalEntry]:
         """Get all journal entries matching a specific description."""
@@ -39,7 +92,7 @@ class Journal:
 
     def get_entries_within_date_range(self, start_date: datetime.date, end_date: datetime.date) -> list[JournalEntry]:
         """Get all journal entries within a specific date range."""
-        return [entry for entry in self.entries if start_date <= entry.date <= end_date]
+        return [entry for entry in self.entries if entry.date is not None and start_date <= entry.date <= end_date]
 
     def remove_entry(self, entry: JournalEntry) -> None:
         """Remove a specific journal entry."""
