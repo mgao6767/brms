@@ -29,8 +29,10 @@ class Ledger:
     def post(self, entry: JournalEntry) -> None:
         """Post a journal entry to the ledger."""
         self.journal.add_entry(entry)
-        entry.debit_account.debit(entry.value)
-        entry.credit_account.credit(entry.value)
+        for account, amount in entry.debit_account_value_pairs():
+            account.debit(amount)
+        for account, amount in entry.credit_account_value_pairs():
+            account.credit(amount)
 
     def add_accounts_from_chart(self, chart: ChartOfAccounts) -> None:
         """Add accounts from a ChartOfAccounts to the ledger."""

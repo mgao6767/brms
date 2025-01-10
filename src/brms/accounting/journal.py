@@ -1,24 +1,36 @@
 """Module for handling journal entries in accounting."""
 
 import datetime
+from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Protocol
 
 from brms.accounting.account import TAccount
 
 
-class JournalEntry(Protocol):
-    """Protocol for a journal entry."""
+class JournalEntry(ABC):
+    """Abstract base class for a journal entry."""
 
+    debit_accounts: dict[TAccount, float]
+    credit_accounts: dict[TAccount, float]
     date: datetime.date | None
     description: str
 
+    @abstractmethod
     def involves_account(self, account: TAccount) -> bool:
         """Check if the journal entry involves a specific account."""
 
+    def debit_account_value_pairs(self) -> Iterator[tuple[TAccount, float]]:
+        """Return an iterator over debit account and value pairs."""
+        yield from self.debit_accounts.items()
+
+    def credit_account_value_pairs(self) -> Iterator[tuple[TAccount, float]]:
+        """Return an iterator over credit account and value pairs."""
+        yield from self.credit_accounts.items()
+
 
 @dataclass
-class SimpleEntry:
+class SimpleEntry(JournalEntry):
     """Represent a simple journal entry with debit and credit accounts and a value."""
 
     debit_account: TAccount
@@ -27,13 +39,18 @@ class SimpleEntry:
     date: datetime.date | None = None
     description: str = ""
 
+    def __post_init__(self) -> None:
+        """Post-initialization processing to conform the protocol."""
+        self.debit_accounts: dict[TAccount, float] = {self.debit_account: self.value}
+        self.credit_accounts: dict[TAccount, float] = {self.credit_account: self.value}
+
     def involves_account(self, account: TAccount) -> bool:
         """Check if the journal entry involves a specific account."""
         return account in {self.debit_account, self.credit_account}
 
 
 @dataclass
-class CompoundJournalEntry:
+class CompoundJournalEntry(JournalEntry):
     """Represent a compound journal entry that can affect multiple accounts."""
 
     debit_accounts: dict[TAccount, float]
