@@ -35,7 +35,7 @@ class Instrument(ABC):
         return self._parent
 
     @parent.setter
-    def parent(self, parent: "Instrument") -> None:
+    def parent(self, parent: Optional["Instrument"]) -> None:
         self._parent = parent
 
     @property
@@ -104,10 +104,12 @@ class CompositeInstrument(Instrument):
 
     def add(self, instrument: Instrument) -> None:
         """Add an instrument to the composite."""
+        instrument.parent = self
         self._instruments.append(instrument)
 
     def remove(self, instrument: Instrument) -> None:
         """Remove an instrument from the composite."""
+        instrument.parent = None
         self._instruments.remove(instrument)
 
     def is_composite(self) -> bool:
