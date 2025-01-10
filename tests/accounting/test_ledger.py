@@ -13,16 +13,24 @@ def setup_accounts():
     debt_account = TAccount("Debt", AccountType.LIABILITY)
     refund_account = TAccount("Refund", AccountType.INCOME, is_contra_account=True)
     revenue_account = TAccount("Revenue", AccountType.INCOME, contra_accounts=[refund_account])
-    return cash_account, debt_account, refund_account, revenue_account
+    expense_account = TAccount("Expense", AccountType.EXPENSE)
+    return (
+        cash_account,
+        debt_account,
+        refund_account,
+        revenue_account,
+        expense_account,
+    )
 
 
 @pytest.fixture
 def setup_ledger(setup_accounts):
-    cash_account, debt_account, _, revenue_account = setup_accounts
+    cash_account, debt_account, refund_account, revenue_account, expense_account = setup_accounts
     builder = ChartOfAccountsBuilder()
     builder.add_asset_account(cash_account)
     builder.add_liability_account(debt_account)
     builder.add_income_account(revenue_account)
+    builder.add_expense_account(expense_account)
     chart_of_accounts = builder.build()
     ledger = Ledger()
     ledger.add_accounts_from_chart(chart_of_accounts)
@@ -97,11 +105,56 @@ def test_post_compound_entry(setup_ledger):
 
 
 def test_add_accounts_from_chart(setup_accounts, setup_ledger):
-    cash_account, debt_account, _, revenue_account = setup_accounts
+    (
+        cash_account,
+        debt_account,
+        _,
+        revenue_account,
+        _,
+    ) = setup_accounts
     ledger = setup_ledger
     assert ledger.get_account("Cash") is cash_account
     assert ledger.get_account("Debt") is debt_account
     assert ledger.get_account("Revenue") is revenue_account
+
+
+def test_close_ledger(setup_accounts, setup_ledger):
+    cash_account, debt_account, refund_account, revenue_account, expense_account = setup_accounts
+    ledger = setup_ledger
+    date = datetime.date(2025, 12, 31)
+
+    # Post some entries to create balances
+    ledger.post(
+        SimpleEntry(
+            debit_account=cash_account,
+            credit_account=revenue_account,
+            value=5000.0,
+            date=date,
+            description="Revenue entry",
+        ),
+    )
+    ledger.post(
+        SimpleEntry(
+            debit_account=expense_account,
+            credit_account=cash_account,
+            value=2000.0,
+            date=date,
+            description="Expense entry",
+        ),
+    )
+
+    # Close the ledger
+    ledger.close_ledger(date)
+
+    # Check that income and expense accounts are closed
+    assert ledger.get_account("Revenue").balance() == 0.0
+    assert ledger.get_account("Expense").balance() == 0.0
+
+    # Check that Income Summary is closed to Retained Earnings
+    income_summary = ledger.get_income_summary_account()
+    retained_earnings = ledger.get_retained_earnings_account()
+    assert income_summary.balance() == 0.0
+    assert retained_earnings.balance() == 3000.0  # 5000 (revenue) - 2000 (expense)
 
 
 if __name__ == "__main__":
