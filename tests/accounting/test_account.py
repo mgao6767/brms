@@ -1,6 +1,6 @@
 import pytest
 
-from brms.accounting.base import Account, AccountType, CompositeAccount, CompositeTAccount, TAccount
+from brms.accounting.account import Account, AccountType, CompositeAccount, CompositeTAccount, TAccount
 
 
 @pytest.fixture
