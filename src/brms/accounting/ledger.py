@@ -14,7 +14,7 @@ class Ledger:
     def add_account(self, account: TAccount) -> None:
         """Add an account to the ledger."""
         if account.name in self.accounts:
-            error_message = "An account with the same name {account.name} already exists"
+            error_message = f"An account with the same name {account.name} already exists"
             raise KeyError(error_message)
         self.accounts[account.name] = account
 
