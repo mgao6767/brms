@@ -1,5 +1,7 @@
+from collections.abc import Generator
 from dataclasses import dataclass, field
 from enum import Enum
+from itertools import chain
 from typing import Optional
 
 from brms.utils import Observable, Observer
@@ -198,6 +200,23 @@ class ChartOfAccounts:
 
     income_summary_account = TAccount("Income Summary Account", AccountType.INCOME)
     retained_earnings_account = TAccount("Retained Earnings Account", AccountType.EQUITY)
+
+    def all_accounts(self) -> Generator[TAccount, None, None]:
+        """Yield all accounts in the chart of accounts."""
+        all_accounts = chain(
+            self.assets,
+            self.equities,
+            self.liabilities,
+            self.income,
+            self.expenses,
+        )
+
+        for account in all_accounts:
+            yield account
+            yield from account.contra_accounts
+
+        yield self.income_summary_account
+        yield self.retained_earnings_account
 
 
 class ChartOfAccountsBuilder:
