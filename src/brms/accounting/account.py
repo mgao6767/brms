@@ -24,13 +24,13 @@ class AccountType(Enum):
     EXPENSE = "Expense"
 
     @staticmethod
-    def get_normal_balance(account_type: "AccountType") -> AccountNormalBalance:
+    def get_normal_balance(account_type: "AccountType", *, contra_account: bool = False) -> AccountNormalBalance:
         """Return the normal balance for a given account type."""
         match account_type:
             case AccountType.ASSET | AccountType.EXPENSE:
-                return AccountNormalBalance.DEBIT_NORMAL
+                return AccountNormalBalance.DEBIT_NORMAL if not contra_account else AccountNormalBalance.CREDIT_NORMAL
             case AccountType.LIABILITY | AccountType.EQUITY | AccountType.INCOME:
-                return AccountNormalBalance.CREDIT_NORMAL
+                return AccountNormalBalance.CREDIT_NORMAL if not contra_account else AccountNormalBalance.DEBIT_NORMAL
             case _:
                 error_message = f"Unknown account type: {account_type}"
                 raise ValueError(error_message)
