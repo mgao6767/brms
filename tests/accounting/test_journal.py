@@ -3,7 +3,7 @@ import datetime
 import pytest
 
 from brms.accounting.account import AccountType, TAccount
-from brms.accounting.journal import Journal, SimpleEntry, CompoundJournalEntry
+from brms.accounting.journal import CompoundEntry, Journal, SimpleEntry
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def sample_journal_entry(sample_accounts):
 @pytest.fixture
 def sample_compound_entry(sample_accounts):
     cash_account, debt_account, revenue_account = sample_accounts
-    return CompoundJournalEntry(
+    return CompoundEntry(
         debit_accounts={cash_account: 200.0},
         credit_accounts={
             revenue_account: 100.0,
