@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Optional
 
 from brms.utils import Observable, Observer
 
@@ -44,6 +45,7 @@ class TAccount(Observable):
         name: str,
         account_type: AccountType,
         contra_accounts: list["TAccount"] | None = None,
+        parent: Optional["TAccount"] = None,
         debit: float = 0.0,
         credit: float = 0.0,
     ) -> None:
@@ -53,6 +55,7 @@ class TAccount(Observable):
         self.type = account_type
         self.normal_balance = AccountType.get_normal_balance(account_type)
         self.contra_accounts = contra_accounts or []
+        self._parent = parent
         self._debit_value = debit
         self._credit_value = credit
 
@@ -67,6 +70,18 @@ class TAccount(Observable):
     def is_balanced(self) -> bool:
         """Check if the T-account is balanced."""
         return self.debit_value == self.credit_value
+
+    @property
+    def parent(self) -> Optional["TAccount"]:
+        """Get the parent account."""
+        return self._parent
+
+    @parent.setter
+    def parent(self, parent: Optional["TAccount"]) -> None:
+        if isinstance(parent, TAccount) and parent.type != self.type:
+            error_message = f"Account type mismatch: {parent.type} != {self.type}"
+            raise ValueError(error_message)
+        self._parent = parent
 
     @property
     def debit_value(self) -> float:
@@ -124,11 +139,12 @@ class CompositeTAccount(TAccount, Observable, Observer):
         name: str,
         account_type: AccountType,
         contra_accounts: list["TAccount"] | None = None,
+        parent: Optional["TAccount"] = None,
         debit: float = 0.0,
         credit: float = 0.0,
     ) -> None:
         """Initialize a CompositeTAccount instance."""
-        super().__init__(name, account_type, contra_accounts, debit, credit)
+        super().__init__(name, account_type, contra_accounts, parent, debit, credit)
         self.sub_accounts: list[TAccount] = []
 
     def is_composite(self) -> bool:
@@ -148,12 +164,14 @@ class CompositeTAccount(TAccount, Observable, Observer):
             error_message = "Account must be an instance of TAccount"
             raise TypeError(error_message)
         self.sub_accounts.append(account)
+        account.parent = self
         account.add_observer(self)  # Observe the child
         self.update(account)  # Update value to include the new child
 
     def remove(self, account: TAccount) -> None:
         """Remove a T-account as a child and stop observing it."""
         self.sub_accounts.remove(account)
+        account.parent = None
         account.remove_observer(self)  # Stop observing the child
         self.update(account)  # Update value to exclude the removed child
 
