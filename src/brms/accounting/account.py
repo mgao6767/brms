@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from enum import Enum
 
 from brms.utils import Observable, Observer
@@ -30,10 +31,6 @@ class AccountType(Enum):
             case _:
                 error_message = f"Unknown account type: {account_type}"
                 raise ValueError(error_message)
-
-
-class ChartOfAccounts:
-    """Represent the chart of accounts."""
 
 
 class TAccount(Observable):
@@ -169,3 +166,74 @@ class CompositeTAccount(TAccount, Observable, Observer):
         self._debit_value = sum(account.debit_value for account in self.sub_accounts)
         self._credit_value = sum(account.credit_value for account in self.sub_accounts)
         self.notify_observers()  # Notify parent (if any) of the change
+
+
+@dataclass
+class ChartOfAccounts:
+    """Represent the chart of accounts."""
+
+    assets: list[TAccount] = field(default_factory=list)
+    equities: list[TAccount] = field(default_factory=list)
+    liabilities: list[TAccount] = field(default_factory=list)
+    income: list[TAccount] = field(default_factory=list)
+    expenses: list[TAccount] = field(default_factory=list)
+
+    income_summary_account = TAccount("Income Summary Account", AccountType.INCOME)
+    retained_earnings_account = TAccount("Retained Earnings Account", AccountType.EQUITY)
+
+
+class ChartOfAccountsBuilder:
+    """Builder for creating a ChartOfAccounts instance."""
+
+    def __init__(self) -> None:
+        """Initialize a ChartOfAccountsBuilder instance."""
+        self._assets: list[TAccount] = []
+        self._equities: list[TAccount] = []
+        self._liabilities: list[TAccount] = []
+        self._income: list[TAccount] = []
+        self._expenses: list[TAccount] = []
+
+    def _check_account_type(self, account: TAccount, target_account_type: AccountType) -> None:
+        if account.type != target_account_type:
+            error_message = f"Account type mismatch: {account.type} != {target_account_type}"
+            raise ValueError(error_message)
+
+    def add_asset_account(self, account: TAccount) -> "ChartOfAccountsBuilder":
+        """Add an asset account to the builder."""
+        self._check_account_type(account, AccountType.ASSET)
+        self._assets.append(account)
+        return self
+
+    def add_equity_account(self, account: TAccount) -> "ChartOfAccountsBuilder":
+        """Add an equity account to the builder."""
+        self._check_account_type(account, AccountType.EQUITY)
+        self._equities.append(account)
+        return self
+
+    def add_liability_account(self, account: TAccount) -> "ChartOfAccountsBuilder":
+        """Add a liability account to the builder."""
+        self._check_account_type(account, AccountType.LIABILITY)
+        self._liabilities.append(account)
+        return self
+
+    def add_income_account(self, account: TAccount) -> "ChartOfAccountsBuilder":
+        """Add an income account to the builder."""
+        self._check_account_type(account, AccountType.INCOME)
+        self._income.append(account)
+        return self
+
+    def add_expense_account(self, account: TAccount) -> "ChartOfAccountsBuilder":
+        """Add an expense account to the builder."""
+        self._check_account_type(account, AccountType.EXPENSE)
+        self._expenses.append(account)
+        return self
+
+    def build(self) -> ChartOfAccounts:
+        """Build and return a ChartOfAccounts instance."""
+        return ChartOfAccounts(
+            assets=self._assets,
+            equities=self._equities,
+            liabilities=self._liabilities,
+            income=self._income,
+            expenses=self._expenses,
+        )
