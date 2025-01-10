@@ -50,12 +50,14 @@ class TAccount(Observable):
         parent: Optional["TAccount"] = None,
         debit: float = 0.0,
         credit: float = 0.0,
+        *,
+        is_contra_account: bool = False,
     ) -> None:
         """Initialize a TAccount instance."""
         super().__init__()
         self.name = name
         self.type = account_type
-        self.normal_balance = AccountType.get_normal_balance(account_type)
+        self.normal_balance = AccountType.get_normal_balance(account_type, contra_account=is_contra_account)
         self.contra_accounts = contra_accounts or []
         self._parent = parent
         self._debit_value = debit
@@ -144,9 +146,19 @@ class CompositeTAccount(TAccount, Observable, Observer):
         parent: Optional["TAccount"] = None,
         debit: float = 0.0,
         credit: float = 0.0,
+        *,
+        is_contra_account: bool = False,
     ) -> None:
         """Initialize a CompositeTAccount instance."""
-        super().__init__(name, account_type, contra_accounts, parent, debit, credit)
+        super().__init__(
+            name,
+            account_type,
+            contra_accounts,
+            parent,
+            debit,
+            credit,
+            is_contra_account=is_contra_account,
+        )
         self.sub_accounts: list[TAccount] = []
 
     def is_composite(self) -> bool:
