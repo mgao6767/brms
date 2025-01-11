@@ -40,6 +40,14 @@ class AccountType(Enum):
 class AccountBalances(UserDict["TAccount", float]):
     """A dictionary-like class to hold account balances."""
 
+    @classmethod
+    def from_accounts(cls, accounts: list["TAccount"]) -> "AccountBalances":
+        """Create an AccountBalances instance from a list of accounts."""
+        balances = cls()
+        for account in accounts:
+            balances[account] = account.balance()
+        return balances
+
 
 class TAccount(Observable):
     """Base class representing a T-account, which holds amounts on both the debit and credit sides.
