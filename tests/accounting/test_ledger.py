@@ -14,9 +14,12 @@ def setup_accounts():
     refund_account = TAccount("Refund", AccountType.INCOME, is_contra_account=True)
     revenue_account = TAccount("Revenue", AccountType.INCOME, contra_accounts=[refund_account])
     expense_account = TAccount("Expense", AccountType.EXPENSE)
+    account_receivable_account = TAccount("Account Receivable", AccountType.ASSET)
+
     return (
         cash_account,
         debt_account,
+        account_receivable_account,
         refund_account,
         revenue_account,
         expense_account,
@@ -25,9 +28,10 @@ def setup_accounts():
 
 @pytest.fixture
 def setup_ledger(setup_accounts):
-    cash_account, debt_account, refund_account, revenue_account, expense_account = setup_accounts
+    cash_account, debt_account, account_receivable_account, _, revenue_account, expense_account = setup_accounts
     builder = ChartOfAccountsBuilder()
     builder.add_asset_account(cash_account)
+    builder.add_asset_account(account_receivable_account)
     builder.add_liability_account(debt_account)
     builder.add_income_account(revenue_account)
     builder.add_expense_account(expense_account)
@@ -40,7 +44,7 @@ def setup_ledger(setup_accounts):
 def test_add_account(setup_ledger):
     ledger = setup_ledger
     new_account = TAccount(name="New Account", account_type=AccountType.ASSET)
-    ledger.add_account(new_account)
+    ledger._add_account(new_account)
     assert ledger.get_account("New Account") == new_account
 
 
@@ -84,7 +88,6 @@ def test_post_entry(setup_ledger):
 
 def test_post_compound_entry(setup_ledger):
     ledger = setup_ledger
-    ledger.add_account(TAccount("Account Receivable", AccountType.ASSET))
     debit_accounts = {
         ledger.get_account("Cash"): 500.0,
         ledger.get_account("Account Receivable"): 500.0,
@@ -109,6 +112,7 @@ def test_add_accounts_from_chart(setup_accounts, setup_ledger):
         cash_account,
         debt_account,
         _,
+        _,
         revenue_account,
         _,
     ) = setup_accounts
@@ -119,7 +123,9 @@ def test_add_accounts_from_chart(setup_accounts, setup_ledger):
 
 
 def test_close_ledger(setup_accounts, setup_ledger):
-    cash_account, debt_account, refund_account, revenue_account, expense_account = setup_accounts
+    cash_account, debt_account, account_receivable_account, refund_account, revenue_account, expense_account = (
+        setup_accounts
+    )
     ledger = setup_ledger
     date = datetime.date(2025, 12, 31)
 
@@ -151,8 +157,8 @@ def test_close_ledger(setup_accounts, setup_ledger):
     assert ledger.get_account("Expense").balance() == 0.0
 
     # Check that Income Summary is closed to Retained Earnings
-    income_summary = ledger.get_income_summary_account()
-    retained_earnings = ledger.get_retained_earnings_account()
+    income_summary = ledger.income_summary_account
+    retained_earnings = ledger.retained_earnings_account
     assert income_summary.balance() == 0.0
     assert retained_earnings.balance() == 3000.0  # 5000 (revenue) - 2000 (expense)
 

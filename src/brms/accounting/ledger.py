@@ -11,13 +11,17 @@ class Ledger:
 
     journal: Journal = field(default_factory=Journal)
     accounts: dict[str, TAccount] = field(default_factory=dict)
+    chart_of_accounts: ChartOfAccounts = field(default_factory=ChartOfAccounts)
 
-    def add_account(self, account: TAccount) -> None:
-        """Add an account to the ledger."""
-        if account.name in self.accounts:
-            error_message = f"An account with the same name {account.name} already exists"
-            raise KeyError(error_message)
-        self.accounts[account.name] = account
+    @property
+    def income_summary_account(self) -> TAccount:
+        """Retrieve the income summary account."""
+        return self.chart_of_accounts.income_summary_account
+
+    @property
+    def retained_earnings_account(self) -> TAccount:
+        """Retrieve the retained earnings account."""
+        return self.chart_of_accounts.retained_earnings_account
 
     def get_account(self, name: str) -> TAccount:
         """Retrieve an account by name."""
@@ -37,18 +41,26 @@ class Ledger:
 
     def add_accounts_from_chart(self, chart: ChartOfAccounts) -> None:
         """Add accounts from a ChartOfAccounts to the ledger."""
+        self.chart_of_accounts = chart
         for account in chart.all_accounts():
-            self.add_account(account)
+            self._add_account(account)
 
     def close_ledger(self, date: datetime.date) -> None:
         """Close the ledger at the end of an accounting period."""
-        self.close_income_accounts(date)
-        self.close_expense_accounts(date)
-        self.close_income_summary(date)
+        self._close_income_accounts(date)
+        self._close_expense_accounts(date)
+        self._close_income_summary(date)
 
-    def close_income_accounts(self, date: datetime.date) -> None:
+    def _add_account(self, account: TAccount) -> None:
+        """Add an account to the ledger."""
+        if account.name in self.accounts:
+            error_message = f"An account with the same name {account.name} already exists"
+            raise KeyError(error_message)
+        self.accounts[account.name] = account
+
+    def _close_income_accounts(self, date: datetime.date) -> None:
         """Close all income accounts including contra accounts."""
-        income_summary = self.get_income_summary_account()
+        income_summary = self.income_summary_account
         for name, account in self.accounts.items():
             if account.type == AccountType.INCOME:
                 self.post(
@@ -71,9 +83,9 @@ class Ledger:
                         ),
                     )
 
-    def close_expense_accounts(self, date: datetime.date) -> None:
+    def _close_expense_accounts(self, date: datetime.date) -> None:
         """Close all expense accounts including contra accounts."""
-        income_summary = self.get_income_summary_account()
+        income_summary = self.income_summary_account
         for name, account in self.accounts.items():
             if account.type == AccountType.EXPENSE:
                 self.post(
@@ -96,10 +108,10 @@ class Ledger:
                         ),
                     )
 
-    def close_income_summary(self, date: datetime.date) -> None:
+    def _close_income_summary(self, date: datetime.date) -> None:
         """Close the Income Summary account."""
-        income_summary = self.get_income_summary_account()
-        retained_earnings = self.get_retained_earnings_account()
+        income_summary = self.income_summary_account
+        retained_earnings = self.retained_earnings_account
         self.post(
             SimpleEntry(
                 debit_account=income_summary,
@@ -109,11 +121,3 @@ class Ledger:
                 description="Closing Income Summary account to retained earnings account",
             ),
         )
-
-    def get_income_summary_account(self) -> TAccount:
-        # TODO: should not use the account name to get ISA
-        return self.get_account("Income Summary Account")
-
-    def get_retained_earnings_account(self) -> TAccount:
-        # TODO: should not use the account name to get REA
-        return self.get_account("Retained Earnings Account")
