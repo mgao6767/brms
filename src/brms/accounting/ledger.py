@@ -1,7 +1,7 @@
 import datetime
 from dataclasses import dataclass, field
 
-from brms.accounting.account import AccountType, ChartOfAccounts, TAccount
+from brms.accounting.account import AccountBalances, AccountType, ChartOfAccounts, TAccount
 from brms.accounting.journal import Journal, JournalEntry, SimpleEntry
 
 
@@ -53,6 +53,10 @@ class Ledger:
         self._close_expense_accounts(date)
         self._close_income_summary(date)
         self.is_closed = True
+
+    def account_balances(self) -> AccountBalances:
+        """Retrieve the balances of all accounts."""
+        return AccountBalances({account: account.balance() for name, account in self.accounts.items()})
 
     def _add_account(self, account: TAccount) -> None:
         """Add an account to the ledger."""

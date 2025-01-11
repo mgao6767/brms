@@ -1,3 +1,4 @@
+from collections import UserDict
 from collections.abc import Generator
 from dataclasses import dataclass, field
 from enum import Enum
@@ -34,6 +35,10 @@ class AccountType(Enum):
             case _:
                 error_message = f"Unknown account type: {account_type}"
                 raise ValueError(error_message)
+
+
+class AccountBalances(UserDict["TAccount", float]):
+    """A dictionary-like class to hold account balances."""
 
 
 class TAccount(Observable):
