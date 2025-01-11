@@ -1,3 +1,5 @@
+"""Defines the Ledger class, which represents a ledger in an accounting system."""
+
 import datetime
 from dataclasses import dataclass, field
 
@@ -32,6 +34,10 @@ class Ledger:
             raise ValueError(error_message)
         return account
 
+    def get_accounts_by_type(self, account_type: AccountType) -> list[TAccount]:
+        """Retrieve all accounts of a given account type."""
+        return [account for account in self.accounts.values() if account.type == account_type]
+
     def post(self, entry: JournalEntry) -> None:
         """Post a journal entry to the ledger."""
         self.journal.add_entry(entry)
@@ -56,7 +62,7 @@ class Ledger:
 
     def account_balances(self) -> AccountBalances:
         """Retrieve the balances of all accounts."""
-        return AccountBalances({account: account.balance() for name, account in self.accounts.items()})
+        return AccountBalances({account: account.balance() for account in self.accounts.values()})
 
     def _add_account(self, account: TAccount) -> None:
         """Add an account to the ledger."""
