@@ -12,6 +12,7 @@ class Ledger:
     journal: Journal = field(default_factory=Journal)
     accounts: dict[str, TAccount] = field(default_factory=dict)
     chart_of_accounts: ChartOfAccounts = field(default_factory=ChartOfAccounts)
+    is_closed: bool = False
 
     @property
     def income_summary_account(self) -> TAccount:
@@ -38,6 +39,7 @@ class Ledger:
             account.debit(amount)
         for account, amount in entry.credit_account_value_pairs():
             account.credit(amount)
+        self.is_closed = False
 
     def add_accounts_from_chart(self, chart: ChartOfAccounts) -> None:
         """Add accounts from a ChartOfAccounts to the ledger."""
@@ -50,6 +52,7 @@ class Ledger:
         self._close_income_accounts(date)
         self._close_expense_accounts(date)
         self._close_income_summary(date)
+        self.is_closed = True
 
     def _add_account(self, account: TAccount) -> None:
         """Add an account to the ledger."""
