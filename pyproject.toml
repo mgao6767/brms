@@ -10,7 +10,11 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
-dependencies = ["pyside6==6.8.1", "quantlib>=1.36"]
+dependencies = [
+    "pyside6==6.8.1",
+    "quantlib>=1.36",
+    "rich>=13.9.4",
+]
 
 [dependency-groups]
 dev = ["isort>=5.13.2", "pytest>=8.3.4", "ruff>=0.8.5"]
