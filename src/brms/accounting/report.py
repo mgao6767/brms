@@ -114,8 +114,14 @@ class Report:
         # This is a design choice - there can be multiple report instances using the same ledger.
         self.ledger = deepcopy(self.ledger)
         self.trial_balance = TrialBalance.from_ledger(self.ledger)
-        self.ledger.close_ledger(self.date)  # side-effect on the ledger
+        self.trial_balance.date = self.date
+        # Close contra income and contra expense accounts for income statement
+        self.ledger.close_contra_accounts(self.date)
         self.income_statement = IncomeStatement.from_ledger(self.ledger)
+        # Close income and expense accounts to ISA and close ISA to retained earnings account
+        self.ledger.close_income_accounts(self.date)
+        self.ledger.close_expense_accounts(self.date)
+        self.ledger.close_income_summary_account(self.date)
         self.balance_sheet = BalanceSheet.from_ledger(self.ledger)
 
     def print_trial_balance(self) -> str:
