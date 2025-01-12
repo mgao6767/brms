@@ -103,7 +103,7 @@ class Report:
 
     def print_trial_balance(self) -> str:
         """Generate the trial balance view."""
-        return self.income_statement.accept(self.viewer)
+        return self.trial_balance.accept(self.viewer)
 
     def print_income_statement(self) -> str:
         """Generate the income statement view."""
