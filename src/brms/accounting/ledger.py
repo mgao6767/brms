@@ -14,7 +14,6 @@ class Ledger:
     journal: Journal = field(default_factory=Journal)
     accounts: dict[str, TAccount] = field(default_factory=dict)
     chart_of_accounts: ChartOfAccounts = field(default_factory=ChartOfAccounts)
-    is_closed: bool = False
     date_closed: datetime.date | None = None
 
     @property
@@ -46,7 +45,6 @@ class Ledger:
             account.debit(amount)
         for account, amount in entry.credit_account_value_pairs():
             account.credit(amount)
-        self.is_closed = False
 
     def add_accounts_from_chart(self, chart: ChartOfAccounts) -> None:
         """Add accounts from a ChartOfAccounts to the ledger."""
@@ -56,11 +54,10 @@ class Ledger:
 
     def close_ledger(self, date: datetime.date) -> None:
         """Close the ledger at the end of an accounting period."""
-        self._close_income_accounts(date)
-        self._close_expense_accounts(date)
-        self._close_income_summary(date)
-        self.is_closed = True
-        self.date_closed = date
+        self.close_income_summary_account(date)
+        self.close_income_accounts(date)
+        self.close_expense_accounts(date)
+        self.close_income_summary_account(date)
 
     def account_balances(self) -> AccountBalances:
         """Retrieve the balances of all accounts."""
@@ -73,8 +70,38 @@ class Ledger:
             raise KeyError(error_message)
         self.accounts[account.name] = account
 
-    def _close_income_accounts(self, date: datetime.date) -> None:
-        """Close all income accounts including contra accounts."""
+    def close_contra_accounts(self, date: datetime.date) -> None:
+        """Close contra income and contra expense accounts to income summary account."""
+        self.date_closed = date
+        income_summary = self.income_summary_account
+        for account in self.accounts.values():
+            match account.type:
+                case AccountType.INCOME:
+                    for contra in account.contra_accounts:
+                        self.post(
+                            SimpleEntry(
+                                debit_account=income_summary,
+                                credit_account=contra,
+                                value=contra.balance(),
+                                date=date,
+                                description=f"Closing contra income account: {contra.name}",
+                            ),
+                        )
+                case AccountType.EXPENSE:
+                    for contra in account.contra_accounts:
+                        self.post(
+                            SimpleEntry(
+                                debit_account=contra,
+                                credit_account=income_summary,
+                                value=contra.balance(),
+                                date=date,
+                                description=f"Closing contra expense account: {contra.name}",
+                            ),
+                        )
+
+    def close_income_accounts(self, date: datetime.date) -> None:
+        """Close all income accounts."""
+        self.date_closed = date
         income_summary = self.income_summary_account
         for name, account in self.accounts.items():
             if account.type == AccountType.INCOME:
@@ -87,19 +114,10 @@ class Ledger:
                         description=f"Closing income account: {name}",
                     ),
                 )
-                for contra in account.contra_accounts:
-                    self.post(
-                        SimpleEntry(
-                            debit_account=income_summary,
-                            credit_account=contra,
-                            value=contra.balance(),
-                            date=date,
-                            description=f"Closing contra income account: {contra.name}",
-                        ),
-                    )
 
-    def _close_expense_accounts(self, date: datetime.date) -> None:
-        """Close all expense accounts including contra accounts."""
+    def close_expense_accounts(self, date: datetime.date) -> None:
+        """Close all expense accounts."""
+        self.date_closed = date
         income_summary = self.income_summary_account
         for name, account in self.accounts.items():
             if account.type == AccountType.EXPENSE:
@@ -112,19 +130,10 @@ class Ledger:
                         description=f"Closing expense account: {name}",
                     ),
                 )
-                for contra in account.contra_accounts:
-                    self.post(
-                        SimpleEntry(
-                            debit_account=contra,
-                            credit_account=income_summary,
-                            value=contra.balance(),
-                            date=date,
-                            description=f"Closing contra expense account: {contra.name}",
-                        ),
-                    )
 
-    def _close_income_summary(self, date: datetime.date) -> None:
+    def close_income_summary_account(self, date: datetime.date) -> None:
         """Close the Income Summary account."""
+        self.date_closed = date
         income_summary = self.income_summary_account
         retained_earnings = self.retained_earnings_account
         self.post(
