@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from rich.console import Console
+from rich.padding import Padding
 from rich.table import Table
 
 from brms.accounting.account import AccountType
@@ -35,7 +36,8 @@ class HTMLStatementViewer(StatementVisitor):
 
     def visit_trial_balance(self, statement: "TrialBalance") -> str:
         """Generate view for TrialBalance."""
-        table = Table(title=statement.name, box=None)
+        caption = f"Date: {statement.date}"
+        table = Table(title=statement.name, box=None, caption=caption, caption_justify="right")
         table.add_column("Account", justify="left", no_wrap=True)
         table.add_column("Debit", justify="right", style="green")
         table.add_column("Credit", justify="right", style="green")
@@ -44,7 +46,8 @@ class HTMLStatementViewer(StatementVisitor):
             table.add_row(f"{account_type.value.capitalize()} Account", style="italic")
             for account, (dr, cr) in statement.items():
                 if account.type == account_type:
-                    table.add_row(f"  {account.name}", f"{dr:.2f}", f"{cr:.2f}")
+                    name = Padding(account.name, pad=(0, 2))
+                    table.add_row(name, f"{dr:.2f}", f"{cr:.2f}")
 
         with self.console.capture() as capture:
             self.console.print(table)

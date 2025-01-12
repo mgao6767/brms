@@ -1,7 +1,9 @@
 """Provides classes for generating financial statements and reports."""
 
+import datetime
 from abc import ABC, abstractmethod
 from collections import UserDict
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -17,6 +19,7 @@ class Statement(ABC):
     """Abstract base class for statements."""
 
     name: str
+    date: datetime.date | None = None
 
     @classmethod
     @abstractmethod
@@ -37,6 +40,7 @@ class TrialBalance(UserDict["TAccount", tuple[float, float]], Statement):
     def from_ledger(cls, ledger: "Ledger") -> "TrialBalance":
         """Create a TrialBalance from the given ledger."""
         trial_balance = cls()
+        trial_balance.date = ledger.date_closed
         for account, balance in ledger.account_balances().items():
             dr = balance if account.normal_balance == AccountNormalBalance.DEBIT_NORMAL else 0.0
             cr = balance if account.normal_balance == AccountNormalBalance.CREDIT_NORMAL else 0.0
@@ -59,10 +63,12 @@ class IncomeStatement(Statement):
     @classmethod
     def from_ledger(cls, ledger: "Ledger") -> "IncomeStatement":
         """Create an IncomeStatement from the given ledger."""
-        return cls(
+        income_statement = cls(
             income=AccountBalances.from_accounts(ledger.get_accounts_by_type(AccountType.INCOME)),
             expenses=AccountBalances.from_accounts(ledger.get_accounts_by_type(AccountType.EXPENSE)),
         )
+        income_statement.date = ledger.date_closed
+        return income_statement
 
     def accept(self, visitor: "StatementVisitor") -> str:
         """Accept a StatementVisitor to generate a view of the statement."""
@@ -81,11 +87,13 @@ class BalanceSheet(Statement):
     @classmethod
     def from_ledger(cls, ledger: "Ledger") -> "BalanceSheet":
         """Create a BalanceSheet from the given ledger."""
-        return cls(
+        balance_sheet = cls(
             assets=AccountBalances.from_accounts(ledger.get_accounts_by_type(AccountType.ASSET)),
             liabilities=AccountBalances.from_accounts(ledger.get_accounts_by_type(AccountType.LIABILITY)),
             equities=AccountBalances.from_accounts(ledger.get_accounts_by_type(AccountType.EQUITY)),
         )
+        balance_sheet.date = ledger.date_closed
+        return balance_sheet
 
     def accept(self, visitor: "StatementVisitor") -> str:
         """Accept a StatementVisitor to generate a view of the statement."""
@@ -98,12 +106,17 @@ class Report:
 
     ledger: "Ledger"
     viewer: "StatementVisitor"
+    date: datetime.date
 
     def __post_init__(self) -> None:
-        """Initialize the income statement and balance sheet from the ledger."""
+        """Initialize the statements from the ledger."""
+        # Report should not alter the ledger so we make a copy.
+        # This is a design choice - there can be multiple report instances using the same ledger.
+        self.ledger = deepcopy(self.ledger)
+        self.trial_balance = TrialBalance.from_ledger(self.ledger)
+        self.ledger.close_ledger(self.date)  # side-effect on the ledger
         self.income_statement = IncomeStatement.from_ledger(self.ledger)
         self.balance_sheet = BalanceSheet.from_ledger(self.ledger)
-        self.trial_balance = TrialBalance.from_ledger(self.ledger)
 
     def print_trial_balance(self) -> str:
         """Generate the trial balance view."""
