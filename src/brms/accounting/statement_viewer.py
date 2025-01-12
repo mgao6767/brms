@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from rich.console import Console
 from rich.padding import Padding
 from rich.table import Table
+from rich.text import Text
 
 from brms.accounting.account import AccountType
 
@@ -34,13 +35,19 @@ class HTMLStatementViewer(StatementVisitor):
 
     console = Console(record=True)
 
+    @staticmethod
+    def format_amount(amount: float) -> Text:
+        """Return Text object with green for positive and red for negative values."""
+        color = "green" if amount >= 0 else "red"
+        return Text(f"{amount:.2f}", style=color)
+
     def visit_trial_balance(self, statement: "TrialBalance") -> str:
         """Generate view for TrialBalance."""
         caption = f"Date: {statement.date}"
         table = Table(title=statement.name, box=None, caption=caption, caption_justify="right")
         table.add_column("Account", justify="left", no_wrap=True)
-        table.add_column("Debit", justify="right", style="green")
-        table.add_column("Credit", justify="right", style="green")
+        table.add_column("Debit", justify="right")
+        table.add_column("Credit", justify="right")
 
         total_dr, total_cr = 0.0, 0.0
         for account_type in AccountType:
@@ -48,11 +55,11 @@ class HTMLStatementViewer(StatementVisitor):
             for account, (dr, cr) in statement.items():
                 if account.type == account_type:
                     name = Padding(account.name, pad=(0, 2))
-                    table.add_row(name, f"{dr:.2f}", f"{cr:.2f}")
+                    table.add_row(name, self.format_amount(dr), self.format_amount(cr))
                     total_dr += dr
                     total_cr += cr
 
-        table.add_row("Total", f"{total_dr:.2f}", f"{total_cr:.2f}", style="bold")
+        table.add_row("Total", self.format_amount(total_dr), self.format_amount(total_cr), style="bold")
 
         with self.console.capture() as capture:
             self.console.print(table)
@@ -69,17 +76,17 @@ class HTMLStatementViewer(StatementVisitor):
         table.add_column(justify="left", no_wrap=True)
         table.add_column(justify="right", style="green")
 
-        table.add_row("Income", f"{total_income:.2f}", style="bold")
+        table.add_row("Income", self.format_amount(total_income), style="bold")
         for account, balance in statement.income.items():
             if not (account.is_contra_account or account.is_temporary_account):
                 name = Padding(account.name, pad=(0, 2))
-                table.add_row(name, f"{balance:.2f}")
-        table.add_row("Expense", f"{total_expense:.2f}", style="bold")
+                table.add_row(name, self.format_amount(balance))
+        table.add_row("Expense", self.format_amount(total_expense), style="bold")
         for account, balance in statement.expenses.items():
             if not (account.is_contra_account or account.is_temporary_account):
                 name = Padding(account.name, pad=(0, 2))
-                table.add_row(name, f"{balance:.2f}")
-        table.add_row("Profit", f"{profit:.2f}", style="bold")
+                table.add_row(name, self.format_amount(balance))
+        table.add_row("Profit", self.format_amount(profit), style="bold")
 
         with self.console.capture() as capture:
             self.console.print(table)
