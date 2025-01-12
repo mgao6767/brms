@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from collections import UserDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from brms.accounting.account import AccountBalances, AccountNormalBalance, AccountType
@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 class Statement(ABC):
     """Abstract base class for statements."""
 
+    name: str
+
     @classmethod
     @abstractmethod
     def from_ledger(cls, ledger: "Ledger") -> "Statement":
@@ -28,6 +30,8 @@ class Statement(ABC):
 
 class TrialBalance(UserDict["TAccount", tuple[float, float]], Statement):
     """Class representing a trial balance."""
+
+    name = "Trial Balance"
 
     @classmethod
     def from_ledger(cls, ledger: "Ledger") -> "TrialBalance":
@@ -50,6 +54,7 @@ class IncomeStatement(Statement):
 
     income: AccountBalances
     expenses: AccountBalances
+    name = "Income Statement"
 
     @classmethod
     def from_ledger(cls, ledger: "Ledger") -> "IncomeStatement":
@@ -71,6 +76,7 @@ class BalanceSheet(Statement):
     assets: AccountBalances
     liabilities: AccountBalances
     equities: AccountBalances
+    name = "Balance Sheet"
 
     @classmethod
     def from_ledger(cls, ledger: "Ledger") -> "BalanceSheet":
