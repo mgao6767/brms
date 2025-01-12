@@ -65,6 +65,7 @@ class TAccount(Observable):
         credit: float = 0.0,
         *,
         is_contra_account: bool = False,
+        is_temporary_account: bool = False,
     ) -> None:
         """Initialize a TAccount instance."""
         super().__init__()
@@ -75,6 +76,8 @@ class TAccount(Observable):
         self._parent = parent
         self._debit_value = debit
         self._credit_value = credit
+        self.is_contra_account = is_contra_account
+        self.is_temporary_account = is_temporary_account
 
     def debit(self, amount: float) -> None:
         """Add debit amount to account."""
@@ -223,7 +226,7 @@ class ChartOfAccounts:
     income: list[TAccount] = field(default_factory=list)
     expenses: list[TAccount] = field(default_factory=list)
 
-    income_summary_account = TAccount("Income Summary Account", AccountType.INCOME)
+    income_summary_account = TAccount("Income Summary Account", AccountType.INCOME, is_temporary_account=True)
     retained_earnings_account = TAccount("Retained Earnings Account", AccountType.EQUITY)
 
     def all_accounts(self) -> Generator[TAccount, None, None]:
