@@ -1,6 +1,7 @@
 """Provides classes for generating financial statements and reports."""
 
 from abc import ABC, abstractmethod
+from collections import UserDict
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -25,21 +26,18 @@ class Statement(ABC):
         """Accept a StatementVisitor to generate a view of the statement."""
 
 
-@dataclass
-class TrialBalance(Statement):
+class TrialBalance(UserDict["TAccount", tuple[float, float]], Statement):
     """Class representing a trial balance."""
-
-    debits: dict["TAccount", float] = field(default_factory=dict)
-    credits: dict["TAccount", float] = field(default_factory=dict)
 
     @classmethod
     def from_ledger(cls, ledger: "Ledger") -> "TrialBalance":
         """Create a TrialBalance from the given ledger."""
-        dr, cr = {}, {}
+        trial_balance = cls()
         for account, balance in ledger.account_balances().items():
-            dr[account] = balance if account.normal_balance == AccountNormalBalance.DEBIT_NORMAL else 0.0
-            cr[account] = balance if account.normal_balance == AccountNormalBalance.CREDIT_NORMAL else 0.0
-        return cls(debits=dr, credits=cr)
+            dr = balance if account.normal_balance == AccountNormalBalance.DEBIT_NORMAL else 0.0
+            cr = balance if account.normal_balance == AccountNormalBalance.CREDIT_NORMAL else 0.0
+            trial_balance[account] = (dr, cr)
+        return trial_balance
 
     def accept(self, visitor: "StatementVisitor") -> str:
         """Accept a StatementVisitor to generate a view of the statement."""
