@@ -15,6 +15,7 @@ class Ledger:
     accounts: dict[str, TAccount] = field(default_factory=dict)
     chart_of_accounts: ChartOfAccounts = field(default_factory=ChartOfAccounts)
     is_closed: bool = False
+    date_closed: datetime.date | None = None
 
     @property
     def income_summary_account(self) -> TAccount:
@@ -59,6 +60,7 @@ class Ledger:
         self._close_expense_accounts(date)
         self._close_income_summary(date)
         self.is_closed = True
+        self.date_closed = date
 
     def account_balances(self) -> AccountBalances:
         """Retrieve the balances of all accounts."""
