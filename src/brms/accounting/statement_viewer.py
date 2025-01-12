@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 from rich.console import Console
 from rich.table import Table
 
+from brms.accounting.account import AccountType
+
 if TYPE_CHECKING:
     from brms.accounting.report import BalanceSheet, IncomeStatement, TrialBalance
 
@@ -37,8 +39,13 @@ class HTMLStatementViewer(StatementVisitor):
         table.add_column("Account", justify="left", no_wrap=True)
         table.add_column("Debit", justify="right", style="green")
         table.add_column("Credit", justify="right", style="green")
-        for account, (dr, cr) in statement.items():
-            table.add_row(account.name, f"{dr:.2f}", f"{cr:.2f}")
+
+        for account_type in AccountType:
+            table.add_row(f"{account_type.value.capitalize()} Account", style="italic")
+            for account, (dr, cr) in statement.items():
+                if account.type == account_type:
+                    table.add_row(f"  {account.name}", f"{dr:.2f}", f"{cr:.2f}")
+
         with self.console.capture() as capture:
             self.console.print(table)
         return capture.get()
