@@ -125,6 +125,11 @@ class TAccount(Observable):
         self._credit_value = value
         self.notify_observers()  # Notify parent (if any) of the value change
 
+    @property
+    def sub_accounts(self) -> Generator["TAccount", None, None]:
+        """Return an iterator over sub-accounts."""
+        yield from ()
+
     def is_composite(self) -> bool:
         """Check if the T-account is composite."""
         return False
@@ -191,7 +196,12 @@ class CompositeTAccount(TAccount, Observable, Observer):
             credit,
             is_contra_account=is_contra_account,
         )
-        self.sub_accounts: list[TAccount] = []
+        self._sub_accounts: list[TAccount] = []
+
+    @property
+    def sub_accounts(self) -> Generator["TAccount", None, None]:
+        """Return an iterator over sub-accounts."""
+        yield from self._sub_accounts
 
     def is_composite(self) -> bool:
         """Check if the T-account is composite."""
@@ -199,7 +209,7 @@ class CompositeTAccount(TAccount, Observable, Observer):
 
     def has_sub_account(self) -> bool:
         """Check if the T-account has any sub account."""
-        return len(self.sub_accounts) > 0
+        return len(self._sub_accounts) > 0
 
     def add(self, account: TAccount) -> None:
         """Add a T-account as a child and observe it."""
@@ -209,14 +219,14 @@ class CompositeTAccount(TAccount, Observable, Observer):
         if not isinstance(account, TAccount):
             error_message = "Account must be an instance of TAccount"
             raise TypeError(error_message)
-        self.sub_accounts.append(account)
+        self._sub_accounts.append(account)
         account.parent = self
         account.add_observer(self)  # Observe the child
         self.update(account)  # Update value to include the new child
 
     def remove(self, account: TAccount) -> None:
         """Remove a T-account as a child and stop observing it."""
-        self.sub_accounts.remove(account)
+        self._sub_accounts.remove(account)
         account.parent = None
         account.remove_observer(self)  # Stop observing the child
         self.update(account)  # Update value to exclude the removed child
