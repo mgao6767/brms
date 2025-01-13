@@ -4,7 +4,7 @@ import datetime
 from dataclasses import dataclass, field
 
 from brms.accounting.account import AccountBalances, AccountNormalBalance, AccountType, ChartOfAccounts, TAccount
-from brms.accounting.journal import Journal, JournalEntry, SimpleEntry
+from brms.accounting.journal import CompoundEntry, Journal, JournalEntry, SimpleEntry
 
 
 @dataclass
@@ -65,9 +65,8 @@ class Ledger:
 
     def close_ledger(self, date: datetime.date) -> None:
         """Close the ledger at the end of an accounting period."""
-        self.close_income_summary_account(date)
-        self.close_income_accounts(date)
-        self.close_expense_accounts(date)
+        self.close_contra_accounts(date)
+        self.close_income_and_expense_accounts(date)
         self.close_income_summary_account(date)
 
     def account_balances(self) -> AccountBalances:
@@ -84,63 +83,16 @@ class Ledger:
     def close_contra_accounts(self, date: datetime.date) -> None:
         """Close contra income and contra expense accounts to income summary account."""
         self.date_closed = date
-        income_summary = self.income_summary_account
         for account in self.accounts.values():
-            match account.type:
-                case AccountType.INCOME:
-                    for contra in account.contra_accounts:
-                        self.post(
-                            SimpleEntry(
-                                debit_account=income_summary,
-                                credit_account=contra,
-                                value=contra.balance(),
-                                date=date,
-                                description=f"Closing contra income account: {contra.name}",
-                            ),
-                        )
-                case AccountType.EXPENSE:
-                    for contra in account.contra_accounts:
-                        self.post(
-                            SimpleEntry(
-                                debit_account=contra,
-                                credit_account=income_summary,
-                                value=contra.balance(),
-                                date=date,
-                                description=f"Closing contra expense account: {contra.name}",
-                            ),
-                        )
+            for contra in account.contra_accounts:
+                self.post(self.generate_closing_entry(contra, date))
 
-    def close_income_accounts(self, date: datetime.date) -> None:
-        """Close all income accounts."""
+    def close_income_and_expense_accounts(self, date: datetime.date) -> None:
+        """Close all income and expense accounts."""
         self.date_closed = date
-        income_summary = self.income_summary_account
-        for name, account in self.accounts.items():
-            if account.type == AccountType.INCOME:
-                self.post(
-                    SimpleEntry(
-                        debit_account=account,
-                        credit_account=income_summary,
-                        value=account.balance(),
-                        date=date,
-                        description=f"Closing income account: {name}",
-                    ),
-                )
-
-    def close_expense_accounts(self, date: datetime.date) -> None:
-        """Close all expense accounts."""
-        self.date_closed = date
-        income_summary = self.income_summary_account
-        for name, account in self.accounts.items():
-            if account.type == AccountType.EXPENSE:
-                self.post(
-                    SimpleEntry(
-                        debit_account=income_summary,
-                        credit_account=account,
-                        value=account.balance(),
-                        date=date,
-                        description=f"Closing expense account: {name}",
-                    ),
-                )
+        for account in self.accounts.values():
+            if not account.is_contra_account and account.type in (AccountType.INCOME, AccountType.EXPENSE):
+                self.post(self.generate_closing_entry(account, date))
 
     def close_income_summary_account(self, date: datetime.date) -> None:
         """Close the Income Summary account."""
@@ -156,3 +108,31 @@ class Ledger:
                 description="Closing Income Summary account to retained earnings account",
             ),
         )
+
+    def generate_closing_entry(self, account: TAccount, date: datetime.date) -> CompoundEntry:
+        """Generate a closing entry for a given account at a specific date."""
+        isa = {self.income_summary_account: account.balance()}
+        act = (
+            {sub: sub.balance() for sub in account.sub_accounts}
+            if account.has_sub_account()
+            else {account: account.balance()}
+        )
+
+        match account.type:
+            case AccountType.INCOME:
+                return CompoundEntry(
+                    debit_accounts=isa if account.is_contra_account else act,
+                    credit_accounts=act if account.is_contra_account else isa,
+                    date=date,
+                    description=f"Closing income account: {account.name}",
+                )
+            case AccountType.EXPENSE:
+                return CompoundEntry(
+                    debit_accounts=act if account.is_contra_account else isa,
+                    credit_accounts=isa if account.is_contra_account else act,
+                    date=date,
+                    description=f"Closing expense account: {account.name}",
+                )
+            case _:
+                error_message = f"Unsupported account type: {account.type}"
+                raise ValueError(error_message)
