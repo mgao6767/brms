@@ -41,15 +41,20 @@ class TrialBalance(UserDict["TAccount", tuple[float, float]], Statement):
         """Create a TrialBalance from the given ledger."""
         trial_balance = cls()
         trial_balance.date = ledger.date_closed
-        for account, balance in ledger.account_balances().items():
-            dr = balance if account.normal_balance == AccountNormalBalance.DEBIT_NORMAL else 0.0
-            cr = balance if account.normal_balance == AccountNormalBalance.CREDIT_NORMAL else 0.0
-            trial_balance[account] = (dr, cr)
+        for account in ledger.account_balances():
+            trial_balance[account] = cls.get_credit_and_debit_values(account)
         return trial_balance
 
     def accept(self, visitor: "StatementVisitor") -> str:
         """Accept a StatementVisitor to generate a view of the statement."""
         return visitor.visit_trial_balance(self)
+
+    @staticmethod
+    def get_credit_and_debit_values(account: "TAccount") -> tuple[float, float]:
+        """Get the debit and credit values for the given account."""
+        if account.normal_balance == AccountNormalBalance.DEBIT_NORMAL:
+            return (account.balance(), 0)
+        return (0, account.balance())
 
 
 @dataclass
@@ -117,7 +122,7 @@ class Report:
         self.trial_balance.date = self.date
         # Close contra income and contra expense accounts for income statement
         self.ledger.close_contra_accounts(self.date)
-        self.income_statement = IncomeStatement.from_ledger(self.ledger)
+        self.income_statement = IncomeStatement.from_ledger(deepcopy(self.ledger))
         # Close income and expense accounts to ISA and close ISA to retained earnings account
         self.ledger.close_income_accounts(self.date)
         self.ledger.close_expense_accounts(self.date)
