@@ -84,4 +84,4 @@ def test_reset_simulation(simulation, scenario_manager):
 
 
 if __name__ == "__main__":
-    pytest.main()
+    pytest.main([__file__])

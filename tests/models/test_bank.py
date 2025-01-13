@@ -99,4 +99,4 @@ def test_trading_book_assets(bank, instrument_banking, instrument_trading):
 
 
 if __name__ == "__main__":
-    pytest.main()
+    pytest.main([__file__])

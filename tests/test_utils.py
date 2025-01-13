@@ -3,6 +3,7 @@
 import datetime
 import time
 
+import pytest
 import QuantLib as ql
 from PySide6.QtCore import QDate
 
@@ -47,3 +48,7 @@ def test_qldate_to_string():
     qldate = ql.Date(1, 2, 2023)
     date_str = qldate_to_string(qldate)
     assert date_str == "2023/2/1"
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])
