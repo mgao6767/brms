@@ -105,27 +105,24 @@ class BalanceSheet(Statement):
         return visitor.visit_balance_sheet(self)
 
 
-@dataclass
 class Report:
     """Class for generating financial reports."""
 
-    ledger: "Ledger"
-    viewer: "StatementVisitor"
-    date: datetime.date
-
-    def __post_init__(self) -> None:
+    def __init__(self, ledger: "Ledger", viewer: "StatementVisitor", date: datetime.date) -> None:
         """Initialize the statements from the ledger."""
         # Report should not alter the ledger so we make a copy.
         # This is a design choice - there can be multiple report instances using the same ledger.
-        self.ledger = deepcopy(self.ledger)
-        self.trial_balance = TrialBalance.from_ledger(self.ledger)
+        self.ledger = deepcopy(ledger)
+        self.viewer = viewer
+        self.date = date
+
+        self.trial_balance = TrialBalance.from_ledger(deepcopy(self.ledger))
         self.trial_balance.date = self.date
         # Close contra income and contra expense accounts for income statement
         self.ledger.close_contra_accounts(self.date)
         self.income_statement = IncomeStatement.from_ledger(deepcopy(self.ledger))
         # Close income and expense accounts to ISA and close ISA to retained earnings account
-        self.ledger.close_income_accounts(self.date)
-        self.ledger.close_expense_accounts(self.date)
+        self.ledger.close_income_and_expense_accounts(self.date)
         self.ledger.close_income_summary_account(self.date)
         self.balance_sheet = BalanceSheet.from_ledger(self.ledger)
 
