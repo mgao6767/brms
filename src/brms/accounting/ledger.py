@@ -108,7 +108,11 @@ class Ledger:
         """Close all income and expense accounts."""
         self.date_closed = date
         for account in self.accounts.values():
-            if not account.is_contra_account and account.type in (AccountType.INCOME, AccountType.EXPENSE):
+            if (
+                not account.is_contra_account
+                and account.type in (AccountType.INCOME, AccountType.EXPENSE)
+                and account != self.income_summary_account
+            ):
                 self.post(self.generate_closing_entry(account, date))
 
     def close_income_summary_account(self, date: datetime.date) -> None:
@@ -138,15 +142,15 @@ class Ledger:
         match account.type:
             case AccountType.INCOME:
                 return CompoundEntry(
-                    debit_accounts=isa,
-                    credit_accounts=act,
+                    debit_accounts=act,
+                    credit_accounts=isa,
                     date=date,
                     description=f"Closing income account: {account.name}",
                 )
             case AccountType.EXPENSE:
                 return CompoundEntry(
-                    debit_accounts=act,
-                    credit_accounts=isa,
+                    debit_accounts=isa,
+                    credit_accounts=act,
                     date=date,
                     description=f"Closing expense account: {account.name}",
                 )

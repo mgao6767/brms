@@ -97,17 +97,17 @@ def test_report_generation(setup_ledger):
 
     #             Balance Sheet
     #  Assets
-    #    Cash                      2100.00
-    #    Inventory                  200.00
-    #  Total assets                2300.00
+    #    Cash                       2100.00
+    #    Inventory                   200.00
+    #  Total assets                 2300.00
     #  Liabilities
-    #  Total liabilities              0.00
-    #  Net assets                  2300.00
+    #  Total liabilities               0.00
+    #  Net assets                   2300.00
     #  Shareholders' equity
-    #    Equity                    2500.00
-    #    Retained Earnings          200.00
-    #  Total shareholders' equity  2700.00
-    #                      Date: 2025-12-31
+    #    Equity                     2500.00
+    #    Retained Earnings         (200.00)
+    #  Total shareholders' equity   2300.00
+    #                       Date: 2025-12-31
 
 
 if __name__ == "__main__":
