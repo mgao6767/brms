@@ -138,6 +138,10 @@ class TAccount(Observable):
         """Check if the T-account has any sub account."""
         return False
 
+    def has_contra_account(self) -> bool:
+        """Check if the T-account has any contra account."""
+        return len(self.contra_accounts) > 0
+
     def balance(self) -> float:
         """Return account balance."""
         match self.normal_balance:
