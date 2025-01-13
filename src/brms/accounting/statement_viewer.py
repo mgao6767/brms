@@ -39,8 +39,9 @@ class HTMLStatementViewer(StatementVisitor):
     @staticmethod
     def format_amount(amount: float) -> Text:
         """Return Text object with green for positive and red for negative values."""
-        color = "green" if amount >= 0 else "red"
-        return Text(f"{amount:.2f}", style=color)
+        if amount >= 0:
+            return Text(f"{amount:.2f}", style="green")
+        return Text(f"({abs(amount):.2f})", style="red")
 
     def add_account_balance_rows(self, account: TAccount, table: Table, account_level: int = 1) -> None:
         """Recursively add account rows to the table."""
