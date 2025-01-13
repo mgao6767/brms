@@ -94,7 +94,43 @@ class HTMLStatementViewer(StatementVisitor):
 
     def visit_balance_sheet(self, statement: "BalanceSheet") -> str:
         """Generate view for BalanceSheet."""
-        raise NotImplementedError
+        total_assets = sum(statement.assets.values())
+        total_liabilities = sum(statement.liabilities.values())
+        total_equity = sum(statement.equities.values())
+        net_assets = total_assets - total_liabilities
+
+        caption = f"Date: {statement.date}"
+        table = Table(title=statement.name, box=None, caption=caption, caption_justify="right", show_header=False)
+        table.add_column(justify="left", no_wrap=True)
+        table.add_column(justify="right", style="green")
+
+        # Assets
+        table.add_row("Assets", style="bold")
+        for account, balance in statement.assets.items():
+            if not (account.is_contra_account or account.is_temporary_account):
+                name = Padding(account.name, pad=(0, 2))
+                table.add_row(name, self.format_amount(balance))
+        table.add_row("Total assets", self.format_amount(total_assets), style="bold")
+        # Liabilities
+        table.add_row("Liabilities", style="bold")
+        for account, balance in statement.liabilities.items():
+            if not (account.is_contra_account or account.is_temporary_account):
+                name = Padding(account.name, pad=(0, 2))
+                table.add_row(name, self.format_amount(balance))
+        table.add_row("Total liabilities", self.format_amount(total_liabilities), style="bold")
+        # Net assets
+        table.add_row("Net assets", self.format_amount(net_assets), style="bold")
+        # Shareholders' equity
+        table.add_row("Shareholders' equity", style="bold")
+        for account, balance in statement.equities.items():
+            if not (account.is_contra_account or account.is_temporary_account):
+                name = Padding(account.name, pad=(0, 2))
+                table.add_row(name, self.format_amount(balance))
+        table.add_row("Total shareholders' equity", self.format_amount(total_equity), style="bold")
+
+        with self.console.capture() as capture:
+            self.console.print(table)
+        return capture.get()
 
 
 class TextStatementViewer(StatementVisitor):
