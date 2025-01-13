@@ -81,11 +81,28 @@ class Ledger:
         self.accounts[account.name] = account
 
     def close_contra_accounts(self, date: datetime.date) -> None:
-        """Close contra income and contra expense accounts to income summary account."""
+        """Close contra income and contra expense accounts.
+
+        Contra accounts are not closed to ISA, but closed to the original income or expense accounts.
+        """
         self.date_closed = date
         for account in self.accounts.values():
-            for contra in account.contra_accounts:
-                self.post(self.generate_closing_entry(contra, date))
+            if account.has_contra_account() and account.type in (AccountType.INCOME, AccountType.EXPENSE):
+                match account.type:
+                    case AccountType.INCOME:
+                        _debit_accounts = {account: sum(contra.balance() for contra in account.contra_accounts)}
+                        _credit_accounts = {contra: contra.balance() for contra in account.contra_accounts}
+                    case AccountType.EXPENSE:
+                        _debit_accounts = {contra: contra.balance() for contra in account.contra_accounts}
+                        _credit_accounts = {account: sum(contra.balance() for contra in account.contra_accounts)}
+                self.post(
+                    CompoundEntry(
+                        debit_accounts=_debit_accounts,
+                        credit_accounts=_credit_accounts,
+                        date=date,
+                        description=f"Closing contra accounts of {account.name}",
+                    ),
+                )
 
     def close_income_and_expense_accounts(self, date: datetime.date) -> None:
         """Close all income and expense accounts."""
@@ -121,15 +138,15 @@ class Ledger:
         match account.type:
             case AccountType.INCOME:
                 return CompoundEntry(
-                    debit_accounts=isa if account.is_contra_account else act,
-                    credit_accounts=act if account.is_contra_account else isa,
+                    debit_accounts=isa,
+                    credit_accounts=act,
                     date=date,
                     description=f"Closing income account: {account.name}",
                 )
             case AccountType.EXPENSE:
                 return CompoundEntry(
-                    debit_accounts=act if account.is_contra_account else isa,
-                    credit_accounts=isa if account.is_contra_account else act,
+                    debit_accounts=act,
+                    credit_accounts=isa,
                     date=date,
                     description=f"Closing expense account: {account.name}",
                 )
