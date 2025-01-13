@@ -151,6 +151,22 @@ class TAccount(Observable):
             raise ValueError(error_message)
 
 
+class RetainedEarningsAccount(TAccount):
+    """Represent the retained earnings account."""
+
+    def __init__(self, name: str = "Retained Earnings", parent: TAccount | None = None) -> None:
+        """Initialize a RetainedEarningsAccount instance."""
+        super().__init__(name, account_type=AccountType.EQUITY, parent=parent)
+
+
+class IncomeSummaryAccount(TAccount):
+    """Represent the income summary account."""
+
+    def __init__(self, name: str = "Income Summary Account", parent: TAccount | None = None) -> None:
+        """Initialize an IncomeSummaryAccount instance."""
+        super().__init__(name, account_type=AccountType.INCOME, parent=parent, is_temporary_account=True)
+
+
 class CompositeTAccount(TAccount, Observable, Observer):
     """Composite T-account that can hold multiple sub T-accounts."""
 
@@ -226,8 +242,8 @@ class ChartOfAccounts:
     income: list[TAccount] = field(default_factory=list)
     expenses: list[TAccount] = field(default_factory=list)
 
-    income_summary_account = TAccount("Income Summary Account", AccountType.INCOME, is_temporary_account=True)
-    retained_earnings_account = TAccount("Retained Earnings Account", AccountType.EQUITY)
+    income_summary_account: IncomeSummaryAccount = field(default_factory=IncomeSummaryAccount)
+    retained_earnings_account: RetainedEarningsAccount = field(default_factory=RetainedEarningsAccount)
 
     def all_accounts(self) -> Generator[TAccount, None, None]:
         """Yield all accounts in the chart of accounts."""
