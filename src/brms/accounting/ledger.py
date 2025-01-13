@@ -3,7 +3,7 @@
 import datetime
 from dataclasses import dataclass, field
 
-from brms.accounting.account import AccountBalances, AccountType, ChartOfAccounts, TAccount
+from brms.accounting.account import AccountBalances, AccountNormalBalance, AccountType, ChartOfAccounts, TAccount
 from brms.accounting.journal import Journal, JournalEntry, SimpleEntry
 
 
@@ -46,10 +46,21 @@ class Ledger:
         for account, amount in entry.credit_account_value_pairs():
             account.credit(amount)
 
-    def add_accounts_from_chart(self, chart: ChartOfAccounts) -> None:
-        """Add accounts from a ChartOfAccounts to the ledger."""
+    def add_accounts_from_chart(self, chart: ChartOfAccounts, balances: AccountBalances | None = None) -> None:
+        """Add accounts from a ChartOfAccounts to the ledger.
+
+        This method initializes the ledger with accounts from the provided ChartOfAccounts.
+        Optionally, it can also set the starting balances for these accounts based on their
+        normal balances (debit or credit).
+        """
         self.chart_of_accounts = chart
         for account in chart.all_accounts():
+            if balances is not None and account in balances:
+                match account.normal_balance:
+                    case AccountNormalBalance.DEBIT_NORMAL:
+                        account.debit_value = balances[account]
+                    case AccountNormalBalance.CREDIT_NORMAL:
+                        account.credit_value = balances[account]
             self._add_account(account)
 
     def close_ledger(self, date: datetime.date) -> None:
