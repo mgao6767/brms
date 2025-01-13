@@ -41,12 +41,14 @@ def setup_ledger():
     builder.add_expense_account(salary_account)
 
     chart_of_accounts = builder.build()
+    retained_earnings_account = chart_of_accounts.retained_earnings_account
 
     balances = AccountBalances(
         {
-            cash_account: 10000,
+            cash_account: 12500,
             equity_account: 30000,
             ppe_account: 20000,
+            retained_earnings_account: 2500,
         },
     )
 
@@ -72,6 +74,15 @@ def setup_ledger():
             value=10000.0,
             date=date,
             description="Public borrowings",
+        ),
+    )
+    ledger.post(
+        SimpleEntry(
+            debit_account=loan_account,
+            credit_account=cash_account,
+            value=65000.0,
+            date=date,
+            description="Loan issue",
         ),
     )
     ledger.post(
