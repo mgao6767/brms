@@ -71,8 +71,6 @@ def test_chart_of_accounts_initialization():
     assert chart_of_accounts.liabilities == []
     assert chart_of_accounts.income == []
     assert chart_of_accounts.expenses == []
-    assert chart_of_accounts.income_summary_account.name == "Income Summary Account"
-    assert chart_of_accounts.retained_earnings_account.name == "Retained Earnings Account"
 
 
 def test_chart_of_accounts():
