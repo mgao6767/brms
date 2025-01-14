@@ -11,3 +11,13 @@ class MainController:
         """Initialize the MainController."""
         self.scenario: SimulationModel = model
         self.view: MainWindow = view
+        self.connect_signals()
+
+    def connect_signals(self) -> None:
+        """Connect signals from the view to the controller's slots."""
+        self.view.exit_signal.connect(self.handle_exit)
+
+    def handle_exit(self) -> None:
+        """Handle the exit signal from the view."""
+        # Perform any cleanup or save operations here
+        self.view.close()
