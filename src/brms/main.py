@@ -1,0 +1,31 @@
+"""Main module for the BRMS application."""
+
+import sys
+
+from PySide6.QtWidgets import QApplication
+
+from brms.controllers.main_controller import MainController
+from brms.models.simulation import Simulation as SimulationModel
+from brms.views.main_window import MainWindow
+
+
+class App(QApplication):
+    """BRMS application."""
+
+    def __init__(self, sys_argv: list[str]) -> None:
+        """Initialize the BRMS application."""
+        super().__init__(sys_argv)
+        self.view = MainWindow()
+        self.model = SimulationModel()
+        self.controller = MainController(self.model, self.view)
+        self.view.show()
+
+
+def main() -> None:
+    """Run the main entry point for the BRMS application."""
+    app = App(sys.argv)
+    app.exec()
+
+
+if __name__ == "__main__":
+    main()

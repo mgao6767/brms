@@ -32,3 +32,6 @@ filterwarnings = [
   'ignore:builtin type SwigPyObject has no __module__ attribute',
   'ignore:builtin type swigvarlink has no __module__ attribute',
 ]
+
+[tool.pylint]
+extension-pkg-whitelist = ["PySide6"]
