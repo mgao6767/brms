@@ -7,7 +7,7 @@ from brms.instruments.base import Instrument
 from brms.utils import pydate_to_qldate, qldate_to_string
 
 if TYPE_CHECKING:
-    from brms.instruments.visitor import Visitor
+    from brms.instruments.visitors import Visitor
 
 
 class FixedRateBond(Instrument):

@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from enum import Enum, Flag, auto
 from typing import Optional
 
-from brms.instruments.visitor import Visitor
+from brms.instruments.visitors.base import Visitor
 from brms.models.base import BookType
 
 
@@ -27,6 +27,7 @@ class Instrument(ABC):
         self._credit_rating = credit_rating or CreditRating.UNRATED
         self._book_type = book_type or BookType.BANKING_BOOK  # Defaults to banking book.
         self._issuer = issuer or Issuer("unknown", IssuerType.UNSPECIFIED)
+        self.details: dict[str, str | object] = {}
 
     @property
     def parent(self) -> Optional["Instrument"]:

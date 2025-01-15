@@ -3,7 +3,7 @@ import datetime
 import QuantLib as ql
 
 from brms.instruments.base import Instrument
-from brms.instruments.visitor import Visitor
+from brms.instruments.visitors import Visitor
 from brms.utils import pydate_to_qldate, qldate_to_string
 
 

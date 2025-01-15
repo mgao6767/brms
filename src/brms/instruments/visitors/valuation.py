@@ -7,9 +7,8 @@ from typing import TYPE_CHECKING
 import QuantLib as ql  # noqa: N813
 
 from brms.instruments.base import BookType
-from brms.instruments.visitor import Visitor
+from brms.instruments.visitors import Visitor
 from brms.models.base import ScenarioData
-from brms.models.scenario import Scenario
 from brms.utils import pydate_to_qldate
 
 if TYPE_CHECKING:

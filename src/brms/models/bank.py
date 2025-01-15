@@ -5,7 +5,7 @@ from typing import Any
 
 from brms.instruments.base import CompositeInstrument, Instrument
 from brms.instruments.common_equity import CommonEquity
-from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
+from brms.instruments.visitors.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
 from brms.models.base import BookType
 from brms.models.scenario import Scenario
 

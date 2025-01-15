@@ -1,7 +1,7 @@
 import pytest
 
 from brms.instruments.base import CompositeInstrument, Instrument
-from brms.instruments.visitor import Visitor
+from brms.instruments.visitors.base import Visitor
 from brms.models.base import BookType
 
 

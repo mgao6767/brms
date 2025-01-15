@@ -7,7 +7,7 @@ from brms.commands.command import (
     SetInstrumentBookTypeCommand,
 )
 from brms.instruments.base import Instrument
-from brms.instruments.visitor import Visitor
+from brms.instruments.visitors import Visitor
 from brms.models.bank import Bank
 from brms.models.base import BalanceSheetCategory, BookType
 

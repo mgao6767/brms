@@ -6,7 +6,7 @@ from brms.instruments.base import Instrument
 from brms.instruments.registry import OffBalanceSheetInstrumentRegistry
 
 if TYPE_CHECKING:
-    from brms.instruments.visitor import Visitor
+    from brms.instruments.visitors import Visitor
 
 
 class RepurchaseAgreement(Instrument):

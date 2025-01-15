@@ -5,7 +5,7 @@ import QuantLib as ql
 
 from brms.instruments.base import BookType
 from brms.instruments.fixed_rate_bond import FixedRateBond
-from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
+from brms.instruments.visitors.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
 from brms.models.scenario import Scenario, ScenarioBuilder
 from brms.utils import qldate_to_pydate
 

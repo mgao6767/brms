@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from brms.instruments.base import Instrument
 
 if TYPE_CHECKING:
-    from brms.instruments.visitor import Visitor
+    from brms.instruments.visitors import Visitor
 
 
 class CommonEquity(Instrument):
