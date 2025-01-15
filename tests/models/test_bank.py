@@ -13,17 +13,17 @@ class MockInstrument(Instrument):
         super().__init__(name)
         self._book_type = book_type
 
-    def accept(self, visitor, scenario):
+    def accept(self, visitor):
         pass
 
 
 class MockInstrumentOnAssets(MockInstrument):
-    def accept(self, visitor, scenario):
+    def accept(self, visitor):
         return 200
 
 
 class MockInstrumentOnLiabilities(MockInstrument):
-    def accept(self, visitor, scenario):
+    def accept(self, visitor):
         return 100
 
 

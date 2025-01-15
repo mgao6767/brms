@@ -1,32 +1,35 @@
 """Define the LetterOfCredit classes representing letters of credit."""
 
+from typing import TYPE_CHECKING
+
 from brms.instruments.base import Instrument
 from brms.instruments.registry import OffBalanceSheetInstrumentRegistry
-from brms.instruments.valuation import ValuationVisitor
-from brms.models.scenario import Scenario
+
+if TYPE_CHECKING:
+    from brms.instruments.visitor import Visitor
 
 
 class LetterOfCredit(Instrument):
     """A class to represent letter of credit instruments."""
 
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
-        """Accept a valuation visitor to calculate the instrument's value."""
+    def accept(self, visitor: "Visitor") -> float:
+        """Accept a visitor."""
         raise NotImplementedError
 
 
 class StandByLetterOfCredit(Instrument):
     """A class to represent standby letter of credit instruments."""
 
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
-        """Accept a valuation visitor to calculate the instrument's value."""
+    def accept(self, visitor: "Visitor") -> float:
+        """Accept a visitor."""
         raise NotImplementedError
 
 
 class TradeLetterOfCredit(Instrument):
     """A class to represent trade letter of credit instruments."""
 
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
-        """Accept a valuation visitor to calculate the instrument's value."""
+    def accept(self, visitor: "Visitor") -> float:
+        """Accept a visitor."""
         raise NotImplementedError
 
 

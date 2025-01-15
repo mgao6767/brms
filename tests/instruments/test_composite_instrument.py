@@ -13,7 +13,7 @@ class MockInstrument(Instrument):
         super().__init__(name)
         self._book_type = book_type
 
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario):
+    def accept(self, visitor: ValuationVisitor):
         return 100.0  # Mock value for testing. Otherwise visitor.visit(self, scenario)
 
     @property
@@ -64,8 +64,8 @@ def test_accept(composite_instrument, instrument_banking, instrument_trading):
     composite_instrument.add(instrument_banking)
     composite_instrument.add(instrument_trading)
     scenario = Scenario(date=datetime.date(2025, 1, 1))
-    visitor = BankingBookValuationVisitor()
-    total_value = composite_instrument.accept(visitor, scenario)
+    visitor = BankingBookValuationVisitor(scenario)
+    total_value = composite_instrument.accept(visitor)
     assert total_value == 200.0  # 2 instruments on banking book, each valued at 100
 
 

@@ -79,7 +79,7 @@ class Instrument(ABC):
         return False
 
     @abstractmethod
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
+    def accept(self, visitor: ValuationVisitor) -> float:
         """Accept a valuation visitor to calculate the instrument's value."""
 
 
@@ -116,17 +116,17 @@ class CompositeInstrument(Instrument):
         """Check if the instrument is composite."""
         return True
 
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
+    def accept(self, visitor: ValuationVisitor) -> float:
         """Accept a valuation visitor to calculate the composite instrument's value."""
         if isinstance(visitor, BankingBookValuationVisitor):
             return sum(
-                instrument.accept(visitor, scenario)
+                instrument.accept(visitor)
                 for instrument in self._instruments
                 if instrument.book_type == BookType.BANKING_BOOK
             )
         if isinstance(visitor, TradingBookValuationVisitor):
             return sum(
-                instrument.accept(visitor, scenario)
+                instrument.accept(visitor)
                 for instrument in self._instruments
                 if instrument.book_type == BookType.TRADING_BOOK
             )

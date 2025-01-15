@@ -1,11 +1,13 @@
 import datetime
+from typing import TYPE_CHECKING
 
 import QuantLib as ql
 
 from brms.instruments.base import Instrument
-from brms.instruments.valuation import ValuationVisitor
-from brms.models.scenario import Scenario
 from brms.utils import pydate_to_qldate, qldate_to_string
+
+if TYPE_CHECKING:
+    from brms.instruments.visitor import Visitor
 
 
 class FixedRateBond(Instrument):
@@ -80,9 +82,9 @@ class FixedRateBond(Instrument):
         """
         return self.instrument.notional(pydate_to_qldate(date))
 
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
-        """Accept a valuation visitor to calculate the instrument's value."""
-        self.value = visitor.value_fixed_rate_bond(self, scenario)
+    def accept(self, visitor: "Visitor") -> float:
+        """Accept a visitor."""
+        self.value = visitor.visit_fixed_rate_bond(self)
         return self.value
 
     def set_pricing_engine(self, engine: ql.PricingEngine) -> None:

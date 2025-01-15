@@ -1,10 +1,11 @@
 """Contain valuation visitor classes for banking and trading books."""
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-import QuantLib as ql
+import QuantLib as ql  # noqa: N813
 
+from brms.instruments.visitor import Visitor
 from brms.models.base import ScenarioData
 from brms.models.scenario import Scenario
 from brms.utils import pydate_to_qldate
@@ -17,74 +18,79 @@ if TYPE_CHECKING:
     from brms.instruments.credit_card import CreditCard
     from brms.instruments.fixed_rate_bond import FixedRateBond
     from brms.instruments.personal_loan import PersonalLoan
+    from brms.models.scenario import Scenario
 
 
-class ValuationVisitor(ABC):
+class ValuationVisitor(Visitor):
     """Abstract base class for valuation visitors."""
 
-    def value_cash(self, instrument: "Cash", scenario: Scenario) -> float:
-        """Value cash given a scenario."""
+    def __init__(self, scenario: "Scenario") -> None:
+        """Initialize the ValuationVisitor with a scenario."""
+        self.scenario = scenario
+
+    def visit_cash(self, instrument: "Cash") -> float:
+        """Value cash."""
         return instrument.value
 
-    def value_common_equity(self, instrument: "CommonEquity", scenario: Scenario) -> float:
-        """Value common equity given a scenario."""
+    def visit_common_equity(self, instrument: "CommonEquity") -> float:
+        """Value common equity."""
         return instrument.value
 
     @abstractmethod
-    def value_fixed_rate_bond(self, instrument: "FixedRateBond", scenario: Scenario) -> float:
-        """Value a fixed rate bond given a scenario."""
+    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> float:
+        """Value a fixed rate bond."""
 
     @abstractmethod
-    def value_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan", scenario: Scenario) -> float:
-        """Value an amortizing fixed rate bond given a scenario."""
+    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> float:
+        """Value an amortizing fixed rate bond."""
 
     @abstractmethod
-    def value_covered_bond(self, instrument: "CoveredBond", scenario: Scenario) -> float:
-        """Value a covered bond given a scenario."""
+    def visit_covered_bond(self, instrument: "CoveredBond") -> float:
+        """Value a covered bond."""
 
     @abstractmethod
-    def value_personal_loan(self, instrument: "PersonalLoan", scenario: Scenario) -> float:
-        """Value a personal loan given a scenario."""
+    def visit_personal_loan(self, instrument: "PersonalLoan") -> float:
+        """Value a personal loan."""
 
     @abstractmethod
-    def value_credit_card(self, instrument: "CreditCard", scenario: Scenario) -> float:
-        """Value a credit card given a scenario."""
+    def visit_credit_card(self, instrument: "CreditCard") -> float:
+        """Value a credit card."""
 
 
 class BankingBookValuationVisitor(ValuationVisitor):
     """A visitor for banking book valuation."""
 
-    def value_fixed_rate_bond(self, instrument: "FixedRateBond", scenario: Scenario) -> float:
-        """Value a fixed rate bond given a scenario."""
-        valuation_date = scenario.date
+    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> float:
+        """Value a fixed rate bond."""
+        valuation_date = self.scenario.date
         return instrument.notional(valuation_date)
 
-    def value_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan", scenario: Scenario) -> float:
-        """Value an amortizing fixed rate bond given a scenario."""
-        valuation_date = scenario.date
+    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> float:
+        """Value an amortizing fixed rate bond."""
+        valuation_date = self.scenario.date
         return instrument.notional(valuation_date)
 
-    def value_covered_bond(self, instrument: "CoveredBond", scenario: Scenario) -> float:
-        """Value a covered bond given a scenario."""
+    def visit_covered_bond(self, instrument: "CoveredBond") -> float:
+        """Value a covered bond."""
         raise NotImplementedError
 
-    def value_personal_loan(self, instrument: "PersonalLoan", scenario: Scenario) -> float:
-        """Value a personal loan given a scenario."""
+    def visit_personal_loan(self, instrument: "PersonalLoan") -> float:
+        """Value a personal loan."""
         raise NotImplementedError
 
-    def value_credit_card(self, instrument: "CreditCard", scenario: Scenario) -> float:
-        """Value a credit card given a scenario."""
+    def visit_credit_card(self, instrument: "CreditCard") -> float:
+        """Value a credit card."""
         raise NotImplementedError
 
 
 class TradingBookValuationVisitor(ValuationVisitor):
     """A visitor for trading book valuation."""
 
-    def value_fixed_rate_bond(self, instrument: "FixedRateBond", scenario: Scenario) -> float:
-        """Value a fixed rate bond given a scenario."""
-        valuation_date = scenario.date
+    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> float:
+        """Value a fixed rate bond."""
+        valuation_date = self.scenario.date
 
-        term_structure: ql.YieldTermStructureHandle = scenario.data[ScenarioData.YIELD_TERM_STRUCTURE]
+        term_structure: ql.YieldTermStructureHandle = self.scenario.data[ScenarioData.YIELD_TERM_STRUCTURE]
         bond_engine = ql.DiscountingBondEngine(term_structure)
         instrument.set_pricing_engine(bond_engine)
 
@@ -96,11 +102,11 @@ class TradingBookValuationVisitor(ValuationVisitor):
 
         return npv
 
-    def value_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan", scenario: Scenario) -> float:
-        """Value an amortizing fixed rate bond given a scenario."""
-        valuation_date = scenario.date
+    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> float:
+        """Value an amortizing fixed rate bond."""
+        valuation_date = self.scenario.date
 
-        term_structure: ql.YieldTermStructureHandle = scenario.data[ScenarioData.YIELD_TERM_STRUCTURE]
+        term_structure: ql.YieldTermStructureHandle = self.scenario.data[ScenarioData.YIELD_TERM_STRUCTURE]
         bond_engine = ql.DiscountingBondEngine(term_structure)
         instrument.set_pricing_engine(bond_engine)
 
@@ -112,14 +118,14 @@ class TradingBookValuationVisitor(ValuationVisitor):
 
         return npv
 
-    def value_covered_bond(self, instrument: "CoveredBond", scenario: Scenario) -> float:
-        """Value a covered bond given a scenario."""
+    def visit_covered_bond(self, instrument: "CoveredBond") -> float:
+        """Value a covered bond."""
         raise NotImplementedError
 
-    def value_personal_loan(self, instrument: "PersonalLoan", scenario: Scenario) -> float:
-        """Value a personal loan given a scenario."""
+    def visit_personal_loan(self, instrument: "PersonalLoan") -> float:
+        """Value a personal loan."""
         raise NotImplementedError
 
-    def value_credit_card(self, instrument: "CreditCard", scenario: Scenario) -> float:
-        """Value a credit card given a scenario."""
+    def visit_credit_card(self, instrument: "CreditCard") -> float:
+        """Value a credit card."""
         raise NotImplementedError
