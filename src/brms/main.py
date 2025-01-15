@@ -24,7 +24,7 @@ class App(QApplication):
 def main() -> None:
     """Run the main entry point for the BRMS application."""
     app = App(sys.argv)
-    app.exec()
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":
