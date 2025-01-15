@@ -3,6 +3,7 @@ import datetime
 import pytest
 import QuantLib as ql
 
+from brms.instruments.base import BookType
 from brms.instruments.fixed_rate_bond import FixedRateBond
 from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
 from brms.models.scenario import Scenario, ScenarioBuilder
@@ -41,13 +42,13 @@ def test_fixed_rate_bond_banking_book_valuation(fixed_rate_bond):
     """Test the valuation of the FixedRateBond using the BankingBookValuationVisitor."""
     scenario = Scenario(date=datetime.date(2025, 1, 1))
     visitor = BankingBookValuationVisitor(scenario)
-    value = fixed_rate_bond.accept(visitor)
-    assert value == 1000.0  # On banking book, value is the notional value
+    fixed_rate_bond.accept(visitor)
+    assert fixed_rate_bond.value == 1000.0  # On banking book, value is the notional value
 
     scenario = Scenario(date=datetime.date(2030, 1, 1))
     visitor.scenario = scenario
-    value = fixed_rate_bond.accept(visitor)
-    assert value == 0  # At maturity, value is 0
+    fixed_rate_bond.accept(visitor)
+    assert fixed_rate_bond.value == 0  # At maturity, value is 0
 
 
 def test_fixed_rate_bond_trading_book_valuation_par(fixed_rate_bond):
@@ -71,8 +72,9 @@ def test_fixed_rate_bond_trading_book_valuation_par(fixed_rate_bond):
     scenario = scenario_builder.build()
 
     visitor = TradingBookValuationVisitor(scenario)
-    value = fixed_rate_bond.accept(visitor)
-    assert value == 1000.0  # At par when issued
+    fixed_rate_bond.book_type = BookType.TRADING_BOOK
+    fixed_rate_bond.accept(visitor)
+    assert fixed_rate_bond.value == 1000.0  # At par when issued
 
 
 def test_fixed_rate_bond_trading_book_valuation_not_par(fixed_rate_bond):
@@ -101,8 +103,9 @@ def test_fixed_rate_bond_trading_book_valuation_not_par(fixed_rate_bond):
     scenario = scenario_builder.build()
 
     visitor = TradingBookValuationVisitor(scenario)
-    value = fixed_rate_bond.accept(visitor)
-    assert value == pytest.approx(957.348985816)
+    fixed_rate_bond.book_type = BookType.TRADING_BOOK
+    fixed_rate_bond.accept(visitor)
+    assert fixed_rate_bond.value == pytest.approx(957.348985816)
 
 
 if __name__ == "__main__":

@@ -12,9 +12,9 @@ if TYPE_CHECKING:
 class PersonalLoan(Instrument):
     """A class to represent personal loan instruments."""
 
-    def accept(self, visitor: "Visitor") -> float:
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
-        return visitor.visit_personal_loan(self)
+        visitor.visit_personal_loan(self)
 
 
 RetailInstrumentRegistry.register(PersonalLoan)

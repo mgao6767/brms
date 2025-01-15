@@ -11,6 +11,6 @@ if TYPE_CHECKING:
 class CoveredBond(Instrument):
     """A class to represent covered bond instruments."""
 
-    def accept(self, visitor: "Visitor") -> float:
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
-        return visitor.visit_covered_bond(self)
+        visitor.visit_covered_bond(self)

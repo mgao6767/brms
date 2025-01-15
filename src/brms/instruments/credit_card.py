@@ -12,9 +12,9 @@ if TYPE_CHECKING:
 class CreditCard(Instrument):
     """A class to represent credit card instruments."""
 
-    def accept(self, visitor: "Visitor") -> float:
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
-        return visitor.visit_credit_card(self)
+        visitor.visit_credit_card(self)
 
 
 RetailInstrumentRegistry.register(CreditCard)

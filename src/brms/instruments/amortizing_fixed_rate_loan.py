@@ -66,10 +66,9 @@ class AmortizingFixedRateLoan(Instrument):
         """
         return self.instrument.notional(pydate_to_qldate(date))
 
-    def accept(self, visitor: Visitor) -> float:
-        """Accept a valuation visitor to calculate the instrument's value."""
-        self.value = visitor.visit_amortizing_fixed_rate_loan(self)
-        return self.value
+    def accept(self, visitor: Visitor) -> None:
+        """Accept a visitor."""
+        visitor.visit_amortizing_fixed_rate_loan(self)
 
     def set_pricing_engine(self, engine: ql.PricingEngine) -> None:
         """Set the pricing engine."""

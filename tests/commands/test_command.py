@@ -7,10 +7,9 @@ from brms.commands.command import (
     SetInstrumentBookTypeCommand,
 )
 from brms.instruments.base import Instrument
-from brms.instruments.valuation import ValuationVisitor
+from brms.instruments.visitor import Visitor
 from brms.models.bank import Bank
 from brms.models.base import BalanceSheetCategory, BookType
-from brms.models.scenario import Scenario
 
 
 class MockInstrument(Instrument):
@@ -18,7 +17,7 @@ class MockInstrument(Instrument):
         super().__init__(name)
         self._book_type = None
 
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario):
+    def accept(self, visitor: Visitor):
         pass
 
 

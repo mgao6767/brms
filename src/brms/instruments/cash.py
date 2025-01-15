@@ -11,6 +11,6 @@ if TYPE_CHECKING:
 class Cash(Instrument):
     """A class to represent cash."""
 
-    def accept(self, visitor: "Visitor") -> float:
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
-        return visitor.visit_cash(self)
+        visitor.visit_cash(self)

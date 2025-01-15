@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class Commitment(Instrument):
     """A class to represent commitments."""
 
-    def accept(self, visitor: "Visitor") -> float:
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
         raise NotImplementedError
 

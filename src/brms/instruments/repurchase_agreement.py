@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class RepurchaseAgreement(Instrument):
     """A class to represent repo instruments."""
 
-    def accept(self, visitor: "Visitor") -> float:
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
         raise NotImplementedError
 

@@ -5,9 +5,8 @@ from collections.abc import Iterator
 from enum import Enum, Flag, auto
 from typing import Optional
 
-from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor, ValuationVisitor
+from brms.instruments.visitor import Visitor
 from brms.models.base import BookType
-from brms.models.scenario import Scenario
 
 
 class Instrument(ABC):
@@ -79,8 +78,8 @@ class Instrument(ABC):
         return False
 
     @abstractmethod
-    def accept(self, visitor: ValuationVisitor) -> float:
-        """Accept a valuation visitor to calculate the instrument's value."""
+    def accept(self, visitor: Visitor) -> None:
+        """Accept a visitor."""
 
 
 class CompositeInstrument(Instrument):
@@ -102,6 +101,15 @@ class CompositeInstrument(Instrument):
         super().__init__(name, book_type, credit_rating, issuer, parent)
         self._instruments: list[Instrument] = []
 
+    @property
+    def value(self) -> float:
+        """Get the instrument's value."""
+        return sum(instrument.value for instrument in self._instruments)
+
+    @value.setter
+    def value(self, value: float) -> None:
+        raise AttributeError("Cannot set value on a composite instrument")
+
     def add(self, instrument: Instrument) -> None:
         """Add an instrument to the composite."""
         instrument.parent = self
@@ -116,21 +124,10 @@ class CompositeInstrument(Instrument):
         """Check if the instrument is composite."""
         return True
 
-    def accept(self, visitor: ValuationVisitor) -> float:
-        """Accept a valuation visitor to calculate the composite instrument's value."""
-        if isinstance(visitor, BankingBookValuationVisitor):
-            return sum(
-                instrument.accept(visitor)
-                for instrument in self._instruments
-                if instrument.book_type == BookType.BANKING_BOOK
-            )
-        if isinstance(visitor, TradingBookValuationVisitor):
-            return sum(
-                instrument.accept(visitor)
-                for instrument in self._instruments
-                if instrument.book_type == BookType.TRADING_BOOK
-            )
-        return 0.0
+    def accept(self, visitor: Visitor) -> None:
+        """Accept a visitor."""
+        for instrument in self._instruments:
+            instrument.accept(visitor)
 
     def __iter__(self) -> Iterator[Instrument]:
         """Return an iterator over the instruments in the composite."""

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class LetterOfCredit(Instrument):
     """A class to represent letter of credit instruments."""
 
-    def accept(self, visitor: "Visitor") -> float:
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
         raise NotImplementedError
 
@@ -20,7 +20,7 @@ class LetterOfCredit(Instrument):
 class StandByLetterOfCredit(Instrument):
     """A class to represent standby letter of credit instruments."""
 
-    def accept(self, visitor: "Visitor") -> float:
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
         raise NotImplementedError
 
@@ -28,7 +28,7 @@ class StandByLetterOfCredit(Instrument):
 class TradeLetterOfCredit(Instrument):
     """A class to represent trade letter of credit instruments."""
 
-    def accept(self, visitor: "Visitor") -> float:
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
         raise NotImplementedError
 

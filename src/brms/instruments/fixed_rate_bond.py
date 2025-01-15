@@ -82,10 +82,9 @@ class FixedRateBond(Instrument):
         """
         return self.instrument.notional(pydate_to_qldate(date))
 
-    def accept(self, visitor: "Visitor") -> float:
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
-        self.value = visitor.visit_fixed_rate_bond(self)
-        return self.value
+        visitor.visit_fixed_rate_bond(self)
 
     def set_pricing_engine(self, engine: ql.PricingEngine) -> None:
         """Set the pricing engine."""

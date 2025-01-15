@@ -1,10 +1,12 @@
 """Contain valuation visitor classes for banking and trading books."""
 
 from abc import abstractmethod
+from functools import wraps
 from typing import TYPE_CHECKING
 
 import QuantLib as ql  # noqa: N813
 
+from brms.instruments.base import BookType
 from brms.instruments.visitor import Visitor
 from brms.models.base import ScenarioData
 from brms.models.scenario import Scenario
@@ -28,57 +30,70 @@ class ValuationVisitor(Visitor):
         """Initialize the ValuationVisitor with a scenario."""
         self.scenario = scenario
 
-    def visit_cash(self, instrument: "Cash") -> float:
+    def visit_cash(self, instrument: "Cash") -> None:
         """Value cash."""
-        return instrument.value
 
-    def visit_common_equity(self, instrument: "CommonEquity") -> float:
+    def visit_common_equity(self, instrument: "CommonEquity") -> None:
         """Value common equity."""
-        return instrument.value
 
     @abstractmethod
-    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> float:
+    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> None:
         """Value a fixed rate bond."""
 
     @abstractmethod
-    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> float:
+    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> None:
         """Value an amortizing fixed rate bond."""
 
     @abstractmethod
-    def visit_covered_bond(self, instrument: "CoveredBond") -> float:
+    def visit_covered_bond(self, instrument: "CoveredBond") -> None:
         """Value a covered bond."""
 
     @abstractmethod
-    def visit_personal_loan(self, instrument: "PersonalLoan") -> float:
+    def visit_personal_loan(self, instrument: "PersonalLoan") -> None:
         """Value a personal loan."""
 
     @abstractmethod
-    def visit_credit_card(self, instrument: "CreditCard") -> float:
+    def visit_credit_card(self, instrument: "CreditCard") -> None:
         """Value a credit card."""
 
 
 class BankingBookValuationVisitor(ValuationVisitor):
     """A visitor for banking book valuation."""
 
-    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> float:
+    @staticmethod
+    def banking_book_only(method):
+        @wraps(method)
+        def wrapper(self, instrument, *args, **kwargs):
+            if instrument.book_type != BookType.BANKING_BOOK:
+                return
+            return method(self, instrument, *args, **kwargs)
+
+        return wrapper
+
+    @banking_book_only
+    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> None:
         """Value a fixed rate bond."""
         valuation_date = self.scenario.date
-        return instrument.notional(valuation_date)
+        instrument.value = instrument.notional(valuation_date)
 
-    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> float:
+    @banking_book_only
+    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> None:
         """Value an amortizing fixed rate bond."""
         valuation_date = self.scenario.date
-        return instrument.notional(valuation_date)
+        instrument.value = instrument.notional(valuation_date)
 
-    def visit_covered_bond(self, instrument: "CoveredBond") -> float:
+    @banking_book_only
+    def visit_covered_bond(self, instrument: "CoveredBond") -> None:
         """Value a covered bond."""
         raise NotImplementedError
 
-    def visit_personal_loan(self, instrument: "PersonalLoan") -> float:
+    @banking_book_only
+    def visit_personal_loan(self, instrument: "PersonalLoan") -> None:
         """Value a personal loan."""
         raise NotImplementedError
 
-    def visit_credit_card(self, instrument: "CreditCard") -> float:
+    @banking_book_only
+    def visit_credit_card(self, instrument: "CreditCard") -> None:
         """Value a credit card."""
         raise NotImplementedError
 
@@ -86,7 +101,18 @@ class BankingBookValuationVisitor(ValuationVisitor):
 class TradingBookValuationVisitor(ValuationVisitor):
     """A visitor for trading book valuation."""
 
-    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> float:
+    @staticmethod
+    def trading_book_only(method):
+        @wraps(method)
+        def wrapper(self, instrument, *args, **kwargs):
+            if instrument.book_type != BookType.TRADING_BOOK:
+                return
+            return method(self, instrument, *args, **kwargs)
+
+        return wrapper
+
+    @trading_book_only
+    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> None:
         """Value a fixed rate bond."""
         valuation_date = self.scenario.date
 
@@ -100,9 +126,10 @@ class TradingBookValuationVisitor(ValuationVisitor):
         npv = instrument.instrument.NPV()
         ql.Settings.instance().evaluationDate = old_evaluation_date
 
-        return npv
+        instrument.value = npv
 
-    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> float:
+    @trading_book_only
+    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> None:
         """Value an amortizing fixed rate bond."""
         valuation_date = self.scenario.date
 
@@ -116,16 +143,19 @@ class TradingBookValuationVisitor(ValuationVisitor):
         npv = instrument.instrument.NPV()
         ql.Settings.instance().evaluationDate = old_evaluation_date
 
-        return npv
+        instrument.value = npv
 
-    def visit_covered_bond(self, instrument: "CoveredBond") -> float:
+    @trading_book_only
+    def visit_covered_bond(self, instrument: "CoveredBond") -> None:
         """Value a covered bond."""
         raise NotImplementedError
 
-    def visit_personal_loan(self, instrument: "PersonalLoan") -> float:
+    @trading_book_only
+    def visit_personal_loan(self, instrument: "PersonalLoan") -> None:
         """Value a personal loan."""
         raise NotImplementedError
 
-    def visit_credit_card(self, instrument: "CreditCard") -> float:
+    @trading_book_only
+    def visit_credit_card(self, instrument: "CreditCard") -> None:
         """Value a credit card."""
         raise NotImplementedError

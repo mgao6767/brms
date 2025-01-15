@@ -11,6 +11,6 @@ if TYPE_CHECKING:
 class CommonEquity(Instrument):
     """A class to represent common equity instruments."""
 
-    def accept(self, visitor: "Visitor") -> float:
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
-        return visitor.visit_common_equity(self)
+        visitor.visit_common_equity(self)

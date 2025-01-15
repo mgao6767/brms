@@ -23,7 +23,10 @@ class EquityComposite(CompositeInstrument):
 
 
 class Bank:
-    """Class representing a bank with assets, liabilities, and equities."""
+    """Class representing a bank with assets, liabilities, and equities.
+
+    TODO: This class needs a re-design!
+    """
 
     def __init__(self) -> None:
         """Initialize the Bank with assets, liabilities, and equities."""
@@ -60,15 +63,7 @@ class Bank:
         banking_book_visitor = BankingBookValuationVisitor(scenario)
         trading_book_visitor = TradingBookValuationVisitor(scenario)
 
-        assets_value = 0.0
-        liabilities_value = 0.0
-        assets_value += self.assets.accept(banking_book_visitor)
-        assets_value += self.assets.accept(trading_book_visitor)
-        liabilities_value += self.liabilities.accept(banking_book_visitor)
-        liabilities_value += self.liabilities.accept(trading_book_visitor)
-
-        # Store the computed the value
-        self.assets.value = assets_value
-        self.liabilities.value = liabilities_value
-        # FIXME: EquityComposite's value is not updated
-        self.common_equity = self.assets.value - self.liabilities.value
+        self.assets.accept(banking_book_visitor)
+        self.assets.accept(trading_book_visitor)
+        self.liabilities.accept(banking_book_visitor)
+        self.liabilities.accept(trading_book_visitor)

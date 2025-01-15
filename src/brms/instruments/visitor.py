@@ -1,7 +1,7 @@
 """Defines the Visitor abstract base class for instrument visitors."""
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from brms.instruments.amortizing_fixed_rate_loan import AmortizingFixedRateLoan
@@ -17,31 +17,29 @@ class Visitor(ABC):
     """Abstract base class for instrument visitors."""
 
     @abstractmethod
-    def visit_cash(self, instrument: "Cash") -> Any:
+    def visit_cash(self, instrument: "Cash") -> None:
         """Visit cash."""
-        return instrument.value
 
     @abstractmethod
-    def visit_common_equity(self, instrument: "CommonEquity") -> Any:
+    def visit_common_equity(self, instrument: "CommonEquity") -> None:
         """Visit common equity."""
-        return instrument.value
 
     @abstractmethod
-    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> Any:
+    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> None:
         """Visit a fixed rate bond."""
 
     @abstractmethod
-    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> Any:
+    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> None:
         """Visit an amortizing fixed rate bond."""
 
     @abstractmethod
-    def visit_covered_bond(self, instrument: "CoveredBond") -> Any:
+    def visit_covered_bond(self, instrument: "CoveredBond") -> None:
         """Visit a covered bond."""
 
     @abstractmethod
-    def visit_personal_loan(self, instrument: "PersonalLoan") -> Any:
+    def visit_personal_loan(self, instrument: "PersonalLoan") -> None:
         """Visit a personal loan."""
 
     @abstractmethod
-    def visit_credit_card(self, instrument: "CreditCard") -> Any:
+    def visit_credit_card(self, instrument: "CreditCard") -> None:
         """Visit a credit card."""
