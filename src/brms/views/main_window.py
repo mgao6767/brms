@@ -1,10 +1,11 @@
 """Main window class for the BRMS application."""
 
-from PySide6.QtCore import Signal
+import qtawesome as qta
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar, QStatusBar, QToolBar
 
-from brms import __version__
+from brms import __about__, __github__, __version__
 from brms.resources import icons
 
 
@@ -20,7 +21,16 @@ class MainWindow(QMainWindow):
         self.init_ui()
         self.connect_signals()
         # Actions
+        self.new_action: QAction
+        self.open_action: QAction
+        self.save_action: QAction
         self.exit_action: QAction
+        self.next_action: QAction
+        self.start_action: QAction
+        self.pause_action: QAction
+        self.stop_action: QAction
+        self.about_action: QAction
+        self.github_action: QAction
 
     def init_ui(self) -> None:
         """Initialize the user interface."""
@@ -53,13 +63,30 @@ class MainWindow(QMainWindow):
 
     def create_actions(self) -> None:
         """Create actions for the main window."""
-        self.exit_action = QAction("Exit", self)
+        self.new_action = QAction("New", self)
+        self.open_action = QAction("Open", self)
+        self.save_action = QAction("Save", self)
+        self.exit_action = QAction(qta.icon("mdi6.exit-run"), "Exit", self)
+        self.exit_action.setShortcut("Ctrl+Q")
+
+        self.next_action = QAction(qta.icon("mdi6.skip-next"), "Next", self)
+        self.start_action = QAction(qta.icon("mdi6.play"), "Start", self)
+        self.pause_action = QAction(qta.icon("mdi6.pause"), "Pause", self)
+        self.stop_action = QAction(qta.icon("mdi6.stop"), "Stop", self)
+
+        self.about_action = QAction("About", self)
+        self.github_action = QAction(qta.icon("mdi6.github"), "GitHub", self)
 
     def create_toolbar(self) -> None:
         """Create the toolbar for the main window."""
         toolbar = QToolBar("Main Toolbar")
+        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.addToolBar(toolbar)
         # Add actions to the toolbar
+        toolbar.addAction(self.next_action)
+        toolbar.addAction(self.start_action)
+        toolbar.addAction(self.pause_action)
+        toolbar.addAction(self.stop_action)
 
     def create_menubar(self) -> None:
         """Create the menubar for the main window."""
@@ -67,8 +94,25 @@ class MainWindow(QMainWindow):
         self.setMenuBar(menubar)
         # Add menus to the menubar
         file_menu = menubar.addMenu("File")
+        edit_menu = menubar.addMenu("Edit")
+        view_menu = menubar.addMenu("View")
+        simulation_menu = menubar.addMenu("Simulation")
+        help_menu = menubar.addMenu("Help")
         # Add actions to the menus
+        # File menu
+        file_menu.addAction(self.new_action)
+        file_menu.addAction(self.open_action)
+        file_menu.addAction(self.save_action)
+        file_menu.addSeparator()
         file_menu.addAction(self.exit_action)
+        # Simulation menu
+        simulation_menu.addAction(self.next_action)
+        simulation_menu.addAction(self.start_action)
+        simulation_menu.addAction(self.pause_action)
+        simulation_menu.addAction(self.stop_action)
+        # Help menu
+        help_menu.addAction(self.about_action)
+        help_menu.addAction(self.github_action)
 
     def create_statusbar(self) -> None:
         """Create the status bar for the main window."""
@@ -79,6 +123,8 @@ class MainWindow(QMainWindow):
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
         self.exit_action.triggered.connect(self.on_exit)
+        self.about_action.triggered.connect(self.on_about_action)
+        self.github_action.triggered.connect(self.on_github_action)
 
     def on_exit(self) -> None:
         """Handle the exit action.
@@ -86,3 +132,22 @@ class MainWindow(QMainWindow):
         Emit the exit signal and delegate the closing tasks to the controller.
         """
         self.exit_signal.emit()
+
+    def on_about_action(self) -> None:
+        """Handle the about action.
+
+        Show the about dialog with information about the BRMS application.
+        """
+        from PySide6.QtWidgets import QMessageBox
+
+        QMessageBox.about(self, "About BRMS", __about__)
+
+    def on_github_action(self) -> None:
+        """Handle the GitHub action.
+
+        Open the GitHub page of the BRMS application in the default web browser.
+        """
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+
+        QDesktopServices.openUrl(QUrl(__github__))
