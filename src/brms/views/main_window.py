@@ -3,10 +3,20 @@
 import qtawesome as qta
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QIcon
-from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar, QStatusBar, QToolBar
+from PySide6.QtWidgets import (
+    QApplication,
+    QDockWidget,
+    QMainWindow,
+    QMenuBar,
+    QStatusBar,
+    QTabWidget,
+    QToolBar,
+    QWidget,
+)
 
 from brms import __about__, __github__, __version__
 from brms.resources import icons
+from brms.views.inspector_widget import BRMSInspectorWidget
 
 
 class MainWindow(QMainWindow):
@@ -18,6 +28,8 @@ class MainWindow(QMainWindow):
         """Initialize the main window."""
         super().__init__()
         self.read_settings()
+        # UI components
+        self.inspector_widget: BRMSInspectorWidget
         self.init_ui()
         self.connect_signals()
         # Actions
@@ -40,6 +52,17 @@ class MainWindow(QMainWindow):
         self.create_toolbar()
         self.create_statusbar()
         self.center_window()
+        self.create_central_widget()
+        self.create_dock_widgets()
+
+    def create_central_widget(self) -> None:
+        """Create the central widget."""
+        tab_widget = QTabWidget(self)
+        # TODO: Replace placeholder tabs with actual ones
+        tab_widget.addTab(QWidget(), "Dashboard")
+        tab_widget.addTab(QWidget(), "Banking Book")
+        tab_widget.addTab(QWidget(), "Trading Book")
+        self.setCentralWidget(tab_widget)
 
     def read_settings(self) -> None:
         """Read and set the default window settings."""
@@ -119,6 +142,21 @@ class MainWindow(QMainWindow):
         statusbar = QStatusBar(self)
         self.setStatusBar(statusbar)
         statusbar.showMessage("Ready")
+
+    def create_dock_widgets(self) -> None:
+        """Create and dock the inspector widget."""
+        # Inspector
+        dock_inspector = QDockWidget("Inspector", self)
+        self.inspector_widget = BRMSInspectorWidget(["Property", "Value"], dock_inspector)
+        dock_inspector.setWidget(self.inspector_widget)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock_inspector)
+        # Economic indicator
+        dock_econ_indicator = QDockWidget("Economic Indicators", self)
+        econ_indicator_widget = QTabWidget()
+        econ_indicator_widget.addTab(QWidget(), "Yield Curve")
+        econ_indicator_widget.addTab(QWidget(), "Stock Market")
+        dock_econ_indicator.setWidget(econ_indicator_widget)  # TODO: placeholder widget
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_econ_indicator)
 
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
