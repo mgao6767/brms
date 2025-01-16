@@ -27,7 +27,6 @@ class Instrument(ABC):
         self._credit_rating = credit_rating or CreditRating.UNRATED
         self._book_type = book_type or BookType.BANKING_BOOK  # Defaults to banking book.
         self._issuer = issuer or Issuer("unknown", IssuerType.UNSPECIFIED)
-        self.details: dict[str, str | object] = {}
 
     @property
     def parent(self) -> Optional["Instrument"]:
@@ -190,6 +189,10 @@ class CreditRating(Enum):
         """Check if the credit rating is investment grade."""
         return self >= CreditRating.BBB_MINUS
 
+    def to_str(self) -> str:
+        """Get a custom string representation of the credit rating."""
+        return self.name.replace("_PLUS", "+").replace("_MINUS", "-").replace("UNRATED", "Unrated")
+
 
 class IssuerType(Flag):
     """Enumeration of issuer types."""
@@ -209,6 +212,41 @@ class IssuerType(Flag):
     MUNICIPAL = auto()
     INDIVIDUAL = auto()
     UNSPECIFIED = auto()
+
+    def to_str(self) -> str:
+        """Get a custom string representation of the issuer type."""
+        result = []
+        if self & IssuerType.SOVEREIGN:
+            result.append("Sovereign")
+        if self & IssuerType.PSE:
+            result.append("Public Sector Entity (PSE)")
+        if self & IssuerType.MDB:
+            result.append("Multilateral Development Bank (MDB)")
+        if self & IssuerType.BANK:
+            result.append("Bank")
+        if self & IssuerType.CORPORATE:
+            result.append("Corporate")
+        if self & IssuerType.SME:
+            result.append("Small and Medium Enterprise (SME)")
+        if self & IssuerType.SECURITIES_FIRM:
+            result.append("Securities Firm")
+        if self & IssuerType.FINANCIAL_INSTITUTION:
+            result.append("Financial Institution")
+        if self & IssuerType.INSURANCE_COMPANY:
+            result.append("Insurance Company")
+        if self & IssuerType.MUTUAL_FUND:
+            result.append("Mutual Fund")
+        if self & IssuerType.HEDGE_FUND:
+            result.append("Hedge Fund")
+        if self & IssuerType.SUPRANATIONAL:
+            result.append("Supranational")
+        if self & IssuerType.MUNICIPAL:
+            result.append("Municipal")
+        if self & IssuerType.INDIVIDUAL:
+            result.append("Individual")
+        if self & IssuerType.UNSPECIFIED:
+            result.append("Unspecified")
+        return "; ".join(result) if result else "Unknown"
 
 
 class Issuer:
