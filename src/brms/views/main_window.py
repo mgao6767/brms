@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from brms import __about__, __github__, __version__
 from brms.resources import icons
+from brms.views.bank_book_widget import BRMSBankBookWidget
 from brms.views.inspector_widget import BRMSInspectorWidget
 
 
@@ -60,8 +61,8 @@ class MainWindow(QMainWindow):
         tab_widget = QTabWidget(self)
         # TODO: Replace placeholder tabs with actual ones
         tab_widget.addTab(QWidget(), "Dashboard")
-        tab_widget.addTab(QWidget(), "Banking Book")
-        tab_widget.addTab(QWidget(), "Trading Book")
+        tab_widget.addTab(BRMSBankBookWidget(), "Banking Book")
+        tab_widget.addTab(BRMSBankBookWidget(), "Trading Book")
         self.setCentralWidget(tab_widget)
 
     def read_settings(self) -> None:
