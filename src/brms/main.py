@@ -2,7 +2,7 @@
 
 import sys
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QStyleFactory
 
 from brms.controllers.main_controller import MainController
 from brms.models.simulation import Simulation as SimulationModel
@@ -15,6 +15,7 @@ class App(QApplication):
     def __init__(self, sys_argv: list[str]) -> None:
         """Initialize the BRMS application."""
         super().__init__(sys_argv)
+        self.setStyle(QStyleFactory.create("Fusion"))
         self.view = MainWindow()
         self.model = SimulationModel()
         self.controller = MainController(self.model, self.view)
