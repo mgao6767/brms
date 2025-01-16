@@ -3,8 +3,8 @@
 from brms.views.tree_widget import BRMSTreeWidget
 
 
-class BRMSInspectionWidget(BRMSTreeWidget):
-    """BRMSInspectionWidget extends BRMSTreeWidget to display a tree structure with inspection-related data."""
+class BRMSInspectorWidget(BRMSTreeWidget):
+    """BRMSInspectorWidget extends BRMSTreeWidget to display a tree structure with inspection-related data."""
 
 
 if __name__ == "__main__":
@@ -24,9 +24,9 @@ if __name__ == "__main__":
         def __init__(self) -> None:
             """Initialize the MainWindow."""
             super().__init__()
-            self.setWindowTitle("BRMS Inspection Widget Example")
+            self.setWindowTitle("BRMS Inspector Widget Example")
             self.resize(400, 600)
-            self.tree = BRMSInspectionWidget(["Property", "Value"])
+            self.tree = BRMSInspectorWidget(["Property", "Value"])
             layout = QVBoxLayout(self)
             layout.addWidget(self.tree)
             self.setLayout(layout)
