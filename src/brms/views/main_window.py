@@ -1,10 +1,11 @@
 """Main window class for the BRMS application."""
 
 from PySide6.QtCore import Signal
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar, QStatusBar, QToolBar
 
 from brms import __version__
+from brms.resources import icons
 
 
 class MainWindow(QMainWindow):
@@ -32,6 +33,7 @@ class MainWindow(QMainWindow):
 
     def read_settings(self) -> None:
         """Read and set the default window settings."""
+        self.setWindowIcon(QIcon(":/icons/icon.png"))
         screen_geometry = QApplication.primaryScreen().availableGeometry()
         self.window_width = min(1920, screen_geometry.width())
         self.window_height = min(1080, screen_geometry.height())
