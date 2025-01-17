@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 import brms.accounting.preset as act  # The preset accounts
-from brms.accounting.account import AccountBalances, ChartOfAccounts
+from brms.accounting.account import AccountBalances, BankChartOfAccounts
 from brms.accounting.ledger import Ledger
 from brms.instruments.cash import Cash
 from brms.instruments.visitors.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
@@ -22,20 +22,14 @@ class Bank:
         """Initialize the Bank."""
         self.banking_book = BankingBook()
         self.trading_book = TradingBook()
-        self.ledger = Ledger()
+        self.ledger = Ledger(BankChartOfAccounts())
         self.accountant = Accountant(self, self.ledger)
 
-    def initialize(
-        self,
-        chart_of_accounts: ChartOfAccounts | None = None,
-        account_balances: AccountBalances | None = None,
-    ) -> None:
+    def initialize(self, account_balances: AccountBalances | None = None) -> None:
         """Initialize the bank with a chart of accounts and account balances."""
-        if chart_of_accounts is None:
-            chart_of_accounts = act.chart_of_accounts
         if account_balances is None:
             account_balances = AccountBalances()
-        self.ledger.add_accounts_from_chart(chart_of_accounts, account_balances)
+        self.ledger.set_account_balances(account_balances)
         # After initiating the leger, init the bank's banking and trading books with instruments
         # TODO: init all instruments other than cash
         cash = Cash("Cash")

@@ -52,8 +52,8 @@ def setup_ledger():
         },
     )
 
-    ledger = Ledger()
-    ledger.add_accounts_from_chart(chart_of_accounts, balances)
+    ledger = Ledger(chart_of_accounts)
+    ledger.set_account_balances(balances)
 
     date = datetime.date(2025, 12, 31)
 

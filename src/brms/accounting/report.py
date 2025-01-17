@@ -41,7 +41,7 @@ class TrialBalance(UserDict["TAccount", tuple[float, float]], Statement):
         """Create a TrialBalance from the given ledger."""
         trial_balance = cls()
         trial_balance.date = ledger.date_closed
-        for account in ledger.account_balances():
+        for account in ledger.get_account_balances():
             trial_balance[account] = cls.get_credit_and_debit_values(account)
         return trial_balance
 

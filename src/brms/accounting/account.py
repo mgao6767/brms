@@ -63,6 +63,7 @@ class TAccount(Observable):
         parent: Optional["TAccount"] = None,
         debit: float = 0.0,
         credit: float = 0.0,
+        description: str = "",
         *,
         is_contra_account: bool = False,
         is_temporary_account: bool = False,
@@ -76,6 +77,7 @@ class TAccount(Observable):
         self._parent = parent
         self._debit_value = debit
         self._credit_value = credit
+        self.description = description
         self.is_contra_account = is_contra_account
         self.is_temporary_account = is_temporary_account
 
@@ -160,22 +162,6 @@ class TAccount(Observable):
             raise ValueError(error_message)
 
 
-class RetainedEarningsAccount(TAccount):
-    """Represent the retained earnings account."""
-
-    def __init__(self, name: str = "Retained Earnings", parent: TAccount | None = None) -> None:
-        """Initialize a RetainedEarningsAccount instance."""
-        super().__init__(name, account_type=AccountType.EQUITY, parent=parent)
-
-
-class IncomeSummaryAccount(TAccount):
-    """Represent the income summary account."""
-
-    def __init__(self, name: str = "Income Summary Account", parent: TAccount | None = None) -> None:
-        """Initialize an IncomeSummaryAccount instance."""
-        super().__init__(name, account_type=AccountType.INCOME, parent=parent, is_temporary_account=True)
-
-
 class CompositeTAccount(TAccount, Observable, Observer):
     """Composite T-account that can hold multiple sub T-accounts."""
 
@@ -246,6 +232,210 @@ class CompositeTAccount(TAccount, Observable, Observer):
         self.notify_observers()  # Notify parent (if any) of the change
 
 
+class CashAccount(TAccount):
+    """Cash account."""
+
+    def __init__(self) -> None:
+        super().__init__("Cash and Cash Equivalents", AccountType.ASSET)
+
+
+class ReceivableAccount(TAccount):
+    """Receivable account."""
+
+    def __init__(self) -> None:
+        super().__init__("Receivables from Financial Institutions", AccountType.ASSET)
+
+
+class LoanAccount(TAccount):
+    """Loan account.
+
+    Loans provided to customers that the bank intends to hold until maturity and collect principal and interest.
+    - Banking Book only
+    """
+
+    def __init__(self) -> None:
+        super().__init__("Loans and Advances", AccountType.ASSET)
+
+
+class AssetFVTPLAccount(TAccount):
+    """Asset FVTPL account, or Financial Assets - Trading (FVTPL).
+
+    Assets at Fair Value Through Income Statement (FVTPL)
+    - Trading Book securities
+    """
+
+    def __init__(self) -> None:
+        super().__init__("Assets at Fair Value Through Income Statement (FVTPL)", AccountType.ASSET)
+
+
+class InvestmentSecuritiesAccount(CompositeTAccount):
+    """Investment securities account."""
+
+    def __init__(self) -> None:
+        super().__init__("Invest Securities", AccountType.ASSET)
+        self.investment_htm_account = InvestmentHTMAccount()
+        self.investment_fvoci_account = InvestmentFVOCIAccount()
+        self.add(self.investment_htm_account)
+        self.add(self.investment_fvoci_account)
+
+
+class InvestmentHTMAccount(TAccount):
+    """Investment HTM account, or Investment Securities at Amortized Cost.
+
+    Investment Securities at Amortized Cost (HTM - Held to Maturity)
+    This account includes debt securities (bonds, treasuries) that the bank intends to hold until maturity.
+    - Banking Book only
+    - No fair value adjustments unless impaired.
+    """
+
+    def __init__(self) -> None:
+        super().__init__("Investment Securities at Amortized Cost", AccountType.ASSET)
+
+
+class InvestmentFVOCIAccount(TAccount):
+    """Investment FVOCI account.
+
+    Investment Securities at Fair Value Through Other Comprehensive Income (FVOCI)
+    - Banking Book: Some debt securities where the bank intends to collect cash flows and sell occasionally.
+    - Changes in fair value are recorded in OCI, not P&L, until sale.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Investment Securities at Fair Value Through Other Comprehensive Income (FVOCI)",
+            AccountType.ASSET,
+        )
+
+
+class PPEAccount(TAccount):
+    """PPE account."""
+
+    def __init__(self) -> None:
+        super().__init__("Property, Plant and Equipment", AccountType.ASSET)
+
+
+class IntangibleAccount(TAccount):
+    """Intangible account."""
+
+    def __init__(self) -> None:
+        super().__init__("Intangible Assets", AccountType.ASSET)
+
+
+class DepositAccount(CompositeTAccount):
+    """Deposit account."""
+
+    def __init__(self) -> None:
+        super().__init__("Deposits and Other Public Borrowings", AccountType.LIABILITY)
+        self.customer_deposits_account = CustomerDepositAccount()
+        self.public_borrowing_account = PublicBorrowingsAccount()
+        self.add(self.customer_deposits_account)
+        self.add(self.public_borrowing_account)
+
+
+class CustomerDepositAccount(TAccount):
+    """Customer deposit account."""
+
+    def __init__(self) -> None:
+        super().__init__("Deposits", AccountType.LIABILITY)
+
+
+class PublicBorrowingsAccount(TAccount):
+    """Public borrowings account.
+
+    Other public borrowings (typically short-term)
+    """
+
+    def __init__(self) -> None:
+        super().__init__("Other Public Borrowings", AccountType.LIABILITY)
+
+
+class PayableAccount(TAccount):
+    """Payable account."""
+
+    def __init__(self) -> None:
+        super().__init__("Payables to Financial Institutions", AccountType.LIABILITY)
+
+
+class DebtAccount(TAccount):
+    """Debt account.
+
+    Debt issues (typically long-term)
+    """
+
+    def __init__(self) -> None:
+        super().__init__("Debt Issues", AccountType.LIABILITY)
+
+
+class EquityAccount(TAccount):
+    """Equity account."""
+
+    def __init__(self) -> None:
+        super().__init__("Shareholders' Equity", AccountType.EQUITY)
+
+
+class InterestIncomeAccount(CompositeTAccount):
+    """Interest income account."""
+
+    def __init__(self) -> None:
+        super().__init__("Interest Income", AccountType.INCOME)
+
+
+class RealizedTradingPnLAccount(TAccount):
+    """Realized Trading P&L account."""
+
+    def __init__(self) -> None:
+        super().__init__("Realized Trading P&L", AccountType.INCOME)
+
+
+class UnrealizedTradingPnLAccount(TAccount):
+    """Unrealized Trading P&L account."""
+
+    def __init__(self) -> None:
+        super().__init__("Unrealized Trading P&L", AccountType.INCOME)
+
+
+class TradingIncomeAccount(TAccount):
+    """Trading income account."""
+
+    def __init__(self) -> None:
+        super().__init__("Trading Income (FVTPL)", AccountType.INCOME)
+
+
+class InvestmentIncomeAccount(TAccount):
+    """Investment income account."""
+
+    def __init__(self) -> None:
+        super().__init__("Investment Income (FVOCI)", AccountType.INCOME)
+
+
+class InterestExpenseAccount(TAccount):
+    """Interest expense account."""
+
+    def __init__(self) -> None:
+        super().__init__("Interest Expense", AccountType.EXPENSE)
+
+
+class OperatingExpenseAccount(TAccount):
+    """Operating expense account."""
+
+    def __init__(self) -> None:
+        super().__init__("Operating Expense", AccountType.EXPENSE)
+
+
+class RetainedEarningsAccount(TAccount):
+    """Represent the retained earnings account."""
+
+    def __init__(self) -> None:
+        super().__init__("Retained Earnings", AccountType.EQUITY)
+
+
+class IncomeSummaryAccount(TAccount):
+    """Represent the income summary account."""
+
+    def __init__(self) -> None:
+        super().__init__("Income Summary Account", AccountType.INCOME, is_temporary_account=True)
+
+
 @dataclass
 class ChartOfAccounts:
     """Represent the chart of accounts."""
@@ -259,16 +449,7 @@ class ChartOfAccounts:
     income_summary_account: IncomeSummaryAccount = field(default_factory=IncomeSummaryAccount)
     retained_earnings_account: RetainedEarningsAccount = field(default_factory=RetainedEarningsAccount)
 
-    @property
-    def cash_account(self) -> TAccount:
-        """Retrieve the cash account."""
-        # FIXME: should have a better way of finding the cash account
-        for account in self.assets:
-            if "cash" in account.name.lower():
-                return account
-        raise ValueError("Cash account not found")
-
-    def all_accounts(self) -> Generator[TAccount, None, None]:
+    def __iter__(self) -> Generator[TAccount, None, None]:
         """Yield all accounts in the chart of accounts."""
         all_accounts = chain(
             self.assets,
@@ -277,11 +458,9 @@ class ChartOfAccounts:
             self.income,
             self.expenses,
         )
-
         for account in all_accounts:
             yield account
             yield from account.contra_accounts
-
         yield self.income_summary_account
         yield self.retained_earnings_account
 
@@ -341,3 +520,54 @@ class ChartOfAccountsBuilder:
             income=self._income,
             expenses=self._expenses,
         )
+
+
+@dataclass
+class BankChartOfAccounts(ChartOfAccounts):
+    """Represent the chart of accounts."""
+
+    cash_account: CashAccount = field(default_factory=CashAccount)
+    receivable_account: ReceivableAccount = field(default_factory=ReceivableAccount)
+    loan_account: LoanAccount = field(default_factory=LoanAccount)
+    asset_fvtpl_account: AssetFVTPLAccount = field(default_factory=AssetFVTPLAccount)
+    investment_securities_account: InvestmentSecuritiesAccount = field(default_factory=InvestmentSecuritiesAccount)
+    ppe_account: PPEAccount = field(default_factory=PPEAccount)
+    intangible_account: IntangibleAccount = field(default_factory=IntangibleAccount)
+    deposit_account: DepositAccount = field(default_factory=DepositAccount)
+    payable_account: PayableAccount = field(default_factory=PayableAccount)
+    debt_account: DebtAccount = field(default_factory=DebtAccount)
+    equity_account: EquityAccount = field(default_factory=EquityAccount)
+    interest_income_account: InterestIncomeAccount = field(default_factory=InterestIncomeAccount)
+    realized_trading_pnl_account: RealizedTradingPnLAccount = field(default_factory=RealizedTradingPnLAccount)
+    unrealized_trading_pnl_account: UnrealizedTradingPnLAccount = field(default_factory=UnrealizedTradingPnLAccount)
+    trading_income_account: TradingIncomeAccount = field(default_factory=TradingIncomeAccount)
+    investment_income_account: InvestmentIncomeAccount = field(default_factory=InvestmentIncomeAccount)
+    interest_expense_account: InterestExpenseAccount = field(default_factory=InterestExpenseAccount)
+    operating_expense_account: OperatingExpenseAccount = field(default_factory=OperatingExpenseAccount)
+    # income_summary_account: IncomeSummaryAccount = field(default_factory=IncomeSummaryAccount)
+    # retained_earnings_account: RetainedEarningsAccount = field(default_factory=RetainedEarningsAccount)
+
+    def __post_init__(self) -> None:
+        self.investment_htm_account = self.investment_securities_account.investment_htm_account
+        self.investment_fvoci_account = self.investment_securities_account.investment_fvoci_account
+        self.customer_deposits_account = self.deposit_account.customer_deposits_account
+        self.public_borrowings_account = self.deposit_account.public_borrowing_account
+
+        self.assets.append(self.cash_account)
+        self.assets.append(self.receivable_account)
+        self.assets.append(self.loan_account)
+        self.assets.append(self.asset_fvtpl_account)
+        self.assets.append(self.investment_securities_account)
+        self.assets.append(self.ppe_account)
+        self.assets.append(self.intangible_account)
+        self.liabilities.append(self.deposit_account)
+        self.liabilities.append(self.payable_account)
+        self.liabilities.append(self.debt_account)
+        self.equities.append(self.equity_account)
+        self.income.append(self.interest_income_account)
+        self.income.append(self.realized_trading_pnl_account)
+        self.income.append(self.unrealized_trading_pnl_account)
+        self.income.append(self.trading_income_account)
+        self.income.append(self.investment_income_account)
+        self.expenses.append(self.interest_expense_account)
+        self.expenses.append(self.operating_expense_account)
