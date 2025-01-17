@@ -8,8 +8,8 @@ __all__ = [  # noqa: RUF022
     "loan_account",
     "asset_fvtpl_account",
     "investment_securities_account",
-    "investment_htm",
-    "investment_fvoci",
+    "investment_htm_account",
+    "investment_fvoci_account",
     "ppe_account",
     "intangible_account",
     "deposit_account",
@@ -37,20 +37,21 @@ receivable_account = TAccount("Receivables from Financial Institutions", Account
 # - banking book only
 loan_account = TAccount("Loans and Advances", AccountType.ASSET)
 # Assets at Fair Value Through Income Statement (FVTPL)
+# - Trading Book securities
 asset_fvtpl_account = TAccount("Assets at Fair Value Through Income Statement (FVTPL)", AccountType.ASSET)
 # Investment Securities
 investment_securities_account = CompositeTAccount("Invest Securities", AccountType.ASSET)
 # Investment Securities at Amortized Cost (HTM - Held to Maturity)
 # Debt securities (bonds, treasuries) that the bank intends to hold until maturity.
-# - banking book only
+# - Banking Book only
 # - No fair value adjustments unless impaired.
-investment_htm = TAccount("Investment Securities at Amortized Cost", AccountType.ASSET)
-investment_securities_account.add(investment_htm)
+investment_htm_account = TAccount("Investment Securities at Amortized Cost", AccountType.ASSET)
+investment_securities_account.add(investment_htm_account)
 # Investment Securities at Fair Value Through Other Comprehensive Income (FVOCI)
-# Banking Book: Debt securities where the bank intends to collect cash flows and sell occasionally.
-# Changes in fair value are recorded in OCI, not P&L, until sale.
-investment_fvoci = TAccount("Investment Securities at Fair Value Through Other Comprehensive Income (FVOCI)", AccountType.ASSET)
-investment_securities_account.add(investment_fvoci)
+# - Banking Book: Some debt securities where the bank intends to collect cash flows and sell occasionally.
+# - Changes in fair value are recorded in OCI, not P&L, until sale.
+investment_fvoci_account = TAccount("Investment Securities at Fair Value Through Other Comprehensive Income (FVOCI)", AccountType.ASSET)
+investment_securities_account.add(investment_fvoci_account)
 # PPE
 ppe_account = TAccount("Property, Plant and Equipment", AccountType.ASSET)
 # Intangible
