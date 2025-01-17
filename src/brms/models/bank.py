@@ -22,7 +22,8 @@ class Bank:
         """Initialize the Bank."""
         self.banking_book = BankingBook()
         self.trading_book = TradingBook()
-        self.ledger = Ledger(BankChartOfAccounts())
+        self.chart_of_accounts = BankChartOfAccounts()
+        self.ledger = Ledger(self.chart_of_accounts)
         self.accountant = Accountant(self, self.ledger)
 
     def initialize(self, account_balances: AccountBalances | None = None) -> None:
@@ -33,7 +34,7 @@ class Bank:
         # After initiating the leger, init the bank's banking and trading books with instruments
         # TODO: init all instruments other than cash
         cash = Cash("Cash")
-        cash.value = account_balances[act.cash_account]
+        cash.value = account_balances[self.chart_of_accounts.cash_account]
         self.banking_book.add_instrument(cash)
 
     def valuation(self, scenario: "Scenario") -> None:
