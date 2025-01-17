@@ -1,69 +1,109 @@
 """Define the `Bank` class."""
 
-from collections.abc import Generator
-from typing import Any
+from typing import TYPE_CHECKING
 
-from brms.instruments.base import CompositeInstrument, Instrument
-from brms.instruments.common_equity import CommonEquity
+import brms.accounting.preset as act  # The preset accounts
+from brms.accounting.account import AccountBalances, ChartOfAccounts
+from brms.accounting.ledger import Ledger
+from brms.instruments.cash import Cash
 from brms.instruments.visitors.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
-from brms.models.base import BookType
-from brms.models.scenario import Scenario
+from brms.models.accountant import Accountant
+from brms.models.bank_book import BankingBook, TradingBook
 
-
-class AssetComposite(CompositeInstrument):
-    """Composite class for assets."""
-
-
-class LiabilityComposite(CompositeInstrument):
-    """Composite class for liabilities."""
-
-
-class EquityComposite(CompositeInstrument):
-    """Composite class for equities."""
+if TYPE_CHECKING:
+    from brms.models.scenario import Scenario
+    from brms.models.transaction import Transaction
 
 
 class Bank:
-    """Class representing a bank with assets, liabilities, and equities.
-
-    TODO: This class needs a re-design!
-    """
+    """Class representing a bank."""
 
     def __init__(self) -> None:
-        """Initialize the Bank with assets, liabilities, and equities."""
-        self.assets = AssetComposite(name="Assets")
-        self.liabilities = LiabilityComposite(name="Liabilities")
-        self.equities = EquityComposite(name="Equities")
-        # A bank starts with some common equity
-        self._common_equity = CommonEquity("Common Equity")
-        self.equities.add(self._common_equity)
+        """Initialize the Bank."""
+        self.banking_book = BankingBook()
+        self.trading_book = TradingBook()
+        self.ledger = Ledger()
+        self.accountant = Accountant(self, self.ledger)
 
-    @property
-    def common_equity(self) -> float:
-        """Get the value of common equity of the bank."""
-        return self._common_equity.value
+    def initialize(
+        self,
+        chart_of_accounts: ChartOfAccounts | None = None,
+        account_balances: AccountBalances | None = None,
+    ) -> None:
+        """Initialize the bank with a chart of accounts and account balances."""
+        if chart_of_accounts is None:
+            chart_of_accounts = act.chart_of_accounts
+        if account_balances is None:
+            account_balances = AccountBalances()
+        self.ledger.add_accounts_from_chart(chart_of_accounts, account_balances)
+        # After initiating the leger, init the bank's banking and trading books with instruments
+        # TODO: init all instruments other than cash
+        cash = Cash("Cash")
+        cash.value = account_balances[act.cash_account]
+        self.banking_book.add_instrument(cash)
 
-    @common_equity.setter
-    def common_equity(self, value: float) -> None:
-        self._common_equity.value = value
-
-    def banking_book_assets(self) -> Generator[Instrument, Any, None]:
-        """Yield all banking book assets."""
-        for instrument in self.assets:
-            if instrument.book_type == BookType.BANKING_BOOK:
-                yield instrument
-
-    def trading_book_assets(self) -> Generator[Instrument, Any, None]:
-        """Yield all trading book assets."""
-        for instrument in self.assets:
-            if instrument.book_type == BookType.TRADING_BOOK:
-                yield instrument
-
-    def valuation(self, scenario: Scenario) -> None:
+    def valuation(self, scenario: "Scenario") -> None:
         """Perform valuation on banking and trading book instruments."""
-        banking_book_visitor = BankingBookValuationVisitor(scenario)
-        trading_book_visitor = TradingBookValuationVisitor(scenario)
+        self.banking_book.accept(BankingBookValuationVisitor(scenario))
+        self.trading_book.accept(TradingBookValuationVisitor(scenario))
 
-        self.assets.accept(banking_book_visitor)
-        self.assets.accept(trading_book_visitor)
-        self.liabilities.accept(banking_book_visitor)
-        self.liabilities.accept(trading_book_visitor)
+    def process_transaction(self, transaction: "Transaction") -> None:
+        """Ask the accountant to process the transaction."""
+        self.accountant.process_transaction(transaction)
+
+
+if __name__ == "__main__":
+    import datetime
+
+    import QuantLib as ql
+
+    from brms.accounting.report import Report
+    from brms.accounting.statement_viewer import HTMLStatementViewer
+    from brms.instruments.base import BookType
+    from brms.instruments.fixed_rate_bond import FixedRateBond
+    from brms.models.transaction import Transaction, TransactionType
+    from brms.models.scenario import Scenario
+
+    balances = AccountBalances(
+        {
+            act.cash_account: 12500,
+            act.equity_account: 30000,
+            act.ppe_account: 20000,
+            act.chart_of_accounts.retained_earnings_account: 2500,
+        },
+    )
+
+    bank = Bank()
+    bank.initialize(act.chart_of_accounts, balances)
+
+    face_value = 10000.0
+    coupon_rate = 0.05
+    issue_date = ql.Date(1, 1, 2020)
+    maturity_date = ql.Date(1, 1, 2030)
+    bond = FixedRateBond(
+        face_value=face_value,
+        coupon_rate=coupon_rate,
+        issue_date=issue_date,
+        maturity_date=maturity_date,
+        book_type=BookType.BANKING_BOOK,
+    )
+
+    transaction_date = datetime.date(2020, 1, 1)
+    transaction = Transaction(
+        transaction_type=TransactionType.BUY_INSTRUMENT,
+        instrument=bond,
+        account=act.loan_account,
+        value=face_value,
+        date=transaction_date,
+    )
+    bank.process_transaction(transaction)
+
+    report = Report(ledger=bank.ledger, viewer=HTMLStatementViewer(), date=datetime.date(2021, 1, 1))
+
+    html_trial_balance = report.print_trial_balance()
+    html_income_statement = report.print_income_statement()
+    html_balance_sheet = report.print_balance_sheet()
+
+    print(html_trial_balance)
+    print(html_income_statement)
+    print(html_balance_sheet)
