@@ -17,6 +17,11 @@ class Ledger:
     date_closed: datetime.date | None = None
 
     @property
+    def cash_account(self) -> TAccount:
+        """Retrieve the cash account."""
+        return self.chart_of_accounts.cash_account
+
+    @property
     def income_summary_account(self) -> TAccount:
         """Retrieve the income summary account."""
         return self.chart_of_accounts.income_summary_account
@@ -62,6 +67,8 @@ class Ledger:
                     case AccountNormalBalance.CREDIT_NORMAL:
                         account.credit_value = balances[account]
             self._add_account(account)
+            if not hasattr(self.chart_of_accounts, account.name):
+                setattr(self.chart_of_accounts, account.name, account)
 
     def close_ledger(self, date: datetime.date) -> None:
         """Close the ledger at the end of an accounting period."""

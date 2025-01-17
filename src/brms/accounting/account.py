@@ -259,6 +259,15 @@ class ChartOfAccounts:
     income_summary_account: IncomeSummaryAccount = field(default_factory=IncomeSummaryAccount)
     retained_earnings_account: RetainedEarningsAccount = field(default_factory=RetainedEarningsAccount)
 
+    @property
+    def cash_account(self) -> TAccount:
+        """Retrieve the cash account."""
+        # FIXME: should have a better way of finding the cash account
+        for account in self.assets:
+            if "cash" in account.name.lower():
+                return account
+        raise ValueError("Cash account not found")
+
     def all_accounts(self) -> Generator[TAccount, None, None]:
         """Yield all accounts in the chart of accounts."""
         all_accounts = chain(
