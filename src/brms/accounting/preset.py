@@ -20,6 +20,7 @@ __all__ = [  # noqa: RUF022
     "equity_account",
     "interest_income_account",
     "trading_income_account",
+    "investment_income_account",
     "interest_expense_account",
     "operating_expense_account",
     "chart_of_accounts",
@@ -92,10 +93,12 @@ builder.add_equity_account(equity_account)
 # For Income Statement
 interest_income_account = CompositeTAccount("Interest Income", AccountType.INCOME)
 builder.add_income_account(interest_income_account)
+trading_income_account = TAccount("Trading Income (FVTPL)", AccountType.INCOME)
+builder.add_income_account(trading_income_account)
 # For Other Comprehensive Income (OCI)
 # TODO: OCI statement
-trading_income_account = TAccount("Trading Income", AccountType.INCOME)
-builder.add_income_account(trading_income_account)
+investment_income_account = TAccount("Investment Income (FVOCI)", AccountType.INCOME)
+builder.add_income_account(investment_income_account)
 
 # =========== Expense accounts ===========
 interest_expense_account = TAccount("Interest Expense", AccountType.EXPENSE)
