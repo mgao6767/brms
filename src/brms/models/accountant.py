@@ -43,7 +43,7 @@ class Accountant:
         # Add instrument to banking book
         if instrument.book_type == BookType.BANKING_BOOK:
             self.bank.banking_book.add_instrument(instrument, long_position=True)
-        elif instrument.book_type == BookType.BANKING_BOOK:
+        elif instrument.book_type == BookType.TRADING_BOOK:
             self.bank.trading_book.add_instrument(instrument, long_position=True)
         # Adjust cash
         # TODO: maybe should not directly modify cash value
