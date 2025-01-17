@@ -24,7 +24,7 @@ class MockInstrument(Instrument):
         super().__init__(name, book_type, credit_rating, issuer, parent)
         self.value = 100  # mock value
 
-    def accept(self, visitor, scenario) -> float:
+    def accept(self, visitor) -> None:
         pass
 
 

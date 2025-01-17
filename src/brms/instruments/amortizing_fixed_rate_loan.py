@@ -3,8 +3,7 @@ import datetime
 import QuantLib as ql
 
 from brms.instruments.base import Instrument
-from brms.instruments.valuation import ValuationVisitor
-from brms.models.scenario import Scenario
+from brms.instruments.visitors import Visitor
 from brms.utils import pydate_to_qldate, qldate_to_string
 
 
@@ -67,10 +66,9 @@ class AmortizingFixedRateLoan(Instrument):
         """
         return self.instrument.notional(pydate_to_qldate(date))
 
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
-        """Accept a valuation visitor to calculate the instrument's value."""
-        self.value = visitor.value_amortizing_fixed_rate_loan(self, scenario)
-        return self.value
+    def accept(self, visitor: Visitor) -> None:
+        """Accept a visitor."""
+        visitor.visit_amortizing_fixed_rate_loan(self)
 
     def set_pricing_engine(self, engine: ql.PricingEngine) -> None:
         """Set the pricing engine."""

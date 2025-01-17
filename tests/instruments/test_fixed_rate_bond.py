@@ -3,8 +3,9 @@ import datetime
 import pytest
 import QuantLib as ql
 
+from brms.instruments.base import BookType
 from brms.instruments.fixed_rate_bond import FixedRateBond
-from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
+from brms.instruments.visitors.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
 from brms.models.scenario import Scenario, ScenarioBuilder
 from brms.utils import qldate_to_pydate
 
@@ -39,14 +40,15 @@ def test_fixed_rate_bond_notional(fixed_rate_bond):
 
 def test_fixed_rate_bond_banking_book_valuation(fixed_rate_bond):
     """Test the valuation of the FixedRateBond using the BankingBookValuationVisitor."""
-    visitor = BankingBookValuationVisitor()
     scenario = Scenario(date=datetime.date(2025, 1, 1))
-    value = fixed_rate_bond.accept(visitor, scenario)
-    assert value == 1000.0  # On banking book, value is the notional value
+    visitor = BankingBookValuationVisitor(scenario)
+    fixed_rate_bond.accept(visitor)
+    assert fixed_rate_bond.value == 1000.0  # On banking book, value is the notional value
 
     scenario = Scenario(date=datetime.date(2030, 1, 1))
-    value = fixed_rate_bond.accept(visitor, scenario)
-    assert value == 0  # At maturity, value is 0
+    visitor.scenario = scenario
+    fixed_rate_bond.accept(visitor)
+    assert fixed_rate_bond.value == 0  # At maturity, value is 0
 
 
 def test_fixed_rate_bond_trading_book_valuation_par(fixed_rate_bond):
@@ -69,9 +71,10 @@ def test_fixed_rate_bond_trading_book_valuation_par(fixed_rate_bond):
     scenario_builder.with_term_structure(term_structure)
     scenario = scenario_builder.build()
 
-    visitor = TradingBookValuationVisitor()
-    value = fixed_rate_bond.accept(visitor, scenario)
-    assert value == 1000.0  # At par when issued
+    visitor = TradingBookValuationVisitor(scenario)
+    fixed_rate_bond.book_type = BookType.TRADING_BOOK
+    fixed_rate_bond.accept(visitor)
+    assert fixed_rate_bond.value == 1000.0  # At par when issued
 
 
 def test_fixed_rate_bond_trading_book_valuation_not_par(fixed_rate_bond):
@@ -99,9 +102,10 @@ def test_fixed_rate_bond_trading_book_valuation_not_par(fixed_rate_bond):
     scenario_builder.with_term_structure(term_structure)
     scenario = scenario_builder.build()
 
-    visitor = TradingBookValuationVisitor()
-    value = fixed_rate_bond.accept(visitor, scenario)
-    assert value == pytest.approx(957.348985816)
+    visitor = TradingBookValuationVisitor(scenario)
+    fixed_rate_bond.book_type = BookType.TRADING_BOOK
+    fixed_rate_bond.accept(visitor)
+    assert fixed_rate_bond.value == pytest.approx(957.348985816)
 
 
 if __name__ == "__main__":

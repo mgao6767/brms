@@ -1,11 +1,8 @@
-import datetime
-
 import pytest
 
 from brms.instruments.base import CompositeInstrument, Instrument
-from brms.instruments.valuation import BankingBookValuationVisitor, ValuationVisitor
+from brms.instruments.visitors.base import Visitor
 from brms.models.base import BookType
-from brms.models.scenario import Scenario
 
 
 class MockInstrument(Instrument):
@@ -13,8 +10,8 @@ class MockInstrument(Instrument):
         super().__init__(name)
         self._book_type = book_type
 
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario):
-        return 100.0  # Mock value for testing. Otherwise visitor.visit(self, scenario)
+    def accept(self, visitor: Visitor):
+        pass
 
     @property
     def book_type(self):
@@ -56,17 +53,6 @@ def test_remove_instrument(composite_instrument, instrument_banking):
 def test_is_composite(composite_instrument):
     """Test the is_composite method."""
     assert composite_instrument.is_composite() is True
-
-
-def test_accept(composite_instrument, instrument_banking, instrument_trading):
-    """Test the accept method."""
-    composite_instrument.add(instrument_banking)
-    composite_instrument.add(instrument_banking)
-    composite_instrument.add(instrument_trading)
-    scenario = Scenario(date=datetime.date(2025, 1, 1))
-    visitor = BankingBookValuationVisitor()
-    total_value = composite_instrument.accept(visitor, scenario)
-    assert total_value == 200.0  # 2 instruments on banking book, each valued at 100
 
 
 def test_iter(composite_instrument, instrument_banking, instrument_trading):

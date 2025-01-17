@@ -9,10 +9,10 @@ from brms.models.scenario import Scenario, ScenarioManager
 class Simulation:
     """A class to represent a simulation."""
 
-    def __init__(self, bank: Bank, scenario_manager: ScenarioManager) -> None:
+    def __init__(self, bank: Bank | None = None, scenario_manager: ScenarioManager | None = None) -> None:
         """Initialize the simulation with a bank and a scenario manager."""
-        self.bank = bank
-        self.scenario_manager = scenario_manager
+        self.bank = bank or Bank()
+        self.scenario_manager = scenario_manager or ScenarioManager()
         self.current_scenario: Scenario | None = None
 
     def run(self) -> None:

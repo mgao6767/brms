@@ -5,7 +5,7 @@ from typing import Any
 
 from brms.instruments.base import CompositeInstrument, Instrument
 from brms.instruments.common_equity import CommonEquity
-from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
+from brms.instruments.visitors.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
 from brms.models.base import BookType
 from brms.models.scenario import Scenario
 
@@ -23,7 +23,10 @@ class EquityComposite(CompositeInstrument):
 
 
 class Bank:
-    """Class representing a bank with assets, liabilities, and equities."""
+    """Class representing a bank with assets, liabilities, and equities.
+
+    TODO: This class needs a re-design!
+    """
 
     def __init__(self) -> None:
         """Initialize the Bank with assets, liabilities, and equities."""
@@ -57,18 +60,10 @@ class Bank:
 
     def valuation(self, scenario: Scenario) -> None:
         """Perform valuation on banking and trading book instruments."""
-        banking_book_visitor = BankingBookValuationVisitor()
-        trading_book_visitor = TradingBookValuationVisitor()
+        banking_book_visitor = BankingBookValuationVisitor(scenario)
+        trading_book_visitor = TradingBookValuationVisitor(scenario)
 
-        assets_value = 0.0
-        liabilities_value = 0.0
-        assets_value += self.assets.accept(banking_book_visitor, scenario)
-        assets_value += self.assets.accept(trading_book_visitor, scenario)
-        liabilities_value += self.liabilities.accept(banking_book_visitor, scenario)
-        liabilities_value += self.liabilities.accept(trading_book_visitor, scenario)
-
-        # Store the computed the value
-        self.assets.value = assets_value
-        self.liabilities.value = liabilities_value
-        # FIXME: EquityComposite's value is not updated
-        self.common_equity = self.assets.value - self.liabilities.value
+        self.assets.accept(banking_book_visitor)
+        self.assets.accept(trading_book_visitor)
+        self.liabilities.accept(banking_book_visitor)
+        self.liabilities.accept(trading_book_visitor)

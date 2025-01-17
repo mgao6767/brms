@@ -16,7 +16,7 @@ from brms.models.scenario import ScenarioManager
 
 
 class MockInstrument(Instrument):
-    def accept(self, visitor, scenario) -> float:
+    def accept(self, visitor) -> None:
         pass
 
 

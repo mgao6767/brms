@@ -1,0 +1,212 @@
+"""Provides a custom QTreeView widget and a tree model to display hierarchical data."""
+
+from typing import Any, Optional
+
+from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex, Qt
+from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTreeView, QVBoxLayout, QWidget
+
+__all__ = [
+    "BRMSTreeWidget",
+]
+
+TreeItemDataType = str
+ModelIndex = QModelIndex | QPersistentModelIndex
+
+QMODELINDEX = QModelIndex()
+
+
+class TreeItem:
+    """TreeItem represents a single item in a tree structure."""
+
+    def __init__(self, data: list[TreeItemDataType], parent: Optional["TreeItem"] = None) -> None:
+        """Initialize a TreeItem."""
+        self.parent_item = parent
+        self.item_data = data
+        self.child_items: list[TreeItem] = []
+
+    def append_child(self, item: "TreeItem") -> None:
+        """Append a child item to this item."""
+        self.child_items.append(item)
+
+    def child(self, row: int) -> "TreeItem":
+        """Return the child item at the given row."""
+        return self.child_items[row]
+
+    def child_count(self) -> int:
+        """Return the number of child items."""
+        return len(self.child_items)
+
+    def column_count(self) -> int:
+        """Return the number of columns."""
+        return len(self.item_data)
+
+    def data(self, column: int) -> TreeItemDataType | None:
+        """Return the data for the given column."""
+        if column < 0 or column >= len(self.item_data):
+            return None
+        return self.item_data[column]
+
+    def parent(self) -> Optional["TreeItem"]:
+        """Return the parent item."""
+        return self.parent_item
+
+    def row(self) -> int:
+        """Return the row number of this item."""
+        if self.parent_item:
+            return self.parent_item.child_items.index(self)
+        return 0
+
+
+class TreeModel(QAbstractItemModel):
+    """TreeModel provides a model for a tree structure to be used with QTreeView."""
+
+    def __init__(self, headers: list[TreeItemDataType], parent: QWidget | None = None) -> None:
+        """Initialize a TreeModel."""
+        super().__init__(parent)
+        self.root_item = TreeItem(headers)
+
+    def columnCount(self, parent: ModelIndex = QMODELINDEX) -> int:  # noqa: N802
+        """Return the number of columns."""
+        if parent.isValid():
+            return parent.internalPointer().column_count()
+        return self.root_item.column_count()
+
+    def rowCount(self, parent: ModelIndex = QMODELINDEX) -> int:  # noqa: N802
+        """Return the number of rows."""
+        if parent.isValid():
+            return parent.internalPointer().child_count()
+        return self.root_item.child_count()
+
+    def data(self, index: ModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> str | None:
+        """Return the data stored under the given role for the item referred to by the index."""
+        if not index.isValid():
+            return None
+        match role:
+            case Qt.ItemDataRole.DisplayRole:
+                item = index.internalPointer()
+                return item.data(index.column())
+            case _:
+                return None
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> Any:  # noqa: ANN401, N802
+        """Return the header data for the given section, orientation, and role."""
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
+            return self.root_item.data(section)
+        return None
+
+    def flags(self, index: ModelIndex = QMODELINDEX) -> Qt.ItemFlag:
+        """Return the item flags for the given index."""
+        if not index.isValid():
+            return Qt.ItemFlag.NoItemFlags
+        return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+
+    def parent(self, child: ModelIndex = QMODELINDEX) -> QModelIndex:  # type: ignore[override]
+        """Return the parent index of the given child index."""
+        if not child.isValid():
+            return QModelIndex()
+        child_item = child.internalPointer()
+        if (parent_item := child_item.parent()) == self.root_item:
+            return QModelIndex()
+        return self.createIndex(parent_item.row(), 0, parent_item)
+
+    def index(self, row: int, column: int, parent: ModelIndex = QMODELINDEX) -> QModelIndex:
+        """Return the index of the item in the model specified by the given row, column, and parent index."""
+        if not self.hasIndex(row, column, parent):
+            return QModelIndex()
+        parent_item = self.root_item if not parent.isValid() else parent.internalPointer()
+        if child_item := parent_item.child(row):
+            return self.createIndex(row, column, child_item)
+        return QModelIndex()
+
+    def add_data(self, parent: QModelIndex, data: dict) -> None:
+        """Add data to the tree model."""
+        parent_item = self.root_item if not parent.isValid() else parent.internalPointer()
+        for key, value in data.items():
+            child_item = TreeItem([key, value], parent_item)
+            parent_item.append_child(child_item)
+            if isinstance(value, dict):
+                self.add_data(self.createIndex(parent_item.child_count() - 1, 0, child_item), value)
+
+
+class BRMSTreeWidget(QTreeView):
+    """BRMSTreeWidget is a QTreeView that displays a tree structure with custom data."""
+
+    def __init__(self, columns: list[str], parent: QWidget | None = None) -> None:
+        """Initialize the CustomTreeWidget."""
+        super().__init__(parent)
+        self.tree_model = TreeModel(columns)
+        self.setModel(self.tree_model)
+        self.setAlternatingRowColors(True)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+
+    def populate_data(self, data: dict[str, str | object], *, clear_existing: bool = True, expand: bool = True) -> None:
+        """Add data to the tree."""
+        if clear_existing:
+            self.clear_data()
+        self.tree_model.add_data(QModelIndex(), data)
+        if expand:
+            self.expandAll()
+
+    def clear_data(self) -> None:
+        """Clear all data from the tree."""
+        self.tree_model.beginResetModel()
+        self.tree_model.root_item.child_items.clear()
+        self.tree_model.endResetModel()
+
+
+if __name__ == "__main__":
+    import sys
+
+    from PySide6.QtWidgets import QApplication, QPushButton
+
+    original_data = {
+        "Branch 1": {"Leaf 1": "Value 1", "Leaf 2": "Value 2"},
+        "Branch 2": {
+            "SubBranch 1": {"Leaf 3": "Value 3", "Leaf 4": "Value 4"},
+            "SubBranch 2": {"Leaf 5": "Value 5", "Leaf 6": "Value 6"},
+        },
+    }
+
+    new_data = {
+        "Branch 3": {"Leaf 7": "Value 7", "Leaf 8": "Value 8"},
+        "Branch 4": {
+            "SubBranch 3": {"Leaf 9": "Value 9", "Leaf 10": "Value 10"},
+        },
+    }
+
+    class MainWindow(QWidget):
+        """MainWindow class for testing."""
+
+        def __init__(self) -> None:
+            """Initialize the MainWindow."""
+            super().__init__()
+            self.setWindowTitle("BRMS Tree Widget Example")
+            self.tree = BRMSTreeWidget(["Key", "Value"])
+            layout = QVBoxLayout(self)
+            layout.addWidget(self.tree)
+            self.setLayout(layout)
+
+            self.populate_button = QPushButton("Populate Data")
+            self.populate_button.clicked.connect(self.populate_data)
+            self.update_button = QPushButton("Update Data")
+            self.update_button.clicked.connect(self.update_data)
+            self.clear_button = QPushButton("Clear Data")
+            self.clear_button.clicked.connect(self.tree.clear_data)
+            layout.addWidget(self.populate_button)
+            layout.addWidget(self.update_button)
+            layout.addWidget(self.clear_button)
+
+        def populate_data(self) -> None:
+            """Populate the tree with some data."""
+            self.tree.populate_data(original_data)
+
+        def update_data(self) -> None:
+            """Update the tree with new data."""
+            self.tree.populate_data(new_data, clear_existing=True)
+
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())

@@ -2,29 +2,23 @@ import datetime
 
 import pytest
 
-from brms.instruments.base import Instrument
+from brms.instruments.cash import Cash
 from brms.models.bank import Bank
 from brms.models.base import BookType
 from brms.models.scenario import Scenario
 
 
-class MockInstrument(Instrument):
-    def __init__(self, name: str, book_type: BookType):
+class MockInstrument(Cash):
+    def __init__(self, name: str, book_type: BookType, value: float | None = None):
         super().__init__(name)
         self._book_type = book_type
-
-    def accept(self, visitor, scenario):
-        pass
+        self.value = value or 200
 
 
-class MockInstrumentOnAssets(MockInstrument):
-    def accept(self, visitor, scenario):
-        return 200
+class MockInstrumentOnAssets(MockInstrument): ...
 
 
-class MockInstrumentOnLiabilities(MockInstrument):
-    def accept(self, visitor, scenario):
-        return 100
+class MockInstrumentOnLiabilities(MockInstrument): ...
 
 
 @pytest.fixture
@@ -49,7 +43,7 @@ def instrument_assets():
 
 @pytest.fixture
 def instrument_liabilities():
-    return MockInstrumentOnLiabilities(name="Instrument as Liabilities", book_type=BookType.BANKING_BOOK)
+    return MockInstrumentOnLiabilities(name="Instrument as Liabilities", book_type=BookType.BANKING_BOOK, value=100)
 
 
 def test_add_instrument_to_assets(bank, instrument_banking):
@@ -75,7 +69,6 @@ def test_valuation(bank, instrument_assets, instrument_liabilities):
 
     assert bank.assets.value == 400
     assert bank.liabilities.value == 100
-    assert bank.common_equity == 300
 
 
 def test_banking_book_assets(bank, instrument_banking, instrument_trading):

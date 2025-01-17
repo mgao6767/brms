@@ -5,9 +5,8 @@ from collections.abc import Iterator
 from enum import Enum, Flag, auto
 from typing import Optional
 
-from brms.instruments.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor, ValuationVisitor
+from brms.instruments.visitors.base import Visitor
 from brms.models.base import BookType
-from brms.models.scenario import Scenario
 
 
 class Instrument(ABC):
@@ -79,8 +78,8 @@ class Instrument(ABC):
         return False
 
     @abstractmethod
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
-        """Accept a valuation visitor to calculate the instrument's value."""
+    def accept(self, visitor: Visitor) -> None:
+        """Accept a visitor."""
 
 
 class CompositeInstrument(Instrument):
@@ -102,6 +101,15 @@ class CompositeInstrument(Instrument):
         super().__init__(name, book_type, credit_rating, issuer, parent)
         self._instruments: list[Instrument] = []
 
+    @property
+    def value(self) -> float:
+        """Get the instrument's value."""
+        return sum(instrument.value for instrument in self._instruments)
+
+    @value.setter
+    def value(self, value: float) -> None:
+        raise AttributeError("Cannot set value on a composite instrument")
+
     def add(self, instrument: Instrument) -> None:
         """Add an instrument to the composite."""
         instrument.parent = self
@@ -116,21 +124,10 @@ class CompositeInstrument(Instrument):
         """Check if the instrument is composite."""
         return True
 
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
-        """Accept a valuation visitor to calculate the composite instrument's value."""
-        if isinstance(visitor, BankingBookValuationVisitor):
-            return sum(
-                instrument.accept(visitor, scenario)
-                for instrument in self._instruments
-                if instrument.book_type == BookType.BANKING_BOOK
-            )
-        if isinstance(visitor, TradingBookValuationVisitor):
-            return sum(
-                instrument.accept(visitor, scenario)
-                for instrument in self._instruments
-                if instrument.book_type == BookType.TRADING_BOOK
-            )
-        return 0.0
+    def accept(self, visitor: Visitor) -> None:
+        """Accept a visitor."""
+        for instrument in self._instruments:
+            instrument.accept(visitor)
 
     def __iter__(self) -> Iterator[Instrument]:
         """Return an iterator over the instruments in the composite."""
@@ -192,6 +189,10 @@ class CreditRating(Enum):
         """Check if the credit rating is investment grade."""
         return self >= CreditRating.BBB_MINUS
 
+    def to_str(self) -> str:
+        """Get a custom string representation of the credit rating."""
+        return self.name.replace("_PLUS", "+").replace("_MINUS", "-").replace("UNRATED", "Unrated")
+
 
 class IssuerType(Flag):
     """Enumeration of issuer types."""
@@ -211,6 +212,41 @@ class IssuerType(Flag):
     MUNICIPAL = auto()
     INDIVIDUAL = auto()
     UNSPECIFIED = auto()
+
+    def to_str(self) -> str:
+        """Get a custom string representation of the issuer type."""
+        result = []
+        if self & IssuerType.SOVEREIGN:
+            result.append("Sovereign")
+        if self & IssuerType.PSE:
+            result.append("Public Sector Entity (PSE)")
+        if self & IssuerType.MDB:
+            result.append("Multilateral Development Bank (MDB)")
+        if self & IssuerType.BANK:
+            result.append("Bank")
+        if self & IssuerType.CORPORATE:
+            result.append("Corporate")
+        if self & IssuerType.SME:
+            result.append("Small and Medium Enterprise (SME)")
+        if self & IssuerType.SECURITIES_FIRM:
+            result.append("Securities Firm")
+        if self & IssuerType.FINANCIAL_INSTITUTION:
+            result.append("Financial Institution")
+        if self & IssuerType.INSURANCE_COMPANY:
+            result.append("Insurance Company")
+        if self & IssuerType.MUTUAL_FUND:
+            result.append("Mutual Fund")
+        if self & IssuerType.HEDGE_FUND:
+            result.append("Hedge Fund")
+        if self & IssuerType.SUPRANATIONAL:
+            result.append("Supranational")
+        if self & IssuerType.MUNICIPAL:
+            result.append("Municipal")
+        if self & IssuerType.INDIVIDUAL:
+            result.append("Individual")
+        if self & IssuerType.UNSPECIFIED:
+            result.append("Unspecified")
+        return "; ".join(result) if result else "Unknown"
 
 
 class Issuer:

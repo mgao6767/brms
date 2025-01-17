@@ -1,11 +1,14 @@
 import datetime
+from typing import TYPE_CHECKING, Optional
 
 import QuantLib as ql
 
 from brms.instruments.base import Instrument
-from brms.instruments.valuation import ValuationVisitor
-from brms.models.scenario import Scenario
 from brms.utils import pydate_to_qldate, qldate_to_string
+
+if TYPE_CHECKING:
+    from brms.instruments.base import BookType, CreditRating, Issuer
+    from brms.instruments.visitors import Visitor
 
 
 class FixedRateBond(Instrument):
@@ -25,6 +28,10 @@ class FixedRateBond(Instrument):
         business_convention=ql.Unadjusted,
         date_generation: ql.DateGeneration = ql.DateGeneration.Backward,
         month_end=False,
+        book_type: Optional["BookType"] = None,
+        credit_rating: Optional["CreditRating"] = None,
+        issuer: Optional["Issuer"] = None,
+        parent: Optional["Instrument"] = None,
     ) -> None:
         """Build a fixed rate bond object.
 
@@ -48,9 +55,12 @@ class FixedRateBond(Instrument):
                 Defaults to False.
 
         """
+        self.issue_date = issue_date
+        self.maturity_date = maturity_date
+
         maturity_date_str = qldate_to_string(maturity_date)
         name = f"{coupon_rate*100:.2f}% {maturity_date_str}"
-        super().__init__(name)
+        super().__init__(name, book_type, credit_rating, issuer, parent)
 
         coupons = [coupon_rate]
         tenor = ql.Period(frequency)
@@ -80,10 +90,9 @@ class FixedRateBond(Instrument):
         """
         return self.instrument.notional(pydate_to_qldate(date))
 
-    def accept(self, visitor: ValuationVisitor, scenario: Scenario) -> float:
-        """Accept a valuation visitor to calculate the instrument's value."""
-        self.value = visitor.value_fixed_rate_bond(self, scenario)
-        return self.value
+    def accept(self, visitor: "Visitor") -> None:
+        """Accept a visitor."""
+        visitor.visit_fixed_rate_bond(self)
 
     def set_pricing_engine(self, engine: ql.PricingEngine) -> None:
         """Set the pricing engine."""
