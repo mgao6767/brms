@@ -479,6 +479,61 @@ class SecurityPurchaseHTMTransaction(Transaction):
         )
 
 
+class SecuritySaleHTMTransaction(Transaction):
+    """Class representing a security sale held-to-maturity (HTM) transaction.
+
+    HTM securities should not be sold before maturity!
+    This should be interpreted as the HTM security matures and removed from banking book.
+    """
+
+    def __init__(
+        self,
+        bank: Bank,
+        instrument: Instrument,
+        date: datetime.date | None = None,
+        description: str = "",
+    ) -> None:
+        self.cash_to_receive = Cash(value=instrument.value)
+        super().__init__(
+            bank=bank,
+            instrument=instrument,
+            value=instrument.value,
+            transaction_type=TransactionType.SECURITY_SALE_HTM,
+            transaction_date=date,
+            description=description,
+        )
+
+    def execute(self) -> None:
+        self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
+        self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
+        self.bank.ledger.post(self.journal_entry)
+
+    def undo(self) -> None:
+        self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
+        self.bank.banking_book.remove_instrument(self.cash_to_receive, Position.LONG)
+        self.bank.ledger.post(self.reverse_journal_entry)
+
+    @property
+    def journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.cash_account,
+            credit_account=self.bank.chart_of_accounts.investment_htm_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+    @property
+    def reverse_journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.investment_htm_account,
+            credit_account=self.bank.chart_of_accounts.cash_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+
 class SecurityPurchaseFVOCITransaction(Transaction):
     """Class representing a security purchase FVOCI (Fair Value through Other Comprehensive Income) transaction."""
 
