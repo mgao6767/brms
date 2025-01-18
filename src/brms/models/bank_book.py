@@ -55,6 +55,32 @@ class BankingBook(BankBook):
         """Initialize a BankingBook instance."""
         super().__init__(book_type=BookType.BANKING_BOOK)
 
+    def add_instrument(self, instrument: Instrument, *, long_position: bool = True) -> None:
+        """Add an instrument to the bank book.
+
+        :param instrument: The instrument to add.
+        :param long_position: If True, add to long exposure; otherwise, add to short exposure.
+        """
+        if isinstance(instrument, Cash):
+            for existing_instrument in self.long_exposure:
+                if isinstance(existing_instrument, Cash):
+                    existing_instrument.value += instrument.value
+                    return
+        super().add_instrument(instrument, long_position=long_position)
+
+    def remove_instrument(self, instrument: Instrument, *, long_position: bool = True) -> None:
+        """Remove an instrument from the bank book.
+
+        :param instrument: The instrument to remove.
+        :param long_position: If True, remove from long exposure; otherwise, remove from short exposure.
+        """
+        if isinstance(instrument, Cash):
+            for existing_instrument in self.long_exposure:
+                if isinstance(existing_instrument, Cash):
+                    existing_instrument.value -= instrument.value
+                return
+        super().remove_instrument(instrument, long_position=long_position)
+
     @property
     def cash(self) -> Cash:
         """Retrieve the Cash instrument from the long exposure.
