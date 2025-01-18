@@ -7,6 +7,7 @@ from brms.accounting.journal import JournalEntry, CompoundEntry, SimpleEntry
 from brms.instruments.base import Instrument
 from brms.instruments.cash import Cash
 from brms.instruments.deposit import Deposit
+from brms.instruments.visitors.valuation import ValuationVisitor
 from brms.models.bank import Bank
 from brms.models.bank_book import Position
 
@@ -47,7 +48,7 @@ class TransactionType(Enum):
     # Buying & Selling Securities
     SECURITY_PURCHASE_TRADING = auto()
     SECURITY_SALE_TRADING = auto()
-    SECURITY_MARK_TO_MARKET_ADJUSTMENT = auto()
+    SECURITY_MARK_TO_MARKET = auto()
     SECURITY_DIVIDEND_RECEIVED = auto()
 
     # Derivatives Transactions
@@ -631,6 +632,79 @@ class SecurityPurchaseFVTPLTransaction(Transaction):
             debit_account=self.bank.chart_of_accounts.cash_account,
             credit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
             value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+
+class SecurityMarkToMarketFVTPLTransaction(Transaction):
+    """Class representing a security mark-to-market adjustment for FVTPL transaction."""
+
+    def __init__(
+        self,
+        bank: Bank,
+        instrument: Instrument,
+        valuation_visitor: ValuationVisitor,
+        date: datetime.date | None = None,
+        description: str = "",
+    ) -> None:
+        self.valuation_visitor = valuation_visitor
+        self.old_value = self.instrument.value
+        self.new_value = self.instrument.value  # will be set to new value after execution
+        super().__init__(
+            bank=bank,
+            instrument=instrument,
+            value=instrument.value,  # no effect
+            transaction_type=TransactionType.SECURITY_MARK_TO_MARKET,
+            transaction_date=date,
+            description=description,
+        )
+
+    def execute(self) -> None:
+        self.instrument.accept(self.valuation_visitor)
+        self.new_value = self.instrument.value
+        self.bank.ledger.post(self.journal_entry)
+
+    def undo(self) -> None:
+        self.instrument.value = self.old_value
+        self.bank.ledger.post(self.reverse_journal_entry)
+
+    @property
+    def journal_entry(self) -> JournalEntry:
+        # Gain
+        if self.new_value >= self.old_value:
+            return SimpleEntry(
+                debit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
+                credit_account=self.bank.chart_of_accounts.unrealized_trading_pnl_account,
+                value=self.new_value - self.old_value,
+                date=self.transaction_date,
+                description=self.description,
+            )
+        # Loss
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.unrealized_trading_pnl_account,
+            credit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
+            value=abs(self.new_value - self.old_value),
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+    @property
+    def reverse_journal_entry(self) -> JournalEntry:
+        # Reverse gain
+        if self.new_value >= self.old_value:
+            return SimpleEntry(
+                debit_account=self.bank.chart_of_accounts.unrealized_trading_pnl_account,
+                credit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
+                value=self.new_value - self.old_value,
+                date=self.transaction_date,
+                description=self.description,
+            )
+        # Reverse loss
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
+            credit_account=self.bank.chart_of_accounts.unrealized_trading_pnl_account,
+            value=abs(self.new_value - self.old_value),
             date=self.transaction_date,
             description=self.description,
         )
