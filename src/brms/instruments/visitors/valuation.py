@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from brms.instruments.common_equity import CommonEquity
     from brms.instruments.covered_bond import CoveredBond
     from brms.instruments.credit_card import CreditCard
+    from brms.instruments.deposit import Deposit
     from brms.instruments.fixed_rate_bond import FixedRateBond
     from brms.instruments.personal_loan import PersonalLoan
     from brms.models.scenario import Scenario
@@ -31,6 +32,9 @@ class ValuationVisitor(Visitor):
 
     def visit_cash(self, instrument: "Cash") -> None:
         """Value cash."""
+
+    def visit_deposit(self, instrument: "Deposit") -> None:
+        """Visit deposit."""
 
     def visit_common_equity(self, instrument: "CommonEquity") -> None:
         """Value common equity."""

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from brms.instruments.common_equity import CommonEquity
     from brms.instruments.covered_bond import CoveredBond
     from brms.instruments.credit_card import CreditCard
+    from brms.instruments.deposit import Deposit
     from brms.instruments.fixed_rate_bond import FixedRateBond
     from brms.instruments.personal_loan import PersonalLoan
 
@@ -45,6 +46,14 @@ class InspectionVisitor(Visitor):
         details = self._get_instrument_details(instrument)
         details["Credit Rating"] = "N/A"
         details["Issuer"] = "N/A"
+        self.result.update(details)
+
+    def visit_deposit(self, instrument: "Deposit") -> None:
+        """Visit deposit."""
+        self.result.clear()
+        details = self._get_instrument_details(instrument)
+        details["Credit Rating"] = "N/A"
+        details["Issuer"] = "Bank Customer"
         self.result.update(details)
 
     def visit_common_equity(self, instrument: "CommonEquity") -> None:
