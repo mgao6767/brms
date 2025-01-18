@@ -11,6 +11,10 @@ if TYPE_CHECKING:
 class Cash(Instrument):
     """A class to represent cash."""
 
+    def __init__(self, value: float = 0.0) -> None:
+        super().__init__(name="Cash")
+        self.value = value
+
     def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
         visitor.visit_cash(self)
