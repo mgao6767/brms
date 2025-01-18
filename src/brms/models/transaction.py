@@ -34,6 +34,8 @@ class TransactionType(Enum):
     # Securities Held-to-Maturity (HTM) & FVOCI (Banking Book)
     SECURITY_PURCHASE_HTM = auto()
     SECURITY_SALE_HTM = auto()
+    SECURITY_PURCHASE_FVOCI = auto()
+    SECURITY_SALE_FVOCI = auto()
     SECURITY_INTEREST_EARNED = auto()
     SECURITY_IMPAIRMENT_HTM = auto()
 
@@ -420,6 +422,108 @@ class LoanInterestPaymentTransaction(Transaction):
         return SimpleEntry(
             debit_account=self.bank.chart_of_accounts.interest_income_account,
             credit_account=self.bank.chart_of_accounts.cash_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+
+class SecurityPurchaseHTMTransaction(Transaction):
+    """Class representing a security purchase held-to-maturity (HTM) transaction."""
+
+    def __init__(
+        self,
+        bank: Bank,
+        instrument: Instrument,
+        date: datetime.date | None = None,
+        description: str = "",
+    ) -> None:
+        self.cash_to_pay = Cash(value=instrument.value)
+        super().__init__(
+            bank=bank,
+            instrument=instrument,
+            value=instrument.value,
+            transaction_type=TransactionType.SECURITY_PURCHASE_HTM,
+            transaction_date=date,
+            description=description,
+        )
+
+    def execute(self) -> None:
+        self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
+        self.bank.banking_book.remove_instrument(self.cash_to_pay, Position.LONG)
+        self.bank.ledger.post(self.journal_entry)
+
+    def undo(self) -> None:
+        self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
+        self.bank.banking_book.add_instrument(self.cash_to_pay, Position.LONG)
+        self.bank.ledger.post(self.reverse_journal_entry)
+
+    @property
+    def journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.investment_htm_account,
+            credit_account=self.bank.chart_of_accounts.cash_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+    @property
+    def reverse_journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.cash_account,
+            credit_account=self.bank.chart_of_accounts.investment_htm_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+
+class SecurityPurchaseFVOCITransaction(Transaction):
+    """Class representing a security purchase FVOCI (Fair Value through Other Comprehensive Income) transaction."""
+
+    def __init__(
+        self,
+        bank: Bank,
+        instrument: Instrument,
+        date: datetime.date | None = None,
+        description: str = "",
+    ) -> None:
+        self.cash_to_pay = Cash(value=instrument.value)
+        super().__init__(
+            bank=bank,
+            instrument=instrument,
+            value=instrument.value,
+            transaction_type=TransactionType.SECURITY_PURCHASE_FVOCI,
+            transaction_date=date,
+            description=description,
+        )
+
+    def execute(self) -> None:
+        self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
+        self.bank.banking_book.remove_instrument(self.cash_to_pay, Position.LONG)
+        self.bank.ledger.post(self.journal_entry)
+
+    def undo(self) -> None:
+        self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
+        self.bank.banking_book.add_instrument(self.cash_to_pay, Position.LONG)
+        self.bank.ledger.post(self.reverse_journal_entry)
+
+    @property
+    def journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.investment_fvoci_account,
+            credit_account=self.bank.chart_of_accounts.cash_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+    @property
+    def reverse_journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.cash_account,
+            credit_account=self.bank.chart_of_accounts.investment_fvoci_account,
             value=self.value,
             date=self.transaction_date,
             description=self.description,
