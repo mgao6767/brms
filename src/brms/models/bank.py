@@ -45,3 +45,7 @@ class Bank:
     def process_transaction(self, transaction: "Transaction") -> None:
         """Ask the accountant to process the transaction."""
         self.accountant.process_transaction(transaction)
+
+    def undo_last_transaction(self) -> None:
+        """Asks Accountant to reverse last transaction."""
+        self.accountant.undo_last_transaction()
