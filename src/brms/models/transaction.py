@@ -585,6 +585,57 @@ class SecurityPurchaseFVOCITransaction(Transaction):
         )
 
 
+class SecurityPurchaseFVTPLTransaction(Transaction):
+    """Class representing a security purchase FVTPL (Fair Value through Profit or Loss) transaction."""
+
+    def __init__(
+        self,
+        bank: Bank,
+        instrument: Instrument,
+        date: datetime.date | None = None,
+        description: str = "",
+    ) -> None:
+        self.cash_to_pay = Cash(value=instrument.value)
+        super().__init__(
+            bank=bank,
+            instrument=instrument,
+            value=instrument.value,
+            transaction_type=TransactionType.SECURITY_PURCHASE_TRADING,
+            transaction_date=date,
+            description=description,
+        )
+
+    def execute(self) -> None:
+        self.bank.trading_book.add_instrument(self.instrument, Position.LONG)
+        self.bank.banking_book.remove_instrument(self.cash_to_pay, Position.LONG)
+        self.bank.ledger.post(self.journal_entry)
+
+    def undo(self) -> None:
+        self.bank.trading_book.remove_instrument(self.instrument, Position.LONG)
+        self.bank.banking_book.add_instrument(self.cash_to_pay, Position.LONG)
+        self.bank.ledger.post(self.reverse_journal_entry)
+
+    @property
+    def journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
+            credit_account=self.bank.chart_of_accounts.cash_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+    @property
+    def reverse_journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.cash_account,
+            credit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+
 if __name__ == "__main__":
     from brms.accounting.account import AccountBalances
     from brms.accounting.report import Report
