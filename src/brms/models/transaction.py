@@ -215,6 +215,49 @@ class DepositWithdrawTransaction(Transaction):
         )
 
 
+class InterestPaidOnDepositTransaction(Transaction):
+    """Class representing an interest paid on deposit transaction."""
+
+    def __init__(self, bank: Bank, value: float, date: datetime.date | None = None, description: str = "") -> None:
+        (cash := Cash("Cash")).value = value
+        super().__init__(
+            bank=bank,
+            instrument=cash,
+            value=value,
+            transaction_type=TransactionType.INTEREST_PAID_ON_DEPOSIT,
+            transaction_date=date,
+            description=description,
+        )
+
+    def execute(self) -> None:
+        self.bank.banking_book.add_instrument(self.instrument)
+        self.bank.ledger.post(self.journal_entry)
+
+    def undo(self) -> None:
+        self.bank.banking_book.remove_instrument(self.instrument)
+        self.bank.ledger.post(self.reverse_journal_entry)
+
+    @property
+    def journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.interest_expense_account,
+            credit_account=self.bank.chart_of_accounts.cash_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+    @property
+    def reverse_journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.cash_account,
+            credit_account=self.bank.chart_of_accounts.interest_expense_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+
 if __name__ == "__main__":
     from brms.accounting.account import AccountBalances
     from brms.accounting.report import Report
@@ -234,6 +277,7 @@ if __name__ == "__main__":
     date = datetime.date(2024, 12, 31)
 
     bank.process_transaction(DepositTransaction(bank, 1000000000, date))
+    bank.undo_last_transaction()
     bank.process_transaction(DepositWithdrawTransaction(bank, 12500, date))
     bank.undo_last_transaction()
 
