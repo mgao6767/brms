@@ -6,7 +6,9 @@ from enum import Enum, auto
 from brms.accounting.journal import JournalEntry, CompoundEntry, SimpleEntry
 from brms.instruments.base import Instrument
 from brms.instruments.cash import Cash
+from brms.instruments.deposit import Deposit
 from brms.models.bank import Bank
+from brms.models.bank_book import Position
 
 
 class TransactionType(Enum):
@@ -132,23 +134,31 @@ class Transaction(ABC):
 class DepositTransaction(Transaction):
     """Class representing a deposit transaction."""
 
-    def __init__(self, bank: Bank, value: float, date: datetime.date | None = None, description: str = "") -> None:
-        (cash := Cash("Cash")).value = value
+    def __init__(
+        self,
+        bank: Bank,
+        instrument: Deposit,
+        date: datetime.date | None = None,
+        description: str = "",
+    ) -> None:
+        self.cash_to_add = Cash(value=instrument.value)
         super().__init__(
             bank=bank,
-            instrument=cash,
-            value=value,
+            instrument=instrument,
+            value=instrument.value,
             transaction_type=TransactionType.DEPOSIT_RECEIVED,
             transaction_date=date,
             description=description,
         )
 
     def execute(self) -> None:
-        self.bank.banking_book.add_instrument(self.instrument)
+        self.bank.banking_book.add_instrument(self.cash_to_add, Position.LONG)
+        self.bank.banking_book.add_instrument(self.instrument, Position.SHORT)
         self.bank.ledger.post(self.journal_entry)
 
     def undo(self) -> None:
-        self.bank.banking_book.remove_instrument(self.instrument)
+        self.bank.banking_book.remove_instrument(self.cash_to_add, Position.LONG)
+        self.bank.banking_book.remove_instrument(self.instrument, Position.SHORT)
         self.bank.ledger.post(self.reverse_journal_entry)
 
     @property
@@ -175,23 +185,31 @@ class DepositTransaction(Transaction):
 class DepositWithdrawTransaction(Transaction):
     """Class representing a deposit withdrawal transaction."""
 
-    def __init__(self, bank: Bank, value: float, date: datetime.date | None = None, description: str = "") -> None:
-        (cash := Cash("Cash")).value = value
+    def __init__(
+        self,
+        bank: Bank,
+        instrument: Deposit,
+        date: datetime.date | None = None,
+        description: str = "",
+    ) -> None:
+        self.cash_to_pay = Cash(value=instrument.value)
         super().__init__(
             bank=bank,
-            instrument=cash,
-            value=value,
+            instrument=instrument,
+            value=instrument.value,
             transaction_type=TransactionType.DEPOSIT_WITHDRAWAL,
             transaction_date=date,
             description=description,
         )
 
     def execute(self) -> None:
-        self.bank.banking_book.remove_instrument(self.instrument)
+        self.bank.banking_book.remove_instrument(self.instrument, Position.SHORT)
+        self.bank.banking_book.add_instrument(self.cash_to_pay, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
 
     def undo(self) -> None:
-        self.bank.banking_book.add_instrument(self.instrument)
+        self.bank.banking_book.add_instrument(self.instrument, Position.SHORT)
+        self.bank.banking_book.remove_instrument(self.cash_to_pay, Position.LONG)
         self.bank.ledger.post(self.reverse_journal_entry)
 
     @property
@@ -219,10 +237,9 @@ class InterestPaidOnDepositTransaction(Transaction):
     """Class representing an interest paid on deposit transaction."""
 
     def __init__(self, bank: Bank, value: float, date: datetime.date | None = None, description: str = "") -> None:
-        (cash := Cash("Cash")).value = value
         super().__init__(
             bank=bank,
-            instrument=cash,
+            instrument=Cash(value=value),
             value=value,
             transaction_type=TransactionType.INTEREST_PAID_ON_DEPOSIT,
             transaction_date=date,
@@ -230,11 +247,11 @@ class InterestPaidOnDepositTransaction(Transaction):
         )
 
     def execute(self) -> None:
-        self.bank.banking_book.add_instrument(self.instrument)
+        self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
 
     def undo(self) -> None:
-        self.bank.banking_book.remove_instrument(self.instrument)
+        self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
         self.bank.ledger.post(self.reverse_journal_entry)
 
     @property
@@ -276,11 +293,12 @@ if __name__ == "__main__":
 
     date = datetime.date(2024, 12, 31)
 
-    bank.process_transaction(DepositTransaction(bank, 1000000000, date))
-    bank.undo_last_transaction()
-    bank.process_transaction(DepositWithdrawTransaction(bank, 12500, date))
+    deposit_by_a_customer = Deposit(value=999999)
+    bank.process_transaction(DepositTransaction(bank, deposit_by_a_customer, date))
+    bank.process_transaction(DepositWithdrawTransaction(bank, deposit_by_a_customer, date))
     bank.undo_last_transaction()
 
+    bank.process_transaction(InterestPaidOnDepositTransaction(bank, 12312, date))
     report = Report(ledger=bank.ledger, viewer=HTMLStatementViewer(), date=date)
 
     html_trial_balance = report.print_trial_balance()
