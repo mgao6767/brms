@@ -8,7 +8,7 @@ from brms.accounting.ledger import Ledger
 from brms.instruments.cash import Cash
 from brms.instruments.visitors.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
 from brms.models.accountant import Accountant
-from brms.models.bank_book import BankingBook, TradingBook
+from brms.models.bank_book import BankingBook, Position, TradingBook
 
 if TYPE_CHECKING:
     from brms.models.scenario import Scenario
@@ -33,9 +33,8 @@ class Bank:
         self.ledger.set_account_balances(account_balances)
         # After initiating the leger, init the bank's banking and trading books with instruments
         # TODO: init all instruments other than cash
-        cash = Cash("Cash")
-        cash.value = account_balances[self.chart_of_accounts.cash_account]
-        self.banking_book.add_instrument(cash)
+        cash = Cash(value=account_balances[self.chart_of_accounts.cash_account])
+        self.banking_book.add_instrument(cash, Position.LONG)
 
     def valuation(self, scenario: "Scenario") -> None:
         """Perform valuation on banking and trading book instruments."""

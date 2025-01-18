@@ -1,9 +1,18 @@
 """Contains the BankBook class and its derivatives, BankingBook and TradingBook."""
 
+from enum import Enum, auto
+
 from brms.instruments.base import CompositeInstrument, Instrument
 from brms.instruments.cash import Cash
 from brms.instruments.visitors.base import Visitor
 from brms.models.base import BookType
+
+
+class Position(Enum):
+    """Enumeration for position types (LONG or SHORT)."""
+
+    LONG = auto()
+    SHORT = auto()
 
 
 class BankBook:
@@ -18,27 +27,27 @@ class BankBook:
         self.long_exposure = CompositeInstrument("Exposure (Long)", book_type)
         self.short_exposure = CompositeInstrument("Exposure (Short)", book_type)
 
-    def add_instrument(self, instrument: Instrument, *, long_position: bool = True) -> None:
-        """Add an instrument to the bank book.
+    def add_instrument(self, instrument: Instrument, position: Position) -> None:
+        """Add an instrument to the bank book."""
+        match position:
+            case Position.LONG:
+                self.long_exposure.add(instrument)
+            case Position.SHORT:
+                self.short_exposure.add(instrument)
 
-        :param instrument: The instrument to add.
-        :param long_position: If True, add to long exposure; otherwise, add to short exposure.
-        """
-        if long_position:
-            self.long_exposure.add(instrument)
-        else:
-            self.short_exposure.add(instrument)
-
-    def remove_instrument(self, instrument: Instrument, *, long_position: bool = True) -> None:
-        """Remove an instrument from the bank book.
-
-        :param instrument: The instrument to remove.
-        :param long_position: If True, remove from long exposure; otherwise, remove from short exposure.
-        """
-        if long_position:
-            self.long_exposure.remove(instrument)
-        else:
-            self.short_exposure.remove(instrument)
+    def remove_instrument(self, instrument: Instrument, position: Position) -> None:
+        """Remove an instrument from the bank book."""
+        match position:
+            case Position.LONG:
+                if instrument in self.long_exposure:
+                    self.long_exposure.remove(instrument)
+                else:
+                    raise ValueError("Instrument to remove doesn't exist in long exposure.")
+            case Position.SHORT:
+                if instrument in self.short_exposure:
+                    self.short_exposure.remove(instrument)
+                else:
+                    raise ValueError("Instrument to remove doesn't exist in short exposure.")
 
     def accept(self, visitor: Visitor) -> None:
         """Accept a visitor to process the instruments in the book."""
@@ -55,31 +64,23 @@ class BankingBook(BankBook):
         """Initialize a BankingBook instance."""
         super().__init__(book_type=BookType.BANKING_BOOK)
 
-    def add_instrument(self, instrument: Instrument, *, long_position: bool = True) -> None:
-        """Add an instrument to the bank book.
-
-        :param instrument: The instrument to add.
-        :param long_position: If True, add to long exposure; otherwise, add to short exposure.
-        """
+    def add_instrument(self, instrument: Instrument, position: Position) -> None:
+        """Add an instrument to the bank book."""
         if isinstance(instrument, Cash):
             for existing_instrument in self.long_exposure:
                 if isinstance(existing_instrument, Cash):
                     existing_instrument.value += instrument.value
                     return
-        super().add_instrument(instrument, long_position=long_position)
+        super().add_instrument(instrument, position)
 
-    def remove_instrument(self, instrument: Instrument, *, long_position: bool = True) -> None:
-        """Remove an instrument from the bank book.
-
-        :param instrument: The instrument to remove.
-        :param long_position: If True, remove from long exposure; otherwise, remove from short exposure.
-        """
+    def remove_instrument(self, instrument: Instrument, position: Position) -> None:
+        """Remove an instrument from the bank book."""
         if isinstance(instrument, Cash):
             for existing_instrument in self.long_exposure:
                 if isinstance(existing_instrument, Cash):
                     existing_instrument.value -= instrument.value
                 return
-        super().remove_instrument(instrument, long_position=long_position)
+        super().remove_instrument(instrument, position)
 
     @property
     def cash(self) -> Cash:
