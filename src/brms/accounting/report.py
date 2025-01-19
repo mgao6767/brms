@@ -128,14 +128,14 @@ class Report:
         self.ledger.close_income_summary_account(self.date)
         self.balance_sheet = BalanceSheet.from_ledger(self.ledger)
 
-    def print_trial_balance(self) -> str:
+    def print_trial_balance(self) -> None:
         """Generate the trial balance view."""
-        return self.trial_balance.accept(self.viewer)
+        self.trial_balance.accept(self.viewer)
 
-    def print_income_statement(self) -> str:
+    def print_income_statement(self) -> None:
         """Generate the income statement view."""
-        return self.income_statement.accept(self.viewer)
+        self.income_statement.accept(self.viewer)
 
-    def print_balance_sheet(self) -> str:
+    def print_balance_sheet(self) -> None:
         """Generate the balance sheet view."""
-        return self.balance_sheet.accept(self.viewer)
+        self.balance_sheet.accept(self.viewer)

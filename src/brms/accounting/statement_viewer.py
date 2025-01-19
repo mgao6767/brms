@@ -34,8 +34,11 @@ class StatementVisitor(ABC):
 class HTMLStatementViewer(StatementVisitor):
     """Concrete visitor for generating HTML view of statements."""
 
-    console = Console(record=True)
-    padding = 2
+    def __init__(self, *, padding: int = 2, console: bool = True, jupyter: bool = False) -> None:
+        super().__init__()
+        self.padding = padding
+        self.console = console
+        self.jupyter = jupyter
 
     @staticmethod
     def format_amount(amount: float) -> Text:
@@ -84,13 +87,15 @@ class HTMLStatementViewer(StatementVisitor):
 
         table.add_row("Total", self.format_amount(total_dr), self.format_amount(total_cr), style="bold")
 
-        with self.console.capture() as capture:
-            self.console.print(table)
-        console = Console(record=True, file=StringIO())  # print to StringIO to avoid printing to terminal
+        console = Console(
+            record=True,
+            file=StringIO() if not self.console else None,  # print to StringIO to avoid printing to terminal
+            force_jupyter=self.jupyter,  # whether to automatically print in jupyter notebook
+        )
         console.print(table)
         statement.text = console.export_text(clear=False)
         statement.html = console.export_html(clear=False)
-        return capture.get()
+        return statement.html
 
     def visit_income_statement(self, statement: "IncomeStatement") -> str:
         """Generate view for IncomeStatement."""
@@ -113,13 +118,15 @@ class HTMLStatementViewer(StatementVisitor):
                 self.add_account_balance_rows(account, table)
         table.add_row("Profit", self.format_amount(profit), style="bold")
 
-        with self.console.capture() as capture:
-            self.console.print(table)
-        console = Console(record=True, file=StringIO())  # print to StringIO to avoid printing to terminal
+        console = Console(
+            record=True,
+            file=StringIO() if not self.console else None,  # print to StringIO to avoid printing to terminal
+            force_jupyter=self.jupyter,  # whether to automatically print in jupyter notebook
+        )
         console.print(table)
         statement.text = console.export_text(clear=False)
         statement.html = console.export_html(clear=False)
-        return capture.get()
+        return statement.html
 
     def visit_balance_sheet(self, statement: "BalanceSheet") -> str:
         """Generate view for BalanceSheet."""
@@ -154,13 +161,15 @@ class HTMLStatementViewer(StatementVisitor):
                 self.add_account_balance_rows(account, table)
         table.add_row("Total shareholders' equity", self.format_amount(total_equity), style="bold")
 
-        with self.console.capture() as capture:
-            self.console.print(table)
-        console = Console(record=True, file=StringIO())  # print to StringIO to avoid printing to terminal
+        console = Console(
+            record=True,
+            file=StringIO() if not self.console else None,  # print to StringIO to avoid printing to terminal
+            force_jupyter=self.jupyter,  # whether to automatically print in jupyter notebook
+        )
         console.print(table)
         statement.text = console.export_text(clear=False)
         statement.html = console.export_html(clear=False)
-        return capture.get()
+        return statement.html
 
 
 class TextStatementViewer(StatementVisitor):
