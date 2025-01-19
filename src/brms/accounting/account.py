@@ -472,18 +472,15 @@ class RealizedOCILossAccount(TAccount):
         super().__init__("Realized OCI Loss", AccountType.EXPENSE)
 
 
-class RealizedOCIPnLAccount(TAccount):
-    """Realized P&L from OCI account."""
-
-    def __init__(self) -> None:
-        super().__init__("Realized P&L from OCI", AccountType.INCOME)
-
-
-class InvestmentIncomeAccount(TAccount):
+class InvestmentIncomeAccount(CompositeTAccount):
     """Investment income account."""
 
     def __init__(self) -> None:
         super().__init__("Investment Income (FVOCI)", AccountType.INCOME)
+        self.realized_oci_gain_account = RealizedOCIGainAccount()
+        self.realized_oci_loss_account = RealizedOCILossAccount()
+        self.add(self.realized_oci_gain_account)
+        self.add(self.realized_oci_loss_account)
 
 
 class InterestExpenseAccount(TAccount):
@@ -621,14 +618,10 @@ class BankChartOfAccounts(ChartOfAccounts):
     accumulated_oci_account: AccumulatedOCIAccount = field(default_factory=AccumulatedOCIAccount)
     # Income statement accounts
     interest_income_account: InterestIncomeAccount = field(default_factory=InterestIncomeAccount)
-    realized_trading_pnl_account: RealizedTradingPnLAccount = field(default_factory=RealizedTradingPnLAccount)
-    unrealized_trading_pnl_account: UnrealizedTradingPnLAccount = field(default_factory=UnrealizedTradingPnLAccount)
     trading_income_account: TradingIncomeAccount = field(default_factory=TradingIncomeAccount)
     investment_income_account: InvestmentIncomeAccount = field(default_factory=InvestmentIncomeAccount)
     interest_expense_account: InterestExpenseAccount = field(default_factory=InterestExpenseAccount)
     operating_expense_account: OperatingExpenseAccount = field(default_factory=OperatingExpenseAccount)
-    # income_summary_account: IncomeSummaryAccount = field(default_factory=IncomeSummaryAccount)
-    # retained_earnings_account: RetainedEarningsAccount = field(default_factory=RetainedEarningsAccount)
 
     def __post_init__(self) -> None:
         # Direct acess to sub accounts of composite account
@@ -645,6 +638,9 @@ class BankChartOfAccounts(ChartOfAccounts):
         self.realized_trading_gain_account = self.trading_income_account.realized_trading_gain_account
         self.unrealized_trading_loss_account = self.trading_income_account.unrealized_trading_loss_account
         self.realized_trading_loss_account = self.trading_income_account.realized_trading_loss_account
+
+        self.realized_oci_gain_account = self.investment_income_account.realized_oci_gain_account
+        self.realized_oci_loss_account = self.investment_income_account.realized_oci_loss_account
 
         self.assets.append(self.cash_account)
         self.assets.append(self.receivable_account)
