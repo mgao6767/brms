@@ -261,7 +261,7 @@ class AssetFVTPLAccount(TAccount):
     """
 
     def __init__(self) -> None:
-        super().__init__("Assets at Fair Value Through Income Statement (FVTPL)", AccountType.ASSET)
+        super().__init__("Assets at FVTPL", AccountType.ASSET)
 
 
 class InvestmentSecuritiesAccount(CompositeTAccount):
@@ -298,7 +298,7 @@ class InvestmentFVOCIAccount(TAccount):
 
     def __init__(self) -> None:
         super().__init__(
-            "Investment Securities at Fair Value Through Other Comprehensive Income (FVOCI)",
+            "Investment Securities at FVOCI",
             AccountType.ASSET,
         )
 
