@@ -113,8 +113,12 @@ class Ledger:
         match account.type:
             case AccountType.INCOME:
                 # fmt: off
-                income_accounts = {sub: sub.balance() for sub in account.sub_accounts if sub.type == AccountType.INCOME}
-                expense_accounts = {sub: sub.balance() for sub in account.sub_accounts if sub.type == AccountType.EXPENSE}
+                if account.has_sub_account():
+                    income_accounts = {sub: sub.balance() for sub in account.sub_accounts if sub.type == AccountType.INCOME}
+                    expense_accounts = {sub: sub.balance() for sub in account.sub_accounts if sub.type == AccountType.EXPENSE}
+                else:
+                    income_accounts = {account: account.balance()}
+                    expense_accounts = {}
                 # fmt: on
                 if account.balance() >= 0:  # net gain
                     return CompoundEntry(
