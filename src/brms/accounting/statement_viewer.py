@@ -1,6 +1,7 @@
 """Module for generating views of accounting statements."""
 
 from abc import ABC, abstractmethod
+from io import StringIO
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -85,7 +86,7 @@ class HTMLStatementViewer(StatementVisitor):
 
         with self.console.capture() as capture:
             self.console.print(table)
-        console = Console(record=True)
+        console = Console(record=True, file=StringIO())  # print to StringIO to avoid printing to terminal
         console.print(table)
         statement.text = console.export_text(clear=False)
         statement.html = console.export_html(clear=False)
@@ -114,7 +115,7 @@ class HTMLStatementViewer(StatementVisitor):
 
         with self.console.capture() as capture:
             self.console.print(table)
-        console = Console(record=True)
+        console = Console(record=True, file=StringIO())  # print to StringIO to avoid printing to terminal
         console.print(table)
         statement.text = console.export_text(clear=False)
         statement.html = console.export_html(clear=False)
@@ -155,7 +156,7 @@ class HTMLStatementViewer(StatementVisitor):
 
         with self.console.capture() as capture:
             self.console.print(table)
-        console = Console(record=True)
+        console = Console(record=True, file=StringIO())  # print to StringIO to avoid printing to terminal
         console.print(table)
         statement.text = console.export_text(clear=False)
         statement.html = console.export_html(clear=False)
