@@ -15,31 +15,39 @@ class Position(Enum):
     SHORT = auto()
 
 
-class UnrealizedOCIGainLossTracker:
-    """A class to track unrealized OCI gain/loss for FVOCI instruments."""
+class UnrealizedGainLossTracker:
+    """A class to track unrealized gain/loss for FVOCI or FVTPL instruments."""
 
     def __init__(self) -> None:
-        self.oci_tracker: dict[Instrument, float] = {}
+        self.unrealized_pnl: dict[Instrument, float] = {}
         self.tracked: set[Instrument] = set()
 
-    def set_unrealized_oci(self, instrument: Instrument, unrealized_oci_gain_loss: float) -> None:
-        """Set the unrealized OCI gain/loss for a given instrument."""
-        self.oci_tracker[instrument] = unrealized_oci_gain_loss
+    def set_unrealized_gain_loss(self, instrument: Instrument, unrealized_gain_loss: float) -> None:
+        """Set the unrealized gain/loss for a given instrument."""
+        self.unrealized_pnl[instrument] = unrealized_gain_loss
         self.tracked.add(instrument)
 
-    def get_unrealized_oci(self, instrument: Instrument) -> float:
-        """Get the unrealized OCI gain/loss for a given instrument."""
-        return self.oci_tracker.get(instrument, 0.0)
+    def get_unrealized_gain_loss(self, instrument: Instrument) -> float:
+        """Get the unrealized gain/loss for a given instrument."""
+        return self.unrealized_pnl.get(instrument, 0.0)
 
     def add_instrument(self, instrument: Instrument) -> None:
-        """Add an FVOCI instrument to the tracker."""
+        """Add an instrument to the tracker."""
         if instrument not in self.tracked:
-            self.set_unrealized_oci(instrument, unrealized_oci_gain_loss=0.0)
+            self.set_unrealized_gain_loss(instrument, unrealized_gain_loss=0.0)
 
     def remove_instrument(self, instrument: Instrument) -> None:
-        """Remove an FVOCI instrument from the tracker."""
-        if instrument in self.oci_tracker:
+        """Remove an instrument from the tracker."""
+        if instrument in self.unrealized_pnl:
             self.tracked.remove(instrument)
+
+
+class UnrealizedOCIGainLossTracker(UnrealizedGainLossTracker):
+    """A class to track unrealized OCI gain/loss for FVOCI instruments."""
+
+
+class UnrealizedTradingGainLossTracker(UnrealizedGainLossTracker):
+    """A class to track unrealized trading gain/loss for FVTPL instruments."""
 
 
 class BankBook:
@@ -53,7 +61,6 @@ class BankBook:
         self.book_type = book_type
         self.long_exposure = CompositeInstrument("Exposure (Long)", book_type)
         self.short_exposure = CompositeInstrument("Exposure (Short)", book_type)
-        self.unrealized_oci_tracker = UnrealizedOCIGainLossTracker()
 
     def add_instrument(self, instrument: Instrument, position: Position) -> None:
         """Add an instrument to the bank book."""
@@ -87,6 +94,8 @@ class BankBook:
 
 class BankingBook(BankBook):
     """A class to represent a banking book."""
+
+    unrealized_oci_tracker = UnrealizedOCIGainLossTracker()
 
     def __init__(self) -> None:
         """Initialize a BankingBook instance."""
@@ -126,6 +135,8 @@ class BankingBook(BankBook):
 
 class TradingBook(BankBook):
     """A class to represent a trading book."""
+
+    unrealized_pnl_tracker = UnrealizedTradingGainLossTracker()
 
     def __init__(self) -> None:
         """Initialize a TradingBook instance."""
