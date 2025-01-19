@@ -694,7 +694,7 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
         # Reverse gain
         if self.new_value >= self.old_value:
             return SimpleEntry(
-                debit_account=self.bank.chart_of_accounts.unrealized_trading_pnl_account,
+                debit_account=self.bank.chart_of_accounts.unrealized_trading_gain_account,
                 credit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
                 value=self.new_value - self.old_value,
                 date=self.transaction_date,
@@ -703,7 +703,7 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
         # Reverse loss
         return SimpleEntry(
             debit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
-            credit_account=self.bank.chart_of_accounts.unrealized_trading_pnl_account,
+            credit_account=self.bank.chart_of_accounts.unrealized_trading_loss_account,
             value=abs(self.new_value - self.old_value),
             date=self.transaction_date,
             description=self.description,
