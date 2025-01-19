@@ -2,7 +2,6 @@
 
 from typing import TYPE_CHECKING
 
-import brms.accounting.preset as act  # The preset accounts
 from brms.accounting.account import AccountBalances, BankChartOfAccounts
 from brms.accounting.ledger import Ledger
 from brms.instruments.cash import Cash
