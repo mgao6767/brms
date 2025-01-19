@@ -268,7 +268,7 @@ class InvestmentSecuritiesAccount(CompositeTAccount):
     """Investment securities account."""
 
     def __init__(self) -> None:
-        super().__init__("Invest Securities", AccountType.ASSET)
+        super().__init__("Investment Securities", AccountType.ASSET)
         self.investment_htm_account = InvestmentHTMAccount()
         self.investment_fvoci_account = InvestmentFVOCIAccount()
         self.add(self.investment_htm_account)
