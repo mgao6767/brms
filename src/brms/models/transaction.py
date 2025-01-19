@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
 
-from brms.accounting.journal import JournalEntry, CompoundEntry, SimpleEntry
+from brms.accounting.journal import CompoundEntry, JournalEntry, SimpleEntry
 from brms.instruments.base import Instrument
 from brms.instruments.cash import Cash
 from brms.instruments.deposit import Deposit
@@ -649,8 +649,8 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
         description: str = "",
     ) -> None:
         self.valuation_visitor = valuation_visitor
-        self.old_value = self.instrument.value
-        self.new_value = self.instrument.value  # will be set to new value after execution
+        self.old_value = instrument.value
+        self.new_value = instrument.value  # will be set to new value after execution
         super().__init__(
             bank=bank,
             instrument=instrument,
@@ -675,14 +675,14 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
         if self.new_value >= self.old_value:
             return SimpleEntry(
                 debit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
-                credit_account=self.bank.chart_of_accounts.unrealized_trading_pnl_account,
+                credit_account=self.bank.chart_of_accounts.unrealized_trading_gain_account,
                 value=self.new_value - self.old_value,
                 date=self.transaction_date,
                 description=self.description,
             )
         # Loss
         return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.unrealized_trading_pnl_account,
+            debit_account=self.bank.chart_of_accounts.unrealized_trading_loss_account,
             credit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
             value=abs(self.new_value - self.old_value),
             date=self.transaction_date,

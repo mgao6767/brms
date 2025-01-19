@@ -103,7 +103,7 @@ class Ledger:
 
     def generate_closing_entry(self, account: TAccount, date: datetime.date) -> CompoundEntry:
         """Generate a closing entry for a given account at a specific date."""
-        isa = {self.chart_of_accounts.income_summary_account: account.balance()}
+        isa = {self.chart_of_accounts.income_summary_account: abs(account.balance())}  # account balance may be negative
         act = (
             {sub: sub.balance() for sub in account.sub_accounts}
             if account.has_sub_account()
@@ -112,12 +112,24 @@ class Ledger:
 
         match account.type:
             case AccountType.INCOME:
-                return CompoundEntry(
-                    debit_accounts=act,
-                    credit_accounts=isa,
-                    date=date,
-                    description=f"Closing income account: {account.name}",
-                )
+                # fmt: off
+                income_accounts = {sub: sub.balance() for sub in account.sub_accounts if sub.type == AccountType.INCOME}
+                expense_accounts = {sub: sub.balance() for sub in account.sub_accounts if sub.type == AccountType.EXPENSE}
+                # fmt: on
+                if account.balance() >= 0:  # net gain
+                    return CompoundEntry(
+                        debit_accounts=income_accounts,
+                        credit_accounts={**isa, **expense_accounts},
+                        date=date,
+                        description=f"Closing income account: {account.name}",
+                    )
+                else:  # net loss
+                    return CompoundEntry(
+                        debit_accounts={**isa, **income_accounts},
+                        credit_accounts=expense_accounts,
+                        date=date,
+                        description=f"Closing income account: {account.name}",
+                    )
             case AccountType.EXPENSE:
                 return CompoundEntry(
                     debit_accounts=isa,

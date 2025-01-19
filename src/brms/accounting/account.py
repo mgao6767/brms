@@ -100,9 +100,7 @@ class TAccount(Observable):
 
     @parent.setter
     def parent(self, parent: Optional["TAccount"]) -> None:
-        if isinstance(parent, TAccount) and parent.type != self.type:
-            error_message = f"Account type mismatch: {parent.type} != {self.type}"
-            raise ValueError(error_message)
+        # Do not require same type because Trading Income contains Gains (income) and Losses (expense)
         self._parent = parent
 
     @property
@@ -203,9 +201,7 @@ class CompositeTAccount(TAccount, Observable, Observer):
 
     def add(self, account: TAccount) -> None:
         """Add a T-account as a child and observe it."""
-        if account.type != self.type:
-            error_message = f"Account type mismatch: {account.type} != {self.type}"
-            raise ValueError(error_message)
+        # Do not require same type because Trading Income contains Gains (income) and Losses (expense)
         if not isinstance(account, TAccount):
             error_message = "Account must be an instance of TAccount"
             raise TypeError(error_message)
@@ -380,6 +376,34 @@ class InterestIncomeAccount(CompositeTAccount):
         super().__init__("Interest Income", AccountType.INCOME)
 
 
+class RealizedTradingGainAccount(TAccount):
+    """Realized Trading Gain account."""
+
+    def __init__(self) -> None:
+        super().__init__("Realized Trading Gain", AccountType.INCOME)
+
+
+class UnrealizedTradingGainAccount(TAccount):
+    """Unrealized Trading Gain account."""
+
+    def __init__(self) -> None:
+        super().__init__("Unrealized Trading Gain", AccountType.INCOME)
+
+
+class RealizedTradingLossAccount(TAccount):
+    """Realized Trading Loss account."""
+
+    def __init__(self) -> None:
+        super().__init__("Realized Trading Loss", AccountType.EXPENSE)
+
+
+class UnrealizedTradingLossAccount(TAccount):
+    """Unrealized Trading Loss account."""
+
+    def __init__(self) -> None:
+        super().__init__("Unrealized Trading Loss", AccountType.EXPENSE)
+
+
 class RealizedTradingPnLAccount(TAccount):
     """Realized Trading P&L account."""
 
@@ -394,11 +418,33 @@ class UnrealizedTradingPnLAccount(TAccount):
         super().__init__("Unrealized Trading P&L", AccountType.INCOME)
 
 
-class TradingIncomeAccount(TAccount):
+class TradingIncomeAccount(CompositeTAccount):
     """Trading income account."""
 
     def __init__(self) -> None:
         super().__init__("Trading Income (FVTPL)", AccountType.INCOME)
+        self.unrealized_trading_gain_account = UnrealizedTradingGainAccount()
+        self.realized_trading_gain_account = RealizedTradingGainAccount()
+        self.unrealized_trading_loss_account = UnrealizedTradingLossAccount()
+        self.realized_trading_loss_account = RealizedTradingLossAccount()
+        self.add(self.unrealized_trading_gain_account)
+        self.add(self.realized_trading_gain_account)
+        self.add(self.unrealized_trading_loss_account)
+        self.add(self.realized_trading_loss_account)
+
+
+class RealizedOCIPnLAccount(TAccount):
+    """Realized P&L from OCI account."""
+
+    def __init__(self) -> None:
+        super().__init__("Realized P&L from OCI", AccountType.INCOME)
+
+
+class UnrealizedOCIPnLAccount(TAccount):
+    """Unrealized P&L from OCI account."""
+
+    def __init__(self) -> None:
+        super().__init__("Unrealized P&L from OCI", AccountType.INCOME)
 
 
 class InvestmentIncomeAccount(TAccount):
@@ -526,6 +572,7 @@ class ChartOfAccountsBuilder:
 class BankChartOfAccounts(ChartOfAccounts):
     """Represent the chart of accounts."""
 
+    # Asset accounts
     cash_account: CashAccount = field(default_factory=CashAccount)
     receivable_account: ReceivableAccount = field(default_factory=ReceivableAccount)
     loan_account: LoanAccount = field(default_factory=LoanAccount)
@@ -533,10 +580,13 @@ class BankChartOfAccounts(ChartOfAccounts):
     investment_securities_account: InvestmentSecuritiesAccount = field(default_factory=InvestmentSecuritiesAccount)
     ppe_account: PPEAccount = field(default_factory=PPEAccount)
     intangible_account: IntangibleAccount = field(default_factory=IntangibleAccount)
+    # Liabilit accounts
     deposit_account: DepositAccount = field(default_factory=DepositAccount)
     payable_account: PayableAccount = field(default_factory=PayableAccount)
     debt_account: DebtAccount = field(default_factory=DebtAccount)
+    # Equity accounts
     equity_account: EquityAccount = field(default_factory=EquityAccount)
+    # Income statement accounts
     interest_income_account: InterestIncomeAccount = field(default_factory=InterestIncomeAccount)
     realized_trading_pnl_account: RealizedTradingPnLAccount = field(default_factory=RealizedTradingPnLAccount)
     unrealized_trading_pnl_account: UnrealizedTradingPnLAccount = field(default_factory=UnrealizedTradingPnLAccount)
@@ -548,25 +598,30 @@ class BankChartOfAccounts(ChartOfAccounts):
     # retained_earnings_account: RetainedEarningsAccount = field(default_factory=RetainedEarningsAccount)
 
     def __post_init__(self) -> None:
+        # Direct acess to sub accounts of composite account
         self.investment_htm_account = self.investment_securities_account.investment_htm_account
         self.investment_fvoci_account = self.investment_securities_account.investment_fvoci_account
+
         self.customer_deposits_account = self.deposit_account.customer_deposits_account
         self.public_borrowings_account = self.deposit_account.public_borrowing_account
+
+        self.unrealized_trading_gain_account = self.trading_income_account.unrealized_trading_gain_account
+        self.realized_trading_gain_account = self.trading_income_account.realized_trading_gain_account
+        self.unrealized_trading_loss_account = self.trading_income_account.unrealized_trading_loss_account
+        self.realized_trading_loss_account = self.trading_income_account.realized_trading_loss_account
 
         self.assets.append(self.cash_account)
         self.assets.append(self.receivable_account)
         self.assets.append(self.loan_account)
-        self.assets.append(self.asset_fvtpl_account)
-        self.assets.append(self.investment_securities_account)
+        self.assets.append(self.asset_fvtpl_account)  # trading book instruments
+        self.assets.append(self.investment_securities_account)  # includes HTM and FVOCI subaccounts
         self.assets.append(self.ppe_account)
         self.assets.append(self.intangible_account)
-        self.liabilities.append(self.deposit_account)
+        self.liabilities.append(self.deposit_account)  # includes two subaccounts
         self.liabilities.append(self.payable_account)
         self.liabilities.append(self.debt_account)
         self.equities.append(self.equity_account)
         self.income.append(self.interest_income_account)
-        self.income.append(self.realized_trading_pnl_account)
-        self.income.append(self.unrealized_trading_pnl_account)
         self.income.append(self.trading_income_account)
         self.income.append(self.investment_income_account)
         self.expenses.append(self.interest_expense_account)
