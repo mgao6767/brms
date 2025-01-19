@@ -1034,3 +1034,52 @@ if __name__ == "__main__":
     print(html_trial_balance)
     print(html_income_statement)
     print(html_balance_sheet)
+
+
+class SecurityInterestEarnedTransaction(Transaction):
+    """Class representing a banking book security (HTM or FVOCI) interest earned transaction."""
+
+    def __init__(
+        self,
+        bank: Bank,
+        value: float,
+        date: datetime.date | None = None,
+        description: str = "",
+    ) -> None:
+        self.cash_to_receive = Cash(value=value)
+        super().__init__(
+            bank=bank,
+            instrument=self.cash_to_receive,
+            value=value,
+            transaction_type=TransactionType.SECURITY_INTEREST_EARNED,
+            transaction_date=date,
+            description=description,
+        )
+
+    def execute(self) -> None:
+        self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
+        self.bank.ledger.post(self.journal_entry)
+
+    def undo(self) -> None:
+        self.bank.banking_book.remove_instrument(self.cash_to_receive, Position.LONG)
+        self.bank.ledger.post(self.reverse_journal_entry)
+
+    @property
+    def journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.cash_account,
+            credit_account=self.bank.chart_of_accounts.interest_income_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+    @property
+    def reverse_journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.interest_income_account,
+            credit_account=self.bank.chart_of_accounts.cash_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
