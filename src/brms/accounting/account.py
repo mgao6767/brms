@@ -433,18 +433,50 @@ class TradingIncomeAccount(CompositeTAccount):
         self.add(self.realized_trading_loss_account)
 
 
+class UnrealizedOCIGainAccount(TAccount):
+    """Unrealized OCI Gain account."""
+
+    def __init__(self, contra_accounts: list[TAccount]) -> None:
+        super().__init__("Unrealized OCI Gain", AccountType.EQUITY, contra_accounts)
+
+
+class UnrealizedOCILossAccount(TAccount):
+    """Unrealized OCI Loss account."""
+
+    def __init__(self) -> None:
+        super().__init__("Unrealized OCI Loss", AccountType.EQUITY, is_contra_account=True)
+
+
+class AccumulatedOCIAccount(CompositeTAccount):
+    """Accumulated OCI account."""
+
+    def __init__(self) -> None:
+        super().__init__("Accumulated OCI", AccountType.EQUITY)
+        self.unrealized_oci_loss_account = UnrealizedOCILossAccount()
+        self.unrealized_oci_gain_account = UnrealizedOCIGainAccount(contra_accounts=[self.unrealized_oci_loss_account])
+        self.add(self.unrealized_oci_gain_account)
+        self.add(self.unrealized_oci_loss_account)
+
+
+class RealizedOCIGainAccount(TAccount):
+    """Realized OCI Gain account."""
+
+    def __init__(self) -> None:
+        super().__init__("Realized OCI Gain", AccountType.INCOME)
+
+
+class RealizedOCILossAccount(TAccount):
+    """Realized OCI Loss account."""
+
+    def __init__(self) -> None:
+        super().__init__("Realized OCI Loss", AccountType.EXPENSE)
+
+
 class RealizedOCIPnLAccount(TAccount):
     """Realized P&L from OCI account."""
 
     def __init__(self) -> None:
         super().__init__("Realized P&L from OCI", AccountType.INCOME)
-
-
-class UnrealizedOCIPnLAccount(TAccount):
-    """Unrealized P&L from OCI account."""
-
-    def __init__(self) -> None:
-        super().__init__("Unrealized P&L from OCI", AccountType.INCOME)
 
 
 class InvestmentIncomeAccount(TAccount):
@@ -586,6 +618,7 @@ class BankChartOfAccounts(ChartOfAccounts):
     debt_account: DebtAccount = field(default_factory=DebtAccount)
     # Equity accounts
     equity_account: EquityAccount = field(default_factory=EquityAccount)
+    accumulated_oci_account: AccumulatedOCIAccount = field(default_factory=AccumulatedOCIAccount)
     # Income statement accounts
     interest_income_account: InterestIncomeAccount = field(default_factory=InterestIncomeAccount)
     realized_trading_pnl_account: RealizedTradingPnLAccount = field(default_factory=RealizedTradingPnLAccount)
@@ -605,6 +638,9 @@ class BankChartOfAccounts(ChartOfAccounts):
         self.customer_deposits_account = self.deposit_account.customer_deposits_account
         self.public_borrowings_account = self.deposit_account.public_borrowing_account
 
+        self.unrealized_oci_gain_account = self.accumulated_oci_account.unrealized_oci_gain_account
+        self.unrealized_oci_loss_account = self.accumulated_oci_account.unrealized_oci_loss_account
+
         self.unrealized_trading_gain_account = self.trading_income_account.unrealized_trading_gain_account
         self.realized_trading_gain_account = self.trading_income_account.realized_trading_gain_account
         self.unrealized_trading_loss_account = self.trading_income_account.unrealized_trading_loss_account
@@ -621,6 +657,7 @@ class BankChartOfAccounts(ChartOfAccounts):
         self.liabilities.append(self.payable_account)
         self.liabilities.append(self.debt_account)
         self.equities.append(self.equity_account)
+        self.equities.append(self.accumulated_oci_account)
         self.income.append(self.interest_income_account)
         self.income.append(self.trading_income_account)
         self.income.append(self.investment_income_account)
