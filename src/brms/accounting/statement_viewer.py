@@ -85,6 +85,10 @@ class HTMLStatementViewer(StatementVisitor):
 
         with self.console.capture() as capture:
             self.console.print(table)
+        console = Console(record=True)
+        console.print(table)
+        statement.text = console.export_text(clear=False)
+        statement.html = console.export_html(clear=False)
         return capture.get()
 
     def visit_income_statement(self, statement: "IncomeStatement") -> str:
@@ -110,6 +114,10 @@ class HTMLStatementViewer(StatementVisitor):
 
         with self.console.capture() as capture:
             self.console.print(table)
+        console = Console(record=True)
+        console.print(table)
+        statement.text = console.export_text(clear=False)
+        statement.html = console.export_html(clear=False)
         return capture.get()
 
     def visit_balance_sheet(self, statement: "BalanceSheet") -> str:
@@ -147,6 +155,10 @@ class HTMLStatementViewer(StatementVisitor):
 
         with self.console.capture() as capture:
             self.console.print(table)
+        console = Console(record=True)
+        console.print(table)
+        statement.text = console.export_text(clear=False)
+        statement.html = console.export_html(clear=False)
         return capture.get()
 
 

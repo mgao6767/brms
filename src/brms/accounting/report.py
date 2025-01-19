@@ -20,6 +20,8 @@ class Statement(ABC):
 
     name: str
     date: datetime.date | None = None
+    html: str = ""
+    text: str = ""
 
     @classmethod
     @abstractmethod
