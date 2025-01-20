@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class Deposit(Instrument):
     """A class to represent customer deposit."""
 
-    def __init__(self, name: str = "Deposit", value: float = 0.0) -> None:
+    def __init__(self, *, name: str = "Deposit", value: float = 0.0) -> None:
         super().__init__(name=name)
         self.value = value
 
