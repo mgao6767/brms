@@ -16,9 +16,12 @@ if TYPE_CHECKING:
     from brms.accounting.report import BalanceSheet, IncomeStatement, TrialBalance
 
 try:
-    locale.setlocale(locale.LC_ALL, "")
+    locale.setlocale(locale.LC_ALL, "en_AU.UTF-8")
 except locale.Error:
-    locale.setlocale(locale.LC_ALL, "C")
+    try:
+        locale.setlocale(locale.LC_ALL, "")
+    except locale.Error:
+        locale.setlocale(locale.LC_ALL, "C")
 
 
 class StatementVisitor(ABC):
