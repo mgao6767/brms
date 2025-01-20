@@ -599,6 +599,9 @@ class SecuritySaleFVOCITransaction(Transaction):
         description: str = "",
     ) -> None:
         self.cash_to_receive = Cash(value=instrument.value)
+        self.old_unrealized_oci_gain = 0.0
+        self.old_unrealized_oci_loss = 0.0
+        self.tracker = bank.banking_book.unrealized_oci_tracker
         super().__init__(
             bank=bank,
             instrument=instrument,
@@ -611,33 +614,38 @@ class SecuritySaleFVOCITransaction(Transaction):
     def execute(self) -> None:
         self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
+        self.old_unrealized_oci_gain = self.tracker.get_unrealized_gain(self.instrument)
+        self.old_unrealized_oci_loss = self.tracker.get_unrealized_loss(self.instrument)
         self.bank.banking_book.unrealized_oci_tracker.remove_instrument(self.instrument)
-        self.old_unrealized_oci_gain_loss = self.bank.banking_book.unrealized_oci_tracker.get_unrealized_gain_loss(
-            self.instrument
-        )
         self.bank.ledger.post(self.journal_entry)
 
     def undo(self) -> None:
         self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.remove_instrument(self.cash_to_receive, Position.LONG)
-        self.bank.banking_book.unrealized_oci_tracker.set_unrealized_gain_loss(
-            self.instrument, self.old_unrealized_oci_gain_loss
-        )
+        self.tracker.set_unrealized_gain(self.instrument, self.old_unrealized_oci_gain)
+        self.tracker.set_unrealized_loss(self.instrument, self.old_unrealized_oci_loss)
         self.bank.ledger.post(self.reverse_journal_entry)
 
     @property
     def journal_entry(self) -> JournalEntry:
         # This is the unrealized OCI associated with this specific instrument
-        unrealized_oci = self.bank.banking_book.unrealized_oci_tracker.get_unrealized_gain_loss(self.instrument)
-        if unrealized_oci >= 0:  # selling FVOCI at a gain
+        unrealized_oci_gain = self.tracker.get_unrealized_gain(self.instrument)
+        unrealized_oci_loss = self.tracker.get_unrealized_loss(self.instrument)
+        net_gain = unrealized_oci_gain - unrealized_oci_loss
+        if net_gain >= 0:  # selling FVOCI at a gain
             return CompoundEntry(
                 debit_accounts={
+                    # 1. record cash received and remove security
                     self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_oci_gain_account: unrealized_oci,
+                    # 2. transfer AOCI unrealized gain to net income (realized OCI gain)
+                    self.bank.chart_of_accounts.unrealized_oci_gain_account: unrealized_oci_gain,
+                    # 3. reverse previously recorded unrealized loss
+                    self.bank.chart_of_accounts.realized_oci_loss_account: unrealized_oci_loss,
                 },
                 credit_accounts={
                     self.bank.chart_of_accounts.investment_fvoci_account: self.value,
-                    self.bank.chart_of_accounts.realized_oci_gain_account: unrealized_oci,
+                    self.bank.chart_of_accounts.realized_oci_gain_account: unrealized_oci_gain,
+                    self.bank.chart_of_accounts.unrealized_oci_loss_account: unrealized_oci_loss,
                 },
                 date=self.transaction_date,
                 description=self.description,
@@ -646,11 +654,13 @@ class SecuritySaleFVOCITransaction(Transaction):
             return CompoundEntry(
                 debit_accounts={
                     self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.realized_oci_loss_account: abs(unrealized_oci),
+                    self.bank.chart_of_accounts.realized_oci_loss_account: unrealized_oci_loss,
+                    self.bank.chart_of_accounts.unrealized_oci_gain_account: unrealized_oci_gain,
                 },
                 credit_accounts={
                     self.bank.chart_of_accounts.investment_fvoci_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_oci_loss_account: abs(unrealized_oci),
+                    self.bank.chart_of_accounts.unrealized_oci_loss_account: unrealized_oci_loss,
+                    self.bank.chart_of_accounts.realized_oci_gain_account: unrealized_oci_gain,
                 },
                 date=self.transaction_date,
                 description=self.description,
@@ -658,16 +668,20 @@ class SecuritySaleFVOCITransaction(Transaction):
 
     @property
     def reverse_journal_entry(self) -> JournalEntry:
-        unrealized_oci = self.bank.banking_book.unrealized_oci_tracker.get_unrealized_gain_loss(self.instrument)
-        if unrealized_oci >= 0:  # selling FVOCI at a gain
+        unrealized_oci_gain = self.tracker.get_unrealized_gain(self.instrument)
+        unrealized_oci_loss = self.tracker.get_unrealized_loss(self.instrument)
+        net_gain = unrealized_oci_gain - unrealized_oci_loss
+        if net_gain >= 0:  # selling FVOCI at a gain
             return CompoundEntry(
                 debit_accounts={
                     self.bank.chart_of_accounts.investment_fvoci_account: self.value,
-                    self.bank.chart_of_accounts.realized_oci_gain_account: unrealized_oci,
+                    self.bank.chart_of_accounts.realized_oci_gain_account: unrealized_oci_gain,
+                    self.bank.chart_of_accounts.unrealized_oci_loss_account: unrealized_oci_loss,
                 },
                 credit_accounts={
                     self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_oci_gain_account: unrealized_oci,
+                    self.bank.chart_of_accounts.unrealized_oci_gain_account: unrealized_oci_gain,
+                    self.bank.chart_of_accounts.realized_oci_loss_account: unrealized_oci_loss,
                 },
                 date=self.transaction_date,
                 description=self.description,
@@ -676,11 +690,13 @@ class SecuritySaleFVOCITransaction(Transaction):
             return CompoundEntry(
                 debit_accounts={
                     self.bank.chart_of_accounts.investment_fvoci_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_oci_loss_account: abs(unrealized_oci),
+                    self.bank.chart_of_accounts.unrealized_oci_loss_account: unrealized_oci_loss,
+                    self.bank.chart_of_accounts.realized_oci_gain_account: unrealized_oci_gain,
                 },
                 credit_accounts={
                     self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.realized_oci_loss_account: abs(unrealized_oci),
+                    self.bank.chart_of_accounts.realized_oci_loss_account: unrealized_oci_loss,
+                    self.bank.chart_of_accounts.unrealized_oci_gain_account: unrealized_oci_gain,
                 },
                 date=self.transaction_date,
                 description=self.description,
@@ -751,6 +767,7 @@ class SecuritySaleFVTPLTransaction(Transaction):
         description: str = "",
     ) -> None:
         self.cash_to_receive = Cash(value=instrument.value)
+        self.tracker = bank.trading_book.unrealized_pnl_tracker
         super().__init__(
             bank=bank,
             instrument=instrument,
@@ -772,16 +789,23 @@ class SecuritySaleFVTPLTransaction(Transaction):
 
     @property
     def journal_entry(self) -> JournalEntry:
-        unrealized_gain_loss = self.bank.trading_book.unrealized_pnl_tracker.get_unrealized_gain_loss(self.instrument)
-        if unrealized_gain_loss >= 0:  # selling FVTPL at a gain
+        unrealized_gain = self.tracker.get_unrealized_gain(self.instrument)
+        unrealized_loss = self.tracker.get_unrealized_loss(self.instrument)
+        net_gain = unrealized_gain - unrealized_loss
+        if net_gain >= 0:  # selling FVTPL at a gain
             return CompoundEntry(
                 debit_accounts={
+                    # 1. record cash received and remove security
                     self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_trading_gain_account: unrealized_gain_loss,
+                    # 2. transfer unrealized gain to realized
+                    self.bank.chart_of_accounts.unrealized_trading_gain_account: unrealized_gain,
+                    # 3. reverse previously recorded unrealized loss
+                    self.bank.chart_of_accounts.realized_trading_loss_account: unrealized_loss,
                 },
                 credit_accounts={
-                    self.bank.chart_of_accounts.asset_fvtpl_account: self.value,
-                    self.bank.chart_of_accounts.realized_trading_gain_account: unrealized_gain_loss,
+                    self.bank.chart_of_accounts.asset_fvtpl_account: self.value,  # 1
+                    self.bank.chart_of_accounts.realized_trading_gain_account: unrealized_gain,  # 2
+                    self.bank.chart_of_accounts.unrealized_trading_loss_account: unrealized_loss,  # 3
                 },
                 date=self.transaction_date,
                 description=self.description,
@@ -789,12 +813,17 @@ class SecuritySaleFVTPLTransaction(Transaction):
         else:  # selling FVTPL at a loss
             return CompoundEntry(
                 debit_accounts={
+                    # 1. record cash received and remove security
                     self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.realized_trading_loss_account: abs(unrealized_gain_loss),
+                    # 2. transfer unrealized loss to realized
+                    self.bank.chart_of_accounts.realized_trading_loss_account: unrealized_loss,
+                    # 3. reverse previously recorded unrealized gain
+                    self.bank.chart_of_accounts.unrealized_trading_gain_account: unrealized_gain,
                 },
                 credit_accounts={
-                    self.bank.chart_of_accounts.asset_fvtpl_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_trading_loss_account: abs(unrealized_gain_loss),
+                    self.bank.chart_of_accounts.asset_fvtpl_account: self.value,  # 1
+                    self.bank.chart_of_accounts.unrealized_trading_loss_account: unrealized_loss,  # 2
+                    self.bank.chart_of_accounts.realized_trading_gain_account: unrealized_gain,  # 3
                 },
                 date=self.transaction_date,
                 description=self.description,
@@ -802,16 +831,20 @@ class SecuritySaleFVTPLTransaction(Transaction):
 
     @property
     def reverse_journal_entry(self) -> JournalEntry:
-        unrealized_gain_loss = self.bank.trading_book.unrealized_pnl_tracker.get_unrealized_gain_loss(self.instrument)
-        if unrealized_gain_loss >= 0:  # selling FVTPL at a gain
+        unrealized_gain = self.tracker.get_unrealized_gain(self.instrument)
+        unrealized_loss = self.tracker.get_unrealized_loss(self.instrument)
+        net_gain = unrealized_gain - unrealized_loss
+        if net_gain >= 0:  # selling FVTPL at a gain
             return CompoundEntry(
                 debit_accounts={
                     self.bank.chart_of_accounts.asset_fvtpl_account: self.value,
-                    self.bank.chart_of_accounts.realized_trading_gain_account: unrealized_gain_loss,
+                    self.bank.chart_of_accounts.realized_trading_gain_account: unrealized_gain,
+                    self.bank.chart_of_accounts.unrealized_trading_loss_account: unrealized_loss,
                 },
                 credit_accounts={
                     self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_trading_gain_account: unrealized_gain_loss,
+                    self.bank.chart_of_accounts.unrealized_trading_gain_account: unrealized_gain,
+                    self.bank.chart_of_accounts.realized_trading_loss_account: unrealized_loss,
                 },
                 date=self.transaction_date,
                 description=self.description,
@@ -820,11 +853,13 @@ class SecuritySaleFVTPLTransaction(Transaction):
             return CompoundEntry(
                 debit_accounts={
                     self.bank.chart_of_accounts.asset_fvtpl_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_trading_loss_account: abs(unrealized_gain_loss),
+                    self.bank.chart_of_accounts.unrealized_trading_loss_account: unrealized_loss,
+                    self.bank.chart_of_accounts.realized_trading_gain_account: unrealized_gain,
                 },
                 credit_accounts={
                     self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.realized_trading_loss_account: abs(unrealized_gain_loss),
+                    self.bank.chart_of_accounts.realized_trading_loss_account: unrealized_loss,
+                    self.bank.chart_of_accounts.unrealized_trading_gain_account: unrealized_gain,
                 },
                 date=self.transaction_date,
                 description=self.description,
@@ -845,9 +880,11 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
         self.valuation_visitor = valuation_visitor
         self.old_value = instrument.value
         self.new_value = instrument.value  # will be set to new value after execution
-        tracker = bank.trading_book.unrealized_pnl_tracker
-        self.old_unrealized_trading_gain_loss = tracker.get_unrealized_gain_loss(instrument)
-        self.new_unrealized_trading_gain_loss = 0.0  # will be set to new value after execution
+        self.tracker = bank.trading_book.unrealized_pnl_tracker
+        self.old_unrealized_trading_gain = self.tracker.get_unrealized_gain(instrument)
+        self.new_unrealized_trading_gain = 0.0  # will be set to new value after execution
+        self.old_unrealized_trading_loss = self.tracker.get_unrealized_loss(instrument)
+        self.new_unrealized_trading_loss = 0.0  # will be set to new value after execution
         super().__init__(
             bank=bank,
             instrument=instrument,
@@ -860,19 +897,18 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
     def execute(self) -> None:
         self.instrument.accept(self.valuation_visitor)
         self.new_value = self.instrument.value
-        self.new_unrealized_trading_gain_loss += self.new_value - self.old_value
-        self.bank.trading_book.unrealized_pnl_tracker.set_unrealized_gain_loss(
-            instrument=self.instrument,
-            unrealized_gain_loss=self.new_unrealized_trading_gain_loss,
-        )
+        if (pnl_this_period := self.new_value - self.old_value) >= 0:
+            self.new_unrealized_trading_gain = self.old_unrealized_trading_gain + pnl_this_period
+            self.tracker.set_unrealized_gain(self.instrument, self.new_unrealized_trading_gain)
+        else:
+            self.new_unrealized_trading_loss = self.old_unrealized_trading_loss - pnl_this_period
+            self.tracker.set_unrealized_loss(self.instrument, self.new_unrealized_trading_loss)
         self.bank.ledger.post(self.journal_entry)
 
     def undo(self) -> None:
         self.instrument.value = self.old_value
-        self.bank.trading_book.unrealized_pnl_tracker.set_unrealized_gain_loss(
-            instrument=self.instrument,
-            unrealized_gain_loss=self.old_unrealized_trading_gain_loss,
-        )
+        self.tracker.set_unrealized_gain(self.instrument, self.old_unrealized_trading_gain)
+        self.tracker.set_unrealized_loss(self.instrument, self.old_unrealized_trading_loss)
         self.bank.ledger.post(self.reverse_journal_entry)
 
     @property
@@ -930,9 +966,11 @@ class SecurityMarkToMarketFVOCITransaction(Transaction):
         self.valuation_visitor = valuation_visitor
         self.old_value = instrument.value
         self.new_value = instrument.value  # will be set to new value after execution
-        tracker = bank.banking_book.unrealized_oci_tracker
-        self.old_unrealized_oci_gain_loss = tracker.get_unrealized_gain_loss(instrument)
-        self.new_unrealized_oci_gain_loss = 0.0  # will be set to new value after execution
+        self.tracker = bank.banking_book.unrealized_oci_tracker
+        self.old_unrealized_oci_gain = self.tracker.get_unrealized_gain(instrument)
+        self.new_unrealized_oci_gain = 0.0  # will be set to new value after execution
+        self.old_unrealized_oci_loss = self.tracker.get_unrealized_loss(instrument)
+        self.new_unrealized_oci_loss = 0.0  # will be set to new value after execution
         super().__init__(
             bank=bank,
             instrument=instrument,
@@ -945,19 +983,18 @@ class SecurityMarkToMarketFVOCITransaction(Transaction):
     def execute(self) -> None:
         self.instrument.accept(self.valuation_visitor)
         self.new_value = self.instrument.value
-        self.new_unrealized_oci_gain_loss += self.new_value - self.old_value
-        self.bank.banking_book.unrealized_oci_tracker.set_unrealized_gain_loss(
-            instrument=self.instrument,
-            unrealized_gain_loss=self.new_unrealized_oci_gain_loss,
-        )
+        if (pnl_this_period := self.new_value - self.old_value) >= 0:
+            self.new_unrealized_oci_gain = self.old_unrealized_oci_gain + pnl_this_period
+            self.tracker.set_unrealized_gain(self.instrument, self.new_unrealized_oci_gain)
+        else:
+            self.new_unrealized_oci_loss = self.old_unrealized_oci_loss - pnl_this_period
+            self.tracker.set_unrealized_loss(self.instrument, self.new_unrealized_oci_loss)
         self.bank.ledger.post(self.journal_entry)
 
     def undo(self) -> None:
         self.instrument.value = self.old_value
-        self.bank.banking_book.unrealized_oci_tracker.set_unrealized_gain_loss(
-            instrument=self.instrument,
-            unrealized_gain_loss=self.old_unrealized_oci_gain_loss,
-        )
+        self.tracker.set_unrealized_gain(self.instrument, self.old_unrealized_oci_gain)
+        self.tracker.set_unrealized_loss(self.instrument, self.old_unrealized_oci_loss)
         self.bank.ledger.post(self.reverse_journal_entry)
 
     @property

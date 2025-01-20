@@ -19,26 +19,41 @@ class UnrealizedGainLossTracker:
     """A class to track unrealized gain/loss for FVOCI or FVTPL instruments."""
 
     def __init__(self) -> None:
-        self.unrealized_pnl: dict[Instrument, float] = {}
+        self.unrealized_gain: dict[Instrument, float] = {}
+        self.unrealized_loss: dict[Instrument, float] = {}
         self.tracked: set[Instrument] = set()
 
-    def set_unrealized_gain_loss(self, instrument: Instrument, unrealized_gain_loss: float) -> None:
-        """Set the unrealized gain/loss for a given instrument."""
-        self.unrealized_pnl[instrument] = unrealized_gain_loss
+    def unrealized_pnl(self, instrument: Instrument) -> float:
+        """Get the unrealized profit and loss for a given instrument."""
+        return self.unrealized_gain.get(instrument, 0.0) - self.unrealized_loss.get(instrument, 0.0)
+
+    def set_unrealized_gain(self, instrument: Instrument, unrealized_gain: float) -> None:
+        """Set the unrealized gain for a given instrument."""
+        self.unrealized_gain[instrument] = unrealized_gain
         self.tracked.add(instrument)
 
-    def get_unrealized_gain_loss(self, instrument: Instrument) -> float:
-        """Get the unrealized gain/loss for a given instrument."""
-        return self.unrealized_pnl.get(instrument, 0.0)
+    def set_unrealized_loss(self, instrument: Instrument, unrealized_loss: float) -> None:
+        """Set the unrealized loss for a given instrument."""
+        self.unrealized_loss[instrument] = unrealized_loss
+        self.tracked.add(instrument)
+
+    def get_unrealized_gain(self, instrument: Instrument) -> float:
+        """Get the unrealized gain for a given instrument."""
+        return self.unrealized_gain.get(instrument, 0.0)
+
+    def get_unrealized_loss(self, instrument: Instrument) -> float:
+        """Get the unrealized loss for a given instrument."""
+        return self.unrealized_loss.get(instrument, 0.0)
 
     def add_instrument(self, instrument: Instrument) -> None:
         """Add an instrument to the tracker."""
         if instrument not in self.tracked:
-            self.set_unrealized_gain_loss(instrument, unrealized_gain_loss=0.0)
+            self.set_unrealized_gain(instrument, unrealized_gain=0.0)
+            self.set_unrealized_loss(instrument, unrealized_loss=0.0)
 
     def remove_instrument(self, instrument: Instrument) -> None:
         """Remove an instrument from the tracker."""
-        if instrument in self.unrealized_pnl:
+        if instrument in self.unrealized_gain or instrument in self.unrealized_loss:
             self.tracked.remove(instrument)
 
 
