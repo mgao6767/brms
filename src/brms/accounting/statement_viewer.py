@@ -34,11 +34,19 @@ class StatementVisitor(ABC):
 class HTMLStatementViewer(StatementVisitor):
     """Concrete visitor for generating HTML view of statements."""
 
-    def __init__(self, *, padding: int = 2, console: bool = True, jupyter: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        padding: int = 2,
+        console: bool = True,
+        jupyter: bool = False,
+        hide_zero_balance_accounts: bool = False,
+    ) -> None:
         super().__init__()
         self.padding = padding
         self.console = console
         self.jupyter = jupyter
+        self.hide_zero_balance_accounts = hide_zero_balance_accounts
 
     @staticmethod
     def format_amount(amount: float) -> Text:
@@ -49,6 +57,8 @@ class HTMLStatementViewer(StatementVisitor):
 
     def add_account_balance_rows(self, account: TAccount, table: Table, account_level: int = 1) -> None:
         """Recursively add account rows to the table."""
+        if self.hide_zero_balance_accounts and account.balance() == 0:
+            return
         name = Padding(account.name, pad=(0, self.padding * account_level))
         table.add_row(name, self.format_amount(account.balance()))
         for sub in account.sub_accounts:
