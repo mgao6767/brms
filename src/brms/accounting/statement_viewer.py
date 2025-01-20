@@ -1,5 +1,6 @@
 """Module for generating views of accounting statements."""
 
+import locale
 from abc import ABC, abstractmethod
 from io import StringIO
 from typing import TYPE_CHECKING
@@ -13,6 +14,11 @@ from brms.accounting.account import AccountType, TAccount
 
 if TYPE_CHECKING:
     from brms.accounting.report import BalanceSheet, IncomeStatement, TrialBalance
+
+try:
+    locale.setlocale(locale.LC_ALL, "")
+except locale.Error:
+    locale.setlocale(locale.LC_ALL, "C")
 
 
 class StatementVisitor(ABC):
@@ -52,8 +58,10 @@ class HTMLStatementViewer(StatementVisitor):
     def format_amount(amount: float) -> Text:
         """Return Text object with green for positive and red for negative values."""
         if amount >= 0:
-            return Text(f"{amount:.2f}", style="green")
-        return Text(f"({abs(amount):.2f})", style="red")
+            formatted_amount = locale.currency(amount, grouping=True)
+            return Text(formatted_amount, style="green")
+        formatted_amount = locale.currency(abs(amount), grouping=True)
+        return Text(f"({formatted_amount})", style="red")
 
     def add_account_balance_rows(self, account: TAccount, table: Table, account_level: int = 1) -> None:
         """Recursively add account rows to the table."""
