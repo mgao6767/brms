@@ -1,5 +1,6 @@
 """Provides a custom QTreeView widget and a tree model to display hierarchical data."""
 
+import uuid
 from typing import Any, Optional
 
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex, Qt
@@ -84,7 +85,7 @@ class TreeModel(QAbstractItemModel):
         match role:
             case Qt.ItemDataRole.DisplayRole:
                 item = index.internalPointer()
-                return item.data(index.column())
+                return str(item.data(index.column()))
             case _:
                 return None
 
@@ -118,14 +119,31 @@ class TreeModel(QAbstractItemModel):
             return self.createIndex(row, column, child_item)
         return QModelIndex()
 
-    def add_data(self, parent: QModelIndex, data: dict) -> None:
-        """Add data to the tree model."""
+    def add_data(self, parent: QModelIndex, data: list[dict]) -> None:
+        """Add data to the tree model.
+
+        `data` is a list of dictionaries, where each dictionary represents a row with multiple columns.
+        Each dictionary can have a special key `_children` to hold sub-items.
+        """
         parent_item = self.root_item if not parent.isValid() else parent.internalPointer()
-        for key, value in data.items():
-            child_item = TreeItem([key, value], parent_item)
+        for row_data in data:
+            # Get the values in the dictionary by order
+            child_item = TreeItem(list(row_data.values()), parent_item)
             parent_item.append_child(child_item)
-            if isinstance(value, dict):
-                self.add_data(self.createIndex(parent_item.child_count() - 1, 0, child_item), value)
+            if "_children" in row_data:
+                self.add_data(self.createIndex(parent_item.child_count() - 1, 0, child_item), row_data["_children"])
+
+    def remove_data(self, parent: QModelIndex, id: uuid.UUID, id_column: int = 0) -> None:
+        """Remove data from the tree model based on id."""
+        parent_item = self.root_item if not parent.isValid() else parent.internalPointer()
+        for i, child in enumerate(parent_item.child_items):
+            if child.data(id_column) == id:  # id is stored in the first column which should be hidden
+                self.beginRemoveRows(parent, i, i)
+                parent_item.child_items.pop(i)
+                self.endRemoveRows()
+                return
+            if child.child_count() > 0:
+                self.remove_data(self.createIndex(i, 0, child), id)
 
 
 class BRMSTreeWidget(QTreeView):
@@ -141,10 +159,13 @@ class BRMSTreeWidget(QTreeView):
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
 
-    def populate_data(self, data: dict[str, str | object], *, clear_existing: bool = True, expand: bool = True) -> None:
+    def populate_data(
+        self, data: dict[str, str | object] | list[dict], *, clear_existing: bool = True, expand: bool = True
+    ) -> None:
         """Add data to the tree."""
         if clear_existing:
             self.clear_data()
+        data = [data] if isinstance(data, dict) else data
         self.tree_model.add_data(QModelIndex(), data)
         if expand:
             self.expandAll()

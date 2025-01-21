@@ -15,8 +15,11 @@ from PySide6.QtWidgets import (
 )
 
 from brms import __about__, __github__, __version__
-from brms.resources import icons
-from brms.views.bank_book_widget import BRMSBankBookWidget
+from brms.resources import icons  # noqa: F401
+from brms.views.bank_book_widget import (
+    BRMSBankingBookWidget,
+    BRMSTradingBookWidget,
+)
 from brms.views.inspector_widget import BRMSInspectorWidget
 
 
@@ -31,6 +34,8 @@ class MainWindow(QMainWindow):
         self.read_settings()
         # UI components
         self.inspector_widget: BRMSInspectorWidget
+        self.banking_book_widget: BRMSBankingBookWidget
+        self.trading_book_widget: BRMSTradingBookWidget
         self.init_ui()
         self.connect_signals()
         # Actions
@@ -52,17 +57,17 @@ class MainWindow(QMainWindow):
         self.create_menubar()
         self.create_toolbar()
         self.create_statusbar()
-        self.center_window()
         self.create_central_widget()
         self.create_dock_widgets()
 
     def create_central_widget(self) -> None:
         """Create the central widget."""
         tab_widget = QTabWidget(self)
-        # TODO: Replace placeholder tabs with actual ones
+        self.banking_book_widget = BRMSBankingBookWidget()
+        self.trading_book_widget = BRMSTradingBookWidget()
         tab_widget.addTab(QWidget(), "Dashboard")
-        tab_widget.addTab(BRMSBankBookWidget(), "Banking Book")
-        tab_widget.addTab(BRMSBankBookWidget(), "Trading Book")
+        tab_widget.addTab(self.banking_book_widget, "Banking Book")
+        tab_widget.addTab(self.trading_book_widget, "Trading Book")
         self.setCentralWidget(tab_widget)
 
     def read_settings(self) -> None:
@@ -75,7 +80,7 @@ class MainWindow(QMainWindow):
     def set_window_properties(self) -> None:
         """Set the properties of the main window."""
         self.setWindowTitle(f"BRMS - Bank Risk Management Simulation v{__version__}")
-        self.setGeometry(100, 100, self.window_width, self.window_height)
+        self.resize(self.window_width, self.window_height)
         self.setMinimumSize(800, 600)
 
     def center_window(self) -> None:
