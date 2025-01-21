@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import IntEnum
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGroupBox, QHBoxLayout, QWidget, QSplitter
@@ -6,7 +6,11 @@ from PySide6.QtWidgets import QGroupBox, QHBoxLayout, QWidget, QSplitter
 from brms.views.tree_widget import BRMSTreeWidget
 
 
-class ColumnOrder(Enum): ...
+class ColumnOrder(IntEnum):
+    """Base class for column order enumerations.
+
+    IntEnum is used to enable sorting.
+    """
 
 
 class AssetColumns(ColumnOrder):

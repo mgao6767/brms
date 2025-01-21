@@ -4,7 +4,7 @@ import uuid
 from typing import Any, Optional
 
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex, Qt
-from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTreeView, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTreeView, QWidget
 
 __all__ = [
     "BRMSTreeWidget",
@@ -124,14 +124,26 @@ class TreeModel(QAbstractItemModel):
 
         `data` is a list of dictionaries, where each dictionary represents a row with multiple columns.
         Each dictionary can have a special key `_children` to hold sub-items.
+
+        The key of each dict represents the column order.
+        For example, `data` may be [{0: 'Property1', 1: 'Value1'}, {0: 'Property2', 1: 'Value2'}]
+        Then,
+        - Row 1: column 1 is 'Property1', column 2 is 'Value1'
+        - Row 2: column 1 is 'Property2', column 2 is 'Value2'
+
+        With children, `data` may be
+        [{0: 'Property1', 1: 'Value1'}, {0: 'PropertyGroup', 1: '', '_children': [{0: 'Sub-property', 1: 'Sub-value'}]}]
         """
         parent_item = self.root_item if not parent.isValid() else parent.internalPointer()
         for row_data in data:
+            # Pop children, if any, since its key is a str and should not be sorted
+            children = row_data.pop("_children", None)
             # Get the values in the dictionary by order
-            child_item = TreeItem(list(row_data.values()), parent_item)
+            sorted_values = [value for _, value in sorted(row_data.items())]
+            child_item = TreeItem(sorted_values, parent_item)
             parent_item.append_child(child_item)
-            if "_children" in row_data:
-                self.add_data(self.createIndex(parent_item.child_count() - 1, 0, child_item), row_data["_children"])
+            if children is not None:
+                self.add_data(self.createIndex(parent_item.child_count() - 1, 0, child_item), children)
 
     def remove_data(self, parent: QModelIndex, id: uuid.UUID, id_column: int = 0) -> None:
         """Remove data from the tree model based on id."""

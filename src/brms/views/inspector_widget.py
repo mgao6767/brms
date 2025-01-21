@@ -13,10 +13,10 @@ if __name__ == "__main__":
     import QuantLib as ql
     from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget
 
+    from brms.controllers.inspector_controller import InspectorController
     from brms.instruments.base import BookType, CreditRating, Issuer, IssuerType
     from brms.instruments.cash import Cash
     from brms.instruments.fixed_rate_bond import FixedRateBond
-    from brms.instruments.visitors.inspection import InspectionVisitor
 
     class MainWindow(QWidget):
         """MainWindow class for testing."""
@@ -27,6 +27,7 @@ if __name__ == "__main__":
             self.setWindowTitle("BRMS Inspector Widget Example")
             self.resize(400, 600)
             self.tree = BRMSInspectorWidget(["Property", "Value"])
+            self.ctrl = InspectorController(self.tree)
             layout = QVBoxLayout(self)
             layout.addWidget(self.tree)
             self.setLayout(layout)
@@ -42,10 +43,8 @@ if __name__ == "__main__":
             layout.addWidget(self.btn_bond2)
 
         def inspect_cash(self) -> None:
-            cash = Cash("Cash")
-            inspector = InspectionVisitor()
-            cash.accept(inspector)
-            self.tree.populate_data(inspector.get_result())
+            cash = Cash()
+            self.ctrl.show_instrument_details(cash)
 
         def inspect_fixed_rate_bond(self) -> None:
             face_value = 1000.0
@@ -65,9 +64,7 @@ if __name__ == "__main__":
                     credit_rating=CreditRating.AA,
                 ),
             )
-            inspector = InspectionVisitor()
-            bond.accept(inspector)
-            self.tree.populate_data(inspector.get_result())
+            self.ctrl.show_instrument_details(bond)
 
         def inspect_another_fixed_rate_bond(self) -> None:
             face_value = 1_000_000.0
@@ -87,9 +84,7 @@ if __name__ == "__main__":
                     credit_rating=CreditRating.AA_MINUS,
                 ),
             )
-            inspector = InspectionVisitor()
-            bond.accept(inspector)
-            self.tree.populate_data(inspector.get_result())
+            self.ctrl.show_instrument_details(bond)
 
     app = QApplication(sys.argv)
     window = MainWindow()
