@@ -1,5 +1,6 @@
 """Contains the BankBook class and its derivatives, BankingBook and TradingBook."""
 
+import uuid
 from enum import Enum, auto
 
 from brms.instruments.base import CompositeInstrument, Instrument
@@ -98,6 +99,16 @@ class BankBook:
                     self.short_exposure.remove(instrument)
                 else:
                     raise ValueError("Instrument to remove doesn't exist in short exposure.")
+
+    def get_instrument_by_id(self, instrument_id: uuid.UUID) -> Instrument | None:
+        """Retrieve an instrument by its ID from the bank book."""
+        for instrument in self.long_exposure:
+            if instrument.id == instrument_id:
+                return instrument
+        for instrument in self.short_exposure:
+            if instrument.id == instrument_id:
+                return instrument
+        return None
 
     def accept(self, visitor: Visitor) -> None:
         """Accept a visitor to process the instruments in the book."""
