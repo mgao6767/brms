@@ -1,5 +1,6 @@
 """Define the base classes and enumerations for financial instruments."""
 
+import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from enum import Enum, Flag, auto
@@ -21,6 +22,7 @@ class Instrument(ABC):
         parent: Optional["Instrument"] = None,
     ) -> None:
         """Initialize a financial instrument."""
+        self.id = uuid.uuid4()
         self.name = name
         self._parent = parent
         self._value: float = 0.0
