@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from brms.instruments.credit_card import CreditCard
     from brms.instruments.deposit import Deposit
     from brms.instruments.fixed_rate_bond import FixedRateBond
+    from brms.instruments.mock import MockInstrument
     from brms.instruments.personal_loan import PersonalLoan
 
 
@@ -39,6 +40,14 @@ class InspectionVisitor(Visitor):
                 "Credit Rating": instrument.issuer.credit_rating.to_str(),
             },
         }
+
+    def visit_mock_instrument(self, instrument: "MockInstrument") -> None:
+        """Inspect mock instrument."""
+        self.result.clear()
+        details = self._get_instrument_details(instrument)
+        details["Credit Rating"] = "N/A"
+        details["Issuer"] = "N/A"
+        self.result.update(details)
 
     def visit_cash(self, instrument: "Cash") -> None:
         """Inspect cash."""
