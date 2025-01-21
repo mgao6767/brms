@@ -1,7 +1,7 @@
 from enum import IntEnum
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QGroupBox, QHBoxLayout, QWidget, QSplitter
+from PySide6.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QPushButton, QSplitter, QVBoxLayout, QWidget
 
 from brms.views.tree_widget import BRMSTreeWidget
 
@@ -45,10 +45,12 @@ class BRMSBankBookWidget(QWidget):
         # Control panel
         ctrl_panel = QSplitter()
         ctrl_panel.setOrientation(Qt.Orientation.Vertical)
-        analysis_group = QGroupBox("Analysis")
-        management_group = QGroupBox("Management")
-        ctrl_panel.addWidget(analysis_group)
-        ctrl_panel.addWidget(management_group)
+        self.analysis_group = QGroupBox("Analysis")
+        self.management_group = QGroupBox("Management")
+        ctrl_panel.addWidget(self.analysis_group)
+        ctrl_panel.addWidget(self.management_group)
+        ctrl_panel.setStretchFactor(0, 0)  # Top widget (analysis group) does not stretch
+        ctrl_panel.setStretchFactor(1, 1)  # Bottom widget (mgmt group) expands
 
         # Create a splitter to display the tree views side by side
         splitter = QSplitter()
@@ -69,6 +71,52 @@ class BRMSBankingBookWidget(BRMSBankBookWidget):
             liability_columns=BANKING_BOOK_LIABILITY_COLUMNS,
             parent=parent,
         )
+        # UI components
+        self.btn_loan_portfolio_overview = QPushButton("Loan Portfolio Overview")
+        self.btn_loan_risk_assessment = QPushButton("Loan Risk Assessment")
+        self.btn_htm_portfolio_analysis = QPushButton("HTM Portfolio Analysis")
+        self.btn_market_value_assessment = QPushButton("Market Value Assessment")
+        self.btn_liquidity_position = QPushButton("Liquidity Position")
+        self.btn_banking_book_profitability = QPushButton("Banking Book Profitability")
+        self.btn_asset_liability_matching = QPushButton("Asset-Liability Matching")
+        self.btn_process_loan_applications = QPushButton("Process Loan Applications")
+        self.btn_modify_loan_terms = QPushButton("Modify Loan Terms")
+        self.btn_trade_treasury_securities = QPushButton("Trade Treasury Securities")
+        self.btn_trade_corporate_securities = QPushButton("Trade Corporate Securities")
+        self.btn_adjust_deposit_interest_rate = QPushButton("Adjust Deposit Interest Rate")
+        self.btn_manage_debt_instruments = QPushButton("Manage Debt Instruments")
+        # Actions
+        self.init_ui()
+
+    def init_ui(self) -> None:
+        """Initialize the user interface."""
+        # Control panel: analysis group box
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(QLabel("Loans & Advances"))
+        layout.addWidget(self.btn_loan_portfolio_overview)
+        layout.addWidget(self.btn_loan_risk_assessment)
+        layout.addWidget(QLabel("Investment Securities (HTM & FVOCI)"))
+        layout.addWidget(self.btn_htm_portfolio_analysis)
+        layout.addWidget(self.btn_market_value_assessment)
+        layout.addWidget(QLabel("Liquidity & Performance"))
+        layout.addWidget(self.btn_liquidity_position)
+        layout.addWidget(self.btn_banking_book_profitability)
+        layout.addWidget(self.btn_asset_liability_matching)
+        self.analysis_group.setLayout(layout)
+        # Control panel: management group box
+        layout_mgmt = QVBoxLayout()
+        layout_mgmt.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout_mgmt.addWidget(QLabel("Loans & Advances"))
+        layout_mgmt.addWidget(self.btn_process_loan_applications)
+        layout_mgmt.addWidget(self.btn_modify_loan_terms)
+        layout_mgmt.addWidget(QLabel("Investment Securities (HTM & FVOCI)"))
+        layout_mgmt.addWidget(self.btn_trade_treasury_securities)
+        layout_mgmt.addWidget(self.btn_trade_corporate_securities)
+        layout_mgmt.addWidget(QLabel("Deposits & Other Liabilities"))
+        layout_mgmt.addWidget(self.btn_adjust_deposit_interest_rate)
+        layout_mgmt.addWidget(self.btn_manage_debt_instruments)
+        self.management_group.setLayout(layout_mgmt)
 
 
 class BRMSTradingBookWidget(BRMSBankBookWidget):

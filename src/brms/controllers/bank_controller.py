@@ -1,10 +1,10 @@
-from brms.controllers.bank_book_controller import BankBookController
+from brms.controllers.bank_book_controller import BankingBookController, TradingBookController
 from brms.controllers.base import BRMSController
 from brms.controllers.inspector_controller import InspectorController
 from brms.instruments.base import Instrument
 from brms.models.bank import Bank
 from brms.models.bank_book import Position
-from brms.views.bank_book_widget import BRMSBankBookWidget
+from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
 
 
 class BankController(BRMSController):
@@ -13,8 +13,8 @@ class BankController(BRMSController):
     def __init__(
         self,
         bank: Bank,
-        banking_book_view: BRMSBankBookWidget,
-        trading_book_view: BRMSBankBookWidget,
+        banking_book_view: BRMSBankingBookWidget,
+        trading_book_view: BRMSTradingBookWidget,
         inspector_ctrl: InspectorController,
     ) -> None:
         super().__init__()
@@ -24,8 +24,10 @@ class BankController(BRMSController):
         # Controllers passed in
         self.inspector_ctrl = inspector_ctrl
         # Sub controllers
-        self.banking_book_ctrl = BankBookController(self.bank.banking_book, self.banking_book_view, self.inspector_ctrl)
-        self.trading_book_ctrl = BankBookController(self.bank.trading_book, self.trading_book_view, self.inspector_ctrl)
+        # fmt: off
+        self.banking_book_ctrl = BankingBookController(self.bank.banking_book, self.banking_book_view, self.inspector_ctrl)
+        self.trading_book_ctrl = TradingBookController(self.bank.trading_book, self.trading_book_view, self.inspector_ctrl)
+        # fmt: on
         # Connect signals
         self.connect_signals()
 
