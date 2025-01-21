@@ -51,6 +51,8 @@ class BankBookController:
         # Pointers to TreeModel
         self.long_model: TreeModel = self.bank_book_widget.assets_tree.tree_model
         self.short_model: TreeModel = self.bank_book_widget.liabilities_tree.tree_model
+        # Hide ID column since that instrument id is only used internally
+        self.set_id_column_visibility(visible=False)
         self.connect_signals()
 
     @staticmethod
@@ -91,6 +93,11 @@ class BankBookController:
                 self.long_model.remove_data(QMODELINDEX, instrument.id, id_column=AssetColumns.ID.value)
             case Position.SHORT:
                 self.short_model.remove_data(QMODELINDEX, instrument.id, id_column=LiabilityColumns.ID.value)
+
+    def set_id_column_visibility(self, *, visible: bool) -> None:
+        """Set the visibility of the ID column in the tree view."""
+        self.bank_book_widget.assets_tree.setColumnHidden(AssetColumns.ID.value, not visible)
+        self.bank_book_widget.liabilities_tree.setColumnHidden(LiabilityColumns.ID.value, not visible)
 
     def connect_signals(self) -> None:
         pass
