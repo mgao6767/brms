@@ -142,13 +142,13 @@ class Transaction(ABC):
     def reverse_journal_entry(self) -> JournalEntry:
         """Return the reverse journal entry to undo the transaction."""
 
-    @abstractmethod
     def controller_actions(self) -> GUIControllerInstruction:
         """Return a mapping from instruments to actions, including book type and position.
 
         This instruction set is used by GUI's controllers to update views.
         In other uses it can be safely ignore.
         """
+        raise NotImplementedError
 
 
 class DepositTransaction(Transaction):
