@@ -1,4 +1,3 @@
-from abc import ABC
 from typing import TYPE_CHECKING
 
 from brms.controllers.base import BRMSController
@@ -19,11 +18,11 @@ if TYPE_CHECKING:
     from PySide6.QtCore import QItemSelection
 
 
-class BankBookController(BRMSController, ABC):
+class BankBookController(BRMSController):
     """Controller for managing a bank's banking or trading book."""
 
     def __init__(self, bank_book: BankBook, view: BRMSBankBookWidget, inspector_ctrl: InspectorController) -> None:
-        self.bank_book = bank_book
+        self.bank_book = bank_book  # must be read-only
         self.bank_book_widget = view
         # Controllers passed in
         self.inspector_ctrl = inspector_ctrl
@@ -31,7 +30,7 @@ class BankBookController(BRMSController, ABC):
         self.long_model: TreeModel = self.bank_book_widget.assets_tree.tree_model
         self.short_model: TreeModel = self.bank_book_widget.liabilities_tree.tree_model
         # Hide ID column since that instrument id is only used internally
-        self.set_id_column_visibility(visible=False)
+        self.set_id_column_visibility(visible=True)
         self.connect_signals()
 
     @staticmethod
@@ -54,8 +53,7 @@ class BankBookController(BRMSController, ABC):
         return [data]
 
     def add_instrument(self, instrument: Instrument, position: Position) -> None:
-        """Add an instrument to the bank book."""
-        self.bank_book.add_instrument(instrument, position)
+        """Add an instrument to the tree model."""
         match position:
             case Position.LONG:
                 self.long_model.add_data(QMODELINDEX, self.instrument_to_data(instrument, position))
@@ -63,8 +61,7 @@ class BankBookController(BRMSController, ABC):
                 self.short_model.add_data(QMODELINDEX, self.instrument_to_data(instrument, position))
 
     def remove_instrument(self, instrument: Instrument, position: Position) -> None:
-        """Remove an instrument from the bank book."""
-        self.bank_book.remove_instrument(instrument, position)
+        """Remove an instrument from the tree model."""
         match position:
             case Position.LONG:
                 self.long_model.remove_data(QMODELINDEX, instrument.id, id_column=AssetColumns.ID.value)
@@ -93,7 +90,7 @@ class BankBookController(BRMSController, ABC):
             selected_index = indexes[0]
             item = selected_index.internalPointer()
             instrument_id = item.data(id_column)
-            if instrument := self.bank_book.get_instrument_by_id(instrument_id):
+            if instrument := self.bank_book.get_instrument_by_id(instrument_id):  # read-only, does not modify bank book
                 self.inspector_ctrl.show_instrument_details(instrument)
 
     def connect_signals(self) -> None:

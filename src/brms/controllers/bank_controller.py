@@ -1,14 +1,21 @@
+from PySide6.QtCore import Signal
+
 from brms.controllers.bank_book_controller import BankingBookController, TradingBookController
 from brms.controllers.base import BRMSController
 from brms.controllers.inspector_controller import InspectorController
-from brms.instruments.base import Instrument
 from brms.models.bank import Bank
-from brms.models.bank_book import Position
+from brms.models.transaction import Transaction
 from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
 
 
 class BankController(BRMSController):
-    """Controller for managing bank operations, including banking and trading books."""
+    """Controller for managing bank operations, including banking and trading books.
+
+    The bank controller should only modify the state of the bank model through `Transaction`.
+    After transactions have been processed, the controller sync the state of the bank model and those for various views.
+    """
+
+    transaction_processed = Signal(Transaction, name="Transaction Processed")
 
     def __init__(
         self,
@@ -31,22 +38,20 @@ class BankController(BRMSController):
         # Connect signals
         self.connect_signals()
 
-    def add_instrument_to_banking_book(self, instrument: Instrument, position: Position) -> None:
-        """Add an instrument to banking book based on position."""
-        self.banking_book_ctrl.add_instrument(instrument, position)
-
-    def add_instrument_to_trading_book(self, instrument: Instrument, position: Position) -> None:
-        """Add an instrument to trading book based on position."""
-        self.trading_book_ctrl.add_instrument(instrument, position)
-
-    def remove_instrument_from_banking_book(self, instrument: Instrument, position: Position) -> None:
-        """Remove an instrument from banking book based on position."""
-        self.banking_book_ctrl.remove_instrument(instrument, position)
-
-    def remove_instrument_from_trading_book(self, instrument: Instrument, position: Position) -> None:
-        """Remove an instrument from trading book based on position."""
-        self.trading_book_ctrl.remove_instrument(instrument, position)
-
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
-        pass
+        self.transaction_processed.connect(self.update_views)
+        self.banking_book_view.btn_test.clicked.connect(self._test)  # test
+
+    def process_transaction(self, transaction: Transaction) -> None:
+        """Process a transaction and emit signal."""
+        # Let the bank (model) process the transaction
+        self.bank.process_transaction(transaction)
+        # Then emit the signal so that this controller can update related views
+        self.transaction_processed.emit(transaction)
+
+    def update_views(self, tx: Transaction) -> None:
+        """Update the views based on the given transaction."""
+
+    def _test(self) -> None:
+        print("Test button pressed.")

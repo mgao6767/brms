@@ -1,3 +1,4 @@
+import uuid
 from enum import IntEnum
 
 from PySide6.QtCore import QLocale, Qt
@@ -67,6 +68,14 @@ class CurrencyDelegate(QStyledItemDelegate):
         super().paint(painter, option, index)
 
 
+class InstrumentIDDelegate(QStyledItemDelegate):
+    def displayText(self, value, locale):
+        """Format UUID as str."""
+        if isinstance(value, uuid.UUID):
+            return str(value)
+        return super().displayText(value, locale)  # Default behavior
+
+
 class BRMSBankBookWidget(QWidget):
     def __init__(
         self,
@@ -77,9 +86,15 @@ class BRMSBankBookWidget(QWidget):
         super().__init__(parent)
         self.assets_tree = BRMSTreeWidget(asset_columns)
         self.liabilities_tree = BRMSTreeWidget(liability_columns)
+        # fmt: off
         # Set format delegate for the "value" column
-        self.assets_tree.setItemDelegateForColumn(AssetColumns.Value.value, CurrencyDelegate())
-        self.liabilities_tree.setItemDelegateForColumn(LiabilityColumns.Value.value, CurrencyDelegate())
+        # Note: parent of the delegate must be set or otherwise the app will crash!
+        self.assets_tree.setItemDelegateForColumn(AssetColumns.Value.value, CurrencyDelegate(self.assets_tree))
+        self.liabilities_tree.setItemDelegateForColumn(LiabilityColumns.Value.value, CurrencyDelegate(self.liabilities_tree))
+        # Set format delegate for the "id" column
+        self.assets_tree.setItemDelegateForColumn(AssetColumns.ID.value, InstrumentIDDelegate(self.assets_tree))
+        self.liabilities_tree.setItemDelegateForColumn(LiabilityColumns.ID.value, InstrumentIDDelegate(self.liabilities_tree))
+        # fmt: on
 
         # Control panel
         ctrl_panel = QSplitter()
@@ -124,6 +139,8 @@ class BRMSBankingBookWidget(BRMSBankBookWidget):
         self.btn_trade_corporate_securities = QPushButton("Trade Corporate Securities")
         self.btn_adjust_deposit_interest_rate = QPushButton("Adjust Deposit Interest Rate")
         self.btn_manage_debt_instruments = QPushButton("Manage Debt Instruments")
+        # A test button
+        self.btn_test = QPushButton("Test")
         # Actions
         self.init_ui()
 
@@ -132,6 +149,7 @@ class BRMSBankingBookWidget(BRMSBankBookWidget):
         # Control panel: analysis group box
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.btn_test)
         layout.addWidget(QLabel("Loans & Advances"))
         layout.addWidget(self.btn_loan_portfolio_overview)
         layout.addWidget(self.btn_loan_risk_assessment)

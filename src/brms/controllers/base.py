@@ -1,11 +1,7 @@
 """Contains the base controller for the BRMS application."""
 
-from abc import ABC, abstractmethod
+from PySide6.QtCore import QObject
 
 
-class BRMSController(ABC):
+class BRMSController(QObject):
     """The base controller for the BRMS application."""
-
-    @abstractmethod
-    def connect_signals(self) -> None:
-        """Connect signals and slots."""

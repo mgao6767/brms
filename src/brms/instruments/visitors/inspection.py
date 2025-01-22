@@ -31,6 +31,7 @@ class InspectionVisitor(Visitor):
     def _get_instrument_details(instrument: "Instrument") -> dict:
         """Return a dictionary of the instrument's attributes."""
         return {
+            "ID": str(instrument.id),
             "Name": instrument.name,
             "Book Type": None if instrument.book_type is None else instrument.book_type.value,
             "Credit Rating": instrument.credit_rating.to_str(),
