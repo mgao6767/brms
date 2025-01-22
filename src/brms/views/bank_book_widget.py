@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from brms.views.tree_widget import BRMSTreeWidget
+from brms.views.tree_widget import BRMSTreeWidget, OldValueRole
 
 
 class ColumnOrder(IntEnum):
@@ -57,8 +57,14 @@ class CurrencyDelegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         """Customize text color for a specific column."""
-        option.palette.setColor(QPalette.Text, QColor("green") if index.data() >= 0 else QColor("red"))
-        super().paint(painter, option, index)  # Call base paint
+        current_value = index.data(Qt.DisplayRole)
+        old_value = index.data(OldValueRole)  # Get previous value from model
+        if isinstance(current_value, int | float) and isinstance(old_value, int | float):
+            if current_value > old_value:
+                option.palette.setColor(QPalette.Text, QColor("green"))  # Increased value
+            elif current_value < old_value:
+                option.palette.setColor(QPalette.Text, QColor("red"))  # Decreased value
+        super().paint(painter, option, index)
 
 
 class BRMSBankBookWidget(QWidget):

@@ -15,6 +15,9 @@ ModelIndex = QModelIndex | QPersistentModelIndex
 
 QMODELINDEX = QModelIndex()
 
+# Custom role for tracking the previous value, useful for updating item color (e.g., green/red) based on changes
+OldValueRole = Qt.ItemDataRole.UserRole + 1
+
 
 class TreeItem:
     """TreeItem represents a single item in a tree structure."""
@@ -65,6 +68,7 @@ class TreeModel(QAbstractItemModel):
         """Initialize a TreeModel."""
         super().__init__(parent)
         self.root_item = TreeItem(headers)
+        self.old_values: dict[tuple[int, int], float] = {}  # Store old values per index
 
     def columnCount(self, parent: ModelIndex = QMODELINDEX) -> int:  # noqa: N802
         """Return the number of columns."""
@@ -82,10 +86,13 @@ class TreeModel(QAbstractItemModel):
         """Return the data stored under the given role for the item referred to by the index."""
         if not index.isValid():
             return None
+        item = index.internalPointer()
+        value = item.data(index.column())
         match role:
             case Qt.ItemDataRole.DisplayRole:
-                item = index.internalPointer()
-                return item.data(index.column())
+                return value
+            case role if role == OldValueRole:  # to get the previous value of the item
+                return self.old_values.get((index.row(), index.column()), value)
             case _:
                 return None
 
