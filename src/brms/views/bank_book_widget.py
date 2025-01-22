@@ -61,7 +61,7 @@ class CurrencyDelegate(QStyledItemDelegate):
         current_value = index.data(Qt.DisplayRole)
         old_value = index.data(OldValueRole)  # Get previous value from model
         if isinstance(current_value, int | float) and isinstance(old_value, int | float):
-            if current_value > old_value:
+            if current_value >= old_value:
                 option.palette.setColor(QPalette.Text, QColor("green"))  # Increased value
             elif current_value < old_value:
                 option.palette.setColor(QPalette.Text, QColor("red"))  # Decreased value
@@ -140,7 +140,8 @@ class BRMSBankingBookWidget(BRMSBankBookWidget):
         self.btn_adjust_deposit_interest_rate = QPushButton("Adjust Deposit Interest Rate")
         self.btn_manage_debt_instruments = QPushButton("Manage Debt Instruments")
         # A test button
-        self.btn_test = QPushButton("Test")
+        self.btn_test1 = QPushButton("Test 1")
+        self.btn_test2 = QPushButton("Test 2")
         # Actions
         self.init_ui()
 
@@ -149,7 +150,8 @@ class BRMSBankingBookWidget(BRMSBankBookWidget):
         # Control panel: analysis group box
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(self.btn_test)
+        layout.addWidget(self.btn_test1)
+        layout.addWidget(self.btn_test2)
         layout.addWidget(QLabel("Loans & Advances"))
         layout.addWidget(self.btn_loan_portfolio_overview)
         layout.addWidget(self.btn_loan_risk_assessment)
