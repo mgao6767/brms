@@ -9,7 +9,16 @@ from brms.instruments.cash import Cash
 from brms.instruments.deposit import Deposit
 from brms.instruments.visitors.valuation import ValuationVisitor
 from brms.models.bank import Bank
-from brms.models.bank_book import Position
+from brms.models.bank_book import BookType, Position
+
+
+class Action(Enum):
+    ADD = "Add instrument to bank book"
+    REMOVE = "Remove instrument from bank book"
+    UPDATE = "Update instrument in the book"
+
+
+GUIControllerInstruction = dict[Instrument, tuple[Action, BookType, Position]]
 
 
 class TransactionType(Enum):
@@ -133,6 +142,14 @@ class Transaction(ABC):
     def reverse_journal_entry(self) -> JournalEntry:
         """Return the reverse journal entry to undo the transaction."""
 
+    @abstractmethod
+    def controller_actions(self) -> GUIControllerInstruction:
+        """Return a mapping from instruments to actions, including book type and position.
+
+        This instruction set is used by GUI's controllers to update views.
+        In other uses it can be safely ignore.
+        """
+
 
 class DepositTransaction(Transaction):
     """Class representing a deposit transaction."""
@@ -153,6 +170,12 @@ class DepositTransaction(Transaction):
             transaction_date=date,
             description=description,
         )
+
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_add: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
+            self.instrument: (Action.ADD, BookType.BANKING_BOOK, Position.SHORT),
+        }
 
     def execute(self) -> None:
         self.bank.banking_book.add_instrument(self.cash_to_add, Position.LONG)
@@ -204,6 +227,12 @@ class DepositWithdrawTransaction(Transaction):
             transaction_date=date,
             description=description,
         )
+
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_pay: (Action.REMOVE, BookType.BANKING_BOOK, Position.LONG),
+            self.instrument: (Action.REMOVE, BookType.BANKING_BOOK, Position.SHORT),
+        }
 
     def execute(self) -> None:
         self.bank.banking_book.remove_instrument(self.instrument, Position.SHORT)
@@ -448,6 +477,12 @@ class SecurityPurchaseHTMTransaction(Transaction):
             transaction_date=date,
             description=description,
         )
+
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_pay: (Action.REMOVE, BookType.BANKING_BOOK, Position.LONG),
+            self.instrument: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
+        }
 
     def execute(self) -> None:
         self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
