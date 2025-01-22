@@ -96,6 +96,20 @@ class TreeModel(QAbstractItemModel):
             case _:
                 return None
 
+    def find_data(self, search_value: Any, column: int = 0) -> QModelIndex | None:
+        """Find data in the tree model by searching for the given value in the specified column."""
+
+        def search_item(item: TreeItem) -> QModelIndex | None:
+            if item.data(column) == search_value:
+                return self.createIndex(item.row(), column, item)
+            for child in item.child_items:
+                result = search_item(child)
+                if result:
+                    return result
+            return None
+
+        return search_item(self.root_item)
+
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> Any:  # noqa: ANN401, N802
         """Return the header data for the given section, orientation, and role."""
         if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
@@ -165,6 +179,23 @@ class TreeModel(QAbstractItemModel):
                 return
             if child.child_count() > 0:
                 self.remove_data(self.createIndex(i, 0, child), id)
+
+    def update_data(self, index: QModelIndex, new_data: dict[int, TreeItemDataType]) -> None:
+        """Update data in the tree model at the given index with new data."""
+        if not index.isValid():
+            return
+        item: TreeItem
+        item = index.internalPointer()
+        for column, value in new_data.items():
+            if column < 0 or column >= item.column_count():
+                continue
+            old_value = item.data(column)
+            item.item_data[column] = value
+            self.old_values[(index.row(), column)] = old_value
+            # Emit dataChanged signal for the updated index and column
+            self.dataChanged.emit(
+                index.siblingAtColumn(column), index.siblingAtColumn(column), [Qt.ItemDataRole.DisplayRole]
+            )
 
 
 class BRMSTreeWidget(QTreeView):
