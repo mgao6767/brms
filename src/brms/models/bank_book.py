@@ -142,7 +142,7 @@ class BankingBook(BankBook):
             for existing_instrument in self.long_exposure:
                 if isinstance(existing_instrument, Cash):
                     existing_instrument.value -= instrument.value
-                return
+                    return
         super().remove_instrument(instrument, position)
 
     @property
