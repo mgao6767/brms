@@ -1,7 +1,17 @@
 from enum import IntEnum
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QPushButton, QSplitter, QVBoxLayout, QWidget
+from PySide6.QtCore import QLocale, Qt
+from PySide6.QtGui import QColor, QPalette
+from PySide6.QtWidgets import (
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSplitter,
+    QStyledItemDelegate,
+    QVBoxLayout,
+    QWidget,
+)
 
 from brms.views.tree_widget import BRMSTreeWidget
 
@@ -31,6 +41,26 @@ TRADING_BOOK_ASSET_COLUMNS = [col.name for col in AssetColumns]
 TRADING_BOOK_LIABILITY_COLUMNS = [col.name for col in LiabilityColumns]
 
 
+LOCALE = QLocale.system()
+
+
+class CurrencyDelegate(QStyledItemDelegate):
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        option.displayAlignment = Qt.AlignRight | Qt.AlignVCenter
+
+    def displayText(self, value, locale):
+        """Format numbers as currency."""
+        if isinstance(value, int | float):
+            return LOCALE.toCurrencyString(value)
+        return str(value)
+
+    def paint(self, painter, option, index):
+        """Customize text color for a specific column."""
+        option.palette.setColor(QPalette.Text, QColor("green") if index.data() >= 0 else QColor("red"))
+        super().paint(painter, option, index)  # Call base paint
+
+
 class BRMSBankBookWidget(QWidget):
     def __init__(
         self,
@@ -41,6 +71,9 @@ class BRMSBankBookWidget(QWidget):
         super().__init__(parent)
         self.assets_tree = BRMSTreeWidget(asset_columns)
         self.liabilities_tree = BRMSTreeWidget(liability_columns)
+        # Set format delegate for the "value" column
+        self.assets_tree.setItemDelegateForColumn(AssetColumns.Value.value, CurrencyDelegate())
+        self.liabilities_tree.setItemDelegateForColumn(LiabilityColumns.Value.value, CurrencyDelegate())
 
         # Control panel
         ctrl_panel = QSplitter()

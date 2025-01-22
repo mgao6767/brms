@@ -10,7 +10,7 @@ __all__ = [
     "BRMSTreeWidget",
 ]
 
-TreeItemDataType = str
+TreeItemDataType = str | float
 ModelIndex = QModelIndex | QPersistentModelIndex
 
 QMODELINDEX = QModelIndex()
@@ -78,14 +78,14 @@ class TreeModel(QAbstractItemModel):
             return parent.internalPointer().child_count()
         return self.root_item.child_count()
 
-    def data(self, index: ModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> str | None:
+    def data(self, index: ModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any | None:
         """Return the data stored under the given role for the item referred to by the index."""
         if not index.isValid():
             return None
         match role:
             case Qt.ItemDataRole.DisplayRole:
                 item = index.internalPointer()
-                return str(item.data(index.column()))
+                return item.data(index.column())
             case _:
                 return None
 
