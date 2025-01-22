@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from brms.controllers.base import BRMSController
 from brms.controllers.inspector_controller import InspectorController
 from brms.instruments.base import Instrument
+from brms.instruments.cash import Cash
 from brms.models.bank_book import BankBook, BankingBook, Position, TradingBook
 from brms.views.bank_book_widget import (
     AssetColumns,
@@ -113,6 +114,53 @@ class BankingBookController(BankBookController):
         inspector_ctrl: InspectorController,
     ) -> None:
         super().__init__(bank_book, view, inspector_ctrl)
+
+    def _add_cash(self, cash: Cash) -> None:
+        # Check if there is already cash instrument in the tree's model
+        idx = self.long_model.find_data("Cash", column=AssetColumns.Asset)  # TODO: needs improvement
+        # Not found, add it to the tree's model
+        if idx is None:
+            self.long_model.add_data(QMODELINDEX, self.instrument_to_data(cash, Position.LONG))
+            return
+        if not idx.isValid():
+            return
+        # Found existing cash record in the model
+        item = idx.internalPointer()
+        cash_id = item.data(AssetColumns.ID.value)
+        # Obtain a reference to the cash instrument
+        # Note that the cash instrument should have been updated by the transaction! It is a state of the bank.
+        # This controller MUST be read-only on all states of the bank model.
+        cash_instrument = self.bank_book.get_instrument_by_id(cash_id)
+        if isinstance(cash_instrument, Cash):
+            self.long_model.update_data(idx, {AssetColumns.Value: cash_instrument.value})
+
+    def _remove_cash(self, cash: Cash) -> None:
+        idx = self.long_model.find_data("Cash", column=AssetColumns.Asset)  # TODO: needs improvement
+        if idx is None:
+            raise ValueError("No cash in the asset tree model")
+        if not idx.isValid():
+            return
+        # Found existing cash record in the model
+        item = idx.internalPointer()
+        cash_id = item.data(AssetColumns.ID.value)
+        cash_instrument = self.bank_book.get_instrument_by_id(cash_id)
+        if isinstance(cash_instrument, Cash):
+            self.long_model.update_data(idx, {AssetColumns.Value: cash_instrument.value})
+
+    def add_instrument(self, instrument: Instrument, position: Position) -> None:
+        """Add an instrument to the tree model."""
+        # For banking book, we specifically address cash instrument
+        if isinstance(instrument, Cash):
+            self._add_cash(instrument)
+            return
+        super().add_instrument(instrument, position)
+
+    def remove_instrument(self, instrument: Instrument, position: Position) -> None:
+        """Remove an instrument from the tree model."""
+        if isinstance(instrument, Cash):
+            self._remove_cash(instrument)
+            return
+        super().remove_instrument(instrument, position)
 
     def connect_signals(self) -> None:
         super().connect_signals()
