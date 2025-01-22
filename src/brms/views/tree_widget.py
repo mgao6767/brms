@@ -142,6 +142,7 @@ class TreeModel(QAbstractItemModel):
         [{0: 'Property1', 1: 'Value1'}, {0: 'PropertyGroup', 1: '', '_children': [{0: 'Sub-property', 1: 'Sub-value'}]}]
         """
         parent_item = self.root_item if not parent.isValid() else parent.internalPointer()
+        self.beginInsertRows(parent, parent_item.child_count(), parent_item.child_count() + len(data) - 1)
         for row_data in data:
             # Pop children, if any, since its key is a str and should not be sorted
             children = row_data.pop("_children", None)
@@ -151,6 +152,7 @@ class TreeModel(QAbstractItemModel):
             parent_item.append_child(child_item)
             if children is not None:
                 self.add_data(self.createIndex(parent_item.child_count() - 1, 0, child_item), children)
+        self.endInsertRows()
 
     def remove_data(self, parent: QModelIndex, id: uuid.UUID, id_column: int = 0) -> None:
         """Remove data from the tree model based on id."""
