@@ -21,9 +21,12 @@ class MainController(BRMSController):
             banking_book_view=self.view.banking_book_widget,
             trading_book_view=self.view.trading_book_widget,
             inspector_ctrl=self.inspector_ctrl,
+            statement_view=self.view.statement_viewer_widget,
         )
         # Connect signals
         self.connect_signals()
+        # Initial tasks
+        self.bank_ctrl.update_statement()
 
     def connect_signals(self) -> None:
         """Connect signals from the view to the controller's slots."""

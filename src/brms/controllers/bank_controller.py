@@ -1,11 +1,16 @@
+import datetime
+
 from PySide6.QtCore import Signal
 
+from brms.accounting.report import Report
+from brms.accounting.statement_viewer import HTMLStatementViewer
 from brms.controllers.bank_book_controller import BankingBookController, TradingBookController
 from brms.controllers.base import BRMSController
 from brms.controllers.inspector_controller import InspectorController
 from brms.models.bank import Bank
 from brms.models.transaction import Action, BookType, Transaction
 from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
+from brms.views.statement_viewer_widget import BRMSStatementBrowser
 
 
 class BankController(BRMSController):
@@ -23,11 +28,13 @@ class BankController(BRMSController):
         banking_book_view: BRMSBankingBookWidget,
         trading_book_view: BRMSTradingBookWidget,
         inspector_ctrl: InspectorController,
+        statement_view: BRMSStatementBrowser,
     ) -> None:
         super().__init__()
         self.bank = bank
         self.banking_book_view = banking_book_view
         self.trading_book_view = trading_book_view
+        self.statement_view = statement_view
         # Controllers passed in
         self.inspector_ctrl = inspector_ctrl
         # Sub controllers
@@ -72,6 +79,21 @@ class BankController(BRMSController):
         self._test_deposit()
         self._test_buy_htm_security()
 
+    def update_statement(self) -> None:
+        report = Report(
+            self.bank.ledger,
+            HTMLStatementViewer(
+                console=False, padding=4, income_statement_table_width=80, balance_sheet_table_width=80
+            ),
+            self.bank.ledger.date_closed,
+        )
+        report.print_trial_balance()
+        report.print_income_statement()
+        report.print_balance_sheet()
+        self.statement_view.setHtml(
+            f"{report.trial_balance.html}\n\n{report.income_statement.html}\n\n{report.balance_sheet.html}",
+        )
+
     def _test_deposit(self) -> None:
         import datetime
 
@@ -82,6 +104,7 @@ class BankController(BRMSController):
         deposit = Deposit(value=10_000)
         tx = DepositTransaction(self.bank, deposit, today)
         self.process_transaction(tx)
+        self.update_statement()
 
     def _test_buy_htm_security(self) -> None:
         import QuantLib as ql
@@ -110,3 +133,4 @@ class BankController(BRMSController):
         bond.value = face_value
         tx = SecurityPurchaseHTMTransaction(self.bank, bond, issue_date)
         self.process_transaction(tx)
+        self.update_statement()

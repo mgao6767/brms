@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from io import StringIO
 from typing import TYPE_CHECKING
 
+import rich.box
 from rich.console import Console
 from rich.padding import Padding
 from rich.table import Table
@@ -47,12 +48,18 @@ class HTMLStatementViewer(StatementVisitor):
         self,
         *,
         padding: int = 2,
+        trial_balance_table_width: int | None = None,
+        income_statement_table_width: int | None = None,
+        balance_sheet_table_width: int | None = None,
         console: bool = True,
         jupyter: bool = False,
         hide_zero_balance_accounts: bool = False,
     ) -> None:
         super().__init__()
         self.padding = padding
+        self.trial_balance_table_width = trial_balance_table_width
+        self.income_statement_table_width = income_statement_table_width
+        self.balance_sheet_table_width = balance_sheet_table_width
         self.console = console
         self.jupyter = jupyter
         self.hide_zero_balance_accounts = hide_zero_balance_accounts
@@ -92,7 +99,13 @@ class HTMLStatementViewer(StatementVisitor):
     def visit_trial_balance(self, statement: "TrialBalance") -> str:
         """Generate view for TrialBalance."""
         caption = f"Date: {statement.date}"
-        table = Table(title=statement.name, box=None, caption=caption, caption_justify="right")
+        table = Table(
+            title=statement.name,
+            box=rich.box.HORIZONTALS,
+            caption=caption,
+            caption_justify="right",
+            width=self.trial_balance_table_width,
+        )
         table.add_column("Account", justify="left", no_wrap=True)
         table.add_column("Debit", justify="right")
         table.add_column("Credit", justify="right")
@@ -105,7 +118,7 @@ class HTMLStatementViewer(StatementVisitor):
                     self.add_account_debit_credit_rows(account, statement, table)
                     total_dr += dr
                     total_cr += cr
-
+            table.add_section()
         table.add_row("Total", self.format_amount(total_dr), self.format_amount(total_cr), style="bold")
 
         console = Console(
@@ -125,7 +138,14 @@ class HTMLStatementViewer(StatementVisitor):
         profit = total_income - total_expense
 
         caption = f"Date: {statement.date}"
-        table = Table(title=statement.name, box=None, caption=caption, caption_justify="right", show_header=False)
+        table = Table(
+            title=statement.name,
+            box=rich.box.HORIZONTALS,
+            caption=caption,
+            caption_justify="right",
+            show_header=False,
+            width=self.income_statement_table_width,
+        )
         table.add_column(justify="left", no_wrap=True)
         table.add_column(justify="right", style="green")
 
@@ -133,10 +153,12 @@ class HTMLStatementViewer(StatementVisitor):
         for account in statement.income:
             if not (account.is_contra_account or account.is_temporary_account):
                 self.add_account_balance_rows(account, table)
+        table.add_section()
         table.add_row("Expense", self.format_amount(total_expense), style="bold")
         for account in statement.expenses:
             if not (account.is_contra_account or account.is_temporary_account):
                 self.add_account_balance_rows(account, table)
+        table.add_section()
         table.add_row("Profit", self.format_amount(profit), style="bold")
 
         console = Console(
@@ -157,7 +179,14 @@ class HTMLStatementViewer(StatementVisitor):
         net_assets = total_assets - total_liabilities
 
         caption = f"Date: {statement.date}"
-        table = Table(title=statement.name, box=None, caption=caption, caption_justify="right", show_header=False)
+        table = Table(
+            title=statement.name,
+            box=rich.box.HORIZONTALS,
+            caption=caption,
+            caption_justify="right",
+            show_header=False,
+            width=self.balance_sheet_table_width,
+        )
         table.add_column(justify="left", no_wrap=True)
         table.add_column(justify="right", style="green")
 
@@ -167,14 +196,17 @@ class HTMLStatementViewer(StatementVisitor):
             if not (account.is_contra_account or account.is_temporary_account):
                 self.add_account_balance_rows(account, table)
         table.add_row("Total assets", self.format_amount(total_assets), style="bold")
+        table.add_section()
         # Liabilities
         table.add_row("Liabilities", style="bold")
         for account in statement.liabilities:
             if not (account.is_contra_account or account.is_temporary_account):
                 self.add_account_balance_rows(account, table)
         table.add_row("Total liabilities", self.format_amount(total_liabilities), style="bold")
+        table.add_section()
         # Net assets
         table.add_row("Net assets", self.format_amount(net_assets), style="bold")
+        table.add_section()
         # Shareholders' equity
         table.add_row("Shareholders' equity", style="bold")
         for account in statement.equities:

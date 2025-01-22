@@ -20,6 +20,7 @@ from brms.views.bank_book_widget import (
     BRMSBankingBookWidget,
     BRMSTradingBookWidget,
 )
+from brms.views.statement_viewer_widget import BRMSStatementBrowser
 from brms.views.inspector_widget import BRMSInspectorWidget
 
 
@@ -36,6 +37,7 @@ class MainWindow(QMainWindow):
         self.inspector_widget: BRMSInspectorWidget
         self.banking_book_widget: BRMSBankingBookWidget
         self.trading_book_widget: BRMSTradingBookWidget
+        self.statement_viewer_widget = BRMSStatementBrowser()
         self.init_ui()
         self.connect_signals()
         # Actions
@@ -65,7 +67,7 @@ class MainWindow(QMainWindow):
         tab_widget = QTabWidget(self)
         self.banking_book_widget = BRMSBankingBookWidget()
         self.trading_book_widget = BRMSTradingBookWidget()
-        tab_widget.addTab(QWidget(), "Dashboard")
+        tab_widget.addTab(self.statement_viewer_widget, "Dashboard")
         tab_widget.addTab(self.banking_book_widget, "Banking Book")
         tab_widget.addTab(self.trading_book_widget, "Trading Book")
         self.setCentralWidget(tab_widget)
