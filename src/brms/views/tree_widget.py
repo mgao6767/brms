@@ -3,7 +3,7 @@
 import uuid
 from typing import Any, Optional
 
-from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex, Qt
+from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex, Qt, Signal
 from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTreeView, QWidget
 
 __all__ = [
@@ -199,6 +199,8 @@ class TreeModel(QAbstractItemModel):
 
 
 class BRMSTreeWidget(QTreeView):
+    focused = Signal()
+
     """BRMSTreeWidget is a QTreeView that displays a tree structure with custom data."""
 
     def __init__(self, columns: list[str], parent: QWidget | None = None) -> None:
@@ -227,3 +229,8 @@ class BRMSTreeWidget(QTreeView):
         self.tree_model.beginResetModel()
         self.tree_model.root_item.child_items.clear()
         self.tree_model.endResetModel()
+
+    def focusInEvent(self, event):
+        """Detect when the TreeView gains focus."""
+        super().focusInEvent(event)  # Ensure normal focus behavior
+        self.focused.emit()

@@ -74,12 +74,7 @@ class BankBookController(BRMSController):
         self.bank_book_widget.assets_tree.setColumnHidden(AssetColumns.ID.value, not visible)
         self.bank_book_widget.liabilities_tree.setColumnHidden(LiabilityColumns.ID.value, not visible)
 
-    def on_instrument_selected(
-        self,
-        selected: "QItemSelection",
-        deselected: "QItemSelection",
-        position: Position,
-    ) -> None:
+    def on_instrument_selected(self, position: Position) -> None:
         """Slot to handle selection changes."""
         if position == Position.LONG:
             indexes = self.bank_book_widget.assets_tree.selectedIndexes()
@@ -96,12 +91,15 @@ class BankBookController(BRMSController):
 
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
+        # When selection changed or focused changed, update inspector
         self.bank_book_widget.assets_tree.selectionModel().selectionChanged.connect(
-            lambda selected, deselected: self.on_instrument_selected(selected, deselected, Position.LONG),
+            lambda selected, deselected: self.on_instrument_selected(Position.LONG),
         )
         self.bank_book_widget.liabilities_tree.selectionModel().selectionChanged.connect(
-            lambda selected, deselected: self.on_instrument_selected(selected, deselected, Position.SHORT),
+            lambda selected, deselected: self.on_instrument_selected(Position.SHORT),
         )
+        self.bank_book_widget.assets_tree.focused.connect(lambda: self.on_instrument_selected(Position.LONG))
+        self.bank_book_widget.liabilities_tree.focused.connect(lambda: self.on_instrument_selected(Position.SHORT))
 
 
 class BankingBookController(BankBookController):
