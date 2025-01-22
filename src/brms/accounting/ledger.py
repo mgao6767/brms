@@ -1,5 +1,6 @@
 """Defines the Ledger class, which represents a ledger in an accounting system."""
 
+import copy
 import datetime
 from dataclasses import dataclass, field
 
@@ -14,6 +15,16 @@ class Ledger:
     chart_of_accounts: ChartOfAccounts
     journal: Journal = field(default_factory=Journal)
     date_closed: datetime.date | None = None
+
+    def __deepcopy__(self, memo) -> "Ledger":
+        # Somehow in PySide, deepcopy ledger cause TypeError: cannot pickle 'SwigPyObject' object
+        # A fix found is not to copy `journal`
+        new_obj = Ledger(
+            journal=self.journal,  # Don't copy journal
+            chart_of_accounts=copy.deepcopy(self.chart_of_accounts, memo),
+            date_closed=copy.deepcopy(self.date_closed, memo),
+        )
+        return new_obj
 
     @property
     def coa(self) -> ChartOfAccounts:
