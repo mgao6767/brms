@@ -40,6 +40,7 @@ class MainWindow(QMainWindow):
         self.start_action: QAction
         self.pause_action: QAction
         self.stop_action: QAction
+        self.mq_style_action: QAction
         self.about_action: QAction
         self.github_action: QAction
 
@@ -96,6 +97,9 @@ class MainWindow(QMainWindow):
         self.pause_action = QAction(qta.icon("mdi6.pause"), "Pause", self)
         self.stop_action = QAction(qta.icon("mdi6.stop"), "Stop", self)
 
+        self.mq_style_action = QAction("MQ Theme", self)
+        self.mq_style_action.setCheckable(True)
+
         self.about_action = QAction("About", self)
         self.github_action = QAction(qta.icon("mdi6.github"), "GitHub", self)
 
@@ -127,6 +131,8 @@ class MainWindow(QMainWindow):
         file_menu.addAction(self.save_action)
         file_menu.addSeparator()
         file_menu.addAction(self.exit_action)
+        # View menu
+        view_menu.addAction(self.mq_style_action)
         # Simulation menu
         simulation_menu.addAction(self.next_action)
         simulation_menu.addAction(self.start_action)
@@ -172,9 +178,142 @@ class MainWindow(QMainWindow):
         # Resize dock widgets to make them equal height
         self.resizeDocks([dock_econ_indicator, dock_statement_viewer], [1, 1], Qt.Orientation.Vertical)
 
+    def apply_styles(self):
+        # MQ's style guide
+        # https://gem.mq.edu.au/guidelines
+        Color_Red = "#A6192E"
+        Color_Charcoal = "#373A36"
+        Color_Sand_Light = "#EDEBE5"
+        Color_Purple = "#80225F"
+        Color_Deep_Red = "#76232F"
+        Color_Bright_Red = "#D6001C"
+        Color_Magenta = "#C6007E"
+        Color_Success = "#009174"
+        Color_Alert = "#BC4700"
+        Color_Information = "#415364"
+        Color_Sand = "#D6D2C4"
+        Color_Dark_Purple = "#6F1D46"
+
+        darker_sand = "#C0BEB0"  # Slightly darker than Color_Sand
+
+        app_style = f"""
+        QWidget {{
+            background-color: {Color_Sand_Light};
+            color: {Color_Charcoal};
+        }}
+        QDockWidget::title {{
+            background-color: {Color_Sand};
+            padding-top: 1px;
+            padding-bottom: 1px;
+            color: {Color_Sand_Light};
+        }}
+        QTabBar::tab {{
+            background: {Color_Sand};
+            color: {Color_Charcoal};
+            border-bottom: 1px solid {Color_Sand_Light};
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            min-width: 12ex;
+            padding: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+            margin-top: 5px;
+            margin-right: 1px;
+        }}
+        QTabBar::tab::bottom {{
+            background: {Color_Sand};
+            color: {Color_Charcoal};
+            border-top: 1px solid {Color_Sand_Light};
+            border-top-left-radius: 0px;
+            border-top-right-radius: 0px;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            min-width: 12ex;
+            padding: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+            margin-top: 0px;
+            margin-bottom: 5px;
+            margin-right: 1px;
+        }}
+        QTabBar::tab:selected {{
+            background: {Color_Deep_Red};
+            color: {Color_Sand_Light};
+        }}
+        QTabBar::tab:hover {{
+            background: {Color_Red};
+            color: {Color_Sand_Light};
+        }}
+        QPushButton {{
+            background-color: {Color_Information};
+            color: {Color_Sand_Light};
+            border-radius: 5px;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: {Color_Purple};
+        }}
+        QPushButton:pressed {{
+            background-color: {Color_Dark_Purple};
+        }}
+        QMenuBar {{
+            background-color: {Color_Charcoal};
+            color: {Color_Sand_Light};
+        }}
+        QMenuBar::item {{
+            background-color: {Color_Charcoal};
+            color: {Color_Sand_Light};
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }}
+        QMenuBar::item:selected {{
+            background-color: {Color_Purple};
+        }}
+        QMenu {{
+            background-color: {Color_Charcoal};
+            color: {Color_Sand_Light};
+        }}
+        QMenu::item:selected {{
+            background-color: {Color_Purple};
+        }}
+        QToolBar {{
+            background-color: {Color_Sand_Light};
+        }}
+        QToolBar QWidget {{
+            background-color: {Color_Sand_Light};
+        }}
+        QToolButton {{
+            background-color: {Color_Sand};
+        }}
+        QToolButton:hover {{
+            background-color: {Color_Red};
+            color: {Color_Sand_Light};
+        }}
+        QHeaderView::section {{
+            background-color: {Color_Sand};
+            border: none;
+            padding: 3px;
+        }}
+        QTableCornerButton::section {{
+            background-color: {Color_Sand};
+        }}
+        QTreeView::item:selected {{
+            background-color: {Color_Alert};
+            color: {Color_Sand_Light};
+        }}
+        QTableView::item:selected {{
+            background-color: {Color_Alert};
+            color: {Color_Sand_Light};
+        }}
+        """
+        self.setStyleSheet(app_style)
+
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
         self.exit_action.triggered.connect(self.on_exit)
+        self.mq_style_action.triggered.connect(self.on_mq_style_action)
         self.about_action.triggered.connect(self.on_about_action)
         self.github_action.triggered.connect(self.on_github_action)
 
@@ -184,6 +323,16 @@ class MainWindow(QMainWindow):
         Emit the exit signal and delegate the closing tasks to the controller.
         """
         self.exit_signal.emit()
+
+    def on_mq_style_action(self) -> None:
+        """Handle the MQ style action.
+
+        Apply or remove the MQ style based on the action's checked state.
+        """
+        if self.mq_style_action.isChecked():
+            self.apply_styles()
+        else:
+            self.setStyleSheet("")  # Remove stylesheet
 
     def on_about_action(self) -> None:
         """Handle the about action.
