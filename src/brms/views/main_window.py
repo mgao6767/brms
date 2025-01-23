@@ -20,7 +20,7 @@ from brms.views.bank_book_widget import (
     BRMSBankingBookWidget,
     BRMSTradingBookWidget,
 )
-from brms.views.statement_viewer_widget import BRMSStatementBrowser
+from brms.views.statement_viewer_widget import BRMSStatementViewer
 from brms.views.inspector_widget import BRMSInspectorWidget
 
 
@@ -37,7 +37,8 @@ class MainWindow(QMainWindow):
         self.inspector_widget: BRMSInspectorWidget
         self.banking_book_widget: BRMSBankingBookWidget
         self.trading_book_widget: BRMSTradingBookWidget
-        self.statement_viewer_widget = BRMSStatementBrowser()
+        self.statement_viewer_widget: BRMSStatementViewer
+        self._dock_widgets: list[BRMSDockWidget] = []
         self.init_ui()
         self.connect_signals()
         # Actions
@@ -67,7 +68,7 @@ class MainWindow(QMainWindow):
         tab_widget = QTabWidget(self)
         self.banking_book_widget = BRMSBankingBookWidget()
         self.trading_book_widget = BRMSTradingBookWidget()
-        tab_widget.addTab(self.statement_viewer_widget, "Dashboard")
+        # tab_widget.addTab(self.statement_viewer_widget, "Dashboard")
         tab_widget.addTab(self.banking_book_widget, "Banking Book")
         tab_widget.addTab(self.trading_book_widget, "Trading Book")
         self.setCentralWidget(tab_widget)
@@ -83,7 +84,7 @@ class MainWindow(QMainWindow):
         """Set the properties of the main window."""
         self.setWindowTitle(f"BRMS - Bank Risk Management Simulation v{__version__}")
         self.resize(self.window_width, self.window_height)
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1024, 768)
 
     def center_window(self) -> None:
         """Center the main window on the screen."""
@@ -154,17 +155,27 @@ class MainWindow(QMainWindow):
     def create_dock_widgets(self) -> None:
         """Create and dock the inspector widget."""
         # Inspector
-        dock_inspector = QDockWidget("Inspector", self)
+        dock_inspector = BRMSDockWidget("Inspector", self)
         self.inspector_widget = BRMSInspectorWidget(["Property", "Value"], dock_inspector)
         dock_inspector.setWidget(self.inspector_widget)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock_inspector)
+        self._dock_widgets.append(dock_inspector)
         # Economic indicator
-        dock_econ_indicator = QDockWidget("Economic Indicators", self)
+        dock_econ_indicator = BRMSDockWidget("Economic Indicators", self)
         econ_indicator_widget = QTabWidget()
         econ_indicator_widget.addTab(QWidget(), "Yield Curve")
         econ_indicator_widget.addTab(QWidget(), "Stock Market")
         dock_econ_indicator.setWidget(econ_indicator_widget)  # TODO: placeholder widget
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_econ_indicator)
+        self._dock_widgets.append(dock_econ_indicator)
+        # Statements viewer
+        dock_statement_viewer = BRMSDockWidget("Financial Statements", self)
+        dock_statement_viewer.setMinimumWidth(400)
+        self.statement_viewer_widget = BRMSStatementViewer()
+        dock_statement_viewer.setWidget(self.statement_viewer_widget)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_statement_viewer)
+        self._dock_widgets.append(dock_statement_viewer)
+        self.resizeDocks([dock_statement_viewer], [670], Qt.Orientation.Horizontal)
 
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
@@ -197,3 +208,21 @@ class MainWindow(QMainWindow):
         from PySide6.QtGui import QDesktopServices
 
         QDesktopServices.openUrl(QUrl(__github__))
+
+
+class BRMSDockWidget(QDockWidget):
+    """Custom QDockWidget that behaves like a window when floating."""
+
+    def __init__(self, title: str, parent: QWidget | None = None) -> None:
+        super().__init__(title, parent)
+        # Connect signal to detect floating status change
+        self.topLevelChanged.connect(self.on_floating_status_changed)
+
+    def on_floating_status_changed(self, floating: bool) -> None:
+        """Handle floating state changes."""
+        if floating:
+            # Make it behave like a normal window
+            self.setWindowFlags(Qt.WindowType.Window)
+            self.show()  # Refresh window state
+        else:
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.Window)

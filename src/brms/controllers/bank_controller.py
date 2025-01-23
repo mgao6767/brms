@@ -10,7 +10,7 @@ from brms.controllers.inspector_controller import InspectorController
 from brms.models.bank import Bank
 from brms.models.transaction import Action, BookType, Transaction
 from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
-from brms.views.statement_viewer_widget import BRMSStatementBrowser
+from brms.views.statement_viewer_widget import BRMSStatementViewer
 
 
 class BankController(BRMSController):
@@ -28,7 +28,7 @@ class BankController(BRMSController):
         banking_book_view: BRMSBankingBookWidget,
         trading_book_view: BRMSTradingBookWidget,
         inspector_ctrl: InspectorController,
-        statement_view: BRMSStatementBrowser,
+        statement_view: BRMSStatementViewer,
     ) -> None:
         super().__init__()
         self.bank = bank
@@ -90,9 +90,12 @@ class BankController(BRMSController):
         report.print_trial_balance()
         report.print_income_statement()
         report.print_balance_sheet()
-        self.statement_view.setHtml(
+        self.statement_view.all_browser.setHtml(
             f"{report.trial_balance.html}\n\n{report.income_statement.html}\n\n{report.balance_sheet.html}",
         )
+        self.statement_view.trial_balance_browser.setHtml(report.trial_balance.html)
+        self.statement_view.income_statement_browser.setHtml(report.income_statement.html)
+        self.statement_view.balance_sheet_browser.setHtml(report.balance_sheet.html)
 
     def _test_deposit(self) -> None:
         import datetime
