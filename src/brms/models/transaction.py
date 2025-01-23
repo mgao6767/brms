@@ -6,6 +6,7 @@ from enum import Enum, auto
 from brms.accounting.journal import CompoundEntry, JournalEntry, SimpleEntry
 from brms.instruments.base import Instrument
 from brms.instruments.cash import Cash
+from brms.instruments.common_equity import CommonEquity
 from brms.instruments.deposit import Deposit
 from brms.instruments.visitors.valuation import ValuationVisitor
 from brms.models.bank import Bank
@@ -149,6 +150,63 @@ class Transaction(ABC):
         In other uses it can be safely ignore.
         """
         raise NotImplementedError
+
+
+class EquityIssuanceTransaction(Transaction):
+    """Class representing an equity issuance transaction."""
+
+    def __init__(
+        self,
+        bank: Bank,
+        instrument: CommonEquity,
+        date: datetime.date | None = None,
+        description: str = "",
+    ) -> None:
+        self.cash_to_add = Cash(value=instrument.value)
+        super().__init__(
+            bank=bank,
+            instrument=instrument,
+            value=instrument.value,
+            transaction_type=TransactionType.EQUITY_ISSUANCE,
+            transaction_date=date,
+            description=description,
+        )
+
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_add: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
+            self.instrument: (Action.ADD, BookType.BANKING_BOOK, Position.SHORT),
+        }
+
+    def execute(self) -> None:
+        self.bank.banking_book.add_instrument(self.cash_to_add, Position.LONG)
+        self.bank.banking_book.add_instrument(self.instrument, Position.SHORT)
+        self.bank.ledger.post(self.journal_entry)
+
+    def undo(self) -> None:
+        self.bank.banking_book.remove_instrument(self.cash_to_add, Position.LONG)
+        self.bank.banking_book.remove_instrument(self.instrument, Position.SHORT)
+        self.bank.ledger.post(self.reverse_journal_entry)
+
+    @property
+    def journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.cash_account,
+            credit_account=self.bank.chart_of_accounts.equity_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+    @property
+    def reverse_journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.equity_account,
+            credit_account=self.bank.chart_of_accounts.cash_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
 
 
 class DepositTransaction(Transaction):
