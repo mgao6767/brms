@@ -50,15 +50,19 @@ class BRMSYieldCurveWidget(QWidget):
         self.toolbar.setFloatable(False)
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
-        save_action = QAction(qta.icon("mdi6.export"), "Export Plot", self)
-        table_action = QAction(qta.icon("mdi6.table-of-contents"), "Show Table", self)
-        figure_action = QAction(qta.icon("mdi6.chart-bell-curve-cumulative"), "Show Plot", self)
-        all_view_action = QAction(qta.icon("mdi.chart-multiple"), "Show Both", self)
+        self.save_action = QAction(qta.icon("mdi6.export"), "Export Plot", self)
+        self.table_action = QAction(qta.icon("mdi6.table-of-contents"), "Show Table", self)
+        self.figure_action = QAction(qta.icon("mdi6.chart-bell-curve-cumulative"), "Show Plot", self)
+        self.all_view_action = QAction(qta.icon("mdi.chart-multiple"), "Show Both", self)
 
-        self.toolbar.addAction(table_action)
-        self.toolbar.addAction(figure_action)
-        self.toolbar.addAction(all_view_action)
-        self.toolbar.addAction(save_action)
+        self.table_action.setCheckable(True)
+        self.figure_action.setCheckable(True)
+        self.all_view_action.setCheckable(True)
+
+        self.toolbar.addAction(self.table_action)
+        self.toolbar.addAction(self.figure_action)
+        self.toolbar.addAction(self.all_view_action)
+        self.toolbar.addAction(self.save_action)
 
         self.table_view = QTableView()
         self.table_view.setHorizontalHeader(RightAlignHeaderView(Qt.Horizontal))
@@ -80,10 +84,10 @@ class BRMSYieldCurveWidget(QWidget):
         main_layout.setSpacing(0)
         self.setLayout(main_layout)
 
-        all_view_action.triggered.connect(self.set_default_view)
-        table_action.triggered.connect(self.set_table_view)
-        figure_action.triggered.connect(self.set_figure_view)
-        save_action.triggered.connect(self.plot_widget.export_plot)
+        self.all_view_action.triggered.connect(self.set_default_view)
+        self.table_action.triggered.connect(self.set_table_view)
+        self.figure_action.triggered.connect(self.set_figure_view)
+        self.save_action.triggered.connect(self.plot_widget.export_plot)
 
         self.set_figure_view()
 
@@ -91,15 +95,24 @@ class BRMSYieldCurveWidget(QWidget):
         self.table_view.setModel(model)
 
     def set_default_view(self):
+        self.all_view_action.setChecked(True)
+        self.figure_action.setChecked(False)
+        self.table_action.setChecked(False)
         total_size = 1000  # Arbitrary total size
         table_view_size = int(total_size * 0.5)
         plot_widget_size = total_size - table_view_size
         self.splitter.setSizes([table_view_size, plot_widget_size])
 
     def set_table_view(self):
+        self.table_action.setChecked(True)
+        self.figure_action.setChecked(False)
+        self.all_view_action.setChecked(False)
         self.splitter.setSizes([0, 1])
 
     def set_figure_view(self):
+        self.figure_action.setChecked(True)
+        self.table_action.setChecked(False)
+        self.all_view_action.setChecked(False)
         self.splitter.setSizes([1, 0])
 
     def showEvent(self, event: QShowEvent):
