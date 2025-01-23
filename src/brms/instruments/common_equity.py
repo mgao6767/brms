@@ -11,6 +11,10 @@ if TYPE_CHECKING:
 class CommonEquity(Instrument):
     """A class to represent common equity instruments."""
 
+    def __init__(self, *, name: str = "Common Equity", value: float = 0.0) -> None:
+        super().__init__(name=name)
+        self.value = value
+
     def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
         visitor.visit_common_equity(self)
