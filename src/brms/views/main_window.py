@@ -3,26 +3,15 @@
 import qtawesome as qta
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QIcon
-from PySide6.QtWidgets import (
-    QApplication,
-    QDockWidget,
-    QMainWindow,
-    QMenuBar,
-    QStatusBar,
-    QTabWidget,
-    QToolBar,
-    QWidget,
-)
+from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar, QStatusBar, QTabWidget, QToolBar, QWidget
 
 from brms import __about__, __github__, __version__
 from brms.resources import icons  # noqa: F401
-from brms.views.bank_book_widget import (
-    BRMSBankingBookWidget,
-    BRMSTradingBookWidget,
-)
+from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
 from brms.views.dock_widget import BRMSDockWidget
-from brms.views.statement_viewer_widget import BRMSStatementViewer
 from brms.views.inspector_widget import BRMSInspectorWidget
+from brms.views.statement_viewer_widget import BRMSStatementViewer
+from brms.views.yield_curve_widget import BRMSYieldCurveWidget
 
 
 class MainWindow(QMainWindow):
@@ -164,7 +153,7 @@ class MainWindow(QMainWindow):
         # Economic indicator
         dock_econ_indicator = BRMSDockWidget("Economic Indicators", self)
         econ_indicator_widget = QTabWidget()
-        econ_indicator_widget.addTab(QWidget(), "Yield Curve")
+        econ_indicator_widget.addTab(BRMSYieldCurveWidget(self), "Yield Curve")
         econ_indicator_widget.addTab(QWidget(), "Stock Market")
         dock_econ_indicator.setWidget(econ_indicator_widget)  # TODO: placeholder widget
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_econ_indicator)
@@ -180,6 +169,8 @@ class MainWindow(QMainWindow):
         screen_geometry = QApplication.primaryScreen().availableGeometry()
         if screen_geometry.width() >= 1920:
             self.resizeDocks([dock_statement_viewer], [670], Qt.Orientation.Horizontal)
+        # Resize dock widgets to make them equal height
+        self.resizeDocks([dock_econ_indicator, dock_statement_viewer], [1, 1], Qt.Orientation.Vertical)
 
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
