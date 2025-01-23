@@ -20,6 +20,7 @@ from brms.views.bank_book_widget import (
     BRMSBankingBookWidget,
     BRMSTradingBookWidget,
 )
+from brms.views.dock_widget import BRMSDockWidget
 from brms.views.statement_viewer_widget import BRMSStatementViewer
 from brms.views.inspector_widget import BRMSInspectorWidget
 
@@ -175,7 +176,10 @@ class MainWindow(QMainWindow):
         dock_statement_viewer.setWidget(self.statement_viewer_widget)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_statement_viewer)
         self._dock_widgets.append(dock_statement_viewer)
-        self.resizeDocks([dock_statement_viewer], [670], Qt.Orientation.Horizontal)
+        # Resize statement viewer when user's screen size is large enough
+        screen_geometry = QApplication.primaryScreen().availableGeometry()
+        if screen_geometry.width() >= 1920:
+            self.resizeDocks([dock_statement_viewer], [670], Qt.Orientation.Horizontal)
 
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
@@ -208,21 +212,3 @@ class MainWindow(QMainWindow):
         from PySide6.QtGui import QDesktopServices
 
         QDesktopServices.openUrl(QUrl(__github__))
-
-
-class BRMSDockWidget(QDockWidget):
-    """Custom QDockWidget that behaves like a window when floating."""
-
-    def __init__(self, title: str, parent: QWidget | None = None) -> None:
-        super().__init__(title, parent)
-        # Connect signal to detect floating status change
-        self.topLevelChanged.connect(self.on_floating_status_changed)
-
-    def on_floating_status_changed(self, floating: bool) -> None:
-        """Handle floating state changes."""
-        if floating:
-            # Make it behave like a normal window
-            self.setWindowFlags(Qt.WindowType.Window)
-            self.show()  # Refresh window state
-        else:
-            self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.Window)
