@@ -34,7 +34,7 @@ class YieldCurveService:
         :param rates: List of yield values corresponding to the maturities (in percentage, e.g., [2.5, 3.0, 3.5])
         :return: QuantLib Piecewise Log-Cubic Discount yield curve
         """
-        if not maturity_labels or not rates:
+        if len(maturity_labels) == 0 or len(rates) == 0:
             return None
 
         # Convert reference date to QuantLib Date

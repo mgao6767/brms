@@ -6,6 +6,7 @@ from typing import Any
 import QuantLib as ql  # noqa: N813
 
 from brms.models.base import ScenarioData
+from brms.models.yield_curve_model import YieldCurve
 
 
 class Scenario:
@@ -44,6 +45,7 @@ class ScenarioManager:
     def __init__(self) -> None:
         """Initialize the ScenarioManager with an empty dictionary of scenarios."""
         self.scenarios: dict[datetime.date, Scenario] = {}
+        self.yield_curve: YieldCurve = YieldCurve()
 
     def clear_scenarios(self) -> None:
         """Clear all scenarios."""

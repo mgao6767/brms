@@ -3,6 +3,7 @@
 from brms.controllers.bank_controller import BankController
 from brms.controllers.base import BRMSController
 from brms.controllers.inspector_controller import InspectorController
+from brms.controllers.yield_curve_controller import YieldCurveController
 from brms.models.simulation import Simulation as SimulationModel
 from brms.views.main_window import MainWindow
 
@@ -22,6 +23,10 @@ class MainController(BRMSController):
             trading_book_view=self.view.trading_book_widget,
             inspector_ctrl=self.inspector_ctrl,
             statement_view=self.view.statement_viewer_widget,
+        )
+        self.yield_curve_ctrl = YieldCurveController(
+            model=self.simulation.scenario_manager.yield_curve,  # Yield curve model belongs to the scenario manager
+            view=self.view.yield_curve_widget,
         )
         # Connect signals
         self.connect_signals()

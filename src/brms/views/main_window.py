@@ -29,6 +29,7 @@ class MainWindow(QMainWindow):
         self.trading_book_widget: BRMSTradingBookWidget
         self.statement_viewer_widget: BRMSStatementViewer
         self._dock_widgets: list[BRMSDockWidget] = []
+        self.yield_curve_widget = BRMSYieldCurveWidget(self)
         self.init_ui()
         self.connect_signals()
         # Actions
@@ -162,7 +163,7 @@ class MainWindow(QMainWindow):
         # Economic indicator
         self.dock_econ_indicator = BRMSDockWidget("Economic Indicators", self)
         econ_indicator_widget = QTabWidget()
-        econ_indicator_widget.addTab(BRMSYieldCurveWidget(self), "Yield Curve")
+        econ_indicator_widget.addTab(self.yield_curve_widget, "Yield Curve")
         econ_indicator_widget.addTab(QWidget(), "Stock Market")
         self.dock_econ_indicator.setWidget(econ_indicator_widget)  # TODO: placeholder widget
         self._dock_widgets.append(self.dock_econ_indicator)
