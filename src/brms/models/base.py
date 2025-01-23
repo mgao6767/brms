@@ -24,4 +24,4 @@ class BalanceSheetCategory(Enum):
 class ScenarioData(Enum):
     """Enumeration for different types of scenario data."""
 
-    YIELD_TERM_STRUCTURE = "Yield Term Structure"
+    TREASURY_YIELDS = "treasury_yields"
