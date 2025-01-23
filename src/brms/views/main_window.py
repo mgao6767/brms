@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
         self.pause_action: QAction
         self.stop_action: QAction
         self.mq_style_action: QAction
+        self.restore_views_action: QAction
         self.about_action: QAction
         self.github_action: QAction
 
@@ -86,20 +87,22 @@ class MainWindow(QMainWindow):
 
     def create_actions(self) -> None:
         """Create actions for the main window."""
+        # File
         self.new_action = QAction("New", self)
         self.open_action = QAction("Open", self)
         self.save_action = QAction("Save", self)
         self.exit_action = QAction(qta.icon("mdi6.exit-run"), "Exit", self)
         self.exit_action.setShortcut("Ctrl+Q")
-
+        # Simulation
         self.next_action = QAction(qta.icon("mdi6.skip-next"), "Next", self)
         self.start_action = QAction(qta.icon("mdi6.play"), "Start", self)
         self.pause_action = QAction(qta.icon("mdi6.pause"), "Pause", self)
         self.stop_action = QAction(qta.icon("mdi6.stop"), "Stop", self)
-
+        # View
         self.mq_style_action = QAction("MQ Theme", self)
         self.mq_style_action.setCheckable(True)
-
+        self.restore_views_action = QAction("Restore Views", self)
+        # Misc
         self.about_action = QAction("About", self)
         self.github_action = QAction(qta.icon("mdi6.github"), "GitHub", self)
 
@@ -133,6 +136,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(self.exit_action)
         # View menu
         view_menu.addAction(self.mq_style_action)
+        view_menu.addAction(self.restore_views_action)
         # Simulation menu
         simulation_menu.addAction(self.next_action)
         simulation_menu.addAction(self.start_action)
@@ -151,32 +155,25 @@ class MainWindow(QMainWindow):
     def create_dock_widgets(self) -> None:
         """Create and dock the inspector widget."""
         # Inspector
-        dock_inspector = BRMSDockWidget("Inspector", self)
-        self.inspector_widget = BRMSInspectorWidget(["Property", "Value"], dock_inspector)
-        dock_inspector.setWidget(self.inspector_widget)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock_inspector)
-        self._dock_widgets.append(dock_inspector)
+        self.dock_inspector = BRMSDockWidget("Inspector", self)
+        self.inspector_widget = BRMSInspectorWidget(["Property", "Value"], self.dock_inspector)
+        self.dock_inspector.setWidget(self.inspector_widget)
+        self._dock_widgets.append(self.dock_inspector)
         # Economic indicator
-        dock_econ_indicator = BRMSDockWidget("Economic Indicators", self)
+        self.dock_econ_indicator = BRMSDockWidget("Economic Indicators", self)
         econ_indicator_widget = QTabWidget()
         econ_indicator_widget.addTab(BRMSYieldCurveWidget(self), "Yield Curve")
         econ_indicator_widget.addTab(QWidget(), "Stock Market")
-        dock_econ_indicator.setWidget(econ_indicator_widget)  # TODO: placeholder widget
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_econ_indicator)
-        self._dock_widgets.append(dock_econ_indicator)
+        self.dock_econ_indicator.setWidget(econ_indicator_widget)  # TODO: placeholder widget
+        self._dock_widgets.append(self.dock_econ_indicator)
         # Statements viewer
-        dock_statement_viewer = BRMSDockWidget("Financial Statements", self)
-        dock_statement_viewer.setMinimumWidth(400)
+        self.dock_statement_viewer = BRMSDockWidget("Financial Statements", self)
+        self.dock_statement_viewer.setMinimumWidth(400)
         self.statement_viewer_widget = BRMSStatementViewer()
-        dock_statement_viewer.setWidget(self.statement_viewer_widget)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_statement_viewer)
-        self._dock_widgets.append(dock_statement_viewer)
-        # Resize statement viewer when user's screen size is large enough
-        screen_geometry = QApplication.primaryScreen().availableGeometry()
-        if screen_geometry.width() >= 1920:
-            self.resizeDocks([dock_statement_viewer], [670], Qt.Orientation.Horizontal)
-        # Resize dock widgets to make them equal height
-        self.resizeDocks([dock_econ_indicator, dock_statement_viewer], [1, 1], Qt.Orientation.Vertical)
+        self.dock_statement_viewer.setWidget(self.statement_viewer_widget)
+        self._dock_widgets.append(self.dock_statement_viewer)
+        # Call on_restore_views to place dock widgets at default positions
+        self.on_restore_views()
 
     def apply_styles(self):
         # MQ's style guide
@@ -314,6 +311,7 @@ class MainWindow(QMainWindow):
         """Connect signals to their respective slots."""
         self.exit_action.triggered.connect(self.on_exit)
         self.mq_style_action.triggered.connect(self.on_mq_style_action)
+        self.restore_views_action.triggered.connect(self.on_restore_views)
         self.about_action.triggered.connect(self.on_about_action)
         self.github_action.triggered.connect(self.on_github_action)
 
@@ -333,6 +331,21 @@ class MainWindow(QMainWindow):
             self.apply_styles()
         else:
             self.setStyleSheet("")  # Remove stylesheet
+
+    def on_restore_views(self) -> None:
+        """Restore the dock widgets to their default positions and sizes."""
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dock_econ_indicator)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dock_statement_viewer)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock_inspector)
+        for widget in self._dock_widgets:
+            widget.setFloating(False)
+            widget.show()
+        # Resize statement viewer when user's screen size is large enough
+        screen_geometry = QApplication.primaryScreen().availableGeometry()
+        if screen_geometry.width() >= 1920:
+            self.resizeDocks([self.dock_statement_viewer], [670], Qt.Orientation.Horizontal)
+        # Resize dock widgets to make them equal height
+        self.resizeDocks([self.dock_econ_indicator, self.dock_statement_viewer], [1, 1], Qt.Orientation.Vertical)
 
     def on_about_action(self) -> None:
         """Handle the about action.
