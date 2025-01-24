@@ -64,14 +64,14 @@ class MainController(BRMSController):
         These should be init actions on a fresh stimulation start.
         """
         # 0. Reset simulation
-        pass
+        self.simulation.reset()
         # 1. Scenario manager loads data
         self.simulation.scenario_manager.load_data("csv", DEFAULT_DATA_FOLDER)
         # 2. Simulation sets the starting scenario (date)
         self.simulation.set_scenario(SIMULATION_START_DATE)
         # 3. Initialize sub controllers and load initial data if necessary
-        self.yield_curve_ctrl.load_treasury_yields(self.simulation.scenario_manager.get_treasury_yields())
-        self.bank_ctrl.initialize_default_bank()
+        self.yield_curve_ctrl.init(self.simulation.scenario_manager)
+        self.bank_ctrl.init(self.simulation.scenario_manager)
         # 4. Emit signal about Scenario changes
         self.scenario_changed.emit(self.simulation.current_scenario)
 

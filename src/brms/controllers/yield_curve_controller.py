@@ -7,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 from PySide6.QtCore import QItemSelectionModel, Qt
 
 from brms.controllers.base import BRMSController
-from brms.models.scenario import Scenario
+from brms.models.scenario import Scenario, ScenarioManager
 from brms.models.yield_curve_model import YieldCurve
 from brms.services.yield_curve_service import YieldCurveService
 from brms.views.yield_curve_widget import BRMSYieldCurveWidget
@@ -162,9 +162,10 @@ class YieldCurveController(BRMSController):
         show_grid = self.view.plot_widget.grid_checkbox.isChecked()
         self.view.plot_widget.update_plot(dates, yields, dates_zero_rates, zero_rates, title, rescale_y, show_grid)
 
-    def load_treasury_yields(self, data_df: "pd.DataFrame") -> None:
+    def init(self, scenario_manager: ScenarioManager) -> None:
         """Load all treasury yields data into the data container YieldCurve model."""
         # Convert from loaded data (pd.DataFrame) to the required format of update_yield_data
+        data_df = scenario_manager.get_treasury_yields()
         new_yield_data = {}
         for _, row in data_df.iterrows():
             date = row["date"].date()

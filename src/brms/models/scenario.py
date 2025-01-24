@@ -59,7 +59,7 @@ class ScenarioManager:
         """Add a scenario by date."""
         self.scenarios[date] = scenario
 
-    def get_scenario(self, date: datetime.date) -> Scenario | None:
+    def get_scenario(self, date: datetime.date) -> Scenario:
         """Retrieve a scenario by date."""
         scenario = self.scenarios.get(date)
         # Build scenario if not yet in the cache

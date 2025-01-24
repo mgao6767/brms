@@ -6,6 +6,7 @@ from brms.controllers.bank_book_controller import BankingBookController, Trading
 from brms.controllers.base import BRMSController
 from brms.controllers.inspector_controller import InspectorController
 from brms.models.bank import Bank
+from brms.models.scenario import ScenarioManager
 from brms.models.transaction import Action, BookType, Transaction
 from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
 from brms.views.statement_viewer_widget import BRMSStatementViewer
@@ -55,11 +56,11 @@ class BankController(BRMSController):
         for transaction in transactions:
             self.transaction_processed.emit(transaction)
 
-    def initialize_default_bank(self) -> None:
+    def init(self, scenario_manager: ScenarioManager) -> None:
         """Initialize the bank with default transactions."""
         from brms.data.default import create_bank_init_transactions
 
-        transactions = create_bank_init_transactions(self.bank)
+        transactions = create_bank_init_transactions(self.bank, scenario_manager)
         self.initialize_bank_from_transactions(transactions)
 
     def connect_signals(self) -> None:
