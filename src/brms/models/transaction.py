@@ -327,14 +327,20 @@ class InterestPaidOnDepositTransaction(Transaction):
     """Class representing an interest paid on deposit transaction."""
 
     def __init__(self, bank: Bank, value: float, date: datetime.date | None = None, description: str = "") -> None:
+        self.cash_to_pay = Cash(value=value)
         super().__init__(
             bank=bank,
-            instrument=Cash(value=value),
+            instrument=self.cash_to_pay,
             value=value,
             transaction_type=TransactionType.INTEREST_PAID_ON_DEPOSIT,
             transaction_date=date,
             description=description,
         )
+
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_pay: (Action.REMOVE, BookType.BANKING_BOOK, Position.LONG),
+        }
 
     def execute(self) -> None:
         self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
@@ -1129,41 +1135,6 @@ class SecurityMarkToMarketFVOCITransaction(Transaction):
             date=self.transaction_date,
             description=self.description,
         )
-
-
-if __name__ == "__main__":
-    from brms.accounting.account import AccountBalances
-    from brms.accounting.report import Report
-    from brms.accounting.statement_viewer import HTMLStatementViewer
-
-    bank = Bank()
-    account_balances = AccountBalances(
-        {
-            bank.chart_of_accounts.cash_account: 12500,
-            bank.chart_of_accounts.equity_account: 30000,
-            bank.chart_of_accounts.ppe_account: 20000,
-            bank.chart_of_accounts.retained_earnings_account: 2500,
-        },
-    )
-    bank.initialize(account_balances)
-
-    date = datetime.date(2024, 12, 31)
-
-    deposit_by_a_customer = Deposit(value=999999)
-    bank.process_transaction(DepositTransaction(bank, deposit_by_a_customer, date))
-    bank.process_transaction(DepositWithdrawTransaction(bank, deposit_by_a_customer, date))
-    bank.undo_last_transaction()
-
-    bank.process_transaction(InterestPaidOnDepositTransaction(bank, 12312, date))
-    report = Report(ledger=bank.ledger, viewer=HTMLStatementViewer(), date=date)
-
-    html_trial_balance = report.print_trial_balance()
-    html_income_statement = report.print_income_statement()
-    html_balance_sheet = report.print_balance_sheet()
-
-    print(html_trial_balance)
-    print(html_income_statement)
-    print(html_balance_sheet)
 
 
 class SecurityInterestEarnedTransaction(Transaction):
