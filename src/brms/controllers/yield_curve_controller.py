@@ -17,9 +17,9 @@ if TYPE_CHECKING:
 
 
 class YieldCurveController(BRMSController):
-    def __init__(self, model: YieldCurve, view: BRMSYieldCurveWidget):
+    def __init__(self, view: BRMSYieldCurveWidget):
         super().__init__()
-        self.model = model
+        self.model = YieldCurve()  # model inside controller because it's just a data container
         self.view = view
 
         self.view.set_model(self.model)
@@ -129,17 +129,14 @@ class YieldCurveController(BRMSController):
         self.view.plot_widget.clear_plot()
 
     def update_plot(self):
-        yield_curve = self.build_yield_curve()
-
-        if yield_curve is None:
-            return
         # Update only when the yield curve widget is visible?
         if not self.view.is_visible:
             return
-
         yield_data = self.get_yields_from_selection()
         if yield_data is None:
             return
+        ref_date, _, maturity_labels, yields = yield_data
+        yield_curve = YieldCurveService.build_yield_curve(ref_date, maturity_labels=maturity_labels, rates=yields)
         ref_date, dates, _, yields = yield_data
         calendar = ql.ActualActual(ql.ActualActual.ISDA)
         zero_rates = []
@@ -165,15 +162,8 @@ class YieldCurveController(BRMSController):
         show_grid = self.view.plot_widget.grid_checkbox.isChecked()
         self.view.plot_widget.update_plot(dates, yields, dates_zero_rates, zero_rates, title, rescale_y, show_grid)
 
-    def build_yield_curve(self):
-        yield_data = self.get_yields_from_selection()
-        if yield_data is None:
-            return
-        ref_date, _, maturity_labels, yields = yield_data
-        return YieldCurveService.build_yield_curve(ref_date, maturity_labels=maturity_labels, rates=yields)
-
-    def on_yield_curve_data_loaded(self, data_df: "pd.DataFrame") -> None:
-        """Handle the event when new yield curve data is loaded."""
+    def load_treasury_yields(self, data_df: "pd.DataFrame") -> None:
+        """Load all treasury yields data into the data container YieldCurve model."""
         # Convert from loaded data (pd.DataFrame) to the required format of update_yield_data
         new_yield_data = {}
         for _, row in data_df.iterrows():

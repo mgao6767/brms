@@ -3,11 +3,11 @@
 import datetime
 from typing import Any
 
+import pandas as pd
 import QuantLib as ql  # noqa: N813
 
 from brms.data.data_loader import DataLoaderFactory
 from brms.models.base import ScenarioData, ScenarioMetric
-from brms.models.yield_curve_model import YieldCurve
 from brms.services.yield_curve_service import YieldCurveService
 
 
@@ -50,13 +50,6 @@ class ScenarioManager:
         # `self.data` contains all _raw_ data loaded, i.e., for all dates (scenarios).
         # When a particular scenario is requested, we build it from the data if the scenario is not yet cached.
         self._data: dict[ScenarioData, Any] = {}
-        # `self.yield_curve` is QAbstractTableModel for the view BRMSYieldCurveWidget
-        # It contains all Treasury yields for all dates. Should belong to the manager who knows all data.
-        self._yield_curve: YieldCurve = YieldCurve()
-
-    def yield_curve_model(self) -> YieldCurve:
-        """Return the yield curve model."""
-        return self._yield_curve
 
     def clear_scenarios(self) -> None:
         """Clear all scenarios."""
@@ -88,3 +81,7 @@ class ScenarioManager:
         """Load data using DataLoader and build scenarios."""
         data_loader = DataLoaderFactory.get_loader(source_type, source_path)
         self._data = data_loader.load()
+
+    def get_treasury_yields(self) -> pd.DataFrame:
+        """Retrieve the raw treasury yields data as a DataFrame."""
+        return self._data.get(ScenarioData.TREASURY_YIELDS, pd.DataFrame)

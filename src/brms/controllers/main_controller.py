@@ -9,7 +9,7 @@ from brms.controllers.inspector_controller import InspectorController
 from brms.controllers.yield_curve_controller import YieldCurveController
 from brms.data import DEFAULT_DATA_FOLDER
 from brms.data.default import SIMULATION_START_DATE
-from brms.models.scenario import Scenario, ScenarioData
+from brms.models.scenario import Scenario
 from brms.models.simulation import Simulation as SimulationModel
 from brms.views.main_window import MainWindow
 
@@ -33,10 +33,7 @@ class MainController(BRMSController):
             inspector_ctrl=self.inspector_ctrl,
             statement_view=self.view.statement_viewer_widget,
         )
-        self.yield_curve_ctrl = YieldCurveController(
-            model=self.simulation.scenario_manager.yield_curve_model(),  # Yield curve model belongs to the scenario manager
-            view=self.view.yield_curve_widget,
-        )
+        self.yield_curve_ctrl = YieldCurveController(view=self.view.yield_curve_widget)
         # Connect signals
         self.connect_signals()
         # Initial tasks
@@ -73,8 +70,7 @@ class MainController(BRMSController):
         # 2. Simulation sets the starting scenario (date)
         self.simulation.set_scenario(SIMULATION_START_DATE)
         # 3. Initialize sub controllers and load initial data if necessary
-        yield_df = self.simulation.scenario_manager.data.get(ScenarioData.TREASURY_YIELDS)
-        self.yield_curve_ctrl.on_yield_curve_data_loaded(yield_df)
+        self.yield_curve_ctrl.load_treasury_yields(self.simulation.scenario_manager.get_treasury_yields())
         self.bank_ctrl.initialize_default_bank()
         # 4. Emit signal about Scenario changes
         self.scenario_changed.emit(self.simulation.current_scenario)
