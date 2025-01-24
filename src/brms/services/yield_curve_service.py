@@ -2,6 +2,7 @@ import datetime
 from typing import ClassVar
 
 import numpy as np
+import pandas as pd
 import QuantLib as ql
 from dateutil.relativedelta import relativedelta
 
@@ -118,3 +119,19 @@ class YieldCurveService:
         yield_curve.enableExtrapolation()
 
         return yield_curve
+
+    @classmethod
+    def build_yield_curve_from_df(cls, df: pd.DataFrame, date: datetime.date) -> ql.YieldTermStructure:
+        """Construct a QuantLib yield curve from a DataFrame and a specific date.
+
+        :param df: DataFrame containing yield data with a 'date' column and maturity columns
+        :param date: Specific date to extract the yield data
+        :return: QuantLib YieldTermStructure
+        """
+        row = df[df["date"].dt.date == date]
+        if row.empty:
+            raise ValueError(f"No data available for the date: {date}")
+
+        maturity_labels = [col for col in df.columns if col != "date"]
+        rates = [row.iloc[0][col] for col in maturity_labels]
+        return cls.build_yield_curve(date, maturity_labels, rates)
