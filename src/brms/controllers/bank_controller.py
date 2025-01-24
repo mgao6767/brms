@@ -60,8 +60,6 @@ class BankController(BRMSController):
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
         self.transaction_processed.connect(self.update_views)
-        self.banking_book_view.btn_test1.clicked.connect(self._test_init)  # test
-        self.banking_book_view.btn_test2.clicked.connect(self._test_buy_htm_security)  # test
 
     def process_transaction(self, transaction: Transaction) -> None:
         """Process a transaction and emit signal."""

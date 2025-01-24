@@ -1,5 +1,6 @@
 """Main controller module for the BRMS application."""
 
+from brms import DEBUG_MODE
 from brms.controllers.bank_controller import BankController
 from brms.controllers.base import BRMSController
 from brms.controllers.inspector_controller import InspectorController
@@ -36,6 +37,15 @@ class MainController(BRMSController):
     def connect_signals(self) -> None:
         """Connect signals from the view to the controller's slots."""
         self.view.exit_signal.connect(self.handle_exit)
+
+        if DEBUG_MODE:
+            self.connect_signals_for_debugging()
+
+    def connect_signals_for_debugging(self) -> None:
+        """Connect signals only used for debugging."""
+        debug_panel = self.view.debug_panel
+        debug_panel.btn_init_bank.clicked.connect(self.bank_ctrl._test_init)
+        debug_panel.btn_buy_htm_security.clicked.connect(self.bank_ctrl._test_buy_htm_security)
 
     def handle_exit(self) -> None:
         """Handle the exit signal from the view."""

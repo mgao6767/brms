@@ -139,9 +139,6 @@ class BRMSBankingBookWidget(BRMSBankBookWidget):
         self.btn_trade_corporate_securities = QPushButton("Trade Corporate Securities")
         self.btn_adjust_deposit_interest_rate = QPushButton("Adjust Deposit Interest Rate")
         self.btn_manage_debt_instruments = QPushButton("Manage Debt Instruments")
-        # A test button
-        self.btn_test1 = QPushButton("Init Bank")
-        self.btn_test2 = QPushButton("Buy HTM security")
         # Actions
         self.init_ui()
 
@@ -150,8 +147,6 @@ class BRMSBankingBookWidget(BRMSBankBookWidget):
         # Control panel: analysis group box
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(self.btn_test1)
-        layout.addWidget(self.btn_test2)
         layout.addWidget(QLabel("Loans & Advances"))
         layout.addWidget(self.btn_loan_portfolio_overview)
         layout.addWidget(self.btn_loan_risk_assessment)

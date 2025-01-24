@@ -1,6 +1,9 @@
 """BRMS - Bank Risk Management Simulation."""
 
 import importlib.metadata
+import os
+
+DEBUG_MODE = os.getenv("BRMS_DEBUG", "False").lower() == "true"
 
 __version__ = importlib.metadata.version("brms")
 __author__ = "Mingze Gao"

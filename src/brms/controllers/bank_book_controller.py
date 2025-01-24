@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 
+from brms import DEBUG_MODE
 from brms.controllers.base import BRMSController
 from brms.controllers.inspector_controller import InspectorController
 from brms.instruments.base import Instrument
@@ -31,7 +32,7 @@ class BankBookController(BRMSController):
         self.long_model: TreeModel = self.bank_book_widget.assets_tree.tree_model
         self.short_model: TreeModel = self.bank_book_widget.liabilities_tree.tree_model
         # Hide ID column since that instrument id is only used internally
-        self.set_id_column_visibility(visible=True)
+        self.set_id_column_visibility(visible=DEBUG_MODE)
         self.connect_signals()
 
     @staticmethod

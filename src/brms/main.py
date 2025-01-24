@@ -4,6 +4,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication, QStyleFactory
 
+from brms import DEBUG_MODE
 from brms.controllers.main_controller import MainController
 from brms.models.simulation import Simulation as SimulationModel
 from brms.views.main_window import MainWindow
@@ -20,6 +21,8 @@ class App(QApplication):
         self.model = SimulationModel()
         self.controller = MainController(self.model, self.view)
         self.view.show()
+        if DEBUG_MODE:
+            self.view.debug_panel.show()
 
 
 def main() -> None:

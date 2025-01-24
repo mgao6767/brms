@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar, QStatusBar, QTabWidget, QToolBar, QWidget
 
-from brms import __about__, __github__, __version__
+from brms import DEBUG_MODE, __about__, __github__, __version__
 from brms.resources import icons  # noqa: F401
 from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
 from brms.views.dock_widget import BRMSDockWidget
@@ -46,6 +46,11 @@ class MainWindow(QMainWindow):
         self.about_action: QAction
         self.github_action: QAction
 
+        if DEBUG_MODE:
+            from brms.views.debug_panel import DebugPanel
+
+            self.debug_panel = DebugPanel(self)
+
     def init_ui(self) -> None:
         """Initialize the user interface."""
         self.set_window_properties()
@@ -75,7 +80,8 @@ class MainWindow(QMainWindow):
 
     def set_window_properties(self) -> None:
         """Set the properties of the main window."""
-        self.setWindowTitle(f"BRMS - Bank Risk Management Simulation v{__version__}")
+        debug_notice = " [Debug Mode] " if DEBUG_MODE else ""
+        self.setWindowTitle(f"BRMS - Bank Risk Management Simulation v{__version__}{debug_notice}")
         self.resize(self.window_width, self.window_height)
         self.setMinimumSize(1024, 768)
 
