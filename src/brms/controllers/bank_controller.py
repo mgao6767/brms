@@ -55,6 +55,13 @@ class BankController(BRMSController):
         for transaction in transactions:
             self.transaction_processed.emit(transaction)
 
+    def initialize_default_bank(self) -> None:
+        """Initialize the bank with default transactions."""
+        from brms.data.default import create_bank_init_transactions
+
+        transactions = create_bank_init_transactions(self.bank)
+        self.initialize_bank_from_transactions(transactions)
+
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
         self.transaction_processed.connect(self.update_views)
@@ -99,29 +106,7 @@ class BankController(BRMSController):
         self.statement_view.balance_sheet_browser.setHtml(report.balance_sheet.html)
 
     def _test_init(self) -> None:
-        import datetime
-
-        from brms.instruments.common_equity import CommonEquity
-        from brms.instruments.deposit import Deposit
-        from brms.models.transaction import TransactionFactory, TransactionType
-
-        today = datetime.date(2025, 1, 1)
-
-        transactions = [
-            TransactionFactory.create_transaction(
-                bank=self.bank,
-                transaction_type=TransactionType.EQUITY_ISSUANCE,
-                instrument=CommonEquity(value=1_000_000),
-                transaction_date=today,
-            ),
-            TransactionFactory.create_transaction(
-                bank=self.bank,
-                transaction_type=TransactionType.EQUITY_ISSUANCE,
-                instrument=Deposit(value=5_000_000),
-                transaction_date=today,
-            ),
-        ]
-        self.initialize_bank_from_transactions(transactions)
+        self.initialize_default_bank()
         self.update_statement()
 
     def _test_buy_htm_security(self) -> None:
