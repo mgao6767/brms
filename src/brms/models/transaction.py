@@ -731,6 +731,12 @@ class SecurityPurchaseFVOCITransaction(Transaction):
             description=description,
         )
 
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_pay: (Action.REMOVE, BookType.BANKING_BOOK, Position.LONG),
+            self.instrument: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
+        }
+
     def execute(self) -> None:
         self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.remove_instrument(self.cash_to_pay, Position.LONG)
