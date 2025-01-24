@@ -5,8 +5,10 @@ from typing import Any
 
 import QuantLib as ql  # noqa: N813
 
-from brms.models.base import ScenarioData
+from brms.data.data_loader import DataLoaderFactory
+from brms.models.base import ScenarioData, ScenarioMetric
 from brms.models.yield_curve_model import YieldCurve
+from brms.services.yield_curve_service import YieldCurveService
 
 
 class Scenario:
@@ -15,11 +17,11 @@ class Scenario:
     def __init__(self, date: datetime.date) -> None:
         """Initialize the Scenario with only the date."""
         self.date = date
-        self.data: dict[ScenarioData, Any] = {}
+        self.data: dict[ScenarioMetric, Any] = {}
 
-    def add_term_structure(self, term_structure: ql.YieldTermStructureHandle) -> None:
+    def add_term_structure(self, term_structure: ql.YieldTermStructure) -> None:
         """Add a term structure to the scenario."""
-        self.data[ScenarioData.YIELD_TERM_STRUCTURE] = term_structure
+        self.data[ScenarioMetric.YIELD_TERM_STRUCTURE] = term_structure
 
 
 class ScenarioBuilder:
@@ -33,7 +35,7 @@ class ScenarioBuilder:
         """Finalize the construction of the Scenario."""
         return self._scenario
 
-    def with_term_structure(self, term_structure: ql.YieldTermStructureHandle) -> "ScenarioBuilder":
+    def with_term_structure(self, term_structure: ql.YieldTermStructure) -> "ScenarioBuilder":
         """Add a term structure to the Scenario."""
         self._scenario.add_term_structure(term_structure)
         return self
@@ -45,7 +47,16 @@ class ScenarioManager:
     def __init__(self) -> None:
         """Initialize the ScenarioManager with an empty dictionary of scenarios."""
         self.scenarios: dict[datetime.date, Scenario] = {}
-        self.yield_curve: YieldCurve = YieldCurve()
+        # `self.data` contains all _raw_ data loaded, i.e., for all dates (scenarios).
+        # When a particular scenario is requested, we build it from the data if the scenario is not yet cached.
+        self._data: dict[ScenarioData, Any] = {}
+        # `self.yield_curve` is QAbstractTableModel for the view BRMSYieldCurveWidget
+        # It contains all Treasury yields for all dates. Should belong to the manager who knows all data.
+        self._yield_curve: YieldCurve = YieldCurve()
+
+    def yield_curve_model(self) -> YieldCurve:
+        """Return the yield curve model."""
+        return self._yield_curve
 
     def clear_scenarios(self) -> None:
         """Clear all scenarios."""
@@ -57,10 +68,23 @@ class ScenarioManager:
 
     def get_scenario(self, date: datetime.date) -> Scenario | None:
         """Retrieve a scenario by date."""
-        return self.scenarios.get(date)
+        scenario = self.scenarios.get(date)
+        # Build scenario if not yet in the cache
+        if scenario is None:
+            yield_df = self._data.get(ScenarioData.TREASURY_YIELDS)
+            term_structure = YieldCurveService.build_yield_curve_from_df(yield_df, date)
+            builder = ScenarioBuilder(date).with_term_structure(term_structure)
+            scenario = builder.build()
+            self.add_scenario(date, scenario)
+        return scenario
 
     def get_historical_scenarios(
         self, start_date: datetime.date, end_date: datetime.date
     ) -> dict[datetime.date, Scenario]:
         """Retrieve historical scenarios in a date range."""
         return {date: scenario for date, scenario in self.scenarios.items() if start_date <= date <= end_date}
+
+    def load_data(self, source_type: str, source_path: str) -> None:
+        """Load data using DataLoader and build scenarios."""
+        data_loader = DataLoaderFactory.get_loader(source_type, source_path)
+        self._data = data_loader.load()

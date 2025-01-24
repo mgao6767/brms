@@ -12,11 +12,11 @@ class DebugPanel(QWidget):
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.btn_init_bank = QPushButton("Init Bank")
+        self.btn_init = QPushButton("Init Default Simulation")
         self.btn_buy_htm_security = QPushButton("Buy HTM security")
 
         # Add buttons to layout
-        layout.addWidget(self.btn_init_bank)
+        layout.addWidget(self.btn_init)
         layout.addWidget(self.btn_buy_htm_security)
 
         self.setLayout(layout)
