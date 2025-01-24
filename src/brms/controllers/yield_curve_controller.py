@@ -3,9 +3,10 @@ from datetime import date, datetime
 import numpy as np
 import QuantLib as ql
 from dateutil.relativedelta import relativedelta
-from PySide6.QtCore import QItemSelectionModel, Qt
+from PySide6.QtCore import QItemSelectionModel, Qt, QThread, QTimer, Signal
 
 from brms.controllers.base import BRMSController
+from brms.data import DEFAULT_DATA_FOLDER
 from brms.data.data_loader import DataLoaderFactory
 from brms.models.yield_curve_model import YieldCurve
 from brms.services.yield_curve_service import YieldCurveService
@@ -28,7 +29,8 @@ class YieldCurveController(BRMSController):
         self.view.plot_widget.grid_checkbox.stateChanged.connect(self.update_plot)
         # fmt: on
 
-        self.load_default_data()
+        # Start data loading after showing the window
+        QTimer.singleShot(0, self.load_default_data)
 
     def reset(self):
         self.model.reset()
@@ -170,9 +172,22 @@ class YieldCurveController(BRMSController):
         ref_date, _, maturity_labels, yields = yield_data
         return YieldCurveService.build_yield_curve(ref_date, maturity_labels=maturity_labels, rates=yields)
 
-    def load_default_data(self):
-        from brms.data import DEFAULT_DATA_FOLDER
+    def load_default_data(self) -> None:
+        """Load the default yield curve data via a QThread."""
+        self.loader = YieldCurveDataLoader()
+        self.loader.data_loaded.connect(self.on_yield_curve_data_loaded)
+        self.loader.start()
 
+    def on_yield_curve_data_loaded(self, new_yield_data: dict[datetime.date, list[tuple[str, float]]]) -> None:
+        """Handle the event when new yield curve data is loaded."""
+        self.model.update_yield_data(new_yield_data=new_yield_data)
+        self.set_current_selection(0, 0)
+
+
+class YieldCurveDataLoader(QThread):
+    data_loaded = Signal(object)  # must be explicitly typed as object to handle complex data types
+
+    def run(self):
         data_loader = DataLoaderFactory.get_loader("csv", DEFAULT_DATA_FOLDER)
         data_df = data_loader.load_treasury_yields()
         # Convert from loaded data (pd.DataFrame) to the required format of update_yield_data
@@ -181,5 +196,4 @@ class YieldCurveController(BRMSController):
             date = row["date"].date()
             rates = [(col, row[col]) for col in data_df.columns if col != "date"]
             new_yield_data[date] = rates
-        self.model.update_yield_data(new_yield_data=new_yield_data)
-        self.set_current_selection(0, 0)
+        self.data_loaded.emit(new_yield_data)
