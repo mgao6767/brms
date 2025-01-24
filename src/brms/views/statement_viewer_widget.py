@@ -15,13 +15,11 @@ class BRMSStatementViewer(QTabWidget):
         super().__init__(parent)
 
         # Create statement browsers for each tab
-        self.all_browser = BRMSStatementBrowser()
         self.trial_balance_browser = BRMSStatementBrowser()
         self.income_statement_browser = BRMSStatementBrowser()
         self.balance_sheet_browser = BRMSStatementBrowser()
 
         # Add tabs to the tab widget
-        self.addTab(self.all_browser, "All")
         self.addTab(self.trial_balance_browser, "Trial Balance")
         self.addTab(self.income_statement_browser, "Income Statement")
         self.addTab(self.balance_sheet_browser, "Balance Sheet")

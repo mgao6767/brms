@@ -45,10 +45,22 @@ class BankController(BRMSController):
         # Connect signals
         self.connect_signals()
 
+    def initialize_bank_from_transactions(self, transactions: list["Transaction"] | None = None) -> None:
+        """Initialize the bank with a set of transactions.
+
+        This method initializes both the bank's ledger and books with instruments.
+        """
+        transactions = transactions if transactions else []
+        # Use bank.initialize_from_transactions because we want to start from a fresh financial period
+        # The method closes the ledger
+        self.bank.initialize_from_transactions(transactions)
+        for transaction in transactions:
+            self.transaction_processed.emit(transaction)
+
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
         self.transaction_processed.connect(self.update_views)
-        self.banking_book_view.btn_test1.clicked.connect(self._test_deposit)  # test
+        self.banking_book_view.btn_test1.clicked.connect(self._test_init)  # test
         self.banking_book_view.btn_test2.clicked.connect(self._test_buy_htm_security)  # test
 
     def process_transaction(self, transaction: Transaction) -> None:
@@ -75,38 +87,40 @@ class BankController(BRMSController):
                 case (Action.UPDATE, BookType.TRADING_BOOK, _):
                     raise NotImplementedError
 
-    def _test(self) -> None:
-        self._test_deposit()
-        self._test_buy_htm_security()
-
     def update_statement(self) -> None:
         report = Report(
             self.bank.ledger,
             HTMLStatementViewer(
-                console=False, padding=4, income_statement_table_width=80, balance_sheet_table_width=80
+                console=False, padding=2, income_statement_table_width=80, balance_sheet_table_width=80
             ),
             self.bank.ledger.date_closed,
         )
         report.print_trial_balance()
         report.print_income_statement()
         report.print_balance_sheet()
-        self.statement_view.all_browser.setHtml(
-            f"{report.trial_balance.html}\n\n{report.income_statement.html}\n\n{report.balance_sheet.html}",
-        )
         self.statement_view.trial_balance_browser.setHtml(report.trial_balance.html)
         self.statement_view.income_statement_browser.setHtml(report.income_statement.html)
         self.statement_view.balance_sheet_browser.setHtml(report.balance_sheet.html)
 
-    def _test_deposit(self) -> None:
+    def _test_init(self) -> None:
         import datetime
 
+        from brms.instruments.common_equity import CommonEquity
         from brms.instruments.deposit import Deposit
-        from brms.models.transaction import DepositTransaction
+        from brms.models.transaction import (
+            DepositTransaction,
+            EquityIssuanceTransaction,
+            InterestPaidOnDepositTransaction,
+        )
 
         today = datetime.date(2025, 1, 1)
-        deposit = Deposit(value=10_000)
-        tx = DepositTransaction(self.bank, deposit, today)
-        self.process_transaction(tx)
+
+        transactions = [
+            EquityIssuanceTransaction(self.bank, CommonEquity(value=1_000_000), today),
+            DepositTransaction(self.bank, Deposit(value=50_000), today, description="Customer A's deposit"),
+            InterestPaidOnDepositTransaction(self.bank, 10000, today),
+        ]
+        self.initialize_bank_from_transactions(transactions)
         self.update_statement()
 
     def _test_buy_htm_security(self) -> None:
@@ -125,7 +139,7 @@ class BankController(BRMSController):
             coupon_rate=coupon_rate,
             issue_date=issue_date,
             maturity_date=maturity_date,
-            book_type=BookType.TRADING_BOOK,
+            book_type=BookType.BANKING_BOOK,
             credit_rating=CreditRating.AA_MINUS,
             issuer=Issuer(
                 name="Asian Development Bank",

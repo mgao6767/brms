@@ -140,8 +140,8 @@ class BRMSBankingBookWidget(BRMSBankBookWidget):
         self.btn_adjust_deposit_interest_rate = QPushButton("Adjust Deposit Interest Rate")
         self.btn_manage_debt_instruments = QPushButton("Manage Debt Instruments")
         # A test button
-        self.btn_test1 = QPushButton("Test 1")
-        self.btn_test2 = QPushButton("Test 2")
+        self.btn_test1 = QPushButton("Init Bank")
+        self.btn_test2 = QPushButton("Buy HTM security")
         # Actions
         self.init_ui()
 

@@ -26,14 +26,31 @@ class Bank:
         self.accountant = Accountant(self, self.ledger)
 
     def initialize(self, account_balances: AccountBalances | None = None) -> None:
-        """Initialize the bank with a chart of accounts and account balances."""
+        """Initialize the bank with a chart of accounts and account balances.
+
+        This method only initializes the leger but not the bank's banking and trading books with instruments.
+
+        # FIXME: instruments should not be initialized... account balance is just an accounting snapshot
+        """
         if account_balances is None:
             account_balances = AccountBalances()
         self.ledger.set_account_balances(account_balances)
         # After initiating the leger, init the bank's banking and trading books with instruments
-        # TODO: init all instruments other than cash
         cash = Cash(value=account_balances[self.chart_of_accounts.cash_account])
         self.banking_book.add_instrument(cash, Position.LONG)
+
+    def initialize_from_transactions(self, transactions: list["Transaction"] | None = None) -> None:
+        """Initialize the bank with a set of transactions.
+
+        This method initializes both the bank's ledger and books with instruments.
+
+        Importantly, the ledger is closed so we start from a fresh financial period.
+        """
+        transactions = transactions if transactions else []
+        for transaction in transactions:
+            self.process_transaction(transaction)
+        # Close the ledger so we start from a fresh financial period
+        self.ledger.close_ledger(date=None)
 
     def valuation(self, scenario: "Scenario") -> None:
         """Perform valuation on banking and trading book instruments."""
@@ -47,3 +64,35 @@ class Bank:
     def undo_last_transaction(self) -> None:
         """Asks Accountant to reverse last transaction."""
         self.accountant.undo_last_transaction()
+
+
+if __name__ == "__main__":
+    import datetime
+
+    from brms.accounting.report import Report
+    from brms.accounting.statement_viewer import HTMLStatementViewer
+    from brms.instruments.common_equity import CommonEquity
+    from brms.instruments.deposit import Deposit
+    from brms.models.transaction import DepositTransaction, EquityIssuanceTransaction, InterestPaidOnDepositTransaction
+
+    viewer = HTMLStatementViewer(console=True, hide_zero_balance_accounts=True)
+
+    bank = Bank()
+    today = datetime.date(2024, 12, 31)
+
+    customer_A_deposit = Deposit(value=60_000)
+    customer_B_deposit = Deposit(value=40_000)
+    customer_C_deposit = Deposit(value=20_000)
+
+    transactions = [
+        EquityIssuanceTransaction(bank, CommonEquity(value=1_000_000), today),
+        DepositTransaction(bank, customer_A_deposit, today, description="Customer A's deposit"),
+        DepositTransaction(bank, customer_B_deposit, today, description="Customer B's deposit"),
+        DepositTransaction(bank, customer_C_deposit, today, description="Customer C's deposit"),
+        InterestPaidOnDepositTransaction(bank, 10000, today),
+    ]
+    bank.initialize_from_transactions(transactions)
+
+    report = Report(ledger=bank.ledger, viewer=viewer, date=today)
+    report.print_income_statement()
+    report.print_balance_sheet()
