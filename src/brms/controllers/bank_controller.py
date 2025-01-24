@@ -1,5 +1,3 @@
-import datetime
-
 from PySide6.QtCore import Signal
 
 from brms.accounting.report import Report
@@ -105,18 +103,23 @@ class BankController(BRMSController):
 
         from brms.instruments.common_equity import CommonEquity
         from brms.instruments.deposit import Deposit
-        from brms.models.transaction import (
-            DepositTransaction,
-            EquityIssuanceTransaction,
-            InterestPaidOnDepositTransaction,
-        )
+        from brms.models.transaction import TransactionFactory, TransactionType
 
         today = datetime.date(2025, 1, 1)
 
         transactions = [
-            EquityIssuanceTransaction(self.bank, CommonEquity(value=1_000_000), today),
-            DepositTransaction(self.bank, Deposit(value=50_000), today, description="Customer A's deposit"),
-            InterestPaidOnDepositTransaction(self.bank, 10000, today),
+            TransactionFactory.create_transaction(
+                bank=self.bank,
+                transaction_type=TransactionType.EQUITY_ISSUANCE,
+                instrument=CommonEquity(value=1_000_000),
+                transaction_date=today,
+            ),
+            TransactionFactory.create_transaction(
+                bank=self.bank,
+                transaction_type=TransactionType.EQUITY_ISSUANCE,
+                instrument=Deposit(value=5_000_000),
+                transaction_date=today,
+            ),
         ]
         self.initialize_bank_from_transactions(transactions)
         self.update_statement()
@@ -126,7 +129,7 @@ class BankController(BRMSController):
 
         from brms.instruments.base import BookType, CreditRating, Issuer, IssuerType
         from brms.instruments.fixed_rate_bond import FixedRateBond
-        from brms.models.transaction import SecurityPurchaseHTMTransaction
+        from brms.models.transaction import TransactionFactory, TransactionType
 
         face_value = 5000.0
         coupon_rate = 0.05
@@ -146,6 +149,11 @@ class BankController(BRMSController):
             ),
         )
         bond.value = face_value
-        tx = SecurityPurchaseHTMTransaction(self.bank, bond, issue_date)
+        tx = TransactionFactory.create_transaction(
+            bank=self.bank,
+            transaction_type=TransactionType.SECURITY_PURCHASE_HTM,
+            instrument=bond,
+            transaction_date=issue_date,
+        )
         self.process_transaction(tx)
         self.update_statement()

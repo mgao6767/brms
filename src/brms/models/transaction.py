@@ -2,6 +2,7 @@ import datetime
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import ClassVar
 
 from brms.accounting.journal import CompoundEntry, JournalEntry, SimpleEntry
 from brms.instruments.base import Instrument
@@ -45,6 +46,7 @@ class TransactionType(Enum):
     # Securities Held-to-Maturity (HTM) & FVOCI (Banking Book)
     SECURITY_PURCHASE_HTM = auto()
     SECURITY_SALE_HTM = auto()
+    SECURITY_FVOCI_MARK_TO_MARKET = auto()
     SECURITY_PURCHASE_FVOCI = auto()
     SECURITY_SALE_FVOCI = auto()
     SECURITY_INTEREST_EARNED = auto()
@@ -58,7 +60,7 @@ class TransactionType(Enum):
     # Buying & Selling Securities
     SECURITY_PURCHASE_TRADING = auto()
     SECURITY_SALE_TRADING = auto()
-    SECURITY_MARK_TO_MARKET = auto()
+    SECURITY_FVTPL_MARK_TO_MARKET = auto()
     SECURITY_DIVIDEND_RECEIVED = auto()
 
     # Derivatives Transactions
@@ -124,6 +126,7 @@ class Transaction(ABC):
     transaction_type: TransactionType
     description: str = ""
     transaction_date: datetime.date | None = None
+    valuation_visitor: ValuationVisitor | None = None  # used by mark to market transactions
 
     @abstractmethod
     def execute(self) -> None:
@@ -152,15 +155,65 @@ class Transaction(ABC):
         raise NotImplementedError
 
 
+class TransactionFactory:
+    """Factory class to create transaction instances dynamically."""
+
+    _registry: ClassVar[dict[TransactionType, type[Transaction]]] = {}
+
+    @classmethod
+    def register_transaction(cls, transaction_type: TransactionType, transaction_cls: type[Transaction]) -> None:
+        """Register a transaction type with its corresponding class."""
+        cls._registry[transaction_type] = transaction_cls
+
+    @classmethod
+    def create_transaction(
+        cls,
+        *,
+        bank: Bank,
+        transaction_type: TransactionType,
+        instrument: Instrument,
+        transaction_value: float | None = None,
+        valuation_visitor: ValuationVisitor | None = None,
+        description: str = "",
+        transaction_date: datetime.date | None = None,
+    ) -> Transaction:
+        """Create transaction instances dynamically."""
+        transaction_cls = cls._registry.get(transaction_type)
+        if not transaction_cls:
+            error_message = f"Transaction type {transaction_type} is not registered."
+            raise ValueError(error_message)
+
+        # Marking to market transactions must have a valuation visitor
+        if (
+            transaction_type
+            in (TransactionType.SECURITY_FVOCI_MARK_TO_MARKET, TransactionType.SECURITY_FVTPL_MARK_TO_MARKET)
+            and valuation_visitor is None
+        ):
+            error_message = f"ValuationVisitor must be provided for transaction type {transaction_type}."
+            raise ValueError(error_message)
+
+        return transaction_cls(
+            bank=bank,
+            instrument=instrument,
+            value=instrument.value if transaction_value is None else transaction_value,
+            transaction_type=transaction_type,
+            valuation_visitor=valuation_visitor,
+            description=description,
+            transaction_date=transaction_date,
+        )
+
+
 class EquityIssuanceTransaction(Transaction):
     """Class representing an equity issuance transaction."""
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: CommonEquity,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
         self.cash_to_add = Cash(value=instrument.value)
         super().__init__(
@@ -214,10 +267,12 @@ class DepositTransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Deposit,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
         self.cash_to_add = Cash(value=instrument.value)
         super().__init__(
@@ -271,10 +326,12 @@ class DepositWithdrawTransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Deposit,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
         self.cash_to_pay = Cash(value=instrument.value)
         super().__init__(
@@ -326,12 +383,20 @@ class DepositWithdrawTransaction(Transaction):
 class InterestPaidOnDepositTransaction(Transaction):
     """Class representing an interest paid on deposit transaction."""
 
-    def __init__(self, bank: Bank, value: float, date: datetime.date | None = None, description: str = "") -> None:
-        self.cash_to_pay = Cash(value=value)
+    def __init__(
+        self,
+        *,
+        bank: Bank,
+        instrument: Cash,
+        date: datetime.date | None = None,
+        description: str = "",
+        **kwargs,
+    ) -> None:
+        self.cash_to_pay = instrument
         super().__init__(
             bank=bank,
             instrument=self.cash_to_pay,
-            value=value,
+            value=self.cash_to_pay.value,
             transaction_type=TransactionType.INTEREST_PAID_ON_DEPOSIT,
             transaction_date=date,
             description=description,
@@ -376,10 +441,12 @@ class LoanDisbursementTransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Instrument,  # TODO: specify all instrument types that can be a loan?
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
         self.cash_to_disburse = Cash(value=instrument.value)
         super().__init__(
@@ -427,10 +494,12 @@ class LoanRepaymentTransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Instrument,  # TODO: specify all instrument types that can be a loan?
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
         self.cash_to_receive = Cash(value=instrument.value)
         super().__init__(
@@ -478,16 +547,18 @@ class LoanInterestPaymentTransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
-        value: float,
+        instrument: Cash,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
-        self.cash_to_receive = Cash(value=value)
+        self.cash_to_receive = instrument
         super().__init__(
             bank=bank,
             instrument=self.cash_to_receive,
-            value=value,
+            value=self.cash_to_receive.value,
             transaction_type=TransactionType.LOAN_INTEREST_PAYMENT,
             transaction_date=date,
             description=description,
@@ -527,10 +598,12 @@ class SecurityPurchaseHTMTransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Instrument,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
         self.cash_to_pay = Cash(value=instrument.value)
         super().__init__(
@@ -588,10 +661,12 @@ class SecuritySaleHTMTransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Instrument,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
         self.cash_to_receive = Cash(value=instrument.value)
         super().__init__(
@@ -639,10 +714,12 @@ class SecurityPurchaseFVOCITransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Instrument,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
         self.cash_to_pay = Cash(value=instrument.value)
         super().__init__(
@@ -692,10 +769,12 @@ class SecuritySaleFVOCITransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Instrument,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
         self.cash_to_receive = Cash(value=instrument.value)
         self.old_unrealized_oci_gain = 0.0
@@ -807,10 +886,12 @@ class SecurityPurchaseFVTPLTransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Instrument,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
         self.cash_to_pay = Cash(value=instrument.value)
         super().__init__(
@@ -860,10 +941,12 @@ class SecuritySaleFVTPLTransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Instrument,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
         self.cash_to_receive = Cash(value=instrument.value)
         self.tracker = bank.trading_book.unrealized_pnl_tracker
@@ -970,13 +1053,14 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Instrument,
         valuation_visitor: ValuationVisitor,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
-        self.valuation_visitor = valuation_visitor
         self.old_value = instrument.value
         self.new_value = instrument.value  # will be set to new value after execution
         self.tracker = bank.trading_book.unrealized_pnl_tracker
@@ -988,12 +1072,16 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
             bank=bank,
             instrument=instrument,
             value=instrument.value,  # no effect
-            transaction_type=TransactionType.SECURITY_MARK_TO_MARKET,
+            transaction_type=TransactionType.SECURITY_FVTPL_MARK_TO_MARKET,
             transaction_date=date,
             description=description,
+            valuation_visitor=valuation_visitor,
         )
 
     def execute(self) -> None:
+        if not isinstance(self.valuation_visitor, ValuationVisitor):
+            error = "ValuationVisitor not set"
+            raise TypeError(error)
         self.instrument.accept(self.valuation_visitor)
         self.new_value = self.instrument.value
         if (pnl_this_period := self.new_value - self.old_value) >= 0:
@@ -1056,13 +1144,14 @@ class SecurityMarkToMarketFVOCITransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
         instrument: Instrument,
         valuation_visitor: ValuationVisitor,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
-        self.valuation_visitor = valuation_visitor
         self.old_value = instrument.value
         self.new_value = instrument.value  # will be set to new value after execution
         self.tracker = bank.banking_book.unrealized_oci_tracker
@@ -1074,12 +1163,16 @@ class SecurityMarkToMarketFVOCITransaction(Transaction):
             bank=bank,
             instrument=instrument,
             value=instrument.value,  # no effect
-            transaction_type=TransactionType.SECURITY_MARK_TO_MARKET,
+            transaction_type=TransactionType.SECURITY_FVOCI_MARK_TO_MARKET,
             transaction_date=date,
             description=description,
+            valuation_visitor=valuation_visitor,
         )
 
     def execute(self) -> None:
+        if not isinstance(self.valuation_visitor, ValuationVisitor):
+            error = "ValuationVisitor not set"
+            raise TypeError(error)
         self.instrument.accept(self.valuation_visitor)
         self.new_value = self.instrument.value
         if (pnl_this_period := self.new_value - self.old_value) >= 0:
@@ -1142,16 +1235,18 @@ class SecurityInterestEarnedTransaction(Transaction):
 
     def __init__(
         self,
+        *,
         bank: Bank,
-        value: float,
+        instrument: Cash,
         date: datetime.date | None = None,
         description: str = "",
+        **kwargs,
     ) -> None:
-        self.cash_to_receive = Cash(value=value)
+        self.cash_to_receive = instrument
         super().__init__(
             bank=bank,
             instrument=self.cash_to_receive,
-            value=value,
+            value=self.cash_to_receive.value,
             transaction_type=TransactionType.SECURITY_INTEREST_EARNED,
             transaction_date=date,
             description=description,
@@ -1184,3 +1279,24 @@ class SecurityInterestEarnedTransaction(Transaction):
             date=self.transaction_date,
             description=self.description,
         )
+
+
+# Register all transaction classes in the factory
+# fmt: off
+TransactionFactory.register_transaction(TransactionType.EQUITY_ISSUANCE, EquityIssuanceTransaction)
+TransactionFactory.register_transaction(TransactionType.DEPOSIT_RECEIVED, DepositTransaction)
+TransactionFactory.register_transaction(TransactionType.DEPOSIT_WITHDRAWAL, DepositWithdrawTransaction)
+TransactionFactory.register_transaction(TransactionType.INTEREST_PAID_ON_DEPOSIT, InterestPaidOnDepositTransaction)
+TransactionFactory.register_transaction(TransactionType.LOAN_DISBURSEMENT, LoanDisbursementTransaction)
+TransactionFactory.register_transaction(TransactionType.LOAN_REPAYMENT, LoanRepaymentTransaction)
+TransactionFactory.register_transaction(TransactionType.LOAN_INTEREST_PAYMENT, LoanInterestPaymentTransaction)
+TransactionFactory.register_transaction(TransactionType.SECURITY_PURCHASE_HTM, SecurityPurchaseHTMTransaction)
+TransactionFactory.register_transaction(TransactionType.SECURITY_SALE_HTM, SecuritySaleHTMTransaction)
+TransactionFactory.register_transaction(TransactionType.SECURITY_PURCHASE_FVOCI, SecurityPurchaseFVOCITransaction)
+TransactionFactory.register_transaction(TransactionType.SECURITY_SALE_FVOCI, SecuritySaleFVOCITransaction)
+TransactionFactory.register_transaction(TransactionType.SECURITY_PURCHASE_TRADING, SecurityPurchaseFVTPLTransaction)
+TransactionFactory.register_transaction(TransactionType.SECURITY_SALE_TRADING, SecuritySaleFVTPLTransaction)
+TransactionFactory.register_transaction(TransactionType.SECURITY_FVTPL_MARK_TO_MARKET, SecurityMarkToMarketFVTPLTransaction)
+TransactionFactory.register_transaction(TransactionType.SECURITY_FVOCI_MARK_TO_MARKET, SecurityMarkToMarketFVOCITransaction)
+TransactionFactory.register_transaction(TransactionType.SECURITY_INTEREST_EARNED, SecurityInterestEarnedTransaction)
+# fmt: on
