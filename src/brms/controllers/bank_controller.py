@@ -87,9 +87,9 @@ class BankController(BRMSController):
                 case (Action.REMOVE, BookType.TRADING_BOOK, _):
                     self.trading_book_ctrl.remove_instrument(instrument, position)
                 case (Action.UPDATE, BookType.BANKING_BOOK, _):
-                    raise NotImplementedError
+                    self.banking_book_ctrl.update_instrument(instrument, position)
                 case (Action.UPDATE, BookType.TRADING_BOOK, _):
-                    raise NotImplementedError
+                    self.trading_book_ctrl.update_instrument(instrument, position)
 
     def update_statement(self) -> None:
         report = Report(

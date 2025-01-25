@@ -46,10 +46,16 @@ class ScenarioManager:
 
     def __init__(self) -> None:
         """Initialize the ScenarioManager with an empty dictionary of scenarios."""
+        self.current_scenario: Scenario
         self.scenarios: dict[datetime.date, Scenario] = {}
+        self.available_dates: list[datetime.date] = []
         # `self.data` contains all _raw_ data loaded, i.e., for all dates (scenarios).
         # When a particular scenario is requested, we build it from the data if the scenario is not yet cached.
         self._data: dict[ScenarioData, Any] = {}
+
+    def has_scenario(self, date: datetime.date) -> bool:
+        """Check if a scenario exists for a given date."""
+        return date in self.available_dates
 
     def clear_scenarios(self) -> None:
         """Clear all scenarios."""
@@ -61,6 +67,7 @@ class ScenarioManager:
 
     def get_scenario(self, date: datetime.date) -> Scenario:
         """Retrieve a scenario by date."""
+        assert self.has_scenario(date)
         scenario = self.scenarios.get(date)
         # Build scenario if not yet in the cache
         if scenario is None:
@@ -81,7 +88,15 @@ class ScenarioManager:
         """Load data using DataLoader and build scenarios."""
         data_loader = DataLoaderFactory.get_loader(source_type, source_path)
         self._data = data_loader.load()
+        self.available_dates = self.get_available_dates()
 
     def get_treasury_yields(self) -> pd.DataFrame:
         """Retrieve the raw treasury yields data as a DataFrame."""
         return self._data.get(ScenarioData.TREASURY_YIELDS, pd.DataFrame)
+
+    def get_available_dates(self) -> list[datetime.date]:
+        """Extract all dates from the treasury yields DataFrame."""
+        yield_df = self._data.get(ScenarioData.TREASURY_YIELDS, pd.DataFrame())
+        if yield_df.empty:
+            return []
+        return yield_df["date"].dt.date.to_list()

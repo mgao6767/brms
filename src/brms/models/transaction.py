@@ -1175,6 +1175,11 @@ class SecurityMarkToMarketFVOCITransaction(Transaction):
             valuation_visitor=valuation_visitor,
         )
 
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.instrument: (Action.UPDATE, BookType.BANKING_BOOK, Position.LONG),
+        }
+
     def execute(self) -> None:
         if not isinstance(self.valuation_visitor, ValuationVisitor):
             error = "ValuationVisitor not set"

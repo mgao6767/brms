@@ -7,7 +7,7 @@ from enum import Enum, Flag, auto
 from typing import Optional
 
 from brms.instruments.visitors.base import Visitor
-from brms.models.base import BookType
+from brms.models.base import BookType, InstrumentClass
 
 
 class Instrument(ABC):
@@ -20,6 +20,7 @@ class Instrument(ABC):
         credit_rating: Optional["CreditRating"] = None,
         issuer: Optional["Issuer"] = None,
         parent: Optional["Instrument"] = None,
+        instrument_class: Optional["InstrumentClass"] = None,
     ) -> None:
         """Initialize a financial instrument."""
         self.id = uuid.uuid4()
@@ -29,6 +30,7 @@ class Instrument(ABC):
         self._credit_rating = credit_rating or CreditRating.UNRATED
         self._book_type = book_type or BookType.BANKING_BOOK  # Defaults to banking book.
         self._issuer = issuer or Issuer("unknown", IssuerType.UNSPECIFIED)
+        self.instrument_class = instrument_class
 
     @property
     def parent(self) -> Optional["Instrument"]:

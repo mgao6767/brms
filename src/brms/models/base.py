@@ -13,6 +13,13 @@ class BookType(Enum):
     TRADING_BOOK = "Trading Book"
 
 
+class InstrumentClass(Enum):
+    HTM = "Held to Maturity"
+    FVOCI = "Fair Value Through Other Comprehensive Income"
+    FVTPL = "Fair Value Through Profit and Loss"
+    NA = "N/A"
+
+
 class BalanceSheetCategory(Enum):
     """Enumeration for the category of the balance sheet an instrument is on."""
 
