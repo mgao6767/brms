@@ -17,6 +17,7 @@ class FixedRateBond(Instrument):
     # TODO: book_type, etc. for Instrument's init
     def __init__(
         self,
+        *,
         face_value: float,
         coupon_rate: float,
         issue_date: ql.Date,
