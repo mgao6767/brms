@@ -1,5 +1,6 @@
 """Contain valuation visitor classes for banking and trading books."""
 
+import datetime
 from abc import abstractmethod
 from functools import wraps
 from typing import TYPE_CHECKING, Union
@@ -8,7 +9,7 @@ import QuantLib as ql  # noqa: N813
 
 from brms.instruments.base import BookType
 from brms.instruments.visitors import Visitor
-from brms.models.base import InstrumentClass, ScenarioData
+from brms.models.base import InstrumentClass
 from brms.models.scenario import ScenarioMetric
 from brms.utils import pydate_to_qldate
 
@@ -21,15 +22,28 @@ if TYPE_CHECKING:
     from brms.instruments.deposit import Deposit
     from brms.instruments.fixed_rate_bond import FixedRateBond
     from brms.instruments.personal_loan import PersonalLoan
-    from brms.models.scenario import Scenario
+    from brms.models.scenario import ScenarioManager
 
 
 class ValuationVisitor(Visitor):
     """Abstract base class for valuation visitors."""
 
-    def __init__(self, scenario: "Scenario") -> None:
-        """Initialize the ValuationVisitor with a scenario."""
-        self.scenario = scenario
+    def __init__(self, scenario_manager: "ScenarioManager", *, valuation_date: datetime.date | None = None) -> None:
+        """Initialize the ValuationVisitor with a scenario manager and an optional valuation date."""
+        self.valuation_date = valuation_date
+        self.scenario_manager = scenario_manager
+        self.term_structure_handle = ql.RelinkableYieldTermStructureHandle()
+        self.bond_engine = ql.DiscountingBondEngine(self.term_structure_handle)
+        if self.valuation_date is not None:
+            self.set_date(self.valuation_date)
+
+    def set_date(self, date: datetime.date) -> None:
+        """Set the date for the valuation and update the term structure."""
+        # Relink term structure so that the bond pricing engine can automatically update all bonds
+        self.valuation_date = date
+        scenario = self.scenario_manager.get_scenario(date)
+        term_structure = scenario.data.get(ScenarioMetric.YIELD_TERM_STRUCTURE)
+        self.term_structure_handle.linkTo(term_structure)
 
     def visit_cash(self, instrument: "Cash") -> None:
         """Value cash."""
@@ -61,14 +75,12 @@ class ValuationVisitor(Visitor):
         """Value a credit card."""
 
     def _value_fair_value_security(self, instrument: Union["FixedRateBond", "AmortizingFixedRateLoan"]) -> float:
-        valuation_date = self.scenario.date
-
-        term_structure = self.scenario.data[ScenarioMetric.YIELD_TERM_STRUCTURE]
-        bond_engine = ql.DiscountingBondEngine(ql.YieldTermStructureHandle(term_structure))
-        instrument.set_pricing_engine(bond_engine)
+        if self.valuation_date is None:
+            raise ValueError("Valuation date must be set before valuation.")
+        instrument.set_pricing_engine(self.bond_engine)
         # Just being cautious, restore previous evaluation date afterwards
         old_evaluation_date = ql.Settings.instance().evaluationDate
-        ql.Settings.instance().evaluationDate = pydate_to_qldate(valuation_date)
+        ql.Settings.instance().evaluationDate = pydate_to_qldate(self.valuation_date)
         npv = instrument.instrument.NPV()
         ql.Settings.instance().evaluationDate = old_evaluation_date
         return npv
@@ -90,18 +102,22 @@ class BankingBookValuationVisitor(ValuationVisitor):
     @banking_book_only
     def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> None:
         """Value a fixed rate bond."""
-        valuation_date = self.scenario.date
+        assert self.valuation_date is not None
         match instrument.instrument_class:
             case InstrumentClass.HTM:
-                instrument.value = instrument.notional(valuation_date)
+                instrument.value = instrument.notional(self.valuation_date)
             case InstrumentClass.FVOCI | InstrumentClass.FVTPL:
                 instrument.value = self._value_fair_value_security(instrument)
 
     @banking_book_only
     def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> None:
         """Value an amortizing fixed rate bond."""
-        valuation_date = self.scenario.date
-        instrument.value = instrument.notional(valuation_date)
+        assert self.valuation_date is not None
+        match instrument.instrument_class:
+            case InstrumentClass.HTM:
+                instrument.value = instrument.notional(self.valuation_date)
+            case InstrumentClass.FVOCI | InstrumentClass.FVTPL:
+                instrument.value = self._value_fair_value_security(instrument)
 
     @banking_book_only
     def visit_covered_bond(self, instrument: "CoveredBond") -> None:
