@@ -1088,6 +1088,7 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
         if not isinstance(self.valuation_visitor, ValuationVisitor):
             error = "ValuationVisitor not set"
             raise TypeError(error)
+        self.old_value = self.instrument.value
         self.instrument.accept(self.valuation_visitor)
         self.new_value = self.instrument.value
         if (pnl_this_period := self.new_value - self.old_value) >= 0:
@@ -1184,6 +1185,7 @@ class SecurityMarkToMarketFVOCITransaction(Transaction):
         if not isinstance(self.valuation_visitor, ValuationVisitor):
             error = "ValuationVisitor not set"
             raise TypeError(error)
+        self.old_value = self.instrument.value
         self.instrument.accept(self.valuation_visitor)
         self.new_value = self.instrument.value
         if (pnl_this_period := self.new_value - self.old_value) >= 0:
