@@ -30,7 +30,7 @@ class Instrument(ABC):
         self._credit_rating = credit_rating or CreditRating.UNRATED
         self._book_type = book_type or BookType.BANKING_BOOK  # Defaults to banking book.
         self._issuer = issuer or Issuer("unknown", IssuerType.UNSPECIFIED)
-        self.instrument_class = instrument_class
+        self.instrument_class = instrument_class or InstrumentClass.NA
 
     @property
     def parent(self) -> Optional["Instrument"]:

@@ -35,6 +35,7 @@ class InspectionVisitor(Visitor):
             "Name": instrument.name,
             "Book Type": None if instrument.book_type is None else instrument.book_type.value,
             "Credit Rating": instrument.credit_rating.to_str(),
+            "Class": instrument.instrument_class.value,
             "Issuer": {
                 "Name": instrument.issuer.name,
                 "Issuer Type": instrument.issuer.issuer_type.to_str(),
