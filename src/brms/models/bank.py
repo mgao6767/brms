@@ -5,12 +5,10 @@ from typing import TYPE_CHECKING
 from brms.accounting.account import AccountBalances, BankChartOfAccounts
 from brms.accounting.ledger import Ledger
 from brms.instruments.cash import Cash
-from brms.instruments.visitors.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
 from brms.models.accountant import Accountant
 from brms.models.bank_book import BankingBook, Position, TradingBook
 
 if TYPE_CHECKING:
-    from brms.models.scenario import Scenario
     from brms.models.transaction import Transaction
 
 
@@ -50,12 +48,7 @@ class Bank:
         for transaction in transactions:
             self.process_transaction(transaction)
         # Close the ledger so we start from a fresh financial period
-        self.ledger.close_ledger(date=None)
-
-    def valuation(self, scenario: "Scenario") -> None:
-        """Perform valuation on banking and trading book instruments."""
-        self.banking_book.accept(BankingBookValuationVisitor(scenario))
-        self.trading_book.accept(TradingBookValuationVisitor(scenario))
+        # self.ledger.close_ledger(date=None)
 
     def process_transaction(self, transaction: "Transaction") -> None:
         """Ask the accountant to process the transaction."""
@@ -64,35 +57,3 @@ class Bank:
     def undo_last_transaction(self) -> None:
         """Asks Accountant to reverse last transaction."""
         self.accountant.undo_last_transaction()
-
-
-if __name__ == "__main__":
-    import datetime
-
-    from brms.accounting.report import Report
-    from brms.accounting.statement_viewer import HTMLStatementViewer
-    from brms.instruments.common_equity import CommonEquity
-    from brms.instruments.deposit import Deposit
-    from brms.models.transaction import DepositTransaction, EquityIssuanceTransaction, InterestPaidOnDepositTransaction
-
-    viewer = HTMLStatementViewer(console=True, hide_zero_balance_accounts=True)
-
-    bank = Bank()
-    today = datetime.date(2024, 12, 31)
-
-    customer_A_deposit = Deposit(value=60_000)
-    customer_B_deposit = Deposit(value=40_000)
-    customer_C_deposit = Deposit(value=20_000)
-
-    transactions = [
-        EquityIssuanceTransaction(bank, CommonEquity(value=1_000_000), today),
-        DepositTransaction(bank, customer_A_deposit, today, description="Customer A's deposit"),
-        DepositTransaction(bank, customer_B_deposit, today, description="Customer B's deposit"),
-        DepositTransaction(bank, customer_C_deposit, today, description="Customer C's deposit"),
-        InterestPaidOnDepositTransaction(bank, 10000, today),
-    ]
-    bank.initialize_from_transactions(transactions)
-
-    report = Report(ledger=bank.ledger, viewer=viewer, date=today)
-    report.print_income_statement()
-    report.print_balance_sheet()

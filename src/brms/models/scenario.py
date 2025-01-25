@@ -57,6 +57,13 @@ class ScenarioManager:
         """Check if a scenario exists for a given date."""
         return date in self.available_dates
 
+    def set_scenario(self, date: datetime.date) -> None:
+        scenario = self.get_scenario(date)
+        if not scenario:
+            error_message = f"No scenario found for date: {date}"
+            raise ValueError(error_message)
+        self.current_scenario = scenario
+
     def clear_scenarios(self) -> None:
         """Clear all scenarios."""
         self.scenarios.clear()

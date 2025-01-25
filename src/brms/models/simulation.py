@@ -16,11 +16,7 @@ class Simulation:
 
     def set_scenario(self, date: datetime.date) -> None:
         """Set the current scenario for the simulation."""
-        scenario = self.scenario_manager.get_scenario(date)
-        if not scenario:
-            error_message = f"No scenario found for date: {date}"
-            raise ValueError(error_message)
-        self.scenario_manager.current_scenario = scenario
+        self.scenario_manager.set_scenario(date)
 
     def reset(self) -> None:
         """Reset the simulation state."""

@@ -82,8 +82,7 @@ class MainController(BRMSController):
         """
         # Pass the new scenario to controllers orderly
         self.yield_curve_ctrl.set_scenario(scenario)
-        # After init, should run valuation...
-        self.bank_ctrl.bank.valuation(scenario=scenario)  # need method
+        # TODO: transactions
         self.bank_ctrl.update_statement()
 
     # ====================================================================
