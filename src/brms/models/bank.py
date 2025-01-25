@@ -50,9 +50,9 @@ class Bank:
         # Close the ledger so we start from a fresh financial period
         # self.ledger.close_ledger(date=None)
 
-    def process_transaction(self, transaction: "Transaction") -> None:
+    def process_transaction(self, transaction: "Transaction") -> bool:
         """Ask the accountant to process the transaction."""
-        self.accountant.process_transaction(transaction)
+        return self.accountant.process_transaction(transaction)
 
     def undo_last_transaction(self) -> None:
         """Asks Accountant to reverse last transaction."""

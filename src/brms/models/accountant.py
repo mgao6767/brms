@@ -17,10 +17,12 @@ class Accountant:
         self.ledger = ledger
         self.history: list[Transaction] = []
 
-    def process_transaction(self, transaction: "Transaction") -> None:
+    def process_transaction(self, transaction: "Transaction") -> bool:
         """Execute the transaction and records it in history."""
-        transaction.execute()
-        self.history.append(transaction)
+        executed = transaction.execute()
+        if executed:
+            self.history.append(transaction)
+        return executed
 
     def undo_last_transaction(self) -> None:
         """Reverse the last transaction."""

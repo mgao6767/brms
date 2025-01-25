@@ -1,15 +1,16 @@
 import datetime
+import random
 
 from dateutil.relativedelta import relativedelta
 
-from brms.instruments.base import CreditRating, Issuer, IssuerType, InstrumentClass
+from brms.instruments.base import InstrumentClass
 from brms.instruments.factory import InstrumentFactory
 from brms.instruments.visitors.valuation import BankingBookValuationVisitor
 from brms.models.bank import Bank
-from brms.models.base import BookType
 from brms.models.scenario import ScenarioManager
 from brms.models.transaction import Transaction, TransactionFactory, TransactionType
-from brms.instruments.factory import InstrumentFactory
+
+random.seed(42)
 
 base_date = datetime.date(2021, 10, 21)
 
@@ -46,7 +47,7 @@ def create_bank_init_transactions(bank: Bank, scenario_manager: ScenarioManager)
         maturity_date=datetime.date(2030, 1, 1),
         instrument_class=InstrumentClass.HTM,
     )
-    tn.accept(BankingBookValuationVisitor(scenario_manager.get_scenario(today)))
+    tn.accept(BankingBookValuationVisitor(scenario_manager, valuation_date=today))
     tx = TransactionFactory.create_transaction(
         bank=bank,
         transaction_type=TransactionType.SECURITY_PURCHASE_HTM,
@@ -59,15 +60,15 @@ def create_bank_init_transactions(bank: Bank, scenario_manager: ScenarioManager)
     # FVOCI banking book security, a Treasury Note
     fvoci_securities = []
 
-    for i in range(1, 12):
+    for i in range(10):
         tn_fvoci = InstrumentFactory.create_treasury_note(
-            face_value=10000.0,
-            coupon_rate=0.0125 * i,
-            issue_date=datetime.date(2020, i, 1),
-            maturity_date=datetime.date(2025, i, 1),
+            face_value=100_000.0,
+            coupon_rate=0.0125 * random.randint(1, 5),
+            issue_date=datetime.date(2020, 1, 1),
+            maturity_date=datetime.date(2020, 1, 1) + relativedelta(years=random.choice([2, 3, 5, 7, 10])),
             instrument_class=InstrumentClass.FVOCI,
         )
-        tn_fvoci.accept(BankingBookValuationVisitor(scenario_manager.get_scenario(today)))
+        tn_fvoci.accept(BankingBookValuationVisitor(scenario_manager, valuation_date=today))
         tx = TransactionFactory.create_transaction(
             bank=bank,
             transaction_type=TransactionType.SECURITY_PURCHASE_FVOCI,
@@ -79,20 +80,32 @@ def create_bank_init_transactions(bank: Bank, scenario_manager: ScenarioManager)
         transactions.append(tx)
 
     # Marking to market
-    current_date = today
+    current_date = today + relativedelta(days=1)
     end_date = scenario_manager.current_scenario.date
 
+    visitor = BankingBookValuationVisitor(scenario_manager)
     while current_date <= end_date:
         if scenario_manager.has_scenario(current_date):
-            visitor = BankingBookValuationVisitor(scenario_manager.get_scenario(current_date))
+            matured = [sec for sec in fvoci_securities if sec.maturity_date <= current_date]
+            for sec in matured:
+                tx = TransactionFactory.create_transaction(
+                    bank=bank,
+                    transaction_type=TransactionType.SECURITY_SALE_FVOCI,
+                    instrument=sec,
+                    transaction_date=current_date,  # or last day before maturity
+                    description="Sell banking book security FVOCI",
+                )
+                transactions.append(tx)
+
+            fvoci_securities = [sec for sec in fvoci_securities if sec not in matured]
             for fvoci_security in fvoci_securities:
                 tx = TransactionFactory.create_transaction(
                     bank=bank,
                     transaction_type=TransactionType.SECURITY_FVOCI_MARK_TO_MARKET,
                     instrument=fvoci_security,
-                    transaction_date=today,
+                    transaction_date=current_date,
                     valuation_visitor=visitor,
-                    description="Purchase banking book security FVOCI",
+                    description="Mark to market banking book security FVOCI",
                 )
                 transactions.append(tx)
         current_date += relativedelta(days=1)

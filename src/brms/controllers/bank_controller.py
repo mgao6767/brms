@@ -70,9 +70,9 @@ class BankController(BRMSController):
     def process_transaction(self, transaction: Transaction) -> None:
         """Process a transaction and emit signal."""
         # Let the bank (model) process the transaction
-        self.bank.process_transaction(transaction)
-        # Then emit the signal so that this controller can update related views
-        self.transaction_processed.emit(transaction)
+        if self.bank.process_transaction(transaction):
+            # Then emit the signal so that this controller can update related views
+            self.transaction_processed.emit(transaction)
 
     def update_views(self, tx: Transaction) -> None:
         """Update the views based on the given transaction."""

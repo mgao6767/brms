@@ -11,7 +11,7 @@ from brms.instruments.common_equity import CommonEquity
 from brms.instruments.deposit import Deposit
 from brms.instruments.visitors.valuation import ValuationVisitor
 from brms.models.bank import Bank
-from brms.models.bank_book import BookType, Position
+from brms.models.bank_book import BookType, Position, UnrealizedOCIGainLossTracker, UnrealizedTradingGainLossTracker
 
 
 class Action(Enum):
@@ -127,13 +127,39 @@ class Transaction(ABC):
     description: str = ""
     transaction_date: datetime.date | None = None
     valuation_visitor: ValuationVisitor | None = None  # used by mark to market transactions
+    # Whether this transaction has been executed
+    executed: bool = False
+
+    def execute(self) -> bool:
+        """Execute the transaction and post entries to the ledger.
+
+        This method checks if the transaction has already been executed. If not, it
+        executes the transaction by calling the `_execute` method and sets the
+        `executed` flag to True.
+
+        Returns:
+            bool: True if the transaction was executed, False if it was already executed.
+        """
+        if not self.executed:
+            self._execute()
+            self.executed = True
+            return True
+        return False
+
+    def undo(self) -> bool:
+        """Reverse the transaction (rollback)."""
+        if self.executed:
+            self._undo()
+            self.executed = False
+            return True
+        return False
 
     @abstractmethod
-    def execute(self) -> None:
+    def _execute(self) -> None:
         """Execute the transaction and posts entries to the ledger."""
 
     @abstractmethod
-    def undo(self) -> None:
+    def _undo(self) -> None:
         """Reverse the transaction (rollback)."""
 
     @property
@@ -142,9 +168,25 @@ class Transaction(ABC):
         """Return the journal entry for the transaction."""
 
     @property
-    @abstractmethod
     def reverse_journal_entry(self) -> JournalEntry:
         """Return the reverse journal entry to undo the transaction."""
+        journal_entry = self.journal_entry
+        if isinstance(journal_entry, SimpleEntry):
+            return SimpleEntry(
+                debit_account=journal_entry.credit_account,
+                credit_account=journal_entry.debit_account,
+                value=journal_entry.value,
+                date=journal_entry.date,
+                description=f"Reversal: {journal_entry.description}",
+            )
+        if isinstance(journal_entry, CompoundEntry):
+            return CompoundEntry(
+                debit_accounts=journal_entry.credit_accounts,
+                credit_accounts=journal_entry.debit_accounts,
+                date=journal_entry.date,
+                description=f"Reversal: {journal_entry.description}",
+            )
+        raise TypeError("Unsupported journal entry type")
 
     def controller_actions(self) -> GUIControllerInstruction:
         """Return a mapping from instruments to actions, including book type and position.
@@ -206,24 +248,8 @@ class TransactionFactory:
 class EquityIssuanceTransaction(Transaction):
     """Class representing an equity issuance transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: CommonEquity,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_add = Cash(value=instrument.value)
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,
-            transaction_type=TransactionType.EQUITY_ISSUANCE,
-            transaction_date=date,
-            description=description,
-        )
+    instrument: CommonEquity
+    cash_to_add: Cash
 
     def controller_actions(self) -> GUIControllerInstruction:
         return {
@@ -231,12 +257,13 @@ class EquityIssuanceTransaction(Transaction):
             self.instrument: (Action.ADD, BookType.BANKING_BOOK, Position.SHORT),
         }
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_add = Cash(value=self.instrument.value)
         self.bank.banking_book.add_instrument(self.cash_to_add, Position.LONG)
         self.bank.banking_book.add_instrument(self.instrument, Position.SHORT)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.remove_instrument(self.cash_to_add, Position.LONG)
         self.bank.banking_book.remove_instrument(self.instrument, Position.SHORT)
         self.bank.ledger.post(self.reverse_journal_entry)
@@ -251,38 +278,12 @@ class EquityIssuanceTransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.equity_account,
-            credit_account=self.bank.chart_of_accounts.cash_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class DepositTransaction(Transaction):
     """Class representing a deposit transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Deposit,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_add = Cash(value=instrument.value)
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,
-            transaction_type=TransactionType.DEPOSIT_RECEIVED,
-            transaction_date=date,
-            description=description,
-        )
+    instrument: Deposit
+    cash_to_add: Cash
 
     def controller_actions(self) -> GUIControllerInstruction:
         return {
@@ -290,12 +291,13 @@ class DepositTransaction(Transaction):
             self.instrument: (Action.ADD, BookType.BANKING_BOOK, Position.SHORT),
         }
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_add = Cash(value=self.instrument.value)
         self.bank.banking_book.add_instrument(self.cash_to_add, Position.LONG)
         self.bank.banking_book.add_instrument(self.instrument, Position.SHORT)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.remove_instrument(self.cash_to_add, Position.LONG)
         self.bank.banking_book.remove_instrument(self.instrument, Position.SHORT)
         self.bank.ledger.post(self.reverse_journal_entry)
@@ -310,38 +312,12 @@ class DepositTransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.customer_deposits_account,
-            credit_account=self.bank.chart_of_accounts.cash_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class DepositWithdrawTransaction(Transaction):
     """Class representing a deposit withdrawal transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Deposit,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_pay = Cash(value=instrument.value)
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,
-            transaction_type=TransactionType.DEPOSIT_WITHDRAWAL,
-            transaction_date=date,
-            description=description,
-        )
+    instrument: Deposit
+    cash_to_pay: Cash
 
     def controller_actions(self) -> GUIControllerInstruction:
         return {
@@ -349,12 +325,13 @@ class DepositWithdrawTransaction(Transaction):
             self.instrument: (Action.REMOVE, BookType.BANKING_BOOK, Position.SHORT),
         }
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_pay = Cash(value=self.instrument.value)
         self.bank.banking_book.remove_instrument(self.instrument, Position.SHORT)
         self.bank.banking_book.add_instrument(self.cash_to_pay, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.add_instrument(self.instrument, Position.SHORT)
         self.bank.banking_book.remove_instrument(self.cash_to_pay, Position.LONG)
         self.bank.ledger.post(self.reverse_journal_entry)
@@ -369,49 +346,24 @@ class DepositWithdrawTransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.cash_account,
-            credit_account=self.bank.chart_of_accounts.customer_deposits_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class InterestPaidOnDepositTransaction(Transaction):
     """Class representing an interest paid on deposit transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Cash,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_pay = instrument
-        super().__init__(
-            bank=bank,
-            instrument=self.cash_to_pay,
-            value=self.cash_to_pay.value,
-            transaction_type=TransactionType.INTEREST_PAID_ON_DEPOSIT,
-            transaction_date=date,
-            description=description,
-        )
+    instrument: Cash
+    cash_to_pay: Cash
 
     def controller_actions(self) -> GUIControllerInstruction:
         return {
             self.cash_to_pay: (Action.REMOVE, BookType.BANKING_BOOK, Position.LONG),
         }
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_pay = self.instrument
         self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
         self.bank.ledger.post(self.reverse_journal_entry)
 
@@ -425,45 +377,19 @@ class InterestPaidOnDepositTransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.cash_account,
-            credit_account=self.bank.chart_of_accounts.interest_expense_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class LoanDisbursementTransaction(Transaction):
     """Class representing a loan disbursement transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Instrument,  # TODO: specify all instrument types that can be a loan?
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_disburse = Cash(value=instrument.value)
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,
-            transaction_type=TransactionType.LOAN_DISBURSEMENT,
-            transaction_date=date,
-            description=description,
-        )
+    cash_to_disburse: Cash
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_disburse = Cash(value=self.instrument.value)
         self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.remove_instrument(self.cash_to_disburse, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.add_instrument(self.cash_to_disburse, Position.LONG)
         self.bank.ledger.post(self.reverse_journal_entry)
@@ -478,45 +404,19 @@ class LoanDisbursementTransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.cash_account,
-            credit_account=self.bank.chart_of_accounts.loan_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class LoanRepaymentTransaction(Transaction):
     """Class representing a matured loan repayment transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Instrument,  # TODO: specify all instrument types that can be a loan?
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_receive = Cash(value=instrument.value)
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,
-            transaction_type=TransactionType.LOAN_REPAYMENT,
-            transaction_date=date,
-            description=description,
-        )
+    cash_to_receive: Cash
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_receive = Cash(value=self.instrument.value)
         self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.remove_instrument(self.cash_to_receive, Position.LONG)
         self.bank.ledger.post(self.reverse_journal_entry)
@@ -531,44 +431,19 @@ class LoanRepaymentTransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.loan_account,
-            credit_account=self.bank.chart_of_accounts.cash_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class LoanInterestPaymentTransaction(Transaction):
     """Class representing a loan interest payment transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Cash,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_receive = instrument
-        super().__init__(
-            bank=bank,
-            instrument=self.cash_to_receive,
-            value=self.cash_to_receive.value,
-            transaction_type=TransactionType.LOAN_INTEREST_PAYMENT,
-            transaction_date=date,
-            description=description,
-        )
+    instrument: Cash
+    cash_to_receive: Cash
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_receive = self.instrument
         self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.remove_instrument(self.cash_to_receive, Position.LONG)
         self.bank.ledger.post(self.reverse_journal_entry)
 
@@ -582,38 +457,11 @@ class LoanInterestPaymentTransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.interest_income_account,
-            credit_account=self.bank.chart_of_accounts.cash_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class SecurityPurchaseHTMTransaction(Transaction):
     """Class representing a security purchase held-to-maturity (HTM) transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Instrument,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_pay = Cash(value=instrument.value)
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,
-            transaction_type=TransactionType.SECURITY_PURCHASE_HTM,
-            transaction_date=date,
-            description=description,
-        )
+    cash_to_pay: Cash
 
     def controller_actions(self) -> GUIControllerInstruction:
         return {
@@ -621,12 +469,13 @@ class SecurityPurchaseHTMTransaction(Transaction):
             self.instrument: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
         }
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_pay = Cash(value=self.instrument.value)
         self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.remove_instrument(self.cash_to_pay, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.add_instrument(self.cash_to_pay, Position.LONG)
         self.bank.ledger.post(self.reverse_journal_entry)
@@ -641,16 +490,6 @@ class SecurityPurchaseHTMTransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.cash_account,
-            credit_account=self.bank.chart_of_accounts.investment_htm_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class SecuritySaleHTMTransaction(Transaction):
     """Class representing a security sale held-to-maturity (HTM) transaction.
@@ -659,31 +498,15 @@ class SecuritySaleHTMTransaction(Transaction):
     This should be interpreted as the HTM security matures and removed from banking book.
     """
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Instrument,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_receive = Cash(value=instrument.value)
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,
-            transaction_type=TransactionType.SECURITY_SALE_HTM,
-            transaction_date=date,
-            description=description,
-        )
+    cash_to_receive: Cash
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_receive = Cash(value=self.instrument.value)
         self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.remove_instrument(self.cash_to_receive, Position.LONG)
         self.bank.ledger.post(self.reverse_journal_entry)
@@ -698,38 +521,11 @@ class SecuritySaleHTMTransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.investment_htm_account,
-            credit_account=self.bank.chart_of_accounts.cash_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class SecurityPurchaseFVOCITransaction(Transaction):
     """Class representing a security purchase FVOCI (Fair Value through Other Comprehensive Income) transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Instrument,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_pay = Cash(value=instrument.value)
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,
-            transaction_type=TransactionType.SECURITY_PURCHASE_FVOCI,
-            transaction_date=date,
-            description=description,
-        )
+    cash_to_pay: Cash
 
     def controller_actions(self) -> GUIControllerInstruction:
         return {
@@ -737,13 +533,14 @@ class SecurityPurchaseFVOCITransaction(Transaction):
             self.instrument: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
         }
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_pay = Cash(value=self.instrument.value)
         self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.remove_instrument(self.cash_to_pay, Position.LONG)
         self.bank.banking_book.unrealized_oci_tracker.add_instrument(self.instrument)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.add_instrument(self.cash_to_pay, Position.LONG)
         self.bank.banking_book.unrealized_oci_tracker.remove_instrument(self.instrument)
@@ -759,41 +556,14 @@ class SecurityPurchaseFVOCITransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.cash_account,
-            credit_account=self.bank.chart_of_accounts.investment_fvoci_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class SecuritySaleFVOCITransaction(Transaction):
     """Class representing a security sale FVOCI (Fair Value through Other Comprehensive Income) transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Instrument,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_receive = Cash(value=instrument.value)
-        self.old_unrealized_oci_gain = 0.0
-        self.old_unrealized_oci_loss = 0.0
-        self.tracker = bank.banking_book.unrealized_oci_tracker
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,
-            transaction_type=TransactionType.SECURITY_SALE_FVOCI,
-            transaction_date=date,
-            description=description,
-        )
+    tracker: UnrealizedOCIGainLossTracker
+    cash_to_receive: Cash
+    old_unrealized_oci_gain: float
+    old_unrealized_oci_loss: float
 
     def controller_actions(self) -> GUIControllerInstruction:
         return {
@@ -801,7 +571,9 @@ class SecuritySaleFVOCITransaction(Transaction):
             self.instrument: (Action.REMOVE, BookType.BANKING_BOOK, Position.LONG),
         }
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.tracker = self.bank.banking_book.unrealized_oci_tracker
+        self.cash_to_receive = Cash(value=self.instrument.value)
         self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
         self.old_unrealized_oci_gain = self.tracker.get_unrealized_gain(self.instrument)
@@ -809,7 +581,7 @@ class SecuritySaleFVOCITransaction(Transaction):
         self.bank.banking_book.unrealized_oci_tracker.remove_instrument(self.instrument)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.remove_instrument(self.cash_to_receive, Position.LONG)
         self.tracker.set_unrealized_gain(self.instrument, self.old_unrealized_oci_gain)
@@ -826,14 +598,14 @@ class SecuritySaleFVOCITransaction(Transaction):
             return CompoundEntry(
                 debit_accounts={
                     # 1. record cash received and remove security
-                    self.bank.chart_of_accounts.cash_account: self.value,
+                    self.bank.chart_of_accounts.cash_account: self.instrument.value,
                     # 2. transfer AOCI unrealized gain to net income (realized OCI gain)
                     self.bank.chart_of_accounts.unrealized_oci_gain_account: unrealized_oci_gain,
                     # 3. reverse previously recorded unrealized loss
                     self.bank.chart_of_accounts.realized_oci_loss_account: unrealized_oci_loss,
                 },
                 credit_accounts={
-                    self.bank.chart_of_accounts.investment_fvoci_account: self.value,
+                    self.bank.chart_of_accounts.investment_fvoci_account: self.instrument.value,
                     self.bank.chart_of_accounts.realized_oci_gain_account: unrealized_oci_gain,
                     self.bank.chart_of_accounts.unrealized_oci_loss_account: unrealized_oci_loss,
                 },
@@ -843,50 +615,14 @@ class SecuritySaleFVOCITransaction(Transaction):
         else:  # selling FVOCI at a loss
             return CompoundEntry(
                 debit_accounts={
-                    self.bank.chart_of_accounts.cash_account: self.value,
+                    self.bank.chart_of_accounts.cash_account: self.instrument.value,
                     self.bank.chart_of_accounts.realized_oci_loss_account: unrealized_oci_loss,
                     self.bank.chart_of_accounts.unrealized_oci_gain_account: unrealized_oci_gain,
                 },
                 credit_accounts={
-                    self.bank.chart_of_accounts.investment_fvoci_account: self.value,
+                    self.bank.chart_of_accounts.investment_fvoci_account: self.instrument.value,
                     self.bank.chart_of_accounts.unrealized_oci_loss_account: unrealized_oci_loss,
                     self.bank.chart_of_accounts.realized_oci_gain_account: unrealized_oci_gain,
-                },
-                date=self.transaction_date,
-                description=self.description,
-            )
-
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        unrealized_oci_gain = self.tracker.get_unrealized_gain(self.instrument)
-        unrealized_oci_loss = self.tracker.get_unrealized_loss(self.instrument)
-        net_gain = unrealized_oci_gain - unrealized_oci_loss
-        if net_gain >= 0:  # selling FVOCI at a gain
-            return CompoundEntry(
-                debit_accounts={
-                    self.bank.chart_of_accounts.investment_fvoci_account: self.value,
-                    self.bank.chart_of_accounts.realized_oci_gain_account: unrealized_oci_gain,
-                    self.bank.chart_of_accounts.unrealized_oci_loss_account: unrealized_oci_loss,
-                },
-                credit_accounts={
-                    self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_oci_gain_account: unrealized_oci_gain,
-                    self.bank.chart_of_accounts.realized_oci_loss_account: unrealized_oci_loss,
-                },
-                date=self.transaction_date,
-                description=self.description,
-            )
-        else:  # selling FVOCI at a loss
-            return CompoundEntry(
-                debit_accounts={
-                    self.bank.chart_of_accounts.investment_fvoci_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_oci_loss_account: unrealized_oci_loss,
-                    self.bank.chart_of_accounts.realized_oci_gain_account: unrealized_oci_gain,
-                },
-                credit_accounts={
-                    self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.realized_oci_loss_account: unrealized_oci_loss,
-                    self.bank.chart_of_accounts.unrealized_oci_gain_account: unrealized_oci_gain,
                 },
                 date=self.transaction_date,
                 description=self.description,
@@ -896,32 +632,16 @@ class SecuritySaleFVOCITransaction(Transaction):
 class SecurityPurchaseFVTPLTransaction(Transaction):
     """Class representing a security purchase FVTPL (Fair Value through Profit or Loss) transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Instrument,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_pay = Cash(value=instrument.value)
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,
-            transaction_type=TransactionType.SECURITY_PURCHASE_TRADING,
-            transaction_date=date,
-            description=description,
-        )
+    cash_to_pay: Cash
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_pay = Cash(value=self.instrument.value)
         self.bank.trading_book.add_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.remove_instrument(self.cash_to_pay, Position.LONG)
         self.bank.trading_book.unrealized_pnl_tracker.add_instrument(self.instrument)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.trading_book.remove_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.add_instrument(self.cash_to_pay, Position.LONG)
         self.bank.trading_book.unrealized_pnl_tracker.remove_instrument(self.instrument)
@@ -937,46 +657,21 @@ class SecurityPurchaseFVTPLTransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.cash_account,
-            credit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class SecuritySaleFVTPLTransaction(Transaction):
     """Class representing a security sale FVTPL (Fair Value through Profit or Loss) transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Instrument,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_receive = Cash(value=instrument.value)
-        self.tracker = bank.trading_book.unrealized_pnl_tracker
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,
-            transaction_type=TransactionType.SECURITY_SALE_TRADING,
-            transaction_date=date,
-            description=description,
-        )
+    tracker: UnrealizedTradingGainLossTracker
+    cash_to_receive: Cash
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.tracker = self.bank.trading_book.unrealized_pnl_tracker
+        self.cash_to_receive = Cash(value=self.instrument.value)
         self.bank.trading_book.remove_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.trading_book.add_instrument(self.instrument, Position.LONG)
         self.bank.banking_book.remove_instrument(self.cash_to_receive, Position.LONG)
         self.bank.ledger.post(self.reverse_journal_entry)
@@ -990,14 +685,14 @@ class SecuritySaleFVTPLTransaction(Transaction):
             return CompoundEntry(
                 debit_accounts={
                     # 1. record cash received and remove security
-                    self.bank.chart_of_accounts.cash_account: self.value,
+                    self.bank.chart_of_accounts.cash_account: self.instrument.value,
                     # 2. transfer unrealized gain to realized
                     self.bank.chart_of_accounts.unrealized_trading_gain_account: unrealized_gain,
                     # 3. reverse previously recorded unrealized loss
                     self.bank.chart_of_accounts.realized_trading_loss_account: unrealized_loss,
                 },
                 credit_accounts={
-                    self.bank.chart_of_accounts.asset_fvtpl_account: self.value,  # 1
+                    self.bank.chart_of_accounts.asset_fvtpl_account: self.instrument.value,  # 1
                     self.bank.chart_of_accounts.realized_trading_gain_account: unrealized_gain,  # 2
                     self.bank.chart_of_accounts.unrealized_trading_loss_account: unrealized_loss,  # 3
                 },
@@ -1008,52 +703,16 @@ class SecuritySaleFVTPLTransaction(Transaction):
             return CompoundEntry(
                 debit_accounts={
                     # 1. record cash received and remove security
-                    self.bank.chart_of_accounts.cash_account: self.value,
+                    self.bank.chart_of_accounts.cash_account: self.instrument.value,
                     # 2. transfer unrealized loss to realized
                     self.bank.chart_of_accounts.realized_trading_loss_account: unrealized_loss,
                     # 3. reverse previously recorded unrealized gain
                     self.bank.chart_of_accounts.unrealized_trading_gain_account: unrealized_gain,
                 },
                 credit_accounts={
-                    self.bank.chart_of_accounts.asset_fvtpl_account: self.value,  # 1
+                    self.bank.chart_of_accounts.asset_fvtpl_account: self.instrument.value,  # 1
                     self.bank.chart_of_accounts.unrealized_trading_loss_account: unrealized_loss,  # 2
                     self.bank.chart_of_accounts.realized_trading_gain_account: unrealized_gain,  # 3
-                },
-                date=self.transaction_date,
-                description=self.description,
-            )
-
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        unrealized_gain = self.tracker.get_unrealized_gain(self.instrument)
-        unrealized_loss = self.tracker.get_unrealized_loss(self.instrument)
-        net_gain = unrealized_gain - unrealized_loss
-        if net_gain >= 0:  # selling FVTPL at a gain
-            return CompoundEntry(
-                debit_accounts={
-                    self.bank.chart_of_accounts.asset_fvtpl_account: self.value,
-                    self.bank.chart_of_accounts.realized_trading_gain_account: unrealized_gain,
-                    self.bank.chart_of_accounts.unrealized_trading_loss_account: unrealized_loss,
-                },
-                credit_accounts={
-                    self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_trading_gain_account: unrealized_gain,
-                    self.bank.chart_of_accounts.realized_trading_loss_account: unrealized_loss,
-                },
-                date=self.transaction_date,
-                description=self.description,
-            )
-        else:  # selling FVTPL at a loss
-            return CompoundEntry(
-                debit_accounts={
-                    self.bank.chart_of_accounts.asset_fvtpl_account: self.value,
-                    self.bank.chart_of_accounts.unrealized_trading_loss_account: unrealized_loss,
-                    self.bank.chart_of_accounts.realized_trading_gain_account: unrealized_gain,
-                },
-                credit_accounts={
-                    self.bank.chart_of_accounts.cash_account: self.value,
-                    self.bank.chart_of_accounts.realized_trading_loss_account: unrealized_loss,
-                    self.bank.chart_of_accounts.unrealized_trading_gain_account: unrealized_gain,
                 },
                 date=self.transaction_date,
                 description=self.description,
@@ -1063,40 +722,32 @@ class SecuritySaleFVTPLTransaction(Transaction):
 class SecurityMarkToMarketFVTPLTransaction(Transaction):
     """Class representing a security mark-to-market adjustment for FVTPL transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Instrument,
-        valuation_visitor: ValuationVisitor,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.old_value = instrument.value
-        self.new_value = instrument.value  # will be set to new value after execution
-        self.tracker = bank.trading_book.unrealized_pnl_tracker
-        self.old_unrealized_trading_gain = self.tracker.get_unrealized_gain(instrument)
-        self.new_unrealized_trading_gain = 0.0  # will be set to new value after execution
-        self.old_unrealized_trading_loss = self.tracker.get_unrealized_loss(instrument)
-        self.new_unrealized_trading_loss = 0.0  # will be set to new value after execution
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,  # no effect
-            transaction_type=TransactionType.SECURITY_FVTPL_MARK_TO_MARKET,
-            transaction_date=date,
-            description=description,
-            valuation_visitor=valuation_visitor,
-        )
+    tracker: UnrealizedTradingGainLossTracker
+    old_unrealized_trading_gain: float
+    old_unrealized_trading_loss: float
+    new_unrealized_trading_gain: float
+    new_unrealized_trading_loss: float
+    old_value: float
+    new_value: float
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
         if not isinstance(self.valuation_visitor, ValuationVisitor):
             error = "ValuationVisitor not set"
             raise TypeError(error)
+        if self.transaction_date is None:
+            error = "Transaction date not set"
+            raise TypeError(error)
+
+        self.tracker = self.bank.trading_book.unrealized_pnl_tracker
+        # Keep track of old values
+        self.old_unrealized_trading_gain = self.tracker.get_unrealized_gain(self.instrument)
+        self.old_unrealized_trading_loss = self.tracker.get_unrealized_loss(self.instrument)
         self.old_value = self.instrument.value
+        # Value the FVTPL instrument at transaction date
+        self.valuation_visitor.set_date(self.transaction_date)
         self.instrument.accept(self.valuation_visitor)
         self.new_value = self.instrument.value
+        # P&L
         if (pnl_this_period := self.new_value - self.old_value) >= 0:
             self.new_unrealized_trading_gain = self.old_unrealized_trading_gain + pnl_this_period
             self.tracker.set_unrealized_gain(self.instrument, self.new_unrealized_trading_gain)
@@ -1105,7 +756,7 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
             self.tracker.set_unrealized_loss(self.instrument, self.new_unrealized_trading_loss)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.instrument.value = self.old_value
         self.tracker.set_unrealized_gain(self.instrument, self.old_unrealized_trading_gain)
         self.tracker.set_unrealized_loss(self.instrument, self.old_unrealized_trading_loss)
@@ -1131,78 +782,46 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        # Reverse gain
-        if self.new_value >= self.old_value:
-            return SimpleEntry(
-                debit_account=self.bank.chart_of_accounts.unrealized_trading_gain_account,
-                credit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
-                value=self.new_value - self.old_value,
-                date=self.transaction_date,
-                description=self.description,
-            )
-        # Reverse loss
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.asset_fvtpl_account,
-            credit_account=self.bank.chart_of_accounts.unrealized_trading_loss_account,
-            value=abs(self.new_value - self.old_value),
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class SecurityMarkToMarketFVOCITransaction(Transaction):
     """Class representing a security mark-to-market adjustment for FVOCI transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Instrument,
-        valuation_visitor: ValuationVisitor,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.old_value = instrument.value
-        self.new_value = instrument.value  # will be set to new value after execution
-        self.tracker = bank.banking_book.unrealized_oci_tracker
-        self.old_unrealized_oci_gain = self.tracker.get_unrealized_gain(instrument)
-        self.new_unrealized_oci_gain = 0.0  # will be set to new value after execution
-        self.old_unrealized_oci_loss = self.tracker.get_unrealized_loss(instrument)
-        self.new_unrealized_oci_loss = 0.0  # will be set to new value after execution
-        super().__init__(
-            bank=bank,
-            instrument=instrument,
-            value=instrument.value,  # no effect
-            transaction_type=TransactionType.SECURITY_FVOCI_MARK_TO_MARKET,
-            transaction_date=date,
-            description=description,
-            valuation_visitor=valuation_visitor,
-        )
+    tracker: UnrealizedOCIGainLossTracker
+    old_unrealized_oci_gain: float
+    old_unrealized_oci_loss: float
+    old_value: float
+    new_value: float
 
     def controller_actions(self) -> GUIControllerInstruction:
         return {
             self.instrument: (Action.UPDATE, BookType.BANKING_BOOK, Position.LONG),
         }
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
         if not isinstance(self.valuation_visitor, ValuationVisitor):
             error = "ValuationVisitor not set"
             raise TypeError(error)
+        if self.transaction_date is None:
+            error = "Transaction date not set"
+            raise TypeError(error)
+
+        self.tracker = self.bank.banking_book.unrealized_oci_tracker
+        # Keep track of old values
+        self.old_unrealized_oci_gain = self.tracker.get_unrealized_gain(self.instrument)
+        self.old_unrealized_oci_loss = self.tracker.get_unrealized_loss(self.instrument)
         self.old_value = self.instrument.value
+        # Value the FVOCI instrument at transaction date
+        self.valuation_visitor.set_date(self.transaction_date)
         self.instrument.accept(self.valuation_visitor)
         self.new_value = self.instrument.value
+        # P&L
         if (pnl_this_period := self.new_value - self.old_value) >= 0:
-            self.new_unrealized_oci_gain = self.old_unrealized_oci_gain + pnl_this_period
-            self.tracker.set_unrealized_gain(self.instrument, self.new_unrealized_oci_gain)
+            self.tracker.set_unrealized_gain(self.instrument, self.old_unrealized_oci_gain + pnl_this_period)
         else:
-            self.new_unrealized_oci_loss = self.old_unrealized_oci_loss - pnl_this_period
-            self.tracker.set_unrealized_loss(self.instrument, self.new_unrealized_oci_loss)
+            self.tracker.set_unrealized_loss(self.instrument, self.old_unrealized_oci_loss + abs(pnl_this_period))
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.instrument.value = self.old_value
         self.tracker.set_unrealized_gain(self.instrument, self.old_unrealized_oci_gain)
         self.tracker.set_unrealized_loss(self.instrument, self.old_unrealized_oci_loss)
@@ -1228,54 +847,18 @@ class SecurityMarkToMarketFVOCITransaction(Transaction):
             description=self.description,
         )
 
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        # Reverse gain
-        if self.new_value >= self.old_value:
-            return SimpleEntry(
-                debit_account=self.bank.chart_of_accounts.unrealized_oci_gain_account,
-                credit_account=self.bank.chart_of_accounts.investment_fvoci_account,
-                value=self.new_value - self.old_value,
-                date=self.transaction_date,
-                description=self.description,
-            )
-        # Reverse loss
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.investment_fvoci_account,
-            credit_account=self.bank.chart_of_accounts.unrealized_oci_loss_account,
-            value=abs(self.new_value - self.old_value),
-            date=self.transaction_date,
-            description=self.description,
-        )
-
 
 class SecurityInterestEarnedTransaction(Transaction):
     """Class representing a banking book security (HTM or FVOCI) interest earned transaction."""
 
-    def __init__(
-        self,
-        *,
-        bank: Bank,
-        instrument: Cash,
-        date: datetime.date | None = None,
-        description: str = "",
-        **kwargs,
-    ) -> None:
-        self.cash_to_receive = instrument
-        super().__init__(
-            bank=bank,
-            instrument=self.cash_to_receive,
-            value=self.cash_to_receive.value,
-            transaction_type=TransactionType.SECURITY_INTEREST_EARNED,
-            transaction_date=date,
-            description=description,
-        )
+    instrument: Cash
 
-    def execute(self) -> None:
+    def _execute(self) -> None:
+        self.cash_to_receive = self.instrument
         self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
 
-    def undo(self) -> None:
+    def _undo(self) -> None:
         self.bank.banking_book.remove_instrument(self.cash_to_receive, Position.LONG)
         self.bank.ledger.post(self.reverse_journal_entry)
 
@@ -1284,16 +867,6 @@ class SecurityInterestEarnedTransaction(Transaction):
         return SimpleEntry(
             debit_account=self.bank.chart_of_accounts.cash_account,
             credit_account=self.bank.chart_of_accounts.interest_income_account,
-            value=self.value,
-            date=self.transaction_date,
-            description=self.description,
-        )
-
-    @property
-    def reverse_journal_entry(self) -> JournalEntry:
-        return SimpleEntry(
-            debit_account=self.bank.chart_of_accounts.interest_income_account,
-            credit_account=self.bank.chart_of_accounts.cash_account,
             value=self.value,
             date=self.transaction_date,
             description=self.description,
