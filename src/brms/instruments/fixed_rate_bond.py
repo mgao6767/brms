@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional
 import QuantLib as ql
 
 from brms.instruments.base import Instrument, InstrumentClass
-from brms.utils import pydate_to_qldate, qldate_to_string
+from brms.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
 
 if TYPE_CHECKING:
     from brms.instruments.base import BookType, CreditRating, Issuer
@@ -57,9 +57,6 @@ class FixedRateBond(Instrument):
                 Defaults to False.
 
         """
-        self.issue_date = issue_date
-        self.maturity_date = maturity_date
-
         maturity_date_str = qldate_to_string(maturity_date)
         name = f"{coupon_rate*100:.2f}% {maturity_date_str}"
         super().__init__(name, book_type, credit_rating, issuer, parent, instrument_class=instrument_class)
@@ -78,7 +75,16 @@ class FixedRateBond(Instrument):
             month_end,
         )
 
-        self.instrument = ql.FixedRateBond(settlement_days, face_value, schedule, coupons, day_count)
+        self.instrument = ql.FixedRateBond(
+            settlement_days,
+            face_value,
+            schedule,
+            coupons,
+            day_count,
+            ql.Following,
+            100.0,
+            issue_date,
+        )
 
     def notional(self, date: datetime.date) -> float:
         """Calculate the notional value of the bond on a given date.
@@ -91,6 +97,14 @@ class FixedRateBond(Instrument):
 
         """
         return self.instrument.notional(pydate_to_qldate(date))
+
+    @property
+    def maturity_date(self) -> datetime.date:
+        return qldate_to_pydate(self.instrument.maturityDate())
+
+    @property
+    def issue_date(self) -> datetime.date:
+        return qldate_to_pydate(self.instrument.issueDate())
 
     def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""

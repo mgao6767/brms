@@ -77,8 +77,8 @@ class InspectionVisitor(Visitor):
         """Inspect a fixed rate bond."""
         self.result.clear()
         details = self._get_instrument_details(instrument)
-        details["Issue Date"] = qldate_to_string(instrument.issue_date)
-        details["Maturity Date"] = qldate_to_string(instrument.maturity_date)
+        details["Issue Date"] = instrument.issue_date.strftime("%Y-%m-%d")
+        details["Maturity Date"] = instrument.maturity_date.strftime("%Y-%m-%d")
         self.result.update(details)
 
     def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> None:
