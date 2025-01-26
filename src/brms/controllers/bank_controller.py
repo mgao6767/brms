@@ -1,3 +1,5 @@
+import datetime
+
 from PySide6.QtCore import Signal
 
 from brms.accounting.report import Report
@@ -91,13 +93,16 @@ class BankController(BRMSController):
                 case (Action.UPDATE, BookType.TRADING_BOOK, _):
                     self.trading_book_ctrl.update_instrument(instrument, position)
 
-    def update_statement(self) -> None:
+    def update_statement(self, date: datetime.date | None = None) -> None:
         report = Report(
-            self.bank.ledger,
-            HTMLStatementViewer(
-                console=False, padding=2, income_statement_table_width=80, balance_sheet_table_width=80
+            ledger=self.bank.ledger,
+            viewer=HTMLStatementViewer(
+                console=False,
+                padding=2,
+                income_statement_table_width=80,
+                balance_sheet_table_width=80,
             ),
-            self.bank.ledger.date_closed,
+            date=date or self.bank.ledger.date_closed,
         )
         report.print_trial_balance()
         report.print_income_statement()

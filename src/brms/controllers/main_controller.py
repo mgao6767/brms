@@ -107,8 +107,7 @@ class MainController(BRMSController):
         self.view.statusBar().showMessage(f"Current date: {scenario.date}")
         # Pass the new scenario to controllers orderly
         self.yield_curve_ctrl.set_scenario(scenario)
-        # TODO: transactions
-        self.bank_ctrl.update_statement()
+        self.bank_ctrl.update_statement(scenario.date)
 
     def on_start_action(self):
         self.view.next_action.setDisabled(True)
