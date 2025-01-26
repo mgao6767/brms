@@ -1,6 +1,6 @@
 """Main controller module for the BRMS application."""
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QTimer, Signal
 
 from brms import DEBUG_MODE
 from brms.controllers.bank_controller import BankController
@@ -24,6 +24,10 @@ class MainController(BRMSController):
         super().__init__()
         self.simulation: SimulationModel = model
         self.view: MainWindow = view
+        # Initialize the timer
+        self.simulation_interval = 500
+        self.simulation_timer = QTimer()
+        self.simulation_timer.setInterval(self.simulation_interval)
         # Sub controllers
         self.inspector_ctrl = InspectorController(inspector_widget=self.view.inspector_widget)
         self.bank_ctrl = BankController(
@@ -43,8 +47,12 @@ class MainController(BRMSController):
 
     def connect_signals(self) -> None:
         """Connect signals from the view to the controller's slots."""
+        self.simulation_timer.timeout.connect(self.on_next_scenario)
         self.view.next_action.triggered.connect(self.on_next_scenario)
-        self.view.exit_signal.connect(self.handle_exit)
+        self.view.start_action.triggered.connect(self.on_start_action)
+        self.view.pause_action.triggered.connect(self.on_pause_action)
+        self.view.stop_action.triggered.connect(self.on_stop_action)
+        self.view.exit_signal.connect(self.on_exit)
         self.scenario_changed.connect(self.on_scenario_changed)
 
     def connect_signals_for_debugging(self) -> None:
@@ -52,11 +60,6 @@ class MainController(BRMSController):
         debug_panel = self.view.debug_panel
         debug_panel.btn_init.clicked.connect(self._test_init)
         debug_panel.btn_buy_htm_security.clicked.connect(self._test_buy_htm_security)
-
-    def handle_exit(self) -> None:
-        """Handle the exit signal from the view."""
-        # Perform any cleanup or save operations here
-        self.view.close()
 
     def init(self) -> None:
         """Initialize the simulation and set the starting scenario.
@@ -75,9 +78,15 @@ class MainController(BRMSController):
         # 4. Emit signal about Scenario changes
         self.scenario_changed.emit(self.simulation.current_scenario)
 
+    def on_exit(self) -> None:
+        """Handle the exit signal from the view."""
+        # Perform any cleanup or save operations here
+        self.view.close()
+
     def on_next_scenario(self) -> None:
         date = self.simulation.scenario_manager.get_date_of_next_scenario()
         if date is None:
+            self.simulation_timer.stop()
             return
         self.simulation.set_scenario(date)
         for tx in self.simulation.bank_engine.generate_transactions(date):
@@ -89,10 +98,32 @@ class MainController(BRMSController):
 
         These should be repeated actions on each scenario change
         """
+        self.view.statusBar().showMessage(f"Current date: {scenario.date}")
         # Pass the new scenario to controllers orderly
         self.yield_curve_ctrl.set_scenario(scenario)
         # TODO: transactions
         self.bank_ctrl.update_statement()
+
+    def on_start_action(self):
+        self.view.next_action.setDisabled(True)
+        self.view.start_action.setDisabled(True)
+        self.view.pause_action.setEnabled(True)
+        self.view.stop_action.setEnabled(True)
+        self.simulation_timer.start()
+
+    def on_pause_action(self):
+        self.view.next_action.setEnabled(True)
+        self.view.start_action.setEnabled(True)
+        self.view.pause_action.setDisabled(True)
+        self.view.stop_action.setDisabled(True)
+        self.simulation_timer.stop()
+
+    def on_stop_action(self):
+        self.view.next_action.setDisabled(True)
+        self.view.start_action.setDisabled(True)
+        self.view.pause_action.setDisabled(True)
+        self.view.stop_action.setDisabled(True)
+        self.simulation_timer.stop()
 
     # ====================================================================
     # Testing

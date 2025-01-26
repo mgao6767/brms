@@ -105,6 +105,8 @@ class MainWindow(QMainWindow):
         self.start_action = QAction(qta.icon("mdi6.play"), "Start", self)
         self.pause_action = QAction(qta.icon("mdi6.pause"), "Pause", self)
         self.stop_action = QAction(qta.icon("mdi6.stop"), "Stop", self)
+        self.pause_action.setEnabled(False)
+        self.stop_action.setEnabled(False)
         # View
         self.mq_style_action = QAction("MQ Theme", self)
         self.mq_style_action.setCheckable(True)
@@ -122,7 +124,6 @@ class MainWindow(QMainWindow):
         toolbar.addAction(self.next_action)
         toolbar.addAction(self.start_action)
         toolbar.addAction(self.pause_action)
-        toolbar.addAction(self.stop_action)
 
     def create_menubar(self) -> None:
         """Create the menubar for the main window."""
@@ -148,7 +149,6 @@ class MainWindow(QMainWindow):
         simulation_menu.addAction(self.next_action)
         simulation_menu.addAction(self.start_action)
         simulation_menu.addAction(self.pause_action)
-        simulation_menu.addAction(self.stop_action)
         # Help menu
         help_menu.addAction(self.about_action)
         help_menu.addAction(self.github_action)

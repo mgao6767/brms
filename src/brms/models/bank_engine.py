@@ -25,6 +25,7 @@ class BankEngine:
         transactions = []
         transactions.extend(self._generate_loan_repayments(date))
         transactions.extend(self._generate_coupon_payments(date))
+        transactions.extend(self._generate_security_sales_due_to_maturity(date))
         transactions.extend(self._generate_mark_to_market_adjustments(date))
         return transactions
 
@@ -42,6 +43,9 @@ class BankEngine:
         visitor: ValuationVisitor
         for position in Position:
             for instrument in self.bank.get_fair_value_instruments(position):
+                requirement = hasattr(instrument, "maturity_date") and instrument.maturity_date > date
+                if not requirement:
+                    continue
                 match instrument.book_type, position, instrument.instrument_class:
                     # Banking book FVOCI is long only
                     case (BookType.BANKING_BOOK, Position.LONG, InstrumentClass.FVOCI):
@@ -55,6 +59,37 @@ class BankEngine:
                         # TODO: this mark to market transaction may not be correct for short-side FVTPL
                         tx_type = TransactionType.SECURITY_FVTPL_MARK_TO_MARKET
                         visitor = self.trading_book_visitor
+                    case _:
+                        raise NotImplementedError
+                tx = TransactionFactory.create_transaction(
+                    bank=self.bank,
+                    instrument=instrument,
+                    transaction_type=tx_type,
+                    transaction_date=date,
+                    valuation_visitor=visitor,
+                )
+                transactions.append(tx)
+        return transactions
+
+    def _generate_security_sales_due_to_maturity(self, date: datetime.date) -> list[Transaction]:
+        transactions = []
+        visitor: ValuationVisitor
+        for position in Position:
+            for instrument in self.bank.get_fair_value_instruments(position):
+                requirement = hasattr(instrument, "maturity_date") and instrument.maturity_date <= date
+                if not requirement:
+                    continue
+                match instrument.book_type, position, instrument.instrument_class:
+                    # Banking book FVOCI is long only
+                    case (BookType.BANKING_BOOK, Position.LONG, InstrumentClass.FVOCI):
+                        tx_type = TransactionType.SECURITY_SALE_FVOCI
+                        visitor = self.banking_book_visitor
+                    # Trading book FVTPL can be either long or short
+                    case (BookType.TRADING_BOOK, Position.LONG, InstrumentClass.FVTPL):
+                        tx_type = TransactionType.SECURITY_SALE_TRADING
+                        visitor = self.trading_book_visitor
+                    case (BookType.TRADING_BOOK, Position.SHORT, InstrumentClass.FVTPL):
+                        raise NotImplementedError
                     case _:
                         raise NotImplementedError
                 tx = TransactionFactory.create_transaction(
