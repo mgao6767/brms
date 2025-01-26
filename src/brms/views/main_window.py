@@ -40,6 +40,8 @@ class MainWindow(QMainWindow):
         self.next_action: QAction
         self.start_action: QAction
         self.pause_action: QAction
+        self.speed_up_action: QAction
+        self.speed_down_action: QAction
         self.stop_action: QAction
         self.mq_style_action: QAction
         self.restore_views_action: QAction
@@ -107,6 +109,8 @@ class MainWindow(QMainWindow):
         self.stop_action = QAction(qta.icon("mdi6.stop"), "Stop", self)
         self.pause_action.setEnabled(False)
         self.stop_action.setEnabled(False)
+        self.speed_up_action = QAction(qta.icon("mdi6.plus"), "Speed Up", self)
+        self.speed_down_action = QAction(qta.icon("mdi6.minus"), "Speed Down", self)
         # View
         self.mq_style_action = QAction("MQ Theme", self)
         self.mq_style_action.setCheckable(True)
@@ -124,6 +128,8 @@ class MainWindow(QMainWindow):
         toolbar.addAction(self.next_action)
         toolbar.addAction(self.start_action)
         toolbar.addAction(self.pause_action)
+        toolbar.addAction(self.speed_up_action)
+        toolbar.addAction(self.speed_down_action)
 
     def create_menubar(self) -> None:
         """Create the menubar for the main window."""
@@ -149,6 +155,9 @@ class MainWindow(QMainWindow):
         simulation_menu.addAction(self.next_action)
         simulation_menu.addAction(self.start_action)
         simulation_menu.addAction(self.pause_action)
+        simulation_menu.addSeparator()
+        simulation_menu.addAction(self.speed_up_action)
+        simulation_menu.addAction(self.speed_down_action)
         # Help menu
         help_menu.addAction(self.about_action)
         help_menu.addAction(self.github_action)

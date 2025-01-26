@@ -52,6 +52,8 @@ class MainController(BRMSController):
         self.view.start_action.triggered.connect(self.on_start_action)
         self.view.pause_action.triggered.connect(self.on_pause_action)
         self.view.stop_action.triggered.connect(self.on_stop_action)
+        self.view.speed_up_action.triggered.connect(self.on_speed_up_action)
+        self.view.speed_down_action.triggered.connect(self.on_speed_down_action)
         self.view.exit_signal.connect(self.on_exit)
         self.scenario_changed.connect(self.on_scenario_changed)
 
@@ -84,9 +86,13 @@ class MainController(BRMSController):
         self.view.close()
 
     def on_next_scenario(self) -> None:
-        date = self.simulation.scenario_manager.get_date_of_next_scenario()
-        if date is None:
-            self.simulation_timer.stop()
+        try:
+            date = self.simulation.scenario_manager.get_date_of_next_scenario()
+        except ValueError:  # "Current scenario is not set." when data not loaded
+            self.on_pause_action()
+            return
+        if date is None:  # no more scenarios
+            self.on_pause_action()
             return
         self.simulation.set_scenario(date)
         for tx in self.simulation.bank_engine.generate_transactions(date):
@@ -124,6 +130,16 @@ class MainController(BRMSController):
         self.view.pause_action.setDisabled(True)
         self.view.stop_action.setDisabled(True)
         self.simulation_timer.stop()
+
+    def on_speed_up_action(self):
+        # min interval 100ms or 0.1s
+        self.simulation_interval = max(100, self.simulation_timer.interval() - 100)
+        self.simulation_timer.setInterval(self.simulation_interval)
+
+    def on_speed_down_action(self):
+        # max interval 2000ms or 2s
+        self.simulation_interval = min(2000, self.simulation_timer.interval() + 100)
+        self.simulation_timer.setInterval(self.simulation_interval)
 
     # ====================================================================
     # Testing
