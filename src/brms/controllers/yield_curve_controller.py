@@ -185,3 +185,14 @@ class YieldCurveController(BRMSController):
         if date in all_dates:
             row = all_dates.index(date)
             self.set_current_selection(row, 0)
+        self.filter_dates(scenario)
+
+    def filter_dates(self, scenario: Scenario) -> None:
+        """Filter the table to show only rows with dates on or before the given scenario date."""
+        scenario_date = scenario.date
+        model = self.view.table_view.model()
+        for row in range(model.rowCount()):
+            date_str = model.headerData(row, Qt.Orientation.Vertical)
+            row_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            is_visible = row_date <= scenario_date
+            self.view.table_view.setRowHidden(row, not is_visible)
