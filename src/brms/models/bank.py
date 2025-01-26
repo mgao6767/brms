@@ -1,14 +1,19 @@
 """Define the `Bank` class."""
 
+import itertools
 from typing import TYPE_CHECKING
 
 from brms.accounting.account import AccountBalances, BankChartOfAccounts
 from brms.accounting.ledger import Ledger
+from brms.instruments.base import InstrumentClass
 from brms.instruments.cash import Cash
 from brms.models.accountant import Accountant
 from brms.models.bank_book import BankingBook, Position, TradingBook
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from brms.instruments.base import Instrument
     from brms.models.transaction import Transaction
 
 
@@ -57,3 +62,15 @@ class Bank:
     def undo_last_transaction(self) -> None:
         """Asks Accountant to reverse last transaction."""
         self.accountant.undo_last_transaction()
+
+    def get_fair_value_instruments(self, position: Position) -> "Generator[Instrument, None, None]":
+        """Get fair value instruments based on position."""
+        match position:
+            case Position.LONG:
+                instruments = itertools.chain(self.banking_book.long_exposure, self.trading_book.long_exposure)
+            case Position.SHORT:
+                instruments = itertools.chain(self.banking_book.short_exposure, self.trading_book.short_exposure)
+
+        for instrument in instruments:
+            if instrument.instrument_class in (InstrumentClass.FVOCI, InstrumentClass.FVTPL):
+                yield instrument
