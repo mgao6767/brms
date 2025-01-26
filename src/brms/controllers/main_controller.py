@@ -36,16 +36,16 @@ class MainController(BRMSController):
         self.yield_curve_ctrl = YieldCurveController(view=self.view.yield_curve_widget)
         # Connect signals
         self.connect_signals()
+        if DEBUG_MODE:
+            self.connect_signals_for_debugging()
         # Initial tasks
         self.bank_ctrl.update_statement()
 
     def connect_signals(self) -> None:
         """Connect signals from the view to the controller's slots."""
+        self.view.next_action.triggered.connect(self.on_next_scenario)
         self.view.exit_signal.connect(self.handle_exit)
         self.scenario_changed.connect(self.on_scenario_changed)
-
-        if DEBUG_MODE:
-            self.connect_signals_for_debugging()
 
     def connect_signals_for_debugging(self) -> None:
         """Connect signals only used for debugging."""
@@ -73,6 +73,15 @@ class MainController(BRMSController):
         self.yield_curve_ctrl.init(self.simulation.scenario_manager)
         self.bank_ctrl.init(self.simulation.scenario_manager)
         # 4. Emit signal about Scenario changes
+        self.scenario_changed.emit(self.simulation.current_scenario)
+
+    def on_next_scenario(self) -> None:
+        date = self.simulation.scenario_manager.get_date_of_next_scenario()
+        if date is None:
+            return
+        self.simulation.set_scenario(date)
+        for tx in self.simulation.bank_engine.generate_transactions(date):
+            self.bank_ctrl.process_transaction(tx)
         self.scenario_changed.emit(self.simulation.current_scenario)
 
     def on_scenario_changed(self, scenario: Scenario) -> None:

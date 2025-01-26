@@ -53,6 +53,16 @@ class ScenarioManager:
         # When a particular scenario is requested, we build it from the data if the scenario is not yet cached.
         self._data: dict[ScenarioData, Any] = {}
 
+    def get_date_of_next_scenario(self) -> datetime.date | None:
+        """Retrieve the next scenario's date based on the current scenario's date."""
+        if not hasattr(self, "current_scenario"):
+            raise ValueError("Current scenario is not set.")
+        current_date = self.current_scenario.date
+        future_dates = [date for date in self.available_dates if date > current_date]
+        if not future_dates:
+            return None
+        return min(future_dates)
+
     def has_scenario(self, date: datetime.date) -> bool:
         """Check if a scenario exists for a given date."""
         return date in self.available_dates

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import QuantLib as ql
 from dateutil.relativedelta import relativedelta
-from PySide6.QtCore import QItemSelectionModel, Qt
+from PySide6.QtCore import QItemSelectionModel, Qt, QTimer
 
 from brms.controllers.base import BRMSController
 from brms.models.scenario import Scenario, ScenarioManager
@@ -185,7 +185,10 @@ class YieldCurveController(BRMSController):
         if date in all_dates:
             row = all_dates.index(date)
             self.set_current_selection(row, 0)
-        self.filter_dates(scenario)
+            self.filter_dates(scenario)
+            # Ensures that the UI updates before scrolling to bottom
+            index = self.model.index(row, 0)
+            QTimer.singleShot(100, lambda: self.view.table_view.scrollTo(index))
 
     def filter_dates(self, scenario: Scenario) -> None:
         """Filter the table to show only rows with dates on or before the given scenario date."""
