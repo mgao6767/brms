@@ -1,20 +1,119 @@
 import datetime
 
+import pandas as pd
+from dateutil.relativedelta import relativedelta
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+from matplotlib.ticker import FuncFormatter
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
+    QFileDialog,
     QFormLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QLabel,
-    QFrame,
-    QPushButton,
-    QSplitter,
-    QWidget,
     QProgressBar,
+    QSplitter,
+    QVBoxLayout,
+    QWidget,
 )
 
-from brms.utils import pydate_to_qdate
 from brms.accounting.statement_viewer import locale
+from brms.utils import pydate_to_qdate
+
+
+class PlotWidget(QWidget):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.start_date: datetime.date = datetime.date.today() - relativedelta(years=1)
+        self.end_date: datetime.date = datetime.date.today()
+        self.dates: list[datetime.date] = []
+        self.equity_values: list[float] = []
+        self.title = "Total Equity Over Time"
+        self.show_grid = True
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.canvas = FigureCanvas(Figure(figsize=(5, 3)))
+        layout.addWidget(self.canvas)
+        self.ax = self.canvas.figure.add_subplot()
+        self.ax.set_title(self.title)
+        self.ax.set_ylabel("Equity ($)", fontsize=11)
+        if self.show_grid:
+            self.ax.grid(True, linestyle="--", alpha=0.7)
+        self.ax.tick_params(axis="both", which="major", labelsize=10)
+        self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.2f}"))
+        # Checkboxes
+        checkbox_layout = QHBoxLayout()
+        checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        # Add checkbox for controlling grid lines
+        self.grid_checkbox = QCheckBox("Show Grid Lines", self)
+        self.grid_checkbox.setChecked(True)  # Default to showing grid lines
+        checkbox_layout.addWidget(self.grid_checkbox)
+        layout.addLayout(checkbox_layout)
+
+        self.grid_checkbox.stateChanged.connect(self.on_grid_checkbox_state_changed)
+        self.on_grid_checkbox_state_changed()
+
+    def on_grid_checkbox_state_changed(self) -> None:
+        self.update_plot(
+            self.start_date,
+            self.end_date,
+            self.dates,
+            self.equity_values,
+            self.title,
+            self.grid_checkbox.isChecked(),
+        )
+
+    def clear_plot(self) -> None:
+        self.ax.clear()
+        self.ax.set_title(self.title)
+        self.canvas.draw()
+
+    def update_plot(
+        self,
+        start_date: datetime.date,
+        end_date: datetime.date,
+        dates: list[datetime.date],
+        equity_values: list[float],
+        title: str,
+        show_grid: bool,
+    ) -> None:
+        self.start_date = start_date
+        self.end_date = end_date
+        self.dates = dates
+        self.equity_values = equity_values
+        self.title = title
+        self.show_grid = show_grid
+        self.ax.clear()
+        if dates and equity_values:
+            self.ax.plot(dates, equity_values, color="blue", label="Total Equity")
+            self.ax.plot(dates[-1], equity_values[-1], "r+")  # Add a red marker to the newest data point
+        self.ax.set_xlim(pd.Timestamp(start_date), pd.Timestamp(end_date))
+        self.ax.set_ylabel("Equity ($)", fontsize=11)
+        self.ax.set_title(title, fontsize=11)
+        if show_grid:
+            self.ax.grid(True, linestyle="--", alpha=0.7)
+        self.ax.tick_params(axis="both", which="major", labelsize=10)
+        self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.2f}"))
+        if dates:
+            self.ax.legend(fontsize=9, loc="lower right")
+        self.canvas.draw()
+
+    def export_plot(self) -> None:
+        options = QFileDialog.Options()
+        plot_title = self.ax.get_title()
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            caption="Save Plot",
+            dir=f"BRMS - {plot_title}",
+            filter="PNG Files (*.png);;All Files (*)",
+            options=options,
+        )
+        if file_path:
+            self.canvas.figure.savefig(file_path)
 
 
 class BRMSDashboard(QWidget):
@@ -75,9 +174,10 @@ class BRMSDashboard(QWidget):
         # Plot display area
         self.plot_splitter = QSplitter()
         self.plot_splitter.setOrientation(Qt.Orientation.Vertical)
-        self.plot_splitter.addWidget(QLabel("Plot 1 Placeholder"))
-        self.plot_splitter.addWidget(QLabel("Plot 2 Placeholder"))
-        self.plot_splitter.addWidget(QLabel("Plot 3 Placeholder"))
+        self.equity_plot = PlotWidget()
+        self.plot_splitter.addWidget(self.equity_plot)
+        self.plot_splitter.addWidget(PlotWidget())
+        self.plot_splitter.addWidget(PlotWidget())
 
         # Main layout as QSplitter
         main_splitter = QSplitter()
@@ -119,3 +219,14 @@ class BRMSDashboard(QWidget):
         self.total_assets_value.setText(locale.currency(total_assets, grouping=True))
         self.total_liabilities_value.setText(locale.currency(total_liabilities, grouping=True))
         self.total_equity_value.setText(locale.currency(total_equity, grouping=True))
+
+    def update_equity_plot(self, start, end, dates, equity_values) -> None:
+        """Update the equity plot with new data."""
+        self.equity_plot.update_plot(
+            start,
+            end,
+            dates,
+            equity_values,
+            "Total Equity Over Time",
+            self.equity_plot.grid_checkbox.isChecked(),
+        )

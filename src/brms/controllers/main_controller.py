@@ -97,6 +97,12 @@ class MainController(BRMSController):
         self.view.dashboard.update_simulation_date(simulation.current_scenario.date)
         self.view.dashboard.update_simulation_start_date(self.simulation.start_date)
         self.view.dashboard.update_simulation_end_date(self.simulation.end_date)
+        self.view.dashboard.update_equity_plot(
+            start=self.simulation.start_date,
+            end=self.simulation.end_date,
+            dates=list(self.bank_ctrl.total_equity_history.keys()),
+            equity_values=list(self.bank_ctrl.total_equity_history.values()),
+        )
 
     def on_next_scenario(self) -> None:
         try:
@@ -116,6 +122,12 @@ class MainController(BRMSController):
         end_date = self.simulation.end_date
         progress = (date - start_date) / (end_date - start_date) * 100
         self.view.dashboard.update_simulation_progress(int(progress))
+        self.view.dashboard.update_equity_plot(
+            start=self.simulation.start_date,
+            end=self.simulation.end_date,
+            dates=list(self.bank_ctrl.total_equity_history.keys()),
+            equity_values=list(self.bank_ctrl.total_equity_history.values()),
+        )
 
     def on_scenario_changed(self, scenario: Scenario) -> None:
         """Handle changes to the scenario.

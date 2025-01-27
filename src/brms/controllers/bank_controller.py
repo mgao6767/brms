@@ -37,6 +37,10 @@ class BankController(BRMSController):
         self.banking_book_view = banking_book_view
         self.trading_book_view = trading_book_view
         self.statement_view = statement_view
+        self.report: Report
+        self.total_assets_history: dict[datetime.date, float] = {}
+        self.total_liabilities_history: dict[datetime.date, float] = {}
+        self.total_equity_history: dict[datetime.date, float] = {}
         # Controllers passed in
         self.inspector_ctrl = inspector_ctrl
         # Sub controllers
@@ -95,7 +99,7 @@ class BankController(BRMSController):
                     self.trading_book_ctrl.update_instrument(instrument, position)
 
     def update_statement(self, date: datetime.date | None = None) -> None:
-        report = Report(
+        self.report = Report(
             ledger=self.bank.ledger,
             viewer=HTMLStatementViewer(
                 console=False,
@@ -105,9 +109,9 @@ class BankController(BRMSController):
             ),
             date=date or self.bank.ledger.date_closed,
         )
-        report.print_trial_balance()
-        report.print_income_statement()
-        report.print_balance_sheet()
+        self.report.print_trial_balance()
+        self.report.print_income_statement()
+        self.report.print_balance_sheet()
         # Save current scroll positions
         trial_balance_v_scroll_pos = self.statement_view.trial_balance_browser.verticalScrollBar().value()
         trial_balance_h_scroll_pos = self.statement_view.trial_balance_browser.horizontalScrollBar().value()
@@ -116,9 +120,9 @@ class BankController(BRMSController):
         balance_sheet_v_scroll_pos = self.statement_view.balance_sheet_browser.verticalScrollBar().value()
         balance_sheet_h_scroll_pos = self.statement_view.balance_sheet_browser.horizontalScrollBar().value()
         # Set new HTML content
-        self.statement_view.trial_balance_browser.setHtml(report.trial_balance.html)
-        self.statement_view.income_statement_browser.setHtml(report.income_statement.html)
-        self.statement_view.balance_sheet_browser.setHtml(report.balance_sheet.html)
+        self.statement_view.trial_balance_browser.setHtml(self.report.trial_balance.html)
+        self.statement_view.income_statement_browser.setHtml(self.report.income_statement.html)
+        self.statement_view.balance_sheet_browser.setHtml(self.report.balance_sheet.html)
         # Restore scroll positions
         self.statement_view.trial_balance_browser.verticalScrollBar().setValue(trial_balance_v_scroll_pos)
         self.statement_view.trial_balance_browser.horizontalScrollBar().setValue(trial_balance_h_scroll_pos)
@@ -128,7 +132,23 @@ class BankController(BRMSController):
         self.statement_view.balance_sheet_browser.horizontalScrollBar().setValue(balance_sheet_h_scroll_pos)
 
         # Update the financial metrics and emit signals
-        total_assets = sum(report.balance_sheet.assets.values())
-        total_liabilities = sum(report.balance_sheet.liabilities.values())
-        total_equity = sum(report.balance_sheet.equities.values())
-        self.bank_financials_updated.emit(total_assets, total_liabilities, total_equity)
+        if date is not None:
+            total_assets = self.get_total_assets()
+            total_liabilities = self.get_total_liabilities()
+            total_equity = self.get_total_equity()
+            self.total_assets_history[date] = total_assets
+            self.total_liabilities_history[date] = total_liabilities
+            self.total_equity_history[date] = total_equity
+            self.bank_financials_updated.emit(total_assets, total_liabilities, total_equity)
+
+    def get_total_assets(self) -> float:
+        """Calculate and return the bank's total assets."""
+        return sum(self.report.balance_sheet.assets.values())
+
+    def get_total_liabilities(self) -> float:
+        """Calculate and return the bank's total liabilities."""
+        return sum(self.report.balance_sheet.liabilities.values())
+
+    def get_total_equity(self) -> float:
+        """Calculate and return the bank's total equity."""
+        return sum(self.report.balance_sheet.equities.values())
