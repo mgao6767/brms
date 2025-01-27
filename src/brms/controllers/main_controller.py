@@ -17,6 +17,7 @@ from brms.views.main_window import MainWindow
 class MainController(BRMSController):
     """Main controller class for the Simulation."""
 
+    simulation_initiated = Signal(SimulationModel)
     scenario_changed = Signal(Scenario)
 
     def __init__(self, model: SimulationModel, view: MainWindow) -> None:
@@ -25,7 +26,8 @@ class MainController(BRMSController):
         self.simulation: SimulationModel = model
         self.view: MainWindow = view
         # Initialize the timer
-        self.simulation_interval = 500
+        self.simulation_base_interval = 500
+        self.simulation_interval = self.simulation_base_interval
         self.simulation_timer = QTimer()
         self.simulation_timer.setInterval(self.simulation_interval)
         # Sub controllers
@@ -56,6 +58,9 @@ class MainController(BRMSController):
         self.view.speed_down_action.triggered.connect(self.on_speed_down_action)
         self.view.exit_signal.connect(self.on_exit)
         self.scenario_changed.connect(self.on_scenario_changed)
+        self.simulation_initiated.connect(self.on_simulation_initiated)
+
+        self.bank_ctrl.bank_financials_updated.connect(self.view.dashboard.update_bank_financials)
 
     def connect_signals_for_debugging(self) -> None:
         """Connect signals only used for debugging."""
@@ -79,11 +84,19 @@ class MainController(BRMSController):
         self.bank_ctrl.init(self.simulation.scenario_manager)
         # 4. Emit signal about Scenario changes
         self.scenario_changed.emit(self.simulation.current_scenario)
+        self.simulation_initiated.emit(self.simulation)
 
     def on_exit(self) -> None:
         """Handle the exit signal from the view."""
         # Perform any cleanup or save operations here
         self.view.close()
+
+    def on_simulation_initiated(self, simulation: SimulationModel) -> None:
+        self.simulation.start_date = self.simulation.current_scenario.date
+        self.view.dashboard.update_simulation_progress(0)
+        self.view.dashboard.update_simulation_date(simulation.current_scenario.date)
+        self.view.dashboard.update_simulation_start_date(self.simulation.start_date)
+        self.view.dashboard.update_simulation_end_date(self.simulation.end_date)
 
     def on_next_scenario(self) -> None:
         try:
@@ -98,6 +111,11 @@ class MainController(BRMSController):
         for tx in self.simulation.bank_engine.generate_transactions(date):
             self.bank_ctrl.process_transaction(tx)
         self.scenario_changed.emit(self.simulation.current_scenario)
+        self.view.dashboard.update_simulation_date(date)
+        start_date = self.simulation.start_date
+        end_date = self.simulation.end_date
+        progress = (date - start_date) / (end_date - start_date) * 100
+        self.view.dashboard.update_simulation_progress(int(progress))
 
     def on_scenario_changed(self, scenario: Scenario) -> None:
         """Handle changes to the scenario.
@@ -131,14 +149,20 @@ class MainController(BRMSController):
         self.simulation_timer.stop()
 
     def on_speed_up_action(self):
-        # min interval 100ms or 0.1s
-        self.simulation_interval = max(100, self.simulation_timer.interval() - 100)
+        # Increase speed by 0.1x
+        current_speed = self.simulation_base_interval / self.simulation_timer.interval()
+        new_speed = min(5.0, current_speed + 0.1)  # Ensure the speed does not exceed 5.0x
+        self.simulation_interval = int(self.simulation_base_interval / new_speed)
         self.simulation_timer.setInterval(self.simulation_interval)
+        self.view.dashboard.update_simulation_speed(f"{new_speed:.1f}x")
 
     def on_speed_down_action(self):
-        # max interval 2000ms or 2s
-        self.simulation_interval = min(2000, self.simulation_timer.interval() + 100)
+        # Decrease speed by 0.1x
+        current_speed = self.simulation_base_interval / self.simulation_timer.interval()
+        new_speed = max(0.1, current_speed - 0.1)  # Ensure the speed does not go below 0.1x
+        self.simulation_interval = int(self.simulation_base_interval / new_speed)
         self.simulation_timer.setInterval(self.simulation_interval)
+        self.view.dashboard.update_simulation_speed(f"{new_speed:.1f}x")
 
     # ====================================================================
     # Testing

@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 from brms import DEBUG_MODE, __about__, __github__, __version__
 from brms.resources import icons  # noqa: F401
 from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
+from brms.views.dashboard_widget import BRMSDashboard
 from brms.views.dock_widget import BRMSDockWidget
 from brms.views.inspector_widget import BRMSInspectorWidget
 from brms.views.statement_viewer_widget import BRMSStatementViewer
@@ -33,6 +34,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.read_settings()
         # UI components
+        self.dashboard: BRMSDashboard
         self.inspector_widget: BRMSInspectorWidget
         self.banking_book_widget: BRMSBankingBookWidget
         self.trading_book_widget: BRMSTradingBookWidget
@@ -78,7 +80,8 @@ class MainWindow(QMainWindow):
         tab_widget = QTabWidget(self)
         self.banking_book_widget = BRMSBankingBookWidget()
         self.trading_book_widget = BRMSTradingBookWidget()
-        # tab_widget.addTab(self.statement_viewer_widget, "Dashboard")
+        self.dashboard = BRMSDashboard()
+        tab_widget.addTab(self.dashboard, "Dashboard")
         tab_widget.addTab(self.banking_book_widget, "Banking Book")
         tab_widget.addTab(self.trading_book_widget, "Trading Book")
         self.setCentralWidget(tab_widget)

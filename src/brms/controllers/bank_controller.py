@@ -22,6 +22,7 @@ class BankController(BRMSController):
     """
 
     transaction_processed = Signal(Transaction, name="Transaction Processed")
+    bank_financials_updated = Signal(float, float, float, name="Total Assets Updated")
 
     def __init__(
         self,
@@ -125,3 +126,9 @@ class BankController(BRMSController):
         self.statement_view.income_statement_browser.horizontalScrollBar().setValue(income_statement_h_scroll_pos)
         self.statement_view.balance_sheet_browser.verticalScrollBar().setValue(balance_sheet_v_scroll_pos)
         self.statement_view.balance_sheet_browser.horizontalScrollBar().setValue(balance_sheet_h_scroll_pos)
+
+        # Update the financial metrics and emit signals
+        total_assets = sum(report.balance_sheet.assets.values())
+        total_liabilities = sum(report.balance_sheet.liabilities.values())
+        total_equity = sum(report.balance_sheet.equities.values())
+        self.bank_financials_updated.emit(total_assets, total_liabilities, total_equity)

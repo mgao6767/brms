@@ -15,6 +15,7 @@ class Simulation:
         self.bank = bank or Bank()
         self.scenario_manager = scenario_manager or ScenarioManager()
         self.bank_engine = BankEngine(self.bank, self.scenario_manager)
+        self.start_date: datetime.date
 
     def set_scenario(self, date: datetime.date) -> None:
         """Set the current scenario for the simulation."""
@@ -27,3 +28,8 @@ class Simulation:
     def current_scenario(self) -> Scenario:
         """Get the current scenario."""
         return self.scenario_manager.current_scenario
+
+    @property
+    def end_date(self) -> datetime.date:
+        """Get the end date of the available scenarios."""
+        return max(self.scenario_manager.available_dates)

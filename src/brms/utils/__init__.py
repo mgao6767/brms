@@ -102,3 +102,17 @@ def qldate_to_string(date: ql.Date) -> str:
     """
     assert isinstance(date, ql.Date)
     return f"{date.year()}/{date.month()}/{date.dayOfMonth()}"
+
+
+def pydate_to_qdate(date: datetime.date) -> QDate:
+    """Convert a Python date object to a QDate object.
+
+    Args:
+        date (datetime.date): The Python date object to be converted.
+
+    Returns:
+        QDate: The corresponding QDate object.
+
+    """
+    assert isinstance(date, datetime.date)
+    return QDate(date.year, date.month, date.day)
