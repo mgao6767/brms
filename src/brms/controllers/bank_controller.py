@@ -107,6 +107,21 @@ class BankController(BRMSController):
         report.print_trial_balance()
         report.print_income_statement()
         report.print_balance_sheet()
+        # Save current scroll positions
+        trial_balance_v_scroll_pos = self.statement_view.trial_balance_browser.verticalScrollBar().value()
+        trial_balance_h_scroll_pos = self.statement_view.trial_balance_browser.horizontalScrollBar().value()
+        income_statement_v_scroll_pos = self.statement_view.income_statement_browser.verticalScrollBar().value()
+        income_statement_h_scroll_pos = self.statement_view.income_statement_browser.horizontalScrollBar().value()
+        balance_sheet_v_scroll_pos = self.statement_view.balance_sheet_browser.verticalScrollBar().value()
+        balance_sheet_h_scroll_pos = self.statement_view.balance_sheet_browser.horizontalScrollBar().value()
+        # Set new HTML content
         self.statement_view.trial_balance_browser.setHtml(report.trial_balance.html)
         self.statement_view.income_statement_browser.setHtml(report.income_statement.html)
         self.statement_view.balance_sheet_browser.setHtml(report.balance_sheet.html)
+        # Restore scroll positions
+        self.statement_view.trial_balance_browser.verticalScrollBar().setValue(trial_balance_v_scroll_pos)
+        self.statement_view.trial_balance_browser.horizontalScrollBar().setValue(trial_balance_h_scroll_pos)
+        self.statement_view.income_statement_browser.verticalScrollBar().setValue(income_statement_v_scroll_pos)
+        self.statement_view.income_statement_browser.horizontalScrollBar().setValue(income_statement_h_scroll_pos)
+        self.statement_view.balance_sheet_browser.verticalScrollBar().setValue(balance_sheet_v_scroll_pos)
+        self.statement_view.balance_sheet_browser.horizontalScrollBar().setValue(balance_sheet_h_scroll_pos)
