@@ -2,7 +2,7 @@
 
 import sys
 
-from PySide6.QtWidgets import QApplication, QStyleFactory
+from PySide6.QtWidgets import QApplication
 
 from brms import DEBUG_MODE
 from brms.controllers.main_controller import MainController
@@ -16,10 +16,14 @@ class App(QApplication):
     def __init__(self, sys_argv: list[str]) -> None:
         """Initialize the BRMS application."""
         super().__init__(sys_argv)
-        self.setStyle(QStyleFactory.create("Fusion"))
+        font = self.font()
+        font.setFamily("Monospace")
+        self.setFont(font)
         self.view = MainWindow()
         self.model = SimulationModel()
         self.controller = MainController(self.model, self.view)
+        self.view.apply_fushion_style()
+        self.view.apply_mq_style()
         self.view.show()
         if DEBUG_MODE:
             self.view.debug_panel.show()

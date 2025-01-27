@@ -3,7 +3,16 @@
 import qtawesome as qta
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QIcon
-from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar, QStatusBar, QTabWidget, QToolBar, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QMenuBar,
+    QStatusBar,
+    QStyleFactory,
+    QTabWidget,
+    QToolBar,
+    QWidget,
+)
 
 from brms import DEBUG_MODE, __about__, __github__, __version__
 from brms.resources import icons  # noqa: F401
@@ -43,6 +52,7 @@ class MainWindow(QMainWindow):
         self.speed_up_action: QAction
         self.speed_down_action: QAction
         self.stop_action: QAction
+        self.fushion_style_action: QAction
         self.mq_style_action: QAction
         self.restore_views_action: QAction
         self.about_action: QAction
@@ -112,7 +122,9 @@ class MainWindow(QMainWindow):
         self.speed_up_action = QAction(qta.icon("mdi6.plus"), "Speed Up", self)
         self.speed_down_action = QAction(qta.icon("mdi6.minus"), "Speed Down", self)
         # View
+        self.fushion_style_action = QAction("Fushion Theme", self)
         self.mq_style_action = QAction("MQ Theme", self)
+        self.fushion_style_action.setCheckable(True)
         self.mq_style_action.setCheckable(True)
         self.restore_views_action = QAction("Restore Views", self)
         # Misc
@@ -123,6 +135,7 @@ class MainWindow(QMainWindow):
         """Create the toolbar for the main window."""
         toolbar = QToolBar("Main Toolbar")
         toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        toolbar.setMovable(False)
         self.addToolBar(toolbar)
         # Add actions to the toolbar
         toolbar.addAction(self.next_action)
@@ -149,7 +162,9 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(self.exit_action)
         # View menu
+        view_menu.addAction(self.fushion_style_action)
         view_menu.addAction(self.mq_style_action)
+        view_menu.addSeparator()
         view_menu.addAction(self.restore_views_action)
         # Simulation menu
         simulation_menu.addAction(self.next_action)
@@ -191,7 +206,15 @@ class MainWindow(QMainWindow):
         # Call on_restore_views to place dock widgets at default positions
         self.on_restore_views()
 
-    def apply_styles(self):
+    def apply_fushion_style(self):
+        self.fushion_style_action.setChecked(True)
+        self.mq_style_action.setChecked(False)
+        self.setStyleSheet("")
+        QApplication.instance().setStyle(QStyleFactory.create("Fusion"))
+
+    def apply_mq_style(self):
+        self.mq_style_action.setChecked(True)
+        self.fushion_style_action.setChecked(False)
         # MQ's style guide
         # https://gem.mq.edu.au/guidelines
         Color_Red = "#A6192E"
@@ -326,6 +349,7 @@ class MainWindow(QMainWindow):
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
         self.exit_action.triggered.connect(self.on_exit)
+        self.fushion_style_action.triggered.connect(self.on_fushion_style_action)
         self.mq_style_action.triggered.connect(self.on_mq_style_action)
         self.restore_views_action.triggered.connect(self.on_restore_views)
         self.about_action.triggered.connect(self.on_about_action)
@@ -338,20 +362,26 @@ class MainWindow(QMainWindow):
         """
         self.exit_signal.emit()
 
+    def on_fushion_style_action(self) -> None:
+        """Handle the Fushion style action.
+
+        Apply or remove the Fushion style based on the action's checked state.
+        """
+        if self.fushion_style_action.isChecked():
+            self.apply_fushion_style()
+
     def on_mq_style_action(self) -> None:
         """Handle the MQ style action.
 
         Apply or remove the MQ style based on the action's checked state.
         """
         if self.mq_style_action.isChecked():
-            self.apply_styles()
-        else:
-            self.setStyleSheet("")  # Remove stylesheet
+            self.apply_mq_style()
 
     def on_restore_views(self) -> None:
         """Restore the dock widgets to their default positions and sizes."""
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dock_econ_indicator)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dock_statement_viewer)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock_econ_indicator)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock_statement_viewer)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock_inspector)
         for widget in self._dock_widgets:
             widget.setFloating(False)
@@ -362,6 +392,8 @@ class MainWindow(QMainWindow):
             self.resizeDocks([self.dock_statement_viewer], [670], Qt.Orientation.Horizontal)
         # Resize dock widgets to make them equal height
         self.resizeDocks([self.dock_econ_indicator, self.dock_statement_viewer], [1, 1], Qt.Orientation.Vertical)
+        self.tabifyDockWidget(self.dock_statement_viewer, self.dock_inspector)
+        self.dock_statement_viewer.raise_()
 
     def on_about_action(self) -> None:
         """Handle the about action.
