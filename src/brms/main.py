@@ -22,8 +22,6 @@ class App(QApplication):
         self.view = MainWindow()
         self.model = SimulationModel()
         self.controller = MainController(self.model, self.view)
-        self.view.apply_fushion_style()
-        self.view.apply_mq_style()
         self.view.show()
         if DEBUG_MODE:
             self.view.debug_panel.show()

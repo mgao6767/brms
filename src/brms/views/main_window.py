@@ -21,7 +21,11 @@ from brms.views.dashboard_widget import BRMSDashboard
 from brms.views.dock_widget import BRMSDockWidget
 from brms.views.inspector_widget import BRMSInspectorWidget
 from brms.views.statement_viewer_widget import BRMSStatementViewer
+from brms.views.styler import BRMSStyler
 from brms.views.yield_curve_widget import BRMSYieldCurveWidget
+
+if DEBUG_MODE:
+    from brms.views.debug_panel import DebugPanel
 
 
 class MainWindow(QMainWindow):
@@ -33,6 +37,7 @@ class MainWindow(QMainWindow):
         """Initialize the main window."""
         super().__init__()
         self.read_settings()
+        self.styler = BRMSStyler.instance()
         # UI components
         self.dashboard: BRMSDashboard
         self.inspector_widget: BRMSInspectorWidget
@@ -59,11 +64,10 @@ class MainWindow(QMainWindow):
         self.restore_views_action: QAction
         self.about_action: QAction
         self.github_action: QAction
-
         if DEBUG_MODE:
-            from brms.views.debug_panel import DebugPanel
-
             self.debug_panel = DebugPanel(self)
+        # Finalize
+        self.on_mq_style_action()
 
     def init_ui(self) -> None:
         """Initialize the user interface."""
@@ -209,146 +213,6 @@ class MainWindow(QMainWindow):
         # Call on_restore_views to place dock widgets at default positions
         self.on_restore_views()
 
-    def apply_fushion_style(self):
-        self.fushion_style_action.setChecked(True)
-        self.mq_style_action.setChecked(False)
-        self.setStyleSheet("")
-        QApplication.instance().setStyle(QStyleFactory.create("Fusion"))
-
-    def apply_mq_style(self):
-        self.mq_style_action.setChecked(True)
-        self.fushion_style_action.setChecked(False)
-        # MQ's style guide
-        # https://gem.mq.edu.au/guidelines
-        Color_Red = "#A6192E"
-        Color_Charcoal = "#373A36"
-        Color_Sand_Light = "#EDEBE5"
-        Color_Purple = "#80225F"
-        Color_Deep_Red = "#76232F"
-        Color_Bright_Red = "#D6001C"
-        Color_Magenta = "#C6007E"
-        Color_Success = "#009174"
-        Color_Alert = "#BC4700"
-        Color_Information = "#415364"
-        Color_Sand = "#D6D2C4"
-        Color_Dark_Purple = "#6F1D46"
-
-        darker_sand = "#C0BEB0"  # Slightly darker than Color_Sand
-
-        app_style = f"""
-        QWidget {{
-            background-color: {Color_Sand_Light};
-            color: {Color_Charcoal};
-        }}
-        QDockWidget::title {{
-            background-color: {Color_Sand};
-            padding-top: 1px;
-            padding-bottom: 1px;
-            color: {Color_Sand_Light};
-        }}
-        QTabBar::tab {{
-            background: {Color_Sand};
-            color: {Color_Charcoal};
-            border-bottom: 1px solid {Color_Sand_Light};
-            border-top-left-radius: 4px;
-            border-top-right-radius: 4px;
-            min-width: 12ex;
-            padding: 5px;
-            padding-left: 10px;
-            padding-right: 10px;
-            margin-top: 5px;
-            margin-right: 1px;
-        }}
-        QTabBar::tab::bottom {{
-            background: {Color_Sand};
-            color: {Color_Charcoal};
-            border-top: 1px solid {Color_Sand_Light};
-            border-top-left-radius: 0px;
-            border-top-right-radius: 0px;
-            border-bottom-left-radius: 4px;
-            border-bottom-right-radius: 4px;
-            min-width: 12ex;
-            padding: 5px;
-            padding-left: 10px;
-            padding-right: 10px;
-            margin-top: 0px;
-            margin-bottom: 5px;
-            margin-right: 1px;
-        }}
-        QTabBar::tab:selected {{
-            background: {Color_Deep_Red};
-            color: {Color_Sand_Light};
-        }}
-        QTabBar::tab:hover {{
-            background: {Color_Red};
-            color: {Color_Sand_Light};
-        }}
-        QPushButton {{
-            background-color: {Color_Information};
-            color: {Color_Sand_Light};
-            border-radius: 5px;
-            padding: 5px;
-        }}
-        QPushButton:hover {{
-            background-color: {Color_Purple};
-        }}
-        QPushButton:pressed {{
-            background-color: {Color_Dark_Purple};
-        }}
-        QMenuBar {{
-            background-color: {Color_Charcoal};
-            color: {Color_Sand_Light};
-        }}
-        QMenuBar::item {{
-            background-color: {Color_Charcoal};
-            color: {Color_Sand_Light};
-            padding-left: 10px;
-            padding-right: 10px;
-            padding-top: 5px;
-            padding-bottom: 5px;
-        }}
-        QMenuBar::item:selected {{
-            background-color: {Color_Purple};
-        }}
-        QMenu {{
-            background-color: {Color_Charcoal};
-            color: {Color_Sand_Light};
-        }}
-        QMenu::item:selected {{
-            background-color: {Color_Purple};
-        }}
-        QToolBar {{
-            background-color: {Color_Sand_Light};
-        }}
-        QToolBar QWidget {{
-            background-color: {Color_Sand_Light};
-        }}
-        QToolButton {{
-            background-color: {Color_Sand};
-        }}
-        QToolButton:hover {{
-            background-color: {Color_Red};
-            color: {Color_Sand_Light};
-        }}
-        QHeaderView::section {{
-            background-color: {Color_Sand};
-            border: none;
-            padding: 3px;
-        }}
-        QTableCornerButton::section {{
-            background-color: {Color_Sand};
-        }}
-        QTreeView::item:selected {{
-            background-color: {Color_Alert};
-            color: {Color_Sand_Light};
-        }}
-        QTableView::item:selected {{
-            background-color: {Color_Alert};
-            color: {Color_Sand_Light};
-        }}
-        """
-        self.setStyleSheet(app_style)
-
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
         self.exit_action.triggered.connect(self.on_exit)
@@ -370,16 +234,18 @@ class MainWindow(QMainWindow):
 
         Apply or remove the Fushion style based on the action's checked state.
         """
-        if self.fushion_style_action.isChecked():
-            self.apply_fushion_style()
+        self.fushion_style_action.setChecked(True)
+        self.mq_style_action.setChecked(False)
+        self.styler.apply_fusion_style()
 
     def on_mq_style_action(self) -> None:
         """Handle the MQ style action.
 
         Apply or remove the MQ style based on the action's checked state.
         """
-        if self.mq_style_action.isChecked():
-            self.apply_mq_style()
+        self.mq_style_action.setChecked(True)
+        self.fushion_style_action.setChecked(False)
+        self.styler.apply_mq_style()
 
     def on_restore_views(self) -> None:
         """Restore the dock widgets to their default positions and sizes."""

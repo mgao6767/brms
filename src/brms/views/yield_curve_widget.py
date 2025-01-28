@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from brms.views.styler import BRMSStyler
 
 
 class RightAlignHeaderView(QHeaderView):
@@ -129,6 +130,7 @@ class BRMSYieldCurveWidget(QWidget):
 class PlotWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.styler = BRMSStyler.instance()
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.canvas = FigureCanvas(Figure(figsize=(5, 3)))
@@ -147,6 +149,16 @@ class PlotWidget(QWidget):
         self.grid_checkbox.setChecked(True)  # Default to showing grid lines
         checkbox_layout.addWidget(self.grid_checkbox)
         self.layout.addLayout(checkbox_layout)
+        # Signals
+        self.styler.style_changed.connect(self.update_plot_style)
+
+    def update_plot_style(self):
+        """Update an existing Matplotlib figure when the style changes."""
+        if self.styler.use_custom_style:
+            self.canvas.figure.patch.set_facecolor(self.styler.plot_background_color)  # Update figure background
+        else:
+            self.canvas.figure.patch.set_facecolor("white")  # Default background
+        self.canvas.figure.canvas.draw_idle()  # Redraw canvas
 
     def clear_plot(self):
         self.ax.clear()
