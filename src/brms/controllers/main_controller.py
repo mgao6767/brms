@@ -46,6 +46,7 @@ class MainController(BRMSController):
             self.connect_signals_for_debugging()
         # Initial tasks
         self.bank_ctrl.update_statement()
+        QTimer.singleShot(100, self.init)
 
     def connect_signals(self) -> None:
         """Connect signals from the view to the controller's slots."""
