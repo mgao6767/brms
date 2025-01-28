@@ -71,9 +71,13 @@ class BankBookController(BRMSController):
                 self.short_model.remove_data(QMODELINDEX, instrument.id, id_column=LiabilityColumns.ID.value)
 
     def update_instrument(self, instrument: Instrument, position: Position) -> None:
-        # TODO: Temporary solution
-        self.remove_instrument(instrument, position)
-        self.add_instrument(instrument, position)
+        match position:
+            case Position.LONG:
+                if index := self.long_model.find_data(instrument.id, AssetColumns.ID.value):
+                    self.long_model.update_data(index, {AssetColumns.Value: instrument.value})
+            case Position.SHORT:
+                if index := self.short_model.find_data(instrument.id, LiabilityColumns.ID.value):
+                    self.short_model.update_data(index, {LiabilityColumns.Value: instrument.value})
 
     def set_id_column_visibility(self, *, visible: bool) -> None:
         """Set the visibility of the ID column in the tree view."""
