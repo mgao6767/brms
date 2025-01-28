@@ -172,17 +172,20 @@ class MainController(BRMSController):
         self.simulation_timer.stop()
 
     def on_speed_up_action(self):
-        # Increase speed by 0.1x
+        # Increase speed by 0.5x
         current_speed = self.simulation_base_interval / self.simulation_timer.interval()
-        new_speed = min(5.0, current_speed + 0.1)  # Ensure the speed does not exceed 5.0x
+        current_speed = round(current_speed, 1)
+        # Ensure the speed does not exceed 5.0x
+        new_speed = 0.5 if current_speed == 0.1 else min(5.0, current_speed + 0.5)
         self.simulation_interval = int(self.simulation_base_interval / new_speed)
         self.simulation_timer.setInterval(self.simulation_interval)
         self.view.dashboard.update_simulation_speed(f"{new_speed:.1f}x")
 
     def on_speed_down_action(self):
-        # Decrease speed by 0.1x
+        # Decrease speed by 0.5x
         current_speed = self.simulation_base_interval / self.simulation_timer.interval()
-        new_speed = max(0.1, current_speed - 0.1)  # Ensure the speed does not go below 0.1x
+        current_speed = round(current_speed, 1)
+        new_speed = max(0.1, current_speed - 0.5)  # Ensure the speed does not go below 0.1x
         self.simulation_interval = int(self.simulation_base_interval / new_speed)
         self.simulation_timer.setInterval(self.simulation_interval)
         self.view.dashboard.update_simulation_speed(f"{new_speed:.1f}x")
