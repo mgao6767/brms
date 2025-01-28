@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenuBar,
     QStatusBar,
-    QStyleFactory,
     QTabWidget,
     QToolBar,
     QWidget,
@@ -78,17 +77,6 @@ class MainWindow(QMainWindow):
         self.create_statusbar()
         self.create_central_widget()
         self.create_dock_widgets()
-
-    def create_central_widget(self) -> None:
-        """Create the central widget."""
-        tab_widget = QTabWidget(self)
-        self.banking_book_widget = BRMSBankingBookWidget()
-        self.trading_book_widget = BRMSTradingBookWidget()
-        self.dashboard = BRMSDashboard()
-        tab_widget.addTab(self.dashboard, "Dashboard")
-        tab_widget.addTab(self.banking_book_widget, "Banking Book")
-        tab_widget.addTab(self.trading_book_widget, "Trading Book")
-        self.setCentralWidget(tab_widget)
 
     def read_settings(self) -> None:
         """Read and set the default window settings."""
@@ -189,6 +177,17 @@ class MainWindow(QMainWindow):
         statusbar = QStatusBar(self)
         self.setStatusBar(statusbar)
         statusbar.showMessage("Ready")
+
+    def create_central_widget(self) -> None:
+        """Create the central widget."""
+        tab_widget = QTabWidget(self)
+        self.banking_book_widget = BRMSBankingBookWidget()
+        self.trading_book_widget = BRMSTradingBookWidget()
+        self.dashboard = BRMSDashboard()
+        tab_widget.addTab(self.dashboard, "Dashboard")
+        tab_widget.addTab(self.banking_book_widget, "Banking Book")
+        tab_widget.addTab(self.trading_book_widget, "Trading Book")
+        self.setCentralWidget(tab_widget)
 
     def create_dock_widgets(self) -> None:
         """Create and dock the inspector widget."""
