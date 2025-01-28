@@ -2,8 +2,8 @@
 
 from typing import TYPE_CHECKING
 
+from brms.accounting.statement_viewer import locale
 from brms.instruments.visitors import Visitor
-from brms.utils import qldate_to_string
 
 if TYPE_CHECKING:
     from brms.instruments.amortizing_fixed_rate_loan import AmortizingFixedRateLoan
@@ -83,7 +83,13 @@ class InspectionVisitor(Visitor):
 
     def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> None:
         """Inspect an amortizing fixed rate bond."""
-        raise NotImplementedError
+        self.result.clear()
+        details = self._get_instrument_details(instrument)
+        details["Issue Date"] = instrument.issue_date.strftime("%Y-%m-%d")
+        details["Maturity Date"] = instrument.maturity_date.strftime("%Y-%m-%d")
+        details["Interest Rate"] = f"{instrument.interest_rate*100}%"
+        details["Face Value"] = locale.currency(instrument.face_value, grouping=True)
+        self.result.update(details)
 
     def visit_covered_bond(self, instrument: "CoveredBond") -> None:
         """Inspect a covered bond."""

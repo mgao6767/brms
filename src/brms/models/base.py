@@ -17,6 +17,8 @@ class InstrumentClass(Enum):
     HTM = "Held to Maturity"
     FVOCI = "Fair Value Through Other Comprehensive Income"
     FVTPL = "Fair Value Through Profit and Loss"
+    MORTGAGE = "Mortgage"
+    LOAN = "Loan"
     NA = "N/A"
 
 

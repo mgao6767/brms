@@ -1,10 +1,15 @@
 import datetime
+from functools import cache
+from typing import TYPE_CHECKING, Optional
 
 import QuantLib as ql
 
-from brms.instruments.base import Instrument
-from brms.instruments.visitors import Visitor
-from brms.utils import pydate_to_qldate, qldate_to_string
+from brms.instruments.base import Instrument, InstrumentClass
+from brms.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
+
+if TYPE_CHECKING:
+    from brms.instruments.base import BookType, CreditRating, Issuer
+    from brms.instruments.visitors import Visitor
 
 
 class AmortizingFixedRateLoan(Instrument):
@@ -22,6 +27,11 @@ class AmortizingFixedRateLoan(Instrument):
         calendar: ql.Calendar = ql.NullCalendar(),
         day_count: ql.DayCounter = ql.Thirty360(ql.Thirty360.BondBasis),
         business_convention=ql.Unadjusted,
+        book_type: Optional["BookType"] = None,
+        credit_rating: Optional["CreditRating"] = None,
+        issuer: Optional["Issuer"] = None,
+        parent: Optional["Instrument"] = None,
+        instrument_class: Optional["InstrumentClass"] = None,
     ):
         """Build a fixed rate amortizing loan object.
 
@@ -38,7 +48,7 @@ class AmortizingFixedRateLoan(Instrument):
         """
         maturity_date_str = qldate_to_string(issue_date + maturity)
         name = f"{interest_rate*100:.2f}% {maturity_date_str}"
-        super().__init__(name)
+        super().__init__(name, book_type, credit_rating, issuer, parent, instrument_class=instrument_class)
 
         coupons = [interest_rate]
         schedule = ql.sinkingSchedule(issue_date, maturity, frequency, calendar)
@@ -66,10 +76,53 @@ class AmortizingFixedRateLoan(Instrument):
         """
         return self.instrument.notional(pydate_to_qldate(date))
 
-    def accept(self, visitor: Visitor) -> None:
+    @property
+    def maturity_date(self) -> datetime.date:
+        return qldate_to_pydate(self.instrument.maturityDate())
+
+    @property
+    def issue_date(self) -> datetime.date:
+        return qldate_to_pydate(self.instrument.issueDate())
+
+    @property
+    def interest_rate(self) -> float:
+        return self.instrument.nextCouponRate()
+
+    @property
+    def face_value(self) -> float:
+        return self.instrument.notional(self.instrument.issueDate())
+
+    def accept(self, visitor: "Visitor") -> None:
         """Accept a visitor."""
         visitor.visit_amortizing_fixed_rate_loan(self)
 
     def set_pricing_engine(self, engine: ql.PricingEngine) -> None:
         """Set the pricing engine."""
         self.instrument.setPricingEngine(engine)
+
+    @cache
+    def payment_schedule(
+        self,
+    ) -> tuple[list[tuple[datetime.date, float]], list[tuple[datetime.date, float]], list[tuple[datetime.date, float]]]:
+        """Calculate the payment schedule for the instrument.
+
+        Returns:
+            Tuple: A tuple containing three lists:
+                - interest_pmt: A list of tuples representing the date and amount of interest payments.
+                - principal_pmt: A list of tuples representing the date and amount of principal payments.
+                - outstanding: A list of tuples representing the date and outstanding balance after each payment.
+        """
+        loan = self.instrument
+        interest_pmt = []
+        principal_pmt = []
+        outstanding = []
+        last_outstanding = loan.notional(loan.issueDate())
+        for i, cf in enumerate(loan.cashflows()):
+            if i % 2 == 0:
+                interest_pmt.append((qldate_to_pydate(cf.date()), cf.amount()))
+            else:
+                principal_pmt.append((qldate_to_pydate(cf.date()), cf.amount()))
+                outstanding.append((qldate_to_pydate(cf.date()), last_outstanding - cf.amount()))
+                _, last_outstanding = outstanding[-1]
+
+        return (interest_pmt, principal_pmt, outstanding)

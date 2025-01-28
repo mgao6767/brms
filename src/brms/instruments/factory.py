@@ -5,6 +5,7 @@ import QuantLib as ql
 from brms.instruments.base import CreditRating, InstrumentClass, Issuer, IssuerType
 from brms.instruments.common_equity import CommonEquity
 from brms.instruments.deposit import Deposit
+from brms.instruments.mortgage import ResidentialMortgage
 from brms.instruments.treasury_security import TreasuryNote
 from brms.models.base import BookType
 
@@ -43,3 +44,47 @@ class InstrumentFactory:
                 credit_rating=CreditRating.AAA,
             ),
         )
+
+    @staticmethod
+    def create_residential_mortgage(
+        *,
+        face_value: float,
+        interest_rate: float,
+        issue_date: datetime.date,
+        maturity_years: int,
+        frequency: ql.Period = ql.Monthly,
+        settlement_days: int = 0,
+        calendar: ql.Calendar = ql.NullCalendar(),
+        day_count: ql.DayCounter = ql.ActualActual(ql.ActualActual.Actual365),
+        business_convention=ql.Unadjusted,
+        book_type: BookType = BookType.BANKING_BOOK,
+        credit_rating: CreditRating = CreditRating.UNRATED,
+        issuer: Issuer | None = None,
+        instrument_class: InstrumentClass = InstrumentClass.MORTGAGE,
+    ) -> ResidentialMortgage:
+        issue_date_ql = ql.Date(issue_date.day, issue_date.month, issue_date.year)
+        maturity: ql.Period = ql.Period(maturity_years, ql.Years)
+        if issuer is None:
+            issuer = Issuer(
+                name="Residential Mortgage Issuer",
+                issuer_type=IssuerType.INDIVIDUAL,
+                credit_rating=CreditRating.UNRATED,
+            )
+        mortgage = ResidentialMortgage(
+            face_value=face_value,
+            interest_rate=interest_rate,
+            issue_date=issue_date_ql,
+            maturity=maturity,
+            frequency=frequency,
+            settlement_days=settlement_days,
+            calendar=calendar,
+            day_count=day_count,
+            business_convention=business_convention,
+            book_type=book_type,
+            credit_rating=credit_rating,
+            issuer=issuer,
+            instrument_class=instrument_class,
+        )
+        # Set value to its face value
+        mortgage.value = face_value
+        return mortgage
