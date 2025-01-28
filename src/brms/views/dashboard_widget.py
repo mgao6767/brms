@@ -26,14 +26,15 @@ from brms.views.styler import BRMSStyler
 
 
 class PlotWidget(QWidget):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, title: str = "", series_title: str = "", parent=None) -> None:
         super().__init__(parent)
         self.styler = BRMSStyler.instance()
+        self.title = title
+        self.series_title = series_title
         self.start_date: datetime.date = datetime.date.today() - relativedelta(years=1)
         self.end_date: datetime.date = datetime.date.today()
         self.dates: list[datetime.date] = []
-        self.equity_values: list[float] = []
-        self.title = "Total Equity Over Time"
+        self.values: list[float] = []
         self.show_grid = True
 
         layout = QVBoxLayout(self)
@@ -42,15 +43,10 @@ class PlotWidget(QWidget):
         layout.addWidget(self.canvas)
         self.ax = self.canvas.figure.add_subplot()
         self.ax.set_title(self.title)
-        self.ax.set_ylabel("Equity", fontsize=11)
         if self.show_grid:
             self.ax.grid(self.show_grid, linestyle="--", alpha=0.7)
         self.ax.tick_params(axis="both", which="major", labelsize=10)
         self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: locale.currency(x, grouping=True)))
-        # self.ax2 = self.ax.twinx()
-        # self.ax2.yaxis.set_label_position("right")
-        # self.ax2.set_ylabel("Volatility", fontsize=11)
-        # self.ax2.tick_params(axis="both", which="major", labelsize=10)
         # Checkboxes
         checkbox_layout = QHBoxLayout()
         checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -60,7 +56,7 @@ class PlotWidget(QWidget):
         checkbox_layout.addWidget(self.grid_checkbox)
         layout.addLayout(checkbox_layout)
         # Data containers
-        (self.line,) = self.ax.plot([], [], color="blue", label="Total Equity")
+        (self.line,) = self.ax.plot([], [], color="blue", label=self.series_title)
         (self.marker,) = self.ax.plot([], [], "r+")
         # Signals
         self.grid_checkbox.stateChanged.connect(self.on_grid_checkbox_state_changed)
@@ -81,8 +77,7 @@ class PlotWidget(QWidget):
             self.start_date,
             self.end_date,
             self.dates,
-            self.equity_values,
-            self.title,
+            self.values,
             self.grid_checkbox.isChecked(),
         )
 
@@ -97,58 +92,36 @@ class PlotWidget(QWidget):
         start_date: datetime.date,
         end_date: datetime.date,
         dates: list[datetime.date],
-        equity_values: list[float],
-        title: str,
+        values: list[float],
         show_grid: bool,
     ) -> None:
         self.start_date = start_date
         self.end_date = end_date
         self.dates = dates
-        self.equity_values = equity_values
-        self.title = title
+        self.values = values
         self.show_grid = show_grid
 
         self.ax.set_xlim(pd.Timestamp(start_date), pd.Timestamp(end_date))
-        self.ax.set_title(title, fontsize=11)
-        self.ax.set_ylabel("Equity", fontsize=11)
-        self.ax.tick_params(axis="both", which="major", labelsize=10)
         if show_grid:
             # When line properties are provided, the grid will be enabled regardless.
             self.ax.grid(True, linestyle="--", alpha=0.7)
         else:
             self.ax.grid(False)
 
-        if dates and equity_values:
-            self.line.set_data(dates, equity_values)
-            self.marker.set_data([dates[-1]], [equity_values[-1]])
+        if dates and values:
+            self.line.set_data(dates, values)
+            self.marker.set_data([dates[-1]], [values[-1]])
             # Recalculate limits and autoscale view
             self.ax.relim()
             self.ax.autoscale_view()
 
-        if max(equity_values, default=0) >= 1_000_000:
+        if max(values, default=0) >= 1_000_000:
             formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000_000, grouping=True) + "M")
-        elif max(equity_values, default=0) >= 1_000:
+        elif max(values, default=0) >= 1_000:
             formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000, grouping=True) + "K")
         else:
             formatter = FuncFormatter(lambda x, _: locale.currency(x, grouping=True))
         self.ax.yaxis.set_major_formatter(formatter)
-
-        # self.ax2.set_ylabel("Volatility", fontsize=11)
-        # self.ax2.tick_params(axis="both", which="major", labelsize=10)
-        # if len(equity_values) > 1:
-        #     returns = pd.Series(equity_values).pct_change().dropna()
-        #     volatility: pd.Series = np.sqrt(252) * pd.Series(returns).rolling(window=21).std()
-        #     if len(volatility):
-        #         # Remove old bars from the plot
-        #         if self.volatility_bars:
-        #             for rect in self.volatility_bars:
-        #                 rect.remove()  # Remove each rectangle (bar) from the figure
-        #         # Clear the stored reference
-        #         self.volatility_bars = None
-        #         # Create a new BarContainer with updated data
-        #         self.volatility_bars = self.ax2.bar(dates[1:], volatility, color="gray", alpha=0.2, label="Volatility")
-        #         ymax = volatility.max(skipna=True)
-        #         self.ax2.set_ylim(ymin=0, ymax=ymax * 2.0 if not pd.isna(ymax) else 0.5)
 
         if dates:
             self.ax.legend(fontsize=9, loc="lower right")
@@ -227,10 +200,10 @@ class BRMSDashboard(QWidget):
         # Plot display area
         self.plot_splitter = QSplitter()
         self.plot_splitter.setOrientation(Qt.Orientation.Vertical)
-        self.equity_plot = PlotWidget()
+        self.equity_plot = PlotWidget(title="Total Shareholders' Equity", series_title="Total Equity")
         self.plot_splitter.addWidget(self.equity_plot)
-        self.plot_splitter.addWidget(PlotWidget())
-        self.plot_splitter.addWidget(PlotWidget())
+        self.plot_splitter.addWidget(PlotWidget(title="Metric 2"))
+        self.plot_splitter.addWidget(PlotWidget(title="Metric 3"))
 
         # Main layout as QSplitter
         main_splitter = QSplitter()
@@ -280,6 +253,5 @@ class BRMSDashboard(QWidget):
             end,
             dates,
             equity_values,
-            "Total Equity Over Time",
             self.equity_plot.grid_checkbox.isChecked(),
         )
