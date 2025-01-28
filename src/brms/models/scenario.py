@@ -46,22 +46,13 @@ class ScenarioManager:
 
     def __init__(self) -> None:
         """Initialize the ScenarioManager with an empty dictionary of scenarios."""
-        self.current_scenario: Scenario
+        self.current_date = datetime.date(1900, 1, 1)
+        self.current_scenario = Scenario(self.current_date)
         self.scenarios: dict[datetime.date, Scenario] = {}
         self.available_dates: list[datetime.date] = []
         # `self.data` contains all _raw_ data loaded, i.e., for all dates (scenarios).
         # When a particular scenario is requested, we build it from the data if the scenario is not yet cached.
         self._data: dict[ScenarioData, Any] = {}
-
-    def get_date_of_next_scenario(self) -> datetime.date | None:
-        """Retrieve the next scenario's date based on the current scenario's date."""
-        if not hasattr(self, "current_scenario"):
-            raise ValueError("Current scenario is not set.")
-        current_date = self.current_scenario.date
-        future_dates = [date for date in self.available_dates if date > current_date]
-        if not future_dates:
-            return None
-        return min(future_dates)
 
     def has_scenario(self, date: datetime.date) -> bool:
         """Check if a scenario exists for a given date."""
@@ -73,6 +64,7 @@ class ScenarioManager:
             error_message = f"No scenario found for date: {date}"
             raise ValueError(error_message)
         self.current_scenario = scenario
+        self.current_date = date
 
     def clear_scenarios(self) -> None:
         """Clear all scenarios."""

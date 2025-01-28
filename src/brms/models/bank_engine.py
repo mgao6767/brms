@@ -1,6 +1,8 @@
 import datetime
+from collections.abc import Generator
 
 from brms.instruments.base import InstrumentClass
+from brms.instruments.cash import Cash
 from brms.instruments.visitors.valuation import (
     BankingBookValuationVisitor,
     TradingBookValuationVisitor,
@@ -20,26 +22,63 @@ class BankEngine:
         self.banking_book_visitor = BankingBookValuationVisitor(self.scenario_manager)
         self.trading_book_visitor = TradingBookValuationVisitor(self.scenario_manager)
 
-    def generate_transactions(self, date: datetime.date) -> list[Transaction]:
+    def generate_transactions(self, date: datetime.date) -> Generator[Transaction, None, None]:
         """Generate all transactions for a given date."""
-        transactions = []
-        transactions.extend(self._generate_loan_repayments(date))
-        transactions.extend(self._generate_coupon_payments(date))
-        transactions.extend(self._generate_security_sales_due_to_maturity(date))
-        transactions.extend(self._generate_mark_to_market_adjustments(date))
-        return transactions
+        yield from self._generate_mortgage_repayments_due_to_maturity(date)
+        yield from self._generate_mortgage_repayments(date)
+        if self.scenario_manager.has_scenario(date):
+            yield from self._generate_security_sales_due_to_maturity(date)
+            yield from self._generate_mark_to_market_adjustments(date)
 
-    def _generate_loan_repayments(self, date: datetime.date) -> list[Transaction]:
-        """Generate loan repayment transactions for loans due on this date."""
-        return []
+    def _generate_mortgage_repayments(self, date: datetime.date) -> Generator[Transaction, None, None]:
+        """Generate mortgage repayment transactions for loans due on this date."""
+        visitor = self.banking_book_visitor
+        for mortgage in self.bank.get_mortgage_instruments():
+            requirement = hasattr(mortgage, "maturity_date") and mortgage.maturity_date > date
+            if not requirement:
+                continue
+            (interest_payments, principal_payments, _) = mortgage.payment_schedule()
+            for (pmt_date, interest_pmt), (_, principal_pmt) in zip(interest_payments, principal_payments):
+                # Given date may not coincide with a payment date
+                if pmt_date == date:
+                    # Interest payment
+                    yield TransactionFactory.create_transaction(
+                        bank=self.bank,
+                        instrument=Cash(value=interest_pmt),
+                        transaction_type=TransactionType.MORTGAGE_INTEREST_PAYMENT,
+                        transaction_date=date,
+                    )
+                    # Principal payment (in case customers repay extra)
+                    yield TransactionFactory.create_transaction(
+                        bank=self.bank,
+                        instrument=Cash(value=principal_pmt),
+                        transaction_type=TransactionType.MORTGAGE_PRINCIPAL_PAYMENT,
+                        transaction_date=date,
+                        valuation_visitor=visitor,
+                        # This is an extra kwarg specifically for this transaction
+                        mortgage=mortgage,
+                    )
+                    break
 
-    def _generate_coupon_payments(self, date: datetime.date) -> list[Transaction]:
+    def _generate_mortgage_repayments_due_to_maturity(self, date: datetime.date) -> Generator[Transaction, None, None]:
+        """Generate mortgage repayment transactions for loans maturing on this date."""
+        for mortgage in self.bank.get_mortgage_instruments():
+            requirement = hasattr(mortgage, "maturity_date") and mortgage.maturity_date <= date
+            if not requirement:
+                continue
+            yield TransactionFactory.create_transaction(
+                bank=self.bank,
+                instrument=mortgage,
+                transaction_type=TransactionType.LOAN_REPAYMENT,
+                transaction_date=date,
+            )
+
+    def _generate_coupon_payments(self, date: datetime.date) -> Generator[Transaction, None, None]:
         """Generate coupon payment transactions for bonds with payments due on this date."""
-        return []
+        raise NotImplementedError("This method needs to be implemented.")
 
-    def _generate_mark_to_market_adjustments(self, date: datetime.date) -> list[Transaction]:
+    def _generate_mark_to_market_adjustments(self, date: datetime.date) -> Generator[Transaction, None, None]:
         """Generate mark-to-market adjustments for FVOCI and FVTPL instruments."""
-        transactions = []
         visitor: ValuationVisitor
         for position in Position:
             for instrument in self.bank.get_fair_value_instruments(position):
@@ -61,18 +100,15 @@ class BankEngine:
                         visitor = self.trading_book_visitor
                     case _:
                         raise NotImplementedError
-                tx = TransactionFactory.create_transaction(
+                yield TransactionFactory.create_transaction(
                     bank=self.bank,
                     instrument=instrument,
                     transaction_type=tx_type,
                     transaction_date=date,
                     valuation_visitor=visitor,
                 )
-                transactions.append(tx)
-        return transactions
 
-    def _generate_security_sales_due_to_maturity(self, date: datetime.date) -> list[Transaction]:
-        transactions = []
+    def _generate_security_sales_due_to_maturity(self, date: datetime.date) -> Generator[Transaction, None, None]:
         visitor: ValuationVisitor
         for position in Position:
             for instrument in self.bank.get_fair_value_instruments(position):
@@ -92,12 +128,10 @@ class BankEngine:
                         raise NotImplementedError
                     case _:
                         raise NotImplementedError
-                tx = TransactionFactory.create_transaction(
+                yield TransactionFactory.create_transaction(
                     bank=self.bank,
                     instrument=instrument,
                     transaction_type=tx_type,
                     transaction_date=date,
                     valuation_visitor=visitor,
                 )
-                transactions.append(tx)
-        return transactions

@@ -7,6 +7,7 @@ from brms.accounting.account import AccountBalances, BankChartOfAccounts
 from brms.accounting.ledger import Ledger
 from brms.instruments.base import InstrumentClass
 from brms.instruments.cash import Cash
+from brms.instruments.mortgage import Mortgage
 from brms.models.accountant import Accountant
 from brms.models.bank_book import BankingBook, Position, TradingBook
 
@@ -42,19 +43,6 @@ class Bank:
         cash = Cash(value=account_balances[self.chart_of_accounts.cash_account])
         self.banking_book.add_instrument(cash, Position.LONG)
 
-    def initialize_from_transactions(self, transactions: list["Transaction"] | None = None) -> None:
-        """Initialize the bank with a set of transactions.
-
-        This method initializes both the bank's ledger and books with instruments.
-
-        Importantly, the ledger is closed so we start from a fresh financial period.
-        """
-        transactions = transactions if transactions else []
-        for transaction in transactions:
-            self.process_transaction(transaction)
-        # Close the ledger so we start from a fresh financial period
-        # self.ledger.close_ledger(date=None)
-
     def process_transaction(self, transaction: "Transaction") -> bool:
         """Ask the accountant to process the transaction."""
         return self.accountant.process_transaction(transaction)
@@ -73,4 +61,10 @@ class Bank:
 
         for instrument in instruments:
             if instrument.instrument_class in (InstrumentClass.FVOCI, InstrumentClass.FVTPL):
+                yield instrument
+
+    def get_mortgage_instruments(self) -> "Generator[Mortgage, None, None]":
+        """Get all mortgage instruments from the banking book (long-only)."""
+        for instrument in self.banking_book.long_exposure:
+            if isinstance(instrument, Mortgage) and instrument.instrument_class == InstrumentClass.MORTGAGE:
                 yield instrument

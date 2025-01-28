@@ -1,5 +1,7 @@
 """Main controller module for the BRMS application."""
 
+import datetime
+
 from PySide6.QtCore import QTimer, Signal
 
 from brms import DEBUG_MODE
@@ -121,18 +123,24 @@ class MainController(BRMSController):
         )
 
     def on_next_scenario(self) -> None:
-        try:
-            date = self.simulation.scenario_manager.get_date_of_next_scenario()
-        except ValueError:  # "Current scenario is not set." when data not loaded
-            self.on_pause_action()
-            return
-        if date is None:  # no more scenarios
-            self.on_pause_action()
-            return
+        self.simulation.scenario_manager.current_date += datetime.timedelta(days=1)
+        # Dates in simulation scenarios can have gaps due to non-business days
+        date = self.simulation.scenario_manager.current_date
+        while not self.simulation.scenario_manager.has_scenario(date):
+            # Some transactions (e.g., mortgage payments) do not require a scenario (w/ term structure, etc.)
+            for tx in self.simulation.bank_engine.generate_transactions(date):
+                self.bank_ctrl.process_transaction(tx)
+            date += datetime.timedelta(days=1)
+            if date > self.simulation.end_date:
+                self.on_pause_action()  # TODO: on stop
+                return
+        # Advanced to a date with scenario
         self.simulation.set_scenario(date)
+        self.simulation.scenario_manager.current_date = date
         for tx in self.simulation.bank_engine.generate_transactions(date):
             self.bank_ctrl.process_transaction(tx)
         self.scenario_changed.emit(self.simulation.current_scenario)
+        # Update statistics
         self.view.dashboard.update_simulation_date(date)
         start_date = self.simulation.start_date
         end_date = self.simulation.end_date

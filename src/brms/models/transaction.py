@@ -9,6 +9,7 @@ from brms.instruments.base import Instrument
 from brms.instruments.cash import Cash
 from brms.instruments.common_equity import CommonEquity
 from brms.instruments.deposit import Deposit
+from brms.instruments.mortgage import Mortgage
 from brms.instruments.visitors.valuation import ValuationVisitor
 from brms.models.bank import Bank
 from brms.models.bank_book import BookType, Position, UnrealizedOCIGainLossTracker, UnrealizedTradingGainLossTracker
@@ -42,6 +43,9 @@ class TransactionType(Enum):
     LOAN_INTEREST_PAYMENT = auto()
     LOAN_FEE_INCOME = auto()
     LOAN_IMPAIRMENT_PROVISION = auto()
+    MORTGAGE_INTEREST_PAYMENT = auto()
+    MORTGAGE_PRINCIPAL_PAYMENT = auto()
+    MORTGAGE_REVALUATION = auto()
 
     # Securities Held-to-Maturity (HTM) & FVOCI (Banking Book)
     SECURITY_PURCHASE_HTM = auto()
@@ -218,6 +222,7 @@ class TransactionFactory:
         valuation_visitor: ValuationVisitor | None = None,
         description: str = "",
         transaction_date: datetime.date | None = None,
+        **kwargs,
     ) -> Transaction:
         """Create transaction instances dynamically."""
         transaction_cls = cls._registry.get(transaction_type)
@@ -234,6 +239,14 @@ class TransactionFactory:
             error_message = f"ValuationVisitor must be provided for transaction type {transaction_type}."
             raise ValueError(error_message)
 
+        # Disallow kwargs
+        if transaction_type != TransactionType.MORTGAGE_PRINCIPAL_PAYMENT:
+            kwargs = {}
+        else:
+            if "mortgage" not in kwargs or not isinstance(kwargs["mortgage"], Mortgage):
+                error = "A valid Mortgage instance must be provided for MORTGAGE_PRINCIPAL_PAYMENT transaction."
+                raise ValueError(error)
+
         return transaction_cls(
             bank=bank,
             instrument=instrument,
@@ -242,6 +255,7 @@ class TransactionFactory:
             valuation_visitor=valuation_visitor,
             description=description,
             transaction_date=transaction_date,
+            **kwargs,
         )
 
 
@@ -383,6 +397,12 @@ class LoanDisbursementTransaction(Transaction):
 
     cash_to_disburse: Cash
 
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_disburse: (Action.REMOVE, BookType.BANKING_BOOK, Position.LONG),
+            self.instrument: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
+        }
+
     def _execute(self) -> None:
         self.cash_to_disburse = Cash(value=self.instrument.value)
         self.bank.banking_book.add_instrument(self.instrument, Position.LONG)
@@ -409,6 +429,12 @@ class LoanRepaymentTransaction(Transaction):
     """Class representing a matured loan repayment transaction."""
 
     cash_to_receive: Cash
+
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_receive: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
+            self.instrument: (Action.REMOVE, BookType.BANKING_BOOK, Position.LONG),
+        }
 
     def _execute(self) -> None:
         self.cash_to_receive = Cash(value=self.instrument.value)
@@ -438,6 +464,11 @@ class LoanInterestPaymentTransaction(Transaction):
     instrument: Cash
     cash_to_receive: Cash
 
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_receive: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
+        }
+
     def _execute(self) -> None:
         self.cash_to_receive = self.instrument
         self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
@@ -452,6 +483,68 @@ class LoanInterestPaymentTransaction(Transaction):
         return SimpleEntry(
             debit_account=self.bank.chart_of_accounts.cash_account,
             credit_account=self.bank.chart_of_accounts.interest_income_account,
+            value=self.value,
+            date=self.transaction_date,
+            description=self.description,
+        )
+
+
+class MortgageInterestPaymentTransaction(LoanInterestPaymentTransaction):
+    """Class representing a mortgage interest payment transaction."""
+
+
+class MortgagePrincipalPaymentTransaction(Transaction):
+    """Class representing a mortgage principal payment transaction."""
+
+    instrument: Cash
+    cash_to_receive: Cash
+
+    def __init__(
+        self,
+        bank: Bank,
+        instrument: Cash,
+        value: float,
+        transaction_type: TransactionType,
+        description: str = "",
+        transaction_date: datetime.date | None = None,
+        valuation_visitor: ValuationVisitor | None = None,
+        mortgage: Mortgage | None = None,
+    ) -> None:
+        super().__init__(
+            bank=bank,
+            instrument=instrument,
+            value=value,
+            transaction_type=transaction_type,
+            description=description,
+            transaction_date=transaction_date,
+            valuation_visitor=valuation_visitor,
+        )
+        if not isinstance(mortgage, Mortgage):
+            raise ValueError("A valid Mortgage instance must be provided for MORTGAGE_PRINCIPAL_PAYMENT transaction.")
+        self.mortgage = mortgage
+
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_receive: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
+            self.mortgage: (Action.UPDATE, BookType.BANKING_BOOK, Position.LONG),
+        }
+
+    def _execute(self) -> None:
+        self.cash_to_receive = self.instrument
+        self.valuation_visitor.set_date(self.transaction_date, date_must_be_in_simulation=False)
+        self.mortgage.accept(self.valuation_visitor)
+        self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
+        self.bank.ledger.post(self.journal_entry)
+
+    def _undo(self) -> None:
+        self.bank.banking_book.remove_instrument(self.cash_to_receive, Position.LONG)
+        self.bank.ledger.post(self.reverse_journal_entry)
+
+    @property
+    def journal_entry(self) -> JournalEntry:
+        return SimpleEntry(
+            debit_account=self.bank.chart_of_accounts.cash_account,
+            credit_account=self.bank.chart_of_accounts.loan_account,
             value=self.value,
             date=self.transaction_date,
             description=self.description,
@@ -882,6 +975,8 @@ TransactionFactory.register_transaction(TransactionType.INTEREST_PAID_ON_DEPOSIT
 TransactionFactory.register_transaction(TransactionType.LOAN_DISBURSEMENT, LoanDisbursementTransaction)
 TransactionFactory.register_transaction(TransactionType.LOAN_REPAYMENT, LoanRepaymentTransaction)
 TransactionFactory.register_transaction(TransactionType.LOAN_INTEREST_PAYMENT, LoanInterestPaymentTransaction)
+TransactionFactory.register_transaction(TransactionType.MORTGAGE_INTEREST_PAYMENT, MortgageInterestPaymentTransaction)
+TransactionFactory.register_transaction(TransactionType.MORTGAGE_PRINCIPAL_PAYMENT, MortgagePrincipalPaymentTransaction)
 TransactionFactory.register_transaction(TransactionType.SECURITY_PURCHASE_HTM, SecurityPurchaseHTMTransaction)
 TransactionFactory.register_transaction(TransactionType.SECURITY_SALE_HTM, SecuritySaleHTMTransaction)
 TransactionFactory.register_transaction(TransactionType.SECURITY_PURCHASE_FVOCI, SecurityPurchaseFVOCITransaction)

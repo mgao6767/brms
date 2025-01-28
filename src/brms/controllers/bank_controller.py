@@ -7,6 +7,7 @@ from brms.accounting.statement_viewer import HTMLStatementViewer
 from brms.controllers.bank_book_controller import BankingBookController, TradingBookController
 from brms.controllers.base import BRMSController
 from brms.controllers.inspector_controller import InspectorController
+from brms.data.default import create_bank_init_transactions
 from brms.models.bank import Bank
 from brms.models.scenario import ScenarioManager
 from brms.models.transaction import Action, BookType, Transaction
@@ -51,24 +52,11 @@ class BankController(BRMSController):
         # Connect signals
         self.connect_signals()
 
-    def initialize_bank_from_transactions(self, transactions: list["Transaction"] | None = None) -> None:
-        """Initialize the bank with a set of transactions.
-
-        This method initializes both the bank's ledger and books with instruments.
-        """
-        transactions = transactions if transactions else []
-        # Use bank.initialize_from_transactions because we want to start from a fresh financial period
-        # The method closes the ledger
-        self.bank.initialize_from_transactions(transactions)
-        for transaction in transactions:
-            self.transaction_processed.emit(transaction)
-
     def init(self, scenario_manager: ScenarioManager) -> None:
         """Initialize the bank with default transactions."""
-        from brms.data.default import create_bank_init_transactions
-
-        transactions = create_bank_init_transactions(self.bank, scenario_manager)
-        self.initialize_bank_from_transactions(transactions)
+        for tx in create_bank_init_transactions(self.bank, scenario_manager):
+            if self.bank.process_transaction(tx):
+                self.transaction_processed.emit(tx)
 
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""

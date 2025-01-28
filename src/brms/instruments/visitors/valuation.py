@@ -37,13 +37,14 @@ class ValuationVisitor(Visitor):
         if self.valuation_date is not None:
             self.set_date(self.valuation_date)
 
-    def set_date(self, date: datetime.date) -> None:
+    def set_date(self, date: datetime.date, *, date_must_be_in_simulation: bool = True) -> None:
         """Set the date for the valuation and update the term structure."""
         # Relink term structure so that the bond pricing engine can automatically update all bonds
         self.valuation_date = date
-        scenario = self.scenario_manager.get_scenario(date)
-        term_structure = scenario.data.get(ScenarioMetric.YIELD_TERM_STRUCTURE)
-        self.term_structure_handle.linkTo(term_structure)
+        if date_must_be_in_simulation:
+            scenario = self.scenario_manager.get_scenario(date)
+            term_structure = scenario.data.get(ScenarioMetric.YIELD_TERM_STRUCTURE)
+            self.term_structure_handle.linkTo(term_structure)
 
     def visit_cash(self, instrument: "Cash") -> None:
         """Value cash."""
@@ -114,8 +115,15 @@ class BankingBookValuationVisitor(ValuationVisitor):
         """Value an amortizing fixed rate bond."""
         assert self.valuation_date is not None
         match instrument.instrument_class:
-            case InstrumentClass.HTM:
-                instrument.value = instrument.notional(self.valuation_date)
+            case InstrumentClass.HTM | InstrumentClass.MORTGAGE | InstrumentClass.LOAN:
+                _, _, outstanding_balance = instrument.payment_schedule()
+                if self.valuation_date < min(d for d, _ in outstanding_balance):
+                    # No payments yet, the amount is the notional amount
+                    instrument.value = instrument.notional(instrument.issue_date)
+                else:
+                    # At least some payments made, the latest outstanding amount
+                    last_outstanding = next(amt for d, amt in reversed(outstanding_balance) if d <= self.valuation_date)
+                    instrument.value = last_outstanding
             case InstrumentClass.FVOCI | InstrumentClass.FVTPL:
                 instrument.value = self._value_fair_value_security(instrument)
 
