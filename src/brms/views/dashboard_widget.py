@@ -201,9 +201,11 @@ class BRMSDashboard(QWidget):
         self.plot_splitter = QSplitter()
         self.plot_splitter.setOrientation(Qt.Orientation.Vertical)
         self.equity_plot = PlotWidget(title="Total Shareholders' Equity", series_title="Total Equity")
+        self.assets_plot = PlotWidget(title="Total Assets", series_title="Total Assets")
+        self.liabilities_plot = PlotWidget(title="Total Liabilities", series_title="Total Liabilities")
+        self.plot_splitter.addWidget(self.assets_plot)
+        self.plot_splitter.addWidget(self.liabilities_plot)
         self.plot_splitter.addWidget(self.equity_plot)
-        self.plot_splitter.addWidget(PlotWidget(title="Metric 2"))
-        self.plot_splitter.addWidget(PlotWidget(title="Metric 3"))
 
         # Main layout as QSplitter
         main_splitter = QSplitter()
@@ -245,6 +247,26 @@ class BRMSDashboard(QWidget):
         self.total_assets_value.setText(locale.currency(total_assets, grouping=True))
         self.total_liabilities_value.setText(locale.currency(total_liabilities, grouping=True))
         self.total_equity_value.setText(locale.currency(total_equity, grouping=True))
+
+    def update_assets_plot(self, start, end, dates, assets_values) -> None:
+        """Update the assets plot with new data."""
+        self.assets_plot.update_plot(
+            start,
+            end,
+            dates,
+            assets_values,
+            self.assets_plot.grid_checkbox.isChecked(),
+        )
+
+    def update_liabilities_plot(self, start, end, dates, liabilities_values) -> None:
+        """Update the liabilities plot with new data."""
+        self.liabilities_plot.update_plot(
+            start,
+            end,
+            dates,
+            liabilities_values,
+            self.liabilities_plot.grid_checkbox.isChecked(),
+        )
 
     def update_equity_plot(self, start, end, dates, equity_values) -> None:
         """Update the equity plot with new data."""
