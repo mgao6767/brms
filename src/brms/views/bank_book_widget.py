@@ -139,6 +139,20 @@ class BRMSBankingBookWidget(BRMSBankBookWidget):
         self.btn_trade_corporate_securities = QPushButton("Trade Corporate Securities")
         self.btn_adjust_deposit_interest_rate = QPushButton("Adjust Deposit Interest Rate")
         self.btn_manage_debt_instruments = QPushButton("Manage Debt Instruments")
+        # Disable all buttons
+        self.btn_loan_portfolio_overview.setEnabled(False)
+        self.btn_loan_risk_assessment.setEnabled(False)
+        self.btn_htm_portfolio_analysis.setEnabled(False)
+        self.btn_market_value_assessment.setEnabled(False)
+        self.btn_liquidity_position.setEnabled(False)
+        self.btn_banking_book_profitability.setEnabled(False)
+        self.btn_asset_liability_matching.setEnabled(False)
+        self.btn_process_loan_applications.setEnabled(False)
+        self.btn_modify_loan_terms.setEnabled(False)
+        self.btn_trade_treasury_securities.setEnabled(False)
+        self.btn_trade_corporate_securities.setEnabled(False)
+        self.btn_adjust_deposit_interest_rate.setEnabled(False)
+        self.btn_manage_debt_instruments.setEnabled(False)
         # Actions
         self.init_ui()
 
