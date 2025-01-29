@@ -261,8 +261,8 @@ class BRMSBondCalculatorWidget(BaseCalculatorWidget):
         self.table_widget.clearContents()
         self.table_widget.setRowCount(len(payments))
         for row, (date, payment) in enumerate(payments):
-            weekday_string = qldate_to_pydate(date).strftime("%A")
-            date_string = qldate_to_pydate(date).isoformat()
+            weekday_string = date.strftime("%A")
+            date_string = date.isoformat()
             payment_item = QTableWidgetItem(self.locale().toString(payment, "f", 2))
             payment_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.table_widget.setItem(row, 0, QTableWidgetItem(weekday_string))

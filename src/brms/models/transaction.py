@@ -946,6 +946,11 @@ class SecurityInterestEarnedTransaction(Transaction):
 
     instrument: Cash
 
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_receive: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
+        }
+
     def _execute(self) -> None:
         self.cash_to_receive = self.instrument
         self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)

@@ -26,6 +26,7 @@ class BankEngine:
         """Generate all transactions for a given date."""
         yield from self._generate_mortgage_repayments_due_to_maturity(date)
         yield from self._generate_mortgage_repayments(date)
+        yield from self._generate_coupon_payments(date)
         if self.scenario_manager.has_scenario(date):
             yield from self._generate_security_sales_due_to_maturity(date)
             yield from self._generate_mark_to_market_adjustments(date)
@@ -75,7 +76,20 @@ class BankEngine:
 
     def _generate_coupon_payments(self, date: datetime.date) -> Generator[Transaction, None, None]:
         """Generate coupon payment transactions for bonds with payments due on this date."""
-        raise NotImplementedError("This method needs to be implemented.")
+        for bond in self.bank.get_htm_bond_instruments():
+            requirement = hasattr(bond, "maturity_date") and bond.maturity_date > date
+            if not requirement:
+                continue
+            cashflows = bond.payment_schedule()
+            for pmt_date, coupon_pmt in cashflows:
+                if pmt_date == date:
+                    yield TransactionFactory.create_transaction(
+                        bank=self.bank,
+                        instrument=Cash(value=coupon_pmt),
+                        transaction_type=TransactionType.SECURITY_INTEREST_EARNED,
+                        transaction_date=date,
+                    )
+                    break
 
     def _generate_mark_to_market_adjustments(self, date: datetime.date) -> Generator[Transaction, None, None]:
         """Generate mark-to-market adjustments for FVOCI and FVTPL instruments."""

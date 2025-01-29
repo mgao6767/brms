@@ -8,6 +8,7 @@ from brms.accounting.ledger import Ledger
 from brms.instruments.base import InstrumentClass
 from brms.instruments.cash import Cash
 from brms.instruments.mortgage import Mortgage
+from brms.instruments.fixed_rate_bond import FixedRateBond
 from brms.models.accountant import Accountant
 from brms.models.bank_book import BankingBook, Position, TradingBook
 
@@ -67,4 +68,10 @@ class Bank:
         """Get all mortgage instruments from the banking book (long-only)."""
         for instrument in self.banking_book.long_exposure:
             if isinstance(instrument, Mortgage):
+                yield instrument
+
+    def get_htm_bond_instruments(self) -> "Generator[FixedRateBond, None, None]":
+        """Get all HTM bond instruments from the banking book (long-only)."""
+        for instrument in self.banking_book.long_exposure:
+            if isinstance(instrument, FixedRateBond) and instrument.instrument_class == InstrumentClass.HTM:
                 yield instrument

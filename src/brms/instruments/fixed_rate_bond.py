@@ -125,4 +125,4 @@ class FixedRateBond(Instrument):
         Returns:
             list: A list of tuples representing the payment schedule. Each tuple contains the payment date and amount.
         """
-        return [(cf.date(), cf.amount()) for cf in self.instrument.cashflows()]
+        return [(qldate_to_pydate(cf.date()), cf.amount()) for cf in self.instrument.cashflows()]
