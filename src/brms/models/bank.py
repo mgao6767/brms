@@ -66,5 +66,5 @@ class Bank:
     def get_mortgage_instruments(self) -> "Generator[Mortgage, None, None]":
         """Get all mortgage instruments from the banking book (long-only)."""
         for instrument in self.banking_book.long_exposure:
-            if isinstance(instrument, Mortgage) and instrument.instrument_class == InstrumentClass.MORTGAGE:
+            if isinstance(instrument, Mortgage):
                 yield instrument

@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 class FixedRateBond(Instrument):
     """A class representing a fixed rate bond."""
 
+    instrument_type = "Fixed Rate Bond"
+
     # TODO: book_type, etc. for Instrument's init
     def __init__(
         self,
@@ -59,7 +61,7 @@ class FixedRateBond(Instrument):
 
         """
         maturity_date_str = qldate_to_string(maturity_date)
-        name = f"{coupon_rate*100:.2f}% {maturity_date_str}"
+        name = f"{coupon_rate*100:.2f}% {maturity_date_str} {self.instrument_type}"
         super().__init__(name, book_type, credit_rating, issuer, parent, instrument_class=instrument_class)
 
         coupons = [coupon_rate]

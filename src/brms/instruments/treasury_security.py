@@ -12,9 +12,13 @@ class TreasuryBill(Instrument):
 class TreasuryNote(FixedRateBond):
     """Represents a Treasury Note with a fixed interest rate and maturity between one and ten years."""
 
+    instrument_type = "Treasury Note"
+
 
 class TreasuryBond(FixedRateBond):
     """Represents a Treasury Bond with a fixed interest rate and maturity greater than ten years."""
+
+    instrument_type = "Treasury Bond"
 
 
 TreasuryInstrumentRegistry.register(TreasuryBill)

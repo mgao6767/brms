@@ -17,8 +17,7 @@ class InstrumentClass(Enum):
     HTM = "HTM"
     FVOCI = "FVOCI"
     FVTPL = "FVTPL"
-    MORTGAGE = "Mortgage"
-    LOAN = "Loan"
+    LOAN_AND_MORTGAGE = "Loan"
     NA = ""
 
 
