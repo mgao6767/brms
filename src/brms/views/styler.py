@@ -156,6 +156,9 @@ class BRMSStyler(QObject):
             background-color: {self.Color_Alert};
             color: {self.Color_Sand_Light};
         }}
+        QLabel {{
+            background-color: transparent;
+        }}
         """
 
         return app_style

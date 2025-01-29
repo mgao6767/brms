@@ -14,12 +14,11 @@ class BookType(Enum):
 
 
 class InstrumentClass(Enum):
-    HTM = "Held to Maturity"
-    FVOCI = "Fair Value Through Other Comprehensive Income"
-    FVTPL = "Fair Value Through Profit and Loss"
-    MORTGAGE = "Mortgage"
-    LOAN = "Loan"
-    NA = "N/A"
+    HTM = "HTM"
+    FVOCI = "FVOCI"
+    FVTPL = "FVTPL"
+    LOAN_AND_MORTGAGE = "Loan"
+    NA = ""
 
 
 class BalanceSheetCategory(Enum):

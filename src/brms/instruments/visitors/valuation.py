@@ -115,7 +115,7 @@ class BankingBookValuationVisitor(ValuationVisitor):
         """Value an amortizing fixed rate bond."""
         assert self.valuation_date is not None
         match instrument.instrument_class:
-            case InstrumentClass.HTM | InstrumentClass.MORTGAGE | InstrumentClass.LOAN:
+            case InstrumentClass.HTM | InstrumentClass.LOAN_AND_MORTGAGE:
                 _, _, outstanding_balance = instrument.payment_schedule()
                 if self.valuation_date < min(d for d, _ in outstanding_balance):
                     # No payments yet, the amount is the notional amount

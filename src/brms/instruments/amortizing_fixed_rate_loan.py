@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 class AmortizingFixedRateLoan(Instrument):
     """A class representing an amortizing fixed rate loan."""
 
+    instrument_type = "Amortizing Fixed Rate Loan"
+
     # TODO: book_type, etc. for Instrument's init
     def __init__(
         self,
@@ -47,7 +49,7 @@ class AmortizingFixedRateLoan(Instrument):
             business_convention (int, optional): The business convention used for date adjustments. Defaults to ql.Unadjusted.
         """
         maturity_date_str = qldate_to_string(issue_date + maturity)
-        name = f"{interest_rate*100:.2f}% {maturity_date_str}"
+        name = f"{interest_rate*100:.2f}% {maturity_date_str} {self.instrument_type}"
         super().__init__(name, book_type, credit_rating, issuer, parent, instrument_class=instrument_class)
 
         coupons = [interest_rate]

@@ -61,7 +61,7 @@ class InstrumentFactory:
         book_type: BookType = BookType.BANKING_BOOK,
         credit_rating: CreditRating = CreditRating.UNRATED,
         issuer: Issuer | None = None,
-        instrument_class: InstrumentClass = InstrumentClass.MORTGAGE,
+        instrument_class: InstrumentClass = InstrumentClass.LOAN_AND_MORTGAGE,
     ) -> ResidentialMortgage:
         issue_date_ql = ql.Date(issue_date.day, issue_date.month, issue_date.year)
         maturity: ql.Period = ql.Period(maturity_years, ql.Years)

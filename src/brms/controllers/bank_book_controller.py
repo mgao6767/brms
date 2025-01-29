@@ -45,12 +45,14 @@ class BankBookController(BRMSController):
                 AssetColumns.ID: instrument.id,  # UUID is not displayable by TreeView
                 AssetColumns.Asset: instrument.name,
                 AssetColumns.Value: instrument.value,
+                AssetColumns.Class: instrument.instrument_class.value,
             }
         elif position == Position.SHORT:
             data = {
                 LiabilityColumns.ID: instrument.id,
                 LiabilityColumns.Liability: instrument.name,
                 LiabilityColumns.Value: instrument.value,
+                LiabilityColumns.Class: instrument.instrument_class.value,
             }
         return [data]
 
@@ -122,6 +124,7 @@ class BankingBookController(BankBookController):
         inspector_ctrl: InspectorController,
     ) -> None:
         super().__init__(bank_book, view, inspector_ctrl)
+        self.bank_book_widget.liabilities_tree.setColumnHidden(LiabilityColumns.Class.value, True)
 
     def _add_cash(self, cash: Cash) -> None:
         # Check if there is already cash instrument in the tree's model
@@ -237,6 +240,8 @@ class TradingBookController(BankBookController):
         inspector_ctrl: InspectorController,
     ) -> None:
         super().__init__(bank_book, view, inspector_ctrl)
+        self.bank_book_widget.assets_tree.setColumnHidden(AssetColumns.Class.value, True)
+        self.bank_book_widget.liabilities_tree.setColumnHidden(LiabilityColumns.Class.value, True)
 
     def connect_signals(self) -> None:
         super().connect_signals()
