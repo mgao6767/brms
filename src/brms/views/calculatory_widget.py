@@ -1,11 +1,22 @@
+import datetime
+
+import pandas as pd
+import qtawesome as qta
 import QuantLib as ql
-from PySide6.QtCore import QDate, Qt
+from dateutil.relativedelta import relativedelta
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+from matplotlib.ticker import FuncFormatter
+from PySide6.QtCore import QDate, Qt, Signal
+from PySide6.QtGui import QAction, QCloseEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QDateEdit,
     QDialog,
     QDoubleSpinBox,
+    QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -14,14 +25,18 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSpinBox,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
+    QToolBar,
     QVBoxLayout,
     QWidget,
 )
 
+from brms.accounting.statement_viewer import locale
 from brms.instruments.factory import InstrumentFactory
 from brms.utils import qdate_to_qldate, qldate_to_pydate
+from brms.views.styler import BRMSStyler
 
 
 class BRMSDoubleSpinBox(QDoubleSpinBox):
@@ -74,6 +89,7 @@ class BRMSBondCalculatorWidget(BaseCalculatorWidget):
         # Create the form layout
         calculator_layout = QHBoxLayout()
         control_panel_layout = QVBoxLayout()
+        control_panel_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # ======================================================================
         # Valuation parameters
@@ -455,14 +471,13 @@ class BRMSBondCalculatorWidget(BaseCalculatorWidget):
         return bond, params
 
 
-class BRMSLoanCalculatorWidget(BaseCalculatorWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent, name="Amortizing Loan Calculator", size=(1100, 500))
+class BRMSMortgageCalculatorWidget(BaseCalculatorWidget):
+    def __init__(self, parent=None, name="Mortgage Calculator", size=(1500, 500)):
+        super().__init__(parent, name=name, size=size)
+        self.init_ui()
+        self.update_loan_payments_schedule()
 
-        # Create the form layout
-        calculator_layout = QHBoxLayout()
-        control_panel_layout = QVBoxLayout()
-
+    def init_ui(self):
         # ======================================================================
         # Valuation parameters
         # ======================================================================
@@ -476,7 +491,7 @@ class BRMSLoanCalculatorWidget(BaseCalculatorWidget):
         self.face_value_edit.setPrefix("$")
         self.face_value_edit.setMinimum(0)
         self.face_value_edit.setMaximum(100_000_000_000)
-        self.face_value_edit.setValue(100_000)
+        self.face_value_edit.setValue(1_000_000)
         loan_features_layout.addRow(face_value_label, self.face_value_edit)
 
         issue_date_label = QLabel("Issue Date")
@@ -581,37 +596,34 @@ class BRMSLoanCalculatorWidget(BaseCalculatorWidget):
         self.calculate_button.setDefault(True)
         self.calculate_button.setFocus()
 
+        self.control_panel = QWidget()
+        control_panel_layout = QVBoxLayout()
+        control_panel_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         control_panel_layout.addWidget(loan_features_group_box)
         control_panel_layout.addWidget(self.payments_button)
         control_panel_layout.addWidget(valuation_parameters_group_box)
         control_panel_layout.addWidget(self.calculate_button)
-
-        calculator_layout.addLayout(control_panel_layout)
+        self.control_panel.setLayout(control_panel_layout)
 
         # ======================================================================
         # Payment schedule table
         # ======================================================================
-        self.table_widget = QTableWidget()
-        self.table_widget.setAlternatingRowColors(True)
-        self.table_widget.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table_widget.setColumnCount(5)
-        self.table_widget.setHorizontalHeaderLabels(
-            [
-                "Weekday",
-                "Date",
-                "Interest Payment",
-                "Principal Payment",
-                "Outstanding Balance",
-            ]
-        )
-        self.table_widget.resizeColumnsToContents()
-        self.table_widget.horizontalHeader().setStretchLastSection(True)
-        self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.payments_widget = PaymentsWidget(self)
+        self.table_widget = self.payments_widget.table_widget  # convenient access
 
-        calculator_layout.addWidget(self.table_widget)
+        # ======================================================================
+        # Main layout as QSplitter
+        # ======================================================================
+        main_splitter = QSplitter()
+        main_splitter.setOrientation(Qt.Orientation.Horizontal)
+        main_splitter.addWidget(self.control_panel)
+        main_splitter.addWidget(self.payments_widget)
+        # Set relative sizes of statistics panel and display area
+        main_splitter.setStretchFactor(1, 5)
 
-        # Set the form layout as the main layout of the widget
-        self.setLayout(calculator_layout)
+        main_layout = QHBoxLayout()
+        main_layout.addWidget(main_splitter)
+        self.setLayout(main_layout)
 
         # ======================================================================
         # Connect signals
@@ -626,24 +638,61 @@ class BRMSLoanCalculatorWidget(BaseCalculatorWidget):
         self.table_widget.clearContents()
         self.table_widget.setRowCount(len(interest_pmt))
 
-        for row, (date, pmt) in enumerate(interest_pmt):
+        for row, ((date, pmt_i), (_, pmt_p), (_, amt)) in enumerate(
+            zip(interest_pmt, principal_pmt, outstanding_amt, strict=True)
+        ):
             weekday_string = date.strftime("%A")
             date_string = date.isoformat()
-            pmt_item = QTableWidgetItem(self.locale().toString(pmt, "f", 2))
-            pmt_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.table_widget.setItem(row, 0, QTableWidgetItem(weekday_string))
             self.table_widget.setItem(row, 1, QTableWidgetItem(date_string))
+            # total payment
+            pmt_item = QTableWidgetItem(self.locale().toString(pmt_i + pmt_p, "f", 2))
+            pmt_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.table_widget.setItem(row, 2, pmt_item)
-
-        for row, (_, pmt) in enumerate(principal_pmt):
-            pmt_item = QTableWidgetItem(self.locale().toString(pmt, "f", 2))
+            # interest payment
+            pmt_item = QTableWidgetItem(self.locale().toString(pmt_i, "f", 2))
             pmt_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.table_widget.setItem(row, 3, pmt_item)
-
-        for row, (_, amt) in enumerate(outstanding_amt):
+            # principal payment
+            pmt_item = QTableWidgetItem(self.locale().toString(pmt_p, "f", 2))
+            pmt_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self.table_widget.setItem(row, 4, pmt_item)
+            # outstanding amount
             amt_item = QTableWidgetItem(self.locale().toString(amt, "f", 2))
             amt_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.table_widget.setItem(row, 4, amt_item)
+            self.table_widget.setItem(row, 5, amt_item)
+
+        # for row, (date, pmt) in enumerate(interest_pmt):
+        #     weekday_string = date.strftime("%A")
+        #     date_string = date.isoformat()
+        #     pmt_item = QTableWidgetItem(self.locale().toString(pmt, "f", 2))
+        #     pmt_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        #     self.table_widget.setItem(row, 0, QTableWidgetItem(weekday_string))
+        #     self.table_widget.setItem(row, 1, QTableWidgetItem(date_string))
+
+        #     self.table_widget.setItem(row, 3, pmt_item)
+
+        # for row, (_, pmt) in enumerate(principal_pmt):
+        #     pmt_item = QTableWidgetItem(self.locale().toString(pmt, "f", 2))
+        #     pmt_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        #     self.table_widget.setItem(row, 4, pmt_item)
+
+        # for row, (_, amt) in enumerate(outstanding_amt):
+        #     amt_item = QTableWidgetItem(self.locale().toString(amt, "f", 2))
+        #     amt_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        #     self.table_widget.setItem(row, 5, amt_item)
+
+        # Update plot
+        dates = [date for date, _ in interest_pmt]
+        self.payments_widget.plot_widget.update_plot(
+            start_date=min(dates),
+            end_date=max(dates),
+            dates=dates,
+            interest_pmt=[pmt for _, pmt in interest_pmt],
+            principal_pmt=[pmt for _, pmt in principal_pmt],
+            outstanding_amt=[amt for _, amt in outstanding_amt],
+            show_grid=True,
+        )
 
     def show_loan_value(self, npv, total_interest_pmt, total_principal_pmt, total_pmt):
         """
@@ -849,3 +898,241 @@ class BRMSLoanCalculatorWidget(BaseCalculatorWidget):
         )
 
         return loan, params
+
+
+class PaymentsWidget(QWidget):
+    visibility_changed = Signal()
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.is_visible = False
+        self.setWindowTitle("Mortgage Payments and Balances")
+
+        self.toolbar = QToolBar()
+        self.toolbar.setMovable(False)
+        self.toolbar.setFloatable(False)
+        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
+        self.save_action = QAction(qta.icon("mdi6.export"), "Export Plot", self)
+        self.table_action = QAction(qta.icon("mdi6.table-of-contents"), "Show Table", self)
+        self.figure_action = QAction(qta.icon("mdi6.chart-bell-curve-cumulative"), "Show Plot", self)
+        self.all_view_action = QAction(qta.icon("mdi.chart-multiple"), "Show Both", self)
+
+        self.table_action.setCheckable(True)
+        self.figure_action.setCheckable(True)
+        self.all_view_action.setCheckable(True)
+
+        self.toolbar.addAction(self.table_action)
+        self.toolbar.addAction(self.figure_action)
+        self.toolbar.addAction(self.all_view_action)
+        self.toolbar.addAction(self.save_action)
+
+        self.table_widget = QTableWidget()
+        self.table_widget.setAlternatingRowColors(True)
+        self.table_widget.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table_widget.setColumnCount(6)
+        self.table_widget.setHorizontalHeaderLabels(
+            [
+                "Weekday",
+                "Date",
+                "Total Payment",
+                "Interest Payment",
+                "Principal Payment",
+                "Outstanding Balance",
+            ]
+        )
+        self.table_widget.resizeColumnsToContents()
+        self.table_widget.horizontalHeader().setStretchLastSection(True)
+        self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.plot_widget = PlotWidget(title="Mortgage Payments and Outstanding Balances", parent=self)
+
+        self.splitter = QSplitter()
+        self.splitter.setOrientation(Qt.Orientation.Vertical)
+        self.splitter.addWidget(self.plot_widget)
+        self.splitter.addWidget(self.table_widget)
+
+        main_layout = QVBoxLayout(self)
+        main_layout.addWidget(self.toolbar)
+        main_layout.addWidget(self.splitter)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        self.setLayout(main_layout)
+
+        self.all_view_action.triggered.connect(self.set_default_view)
+        self.table_action.triggered.connect(self.set_table_view)
+        self.figure_action.triggered.connect(self.set_figure_view)
+        self.save_action.triggered.connect(self.plot_widget.export_plot)
+
+        self.set_figure_view()
+
+    def set_default_view(self):
+        self.all_view_action.setChecked(True)
+        self.figure_action.setChecked(False)
+        self.table_action.setChecked(False)
+        total_size = 1000  # Arbitrary total size
+        table_view_size = int(total_size * 0.5)
+        plot_widget_size = total_size - table_view_size
+        self.splitter.setSizes([table_view_size, plot_widget_size])
+
+    def set_table_view(self):
+        self.table_action.setChecked(True)
+        self.figure_action.setChecked(False)
+        self.all_view_action.setChecked(False)
+        self.splitter.setSizes([0, 1])
+
+    def set_figure_view(self):
+        self.figure_action.setChecked(True)
+        self.table_action.setChecked(False)
+        self.all_view_action.setChecked(False)
+        self.splitter.setSizes([1, 0])
+
+    def showEvent(self, event: QShowEvent):
+        self.is_visible = True
+        self.visibility_changed.emit()
+        super().showEvent(event)
+
+    def closeEvent(self, event: QCloseEvent):
+        self.is_visible = False
+        self.visibility_changed.emit()
+        super().closeEvent(event)
+
+
+class PlotWidget(QWidget):
+    def __init__(self, title: str = "", parent=None) -> None:
+        super().__init__(parent)
+        self.styler = BRMSStyler.instance()
+        self.title = title
+        self.start_date: datetime.date = datetime.date.today() - relativedelta(years=1)
+        self.end_date: datetime.date = datetime.date.today()
+        self.dates: list[datetime.date] = []
+        self.values: list[float] = []
+        self.show_grid = True
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.canvas = FigureCanvas(Figure(figsize=(5, 3), facecolor=self.styler.plot_background_color))
+        layout.addWidget(self.canvas)
+        self.ax = self.canvas.figure.add_subplot()
+        self.ax.set_title(self.title)
+        self.ax.set_ylabel("Payments")
+        if self.show_grid:
+            self.ax.grid(self.show_grid, linestyle="--", alpha=0.7)
+        self.ax.tick_params(axis="both", which="major", labelsize=10)
+        self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: locale.currency(x, grouping=True)))
+        self.ax2 = self.ax.twinx()
+        self.ax2.set_ylabel("Outstanding Balance")
+        self.ax2.tick_params(axis="y")
+        self.ax2.yaxis.set_major_formatter(FuncFormatter(lambda x, _: locale.currency(x, grouping=True)))
+        # Checkboxes
+        checkbox_layout = QHBoxLayout()
+        checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        # Add checkbox for controlling grid lines
+        self.grid_checkbox = QCheckBox("Show Grid Lines", self)
+        self.grid_checkbox.setChecked(True)  # Default to showing grid lines
+        checkbox_layout.addWidget(self.grid_checkbox)
+        layout.addLayout(checkbox_layout)
+        # Data containers
+        (self.line_interest_pmt,) = self.ax.plot([], [], color="blue", label="Interest Payment")
+        (self.line_principal_pmt,) = self.ax.plot([], [], color="red", label="Principal Payment")
+        (self.line_total_pmt,) = self.ax.plot([], [], color="darkred", label="Total Payment")
+        (self.line_outstanding_amt,) = self.ax2.plot([], [], color="black", linestyle="--", label="Outstanding Balance")
+        # Signals
+        self.grid_checkbox.stateChanged.connect(self.on_grid_checkbox_state_changed)
+        self.styler.style_changed.connect(self.update_plot_style)
+
+    def update_plot_style(self):
+        """Update an existing Matplotlib figure when the style changes."""
+        if self.styler.use_custom_style:
+            self.canvas.figure.patch.set_facecolor(self.styler.plot_background_color)  # Update figure background
+        else:
+            self.canvas.figure.patch.set_facecolor("white")  # Default background
+        self.canvas.figure.canvas.draw_idle()  # Redraw canvas
+
+    def on_grid_checkbox_state_changed(self) -> None:
+        self.update_plot(
+            self.start_date,
+            self.end_date,
+            self.dates,
+            self.interest_pmt,
+            self.principal_pmt,
+            self.outstanding_amt,
+            self.grid_checkbox.isChecked(),
+        )
+
+    def clear_plot(self) -> None:
+        self.ax.clear()
+        self.ax.set_title(self.title)
+        self.canvas.draw()
+
+    def update_plot(
+        self,
+        start_date: datetime.date,
+        end_date: datetime.date,
+        dates: list[datetime.date],
+        interest_pmt: list[float],
+        principal_pmt: list[float],
+        outstanding_amt: list[float],
+        show_grid: bool,
+    ) -> None:
+        self.start_date = start_date
+        self.end_date = end_date
+        self.dates = dates
+        self.interest_pmt = interest_pmt
+        self.principal_pmt = principal_pmt
+        self.outstanding_amt = outstanding_amt
+        self.show_grid = show_grid
+
+        self.ax.set_xlim(pd.Timestamp(start_date), pd.Timestamp(end_date))
+        if show_grid:
+            # When line properties are provided, the grid will be enabled regardless.
+            self.ax.grid(True, linestyle="--", alpha=0.7)
+        else:
+            self.ax.grid(False)
+
+        if dates and interest_pmt and principal_pmt and outstanding_amt:
+            self.line_interest_pmt.set_data(dates, interest_pmt)
+            self.line_principal_pmt.set_data(dates, principal_pmt)
+            self.line_total_pmt.set_data(dates, interest_pmt + principal_pmt)
+            self.line_total_pmt.set_data(dates, [i + p for i, p in zip(interest_pmt, principal_pmt)])
+            self.line_outstanding_amt.set_data(dates, outstanding_amt)
+            # Recalculate limits and autoscale view
+            # self.ax.relim()
+            self.ax.set_ylim(0.0, 2 * max(principal_pmt, default=0))
+            self.ax.autoscale_view()
+            self.ax2.set_ylim(0.0, 1.1 * max(outstanding_amt, default=0))
+            self.ax2.autoscale_view()
+
+        if max(principal_pmt, default=0) >= 1_000_000:
+            formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000_000, grouping=True) + "M")
+        elif max(principal_pmt, default=0) >= 1_000:
+            formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000, grouping=True) + "K")
+        else:
+            formatter = FuncFormatter(lambda x, _: locale.currency(x, grouping=True))
+        self.ax.yaxis.set_major_formatter(formatter)
+
+        if max(outstanding_amt, default=0) >= 1_000_000:
+            formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000_000, grouping=True) + "M")
+        elif max(outstanding_amt, default=0) >= 1_000:
+            formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000, grouping=True) + "K")
+        else:
+            formatter = FuncFormatter(lambda x, _: locale.currency(x, grouping=True))
+        self.ax2.yaxis.set_major_formatter(formatter)
+
+        if dates:
+            self.ax.legend(fontsize=9, loc="upper right")
+            self.ax2.legend(fontsize=9, loc="upper left")
+
+        self.canvas.draw_idle()
+
+    def export_plot(self):
+        options = QFileDialog.Options()
+        plot_title = self.ax.get_title()
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            caption="Save Plot",
+            dir=f"BRMS - {plot_title}",
+            filter="PNG Files (*.png);;All Files (*)",
+            options=options,
+        )
+        if file_path:
+            self.canvas.figure.savefig(file_path)
