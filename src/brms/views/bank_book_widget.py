@@ -27,13 +27,15 @@ class ColumnOrder(IntEnum):
 class AssetColumns(ColumnOrder):
     ID = 0
     Asset = 1
-    Value = 2
+    Class = 2
+    Value = 3
 
 
 class LiabilityColumns(ColumnOrder):
     ID = 0
     Liability = 1
-    Value = 2
+    Class = 2
+    Value = 3
 
 
 BANKING_BOOK_ASSET_COLUMNS = [col.name for col in AssetColumns]
