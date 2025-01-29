@@ -101,6 +101,10 @@ class BRMSStyler(QObject):
         QPushButton:pressed {{
             background-color: {self.Color_Dark_Purple};
         }}
+        QPushButton:disabled {{
+            background-color: {self.Color_Sand};
+            color: {self.Color_Charcoal};
+        }}
         QMenuBar {{
             background-color: {self.Color_Charcoal};
             color: {self.Color_Sand_Light};
