@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 from brms import DEBUG_MODE, __about__, __github__, __version__
 from brms.resources import icons  # noqa: F401
 from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
+from brms.views.calculatory_widget import BRMSBondCalculatorWidget, BRMSLoanCalculatorWidget
 from brms.views.dashboard_widget import BRMSDashboard
 from brms.views.dock_widget import BRMSDockWidget
 from brms.views.inspector_widget import BRMSInspectorWidget
@@ -45,6 +46,8 @@ class MainWindow(QMainWindow):
         self.statement_viewer_widget: BRMSStatementViewer
         self._dock_widgets: list[BRMSDockWidget] = []
         self.yield_curve_widget = BRMSYieldCurveWidget(self)
+        self.bond_calculator_widget: BRMSBondCalculatorWidget | None = None
+        self.loan_calculator_widget: BRMSLoanCalculatorWidget | None = None
         self.init_ui()
         self.connect_signals()
         # Actions
@@ -61,6 +64,8 @@ class MainWindow(QMainWindow):
         self.fushion_style_action: QAction
         self.mq_style_action: QAction
         self.restore_views_action: QAction
+        self.bond_calculator_action: QAction
+        self.loan_calculator_action: QAction
         self.about_action: QAction
         self.github_action: QAction
         if DEBUG_MODE:
@@ -122,6 +127,13 @@ class MainWindow(QMainWindow):
         self.fushion_style_action.setCheckable(True)
         self.mq_style_action.setCheckable(True)
         self.restore_views_action = QAction("Restore Views", self)
+        # Calculator
+        self.bond_calculator_action = QAction("Fixed-Rate Bond Calculator", self)
+        self.loan_calculator_action = QAction("Amortizing Loan Calculator", self)
+        self.bond_calculator_action.setCheckable(True)
+        self.loan_calculator_action.setCheckable(True)
+        self.bond_calculator_action.setChecked(False)
+        self.loan_calculator_action.setChecked(False)
         # Misc
         self.about_action = QAction("About", self)
         self.github_action = QAction(qta.icon("mdi6.github"), "GitHub", self)
@@ -148,6 +160,7 @@ class MainWindow(QMainWindow):
         edit_menu = menubar.addMenu("Edit")
         view_menu = menubar.addMenu("View")
         simulation_menu = menubar.addMenu("Simulation")
+        calculator_menu = menubar.addMenu("Calculator")
         help_menu = menubar.addMenu("Help")
         # Add actions to the menus
         # File menu
@@ -168,6 +181,9 @@ class MainWindow(QMainWindow):
         simulation_menu.addSeparator()
         simulation_menu.addAction(self.speed_up_action)
         simulation_menu.addAction(self.speed_down_action)
+        # Calculator menu
+        calculator_menu.addAction(self.bond_calculator_action)
+        calculator_menu.addAction(self.loan_calculator_action)
         # Help menu
         help_menu.addAction(self.about_action)
         help_menu.addAction(self.github_action)
@@ -220,6 +236,34 @@ class MainWindow(QMainWindow):
         self.restore_views_action.triggered.connect(self.on_restore_views)
         self.about_action.triggered.connect(self.on_about_action)
         self.github_action.triggered.connect(self.on_github_action)
+        self.bond_calculator_action.triggered.connect(self.toggle_bond_calculator)
+        self.loan_calculator_action.triggered.connect(self.toggle_loan_calculator)
+
+    def toggle_bond_calculator(self):
+        if self.bond_calculator_action.isChecked():
+            if self.bond_calculator_widget is None:
+                self.bond_calculator_widget = BRMSBondCalculatorWidget(self)
+                self.bond_calculator_widget.closeEvent = self.uncheck_bond_calculator_action
+            self.bond_calculator_widget.show()
+        else:
+            self.bond_calculator_widget.close()
+
+    def toggle_loan_calculator(self):
+        if self.loan_calculator_action.isChecked():
+            if self.loan_calculator_widget is None:
+                self.loan_calculator_widget = BRMSLoanCalculatorWidget(self)
+                self.loan_calculator_widget.closeEvent = self.uncheck_loan_calculator_action
+            self.loan_calculator_widget.show()
+        else:
+            self.loan_calculator_widget.close()
+
+    def uncheck_bond_calculator_action(self, event):
+        self.bond_calculator_action.setChecked(False)
+        event.accept()
+
+    def uncheck_loan_calculator_action(self, event):
+        self.loan_calculator_action.setChecked(False)
+        event.accept()
 
     def on_exit(self) -> None:
         """Handle the exit action.

@@ -1,4 +1,5 @@
 import datetime
+from functools import cache
 from typing import TYPE_CHECKING, Optional
 
 import QuantLib as ql
@@ -113,3 +114,13 @@ class FixedRateBond(Instrument):
     def set_pricing_engine(self, engine: ql.PricingEngine) -> None:
         """Set the pricing engine."""
         self.instrument.setPricingEngine(engine)
+
+    @cache
+    def payment_schedule(self):
+        """
+        Generates the payment schedule for a bond.
+
+        Returns:
+            list: A list of tuples representing the payment schedule. Each tuple contains the payment date and amount.
+        """
+        return [(cf.date(), cf.amount()) for cf in self.instrument.cashflows()]
