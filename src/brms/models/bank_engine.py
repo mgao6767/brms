@@ -26,7 +26,8 @@ class BankEngine:
         """Generate all transactions for a given date."""
         yield from self._generate_mortgage_repayments_due_to_maturity(date)
         yield from self._generate_mortgage_repayments(date)
-        yield from self._generate_coupon_payments(date)
+        yield from self._generate_htm_bond_sale_due_to_maturity(date)
+        yield from self._generate_htm_bond_coupon_payments(date)
         if self.scenario_manager.has_scenario(date):
             yield from self._generate_security_sales_due_to_maturity(date)
             yield from self._generate_mark_to_market_adjustments(date)
@@ -74,7 +75,7 @@ class BankEngine:
                 transaction_date=date,
             )
 
-    def _generate_coupon_payments(self, date: datetime.date) -> Generator[Transaction, None, None]:
+    def _generate_htm_bond_coupon_payments(self, date: datetime.date) -> Generator[Transaction, None, None]:
         """Generate coupon payment transactions for bonds with payments due on this date."""
         for bond in self.bank.get_htm_bond_instruments():
             requirement = hasattr(bond, "maturity_date") and bond.maturity_date > date
@@ -90,6 +91,18 @@ class BankEngine:
                         transaction_date=date,
                     )
                     break
+
+    def _generate_htm_bond_sale_due_to_maturity(self, date: datetime.date) -> Generator[Transaction, None, None]:
+        for bond in self.bank.get_htm_bond_instruments():
+            requirement = hasattr(bond, "maturity_date") and bond.maturity_date <= date
+            if not requirement:
+                continue
+            yield TransactionFactory.create_transaction(
+                bank=self.bank,
+                instrument=bond,
+                transaction_type=TransactionType.SECURITY_SALE_HTM,
+                transaction_date=date,
+            )
 
     def _generate_mark_to_market_adjustments(self, date: datetime.date) -> Generator[Transaction, None, None]:
         """Generate mark-to-market adjustments for FVOCI and FVTPL instruments."""

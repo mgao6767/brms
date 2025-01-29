@@ -593,6 +593,12 @@ class SecuritySaleHTMTransaction(Transaction):
 
     cash_to_receive: Cash
 
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_receive: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
+            self.instrument: (Action.REMOVE, BookType.BANKING_BOOK, Position.LONG),
+        }
+
     def _execute(self) -> None:
         self.cash_to_receive = Cash(value=self.instrument.value)
         self.bank.banking_book.remove_instrument(self.instrument, Position.LONG)
