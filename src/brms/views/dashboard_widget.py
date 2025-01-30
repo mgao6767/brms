@@ -151,6 +151,7 @@ class BRMSDashboard(QWidget):
         stats_layout = QFormLayout()
         stats_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
+        # Simulation
         simulation_label = QLabel("Simulation")
         font = simulation_label.font()
         font.setBold(True)
@@ -173,11 +174,10 @@ class BRMSDashboard(QWidget):
         self.simulation_progress_value.setValue(0)
         stats_layout.addRow(self.simulation_progress_label, self.simulation_progress_value)
 
+        # Bank
         separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setFrameShape(QFrame.Shape.NoFrame)
         stats_layout.addRow(separator)
-
         bank_label = QLabel("Bank")
         font = bank_label.font()
         font.setBold(True)
@@ -186,15 +186,49 @@ class BRMSDashboard(QWidget):
         self.total_assets_label = QLabel("Total Assets:")
         self.total_assets_value = QLabel("0")
         stats_layout.addRow(self.total_assets_label, self.total_assets_value)
-
         self.total_liabilities_label = QLabel("Total Liabilities:")
         self.total_liabilities_value = QLabel("0")
         stats_layout.addRow(self.total_liabilities_label, self.total_liabilities_value)
-
         self.total_equity_label = QLabel("Total Equity:")
         self.total_equity_value = QLabel("0")
         stats_layout.addRow(self.total_equity_label, self.total_equity_value)
 
+        # Capital Adequacy
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.NoFrame)
+        stats_layout.addRow(separator)
+        capital_ratio_label = QLabel("Capital Adequacy")
+        font = capital_ratio_label.font()
+        font.setBold(True)
+        capital_ratio_label.setFont(font)
+        stats_layout.addRow(capital_ratio_label)
+        self.cet1_ratio_label = QLabel("CET1 Ratio:")
+        self.cet1_ratio_value = QLabel("0%")
+        stats_layout.addRow(self.cet1_ratio_label, self.cet1_ratio_value)
+        self.tier1_capital_ratio_label = QLabel("Tier 1 Capital Ratio:")
+        self.tier1_capital_ratio_value = QLabel("0%")
+        stats_layout.addRow(self.tier1_capital_ratio_label, self.tier1_capital_ratio_value)
+        self.total_capital_ratio_label = QLabel("Total Capital Ratio:")
+        self.total_capital_ratio_value = QLabel("0%")
+        stats_layout.addRow(self.total_capital_ratio_label, self.total_capital_ratio_value)
+
+        # Liquidity ratios
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.NoFrame)
+        stats_layout.addRow(separator)
+        liquidity_label = QLabel("Liquidity Ratios")
+        font = liquidity_label.font()
+        font.setBold(True)
+        liquidity_label.setFont(font)
+        stats_layout.addRow(liquidity_label)
+        self.nsfr_label = QLabel("NSFR:")
+        self.nsfr_value = QLabel("0%")
+        stats_layout.addRow(self.nsfr_label, self.nsfr_value)
+        self.lcr_label = QLabel("LCR:")
+        self.lcr_value = QLabel("0%")
+        stats_layout.addRow(self.lcr_label, self.lcr_value)
+
+        # Set layout of statistics
         self.stats_group.setLayout(stats_layout)
 
         # Plot display area
@@ -247,6 +281,26 @@ class BRMSDashboard(QWidget):
         self.total_assets_value.setText(locale.currency(total_assets, grouping=True))
         self.total_liabilities_value.setText(locale.currency(total_liabilities, grouping=True))
         self.total_equity_value.setText(locale.currency(total_equity, grouping=True))
+
+    def update_cet1_ratio(self, ratio: float) -> None:
+        """Update the CET1 ratio."""
+        self.cet1_ratio_value.setText(f"{ratio:.2f}%")
+
+    def update_tier1_capital_ratio(self, ratio: float) -> None:
+        """Update the Tier 1 Capital ratio."""
+        self.tier1_capital_ratio_value.setText(f"{ratio:.2f}%")
+
+    def update_total_capital_ratio(self, ratio: float) -> None:
+        """Update the Total Capital ratio."""
+        self.total_capital_ratio_value.setText(f"{ratio:.2f}%")
+
+    def update_nsfr(self, ratio: float) -> None:
+        """Update the NSFR ratio."""
+        self.nsfr_value.setText(f"{ratio:.2f}%")
+
+    def update_lcr(self, ratio: float) -> None:
+        """Update the LCR ratio."""
+        self.lcr_value.setText(f"{ratio:.2f}%")
 
     def update_assets_plot(self, start, end, dates, assets_values) -> None:
         """Update the assets plot with new data."""
