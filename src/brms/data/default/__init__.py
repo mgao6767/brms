@@ -64,24 +64,25 @@ def create_bank_init_transactions(bank: Bank, scenario_manager: ScenarioManager)
     )
 
     # Mortgage loan
-    mortgage = InstrumentFactory.create_residential_mortgage(
-        face_value=1_000_000,
-        interest_rate=0.0618,
-        issue_date=mortgage_issue_date,
-        maturity_years=2,
-    )
-    tx = TransactionFactory.create_transaction(
-        bank=bank,
-        transaction_type=TransactionType.LOAN_DISBURSEMENT,
-        instrument=mortgage,
-        transaction_date=mortgage_issue_date,
-        description="Issue a residential mortgage loan",
-    )
-    yield tx
+    for i in range(5):
+        mortgage = InstrumentFactory.create_residential_mortgage(
+            face_value=200_000 + 100_000 * random.randint(1, 3),
+            interest_rate=0.05 + 0.01 * random.randint(0, 3),
+            issue_date=mortgage_issue_date + relativedelta(months=random.randint(0, 24)),
+            maturity_years=random.choice([10, 20, 30]),
+        )
+        tx = TransactionFactory.create_transaction(
+            bank=bank,
+            transaction_type=TransactionType.LOAN_DISBURSEMENT,
+            instrument=mortgage,
+            transaction_date=mortgage_issue_date,
+            description="Issue a residential mortgage loan",
+        )
+        yield tx
 
     # FVOCI banking book security, a Treasury Note
     fvoci_securities = []
-    for i in range(10):
+    for i in range(20):
         tn_fvoci = InstrumentFactory.create_treasury_note(
             face_value=100_000.0,
             coupon_rate=0.0125 * random.randint(1, 5),
