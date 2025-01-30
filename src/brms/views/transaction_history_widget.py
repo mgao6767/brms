@@ -35,6 +35,13 @@ class BRMSTransactionHistoryWidget(QWidget):
         self._transaction_timer.start()
         self._locale = QLocale()
 
+        # Create a group box for journal entry
+        self.journal_group = QGroupBox("Journal Entry")
+        journal_layout = QVBoxLayout()
+        self.journal_display = QLabel("")
+        self.journal_display.setTextFormat(Qt.TextFormat.RichText)
+        journal_layout.addWidget(self.journal_display)
+        self.journal_group.setLayout(journal_layout)
         # Create a control panel
         self.ctrl_group = QGroupBox("Filter")
         group_layout = QVBoxLayout()
@@ -67,17 +74,25 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.ctrl_group.setLayout(group_layout)
 
         # Create a tree view
-        self.transaction_tree = BRMSTreeWidget(["Tx#", "Date", "Type", "Instrument", "Value", "Description"])
+        columns = ["Tx#", "Date", "Type", "Instrument", "Value", "Description", "Journal Entry"]
+        self.transaction_tree = BRMSTreeWidget(columns)
         self.transaction_tree.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.transaction_tree.setUniformRowHeights(True)  # for performance
         self.transaction_tree.setItemDelegateForColumn(4, CurrencyDelegate(self.transaction_tree))  # value column
+        self.transaction_tree.setColumnHidden(6, True)  # journal entry
 
         # Convenient access
         self.transactions_tree_model = self.transaction_tree.tree_model
 
         # Arrange in a splitter
+        left_widget = QSplitter()
+        left_widget.setOrientation(Qt.Orientation.Vertical)
+        left_widget.addWidget(self.journal_group)
+        left_widget.addWidget(self.ctrl_group)
+        left_widget.setStretchFactor(0, 0)
+        left_widget.setStretchFactor(1, 2)
         splitter = QSplitter()
-        splitter.addWidget(self.ctrl_group)
+        splitter.addWidget(left_widget)
         splitter.addWidget(self.transaction_tree)
         splitter.setStretchFactor(1, 1)
 
@@ -91,6 +106,7 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.reset_button.clicked.connect(self.reset_filters)
         self.start_date_filter.dateChanged.connect(self.validate_dates)
         self.end_date_filter.dateChanged.connect(self.validate_dates)
+        self.transaction_tree.selectionModel().selectionChanged.connect(self.on_transaction_selected)
 
     def validate_dates(self):
         """Ensure start date is earlier than or equal to end date."""
@@ -98,6 +114,16 @@ class BRMSTransactionHistoryWidget(QWidget):
         end_date = self.end_date_filter.date()
         if start_date > end_date:
             self.start_date_filter.setDate(end_date)  # Reset start date to match end date
+
+    def on_transaction_selected(self, selected, deselected) -> None:
+        """Slot to handle selection changes."""
+        indexes = self.transaction_tree.selectedIndexes()
+        id_column = 6  # journal entry
+        if indexes:
+            selected_index = indexes[0]
+            item = selected_index.internalPointer()
+            entry = item.data(id_column)
+            self.journal_display.setText(entry.to_html())
 
     def search_transactions(self) -> None:
         self.reset_filters()
@@ -156,4 +182,6 @@ class BRMSTransactionHistoryWidget(QWidget):
             3: transaction.instrument.name,
             4: self._locale.toCurrencyString(transaction.value),
             5: transaction.description,
+            # hidden
+            6: transaction.journal_entry,
         }

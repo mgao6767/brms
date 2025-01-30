@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
+from tabulate import tabulate
+
 from brms.accounting.account import TAccount
 
 
@@ -48,6 +50,14 @@ class SimpleEntry(JournalEntry):
         """Check if the journal entry involves a specific account."""
         return account in {self.debit_account, self.credit_account}
 
+    def to_html(self) -> str:
+        """Return a string representation of the simple journal entry."""
+        data = [
+            ["Dr.", self.debit_account.name, self.value],
+            ["Cr.", self.credit_account.name, self.value],
+        ]
+        return tabulate(data, tablefmt="html", numalign="right", floatfmt=".2f", maxcolwidths=[None, 50])
+
 
 @dataclass
 class CompoundEntry(JournalEntry):
@@ -83,6 +93,15 @@ class CompoundEntry(JournalEntry):
     def involves_account(self, account: TAccount) -> bool:
         """Check if the journal entry involves a specific account."""
         return account in self.debit_accounts or account in self.credit_accounts
+
+    def to_html(self) -> str:
+        """Return a string representation of the simple journal entry."""
+        data = []
+        for account, value in self.debit_accounts.items():
+            data.append(["Dr.", account.name, value])
+        for account, value in self.credit_accounts.items():
+            data.append(["Cr.", account.name, value])
+        return tabulate(data, tablefmt="html", numalign="right", floatfmt=".2f", maxcolwidths=[None, 50])
 
 
 @dataclass
