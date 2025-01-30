@@ -64,6 +64,7 @@ class MainController(BRMSController):
         self.simulation_initiated.connect(self.on_simulation_initiated)
 
         self.bank_ctrl.bank_financials_updated.connect(self.view.dashboard.update_bank_financials)
+        self.bank_ctrl.transaction_processed.connect(self.view.transaction_history_widget.add_transaction)
 
     def connect_signals_for_debugging(self) -> None:
         """Connect signals only used for debugging."""
@@ -88,6 +89,9 @@ class MainController(BRMSController):
         # 4. Emit signal about Scenario changes
         self.scenario_changed.emit(self.simulation.current_scenario)
         self.simulation_initiated.emit(self.simulation)
+        # misc
+        self.view.transaction_history_widget.set_start_date(self.simulation.current_scenario.date)
+        self.view.transaction_history_widget.set_end_date(self.simulation.current_scenario.date)
 
     def on_exit(self) -> None:
         """Handle the exit signal from the view."""
@@ -147,6 +151,7 @@ class MainController(BRMSController):
         progress = (date - start_date) / (end_date - start_date) * 100
         self.view.dashboard.update_simulation_progress(int(progress))
         self.update_dashboard()
+        self.view.transaction_history_widget.set_end_date(self.simulation.current_scenario.date)
 
     def on_scenario_changed(self, scenario: Scenario) -> None:
         """Handle changes to the scenario.

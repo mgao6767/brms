@@ -212,6 +212,11 @@ class TransactionFactory:
         cls._registry[transaction_type] = transaction_cls
 
     @classmethod
+    def get_registered_transaction_types(cls) -> list[TransactionType]:
+        """Return a list of all registered transaction types."""
+        return list(cls._registry.keys())
+
+    @classmethod
     def create_transaction(
         cls,
         *,

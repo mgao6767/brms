@@ -22,6 +22,7 @@ from brms.views.dock_widget import BRMSDockWidget
 from brms.views.inspector_widget import BRMSInspectorWidget
 from brms.views.statement_viewer_widget import BRMSStatementViewer
 from brms.views.styler import BRMSStyler
+from brms.views.transaction_history_widget import BRMSTransactionHistoryWidget
 from brms.views.yield_curve_widget import BRMSYieldCurveWidget
 
 if DEBUG_MODE:
@@ -48,6 +49,7 @@ class MainWindow(QMainWindow):
         self.yield_curve_widget = BRMSYieldCurveWidget(self)
         self.bond_calculator_widget: BRMSBondCalculatorWidget | None = None
         self.mortgage_calculator_widget: BRMSMortgageCalculatorWidget | None = None
+        self.transaction_history_widget: BRMSTransactionHistoryWidget
         self.init_ui()
         self.connect_signals()
         # Actions
@@ -200,9 +202,11 @@ class MainWindow(QMainWindow):
         self.banking_book_widget = BRMSBankingBookWidget()
         self.trading_book_widget = BRMSTradingBookWidget()
         self.dashboard = BRMSDashboard()
+        self.transaction_history_widget = BRMSTransactionHistoryWidget()
         tab_widget.addTab(self.dashboard, "Dashboard")
         tab_widget.addTab(self.banking_book_widget, "Banking Book")
         tab_widget.addTab(self.trading_book_widget, "Trading Book")
+        tab_widget.addTab(self.transaction_history_widget, "Transaction History")
         self.setCentralWidget(tab_widget)
 
     def create_dock_widgets(self) -> None:
