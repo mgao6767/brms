@@ -90,8 +90,8 @@ class MainController(BRMSController):
         self.scenario_changed.emit(self.simulation.current_scenario)
         self.simulation_initiated.emit(self.simulation)
         # misc
-        self.view.transaction_history_widget.set_start_date(self.simulation.current_scenario.date)
         self.view.transaction_history_widget.set_end_date(self.simulation.current_scenario.date)
+        self.view.transaction_history_widget.set_start_date(self.simulation.current_scenario.date)
 
     def on_exit(self) -> None:
         """Handle the exit signal from the view."""

@@ -46,6 +46,7 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.end_date_filter = QDateEdit()
         self.type_label = QLabel("Transaction Type:")
         self.type_filter = QComboBox()
+        self.type_filter.addItem("All")
         for tx_type in TransactionFactory.get_registered_transaction_types():
             self.type_filter.addItem(tx_type.name)
         self.search_button = QPushButton("Search")
@@ -86,16 +87,46 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.setLayout(main_layout)
 
         # Connect signals
+        self.search_button.clicked.connect(self.search_transactions)
         self.reset_button.clicked.connect(self.reset_filters)
+        self.start_date_filter.dateChanged.connect(self.validate_dates)
+        self.end_date_filter.dateChanged.connect(self.validate_dates)
+
+    def validate_dates(self):
+        """Ensure start date is earlier than or equal to end date."""
+        start_date = self.start_date_filter.date()
+        end_date = self.end_date_filter.date()
+        if start_date > end_date:
+            self.start_date_filter.setDate(end_date)  # Reset start date to match end date
+
+    def search_transactions(self) -> None:
+        self.reset_filters()
+        start_date = self.start_date_filter.date().toPython()
+        end_date = self.end_date_filter.date().toPython()
+        tx_type = self.type_filter.currentText()
+        model = self.transactions_tree_model
+        for row in range(model.rowCount()):
+            idx_date = model.index(row, 1, QMODELINDEX)  # date
+            idx_tx_type = model.index(row, 2, QMODELINDEX)  # transaction type
+            if not (idx_date.isValid() and idx_tx_type.isValid()):
+                continue
+            date_text = model.data(idx_date, Qt.ItemDataRole.DisplayRole)
+            tx_type_text = model.data(idx_tx_type, Qt.ItemDataRole.DisplayRole)
+            date = datetime.datetime.strptime(date_text, "%Y-%m-%d").date()
+            if start_date <= date <= end_date and (tx_type == "All" or tx_type_text == tx_type):
+                self.transaction_tree.setRowHidden(row, QMODELINDEX, False)
+            else:
+                self.transaction_tree.setRowHidden(row, QMODELINDEX, True)
+
+    def reset_filters(self) -> None:
+        for row in range(self.transactions_tree_model.rowCount()):
+            self.transaction_tree.setRowHidden(row, QMODELINDEX, False)
 
     def set_start_date(self, date: QDate | datetime.date) -> None:
         self.start_date_filter.setDate(pydate_to_qdate(date) if isinstance(date, datetime.date) else date)
 
     def set_end_date(self, date: QDate | datetime.date) -> None:
         self.end_date_filter.setDate(pydate_to_qdate(date) if isinstance(date, datetime.date) else date)
-
-    def reset_filters(self) -> None:
-        pass
 
     def flush_transactions(self):
         if not self._transaction_buffer:
