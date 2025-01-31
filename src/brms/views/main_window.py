@@ -304,7 +304,7 @@ class MainWindow(QMainWindow):
             widget.show()
         # Resize statement viewer when user's screen size is large enough
         screen_geometry = QApplication.primaryScreen().availableGeometry()
-        if screen_geometry.width() >= 1920:
+        if screen_geometry.width() >= 1080:
             self.resizeDocks([self.dock_statement_viewer], [670], Qt.Orientation.Horizontal)
         # Resize dock widgets to make them equal height
         self.resizeDocks([self.dock_econ_indicator, self.dock_statement_viewer], [1, 1], Qt.Orientation.Vertical)
