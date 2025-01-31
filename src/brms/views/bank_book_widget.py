@@ -6,10 +6,13 @@ from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QPushButton,
     QSplitter,
+    QStyle,
     QStyledItemDelegate,
+    QStyleOptionHeader,
     QVBoxLayout,
     QWidget,
 )
@@ -78,6 +81,43 @@ class InstrumentIDDelegate(QStyledItemDelegate):
         return super().displayText(value, locale)  # Default behavior
 
 
+class CustomHeader(QHeaderView):
+    def __init__(self, orientation, parent=None):
+        super().__init__(orientation, parent)
+        self.setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)  # Default left alignment
+        self.text_padding = None  # Store dynamically calculated padding
+
+    def paintSection(self, painter, rect, logicalIndex):
+        """Preserve default styling but right-align the last column header text."""
+        option = QStyleOptionHeader()
+        self.initStyleOption(option)  # Get default styling
+        option.rect = rect  # Set section rectangle
+        option.section = logicalIndex  # Apply correct section index
+
+        if logicalIndex < self.model().columnCount() - 1:
+            # Store the text padding from a normal column (first column)
+            super().paintSection(painter, rect, logicalIndex)
+
+            if self.text_padding is None:  # Extract padding from the first column once
+                text_rect = self.style().subElementRect(QStyle.SE_HeaderLabel, option, self)
+                self.text_padding = text_rect.left() - rect.left()  # Extract left padding
+        else:
+            option.text = ""  # Remove default text drawing
+            self.style().drawControl(QStyle.CE_HeaderSection, option, painter, self)  # Draw default header without text
+
+            # Retrieve header text
+            text = self.model().headerData(logicalIndex, Qt.Horizontal, Qt.DisplayRole)
+            if text and self.text_padding is not None:
+                painter.save()
+                painter.setPen(self.palette().color(self.foregroundRole()))  # Keep text color
+
+                # Apply the same padding as other columns (text_padding is dynamically calculated)
+                adjusted_rect = rect.adjusted(self.text_padding, 0, -self.text_padding, 0)
+                painter.drawText(adjusted_rect, Qt.AlignRight | Qt.AlignVCenter, text)
+
+                painter.restore()
+
+
 class BRMSBankBookWidget(QWidget):
     def __init__(
         self,
@@ -88,6 +128,19 @@ class BRMSBankBookWidget(QWidget):
         super().__init__(parent)
         self.assets_tree = BRMSTreeWidget(asset_columns)
         self.liabilities_tree = BRMSTreeWidget(liability_columns)
+
+        # fmt: off
+        # Replace the default header with our custom header
+        header = CustomHeader(Qt.Orientation.Horizontal, self.assets_tree)
+        self.assets_tree.setHeader(header)
+        self.assets_tree.header().setSectionResizeMode(AssetColumns.Asset.value, QHeaderView.ResizeMode.Stretch)
+        self.assets_tree.header().setSectionResizeMode(AssetColumns.Value.value, QHeaderView.ResizeMode.ResizeToContents)
+        header_liabilities = CustomHeader(Qt.Orientation.Horizontal, self.assets_tree)
+        self.liabilities_tree.setHeader(header_liabilities)
+        self.liabilities_tree.header().setSectionResizeMode(LiabilityColumns.Liability.value, QHeaderView.ResizeMode.Stretch)
+        self.liabilities_tree.header().setSectionResizeMode(LiabilityColumns.Value.value, QHeaderView.ResizeMode.ResizeToContents)
+        # fmt: on
+
         # fmt: off
         # Set format delegate for the "value" column
         # Note: parent of the delegate must be set or otherwise the app will crash!
