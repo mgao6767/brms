@@ -87,8 +87,11 @@ class CompoundEntry(JournalEntry):
         return sum(self.credit_accounts.values())
 
     def is_balanced(self) -> bool:
-        """Check if the compound entry is balanced."""
-        return self.total_debits() == self.total_credits()
+        """Check if the compound entry is balanced.
+
+        Using 1e-6 as a tolerance level to account for floating-point inaccuracies.
+        """
+        return abs(self.total_debits() - self.total_credits()) < 1e-6
 
     def involves_account(self, account: TAccount) -> bool:
         """Check if the journal entry involves a specific account."""
