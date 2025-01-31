@@ -110,14 +110,20 @@ class BRMSBankBookWidget(QWidget):
 
         # Create a splitter to display the tree views side by side
         splitter = QSplitter()
+        splitter.setOrientation(Qt.Orientation.Vertical)
         splitter.addWidget(self.assets_tree)
         splitter.addWidget(self.liabilities_tree)
 
         # Create a layout for the widget and add the splitter
-        book_layout = QHBoxLayout()
-        book_layout.addWidget(ctrl_panel)
-        book_layout.addWidget(splitter)
-        self.setLayout(book_layout)
+        main_splitter = QSplitter()
+        main_splitter.setOrientation(Qt.Orientation.Horizontal)
+        main_splitter.addWidget(ctrl_panel)
+        main_splitter.addWidget(splitter)
+        main_splitter.setStretchFactor(0, 0)  # Left widget (control panel) does not stretch
+        main_splitter.setStretchFactor(1, 1)  # Right widget (splitter with tree views) expands
+        main_layout = QHBoxLayout()
+        main_layout.addWidget(main_splitter)
+        self.setLayout(main_layout)
 
 
 class BRMSBankingBookWidget(BRMSBankBookWidget):
