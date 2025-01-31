@@ -65,6 +65,10 @@ class MainWindow(QMainWindow):
         self.stop_action: QAction
         self.fushion_style_action: QAction
         self.mq_style_action: QAction
+        self.dashboard_action: QAction
+        self.banking_book_action: QAction
+        self.trading_book_action: QAction
+        self.transaction_history_action: QAction
         self.restore_views_action: QAction
         self.bond_calculator_action: QAction
         self.mortgage_calculator_action: QAction
@@ -128,6 +132,14 @@ class MainWindow(QMainWindow):
         self.mq_style_action = QAction("MQ Theme", self)
         self.fushion_style_action.setCheckable(True)
         self.mq_style_action.setCheckable(True)
+        self.dashboard_action = QAction("Show Dashboard", self)
+        self.dashboard_action.setShortcut("Ctrl+1")
+        self.banking_book_action = QAction("Show Banking Book", self)
+        self.banking_book_action.setShortcut("Ctrl+2")
+        self.trading_book_action = QAction("Show Trading Book", self)
+        self.trading_book_action.setShortcut("Ctrl+3")
+        self.transaction_history_action = QAction("Show Transaction History", self)
+        self.transaction_history_action.setShortcut("Ctrl+4")
         self.restore_views_action = QAction("Restore Views", self)
         # Calculator
         self.bond_calculator_action = QAction("Fixed-Rate Bond Calculator", self)
@@ -175,6 +187,10 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.fushion_style_action)
         view_menu.addAction(self.mq_style_action)
         view_menu.addSeparator()
+        view_menu.addAction(self.dashboard_action)
+        view_menu.addAction(self.banking_book_action)
+        view_menu.addAction(self.trading_book_action)
+        view_menu.addAction(self.transaction_history_action)
         view_menu.addAction(self.restore_views_action)
         # Simulation menu
         simulation_menu.addAction(self.next_action)
@@ -198,16 +214,16 @@ class MainWindow(QMainWindow):
 
     def create_central_widget(self) -> None:
         """Create the central widget."""
-        tab_widget = QTabWidget(self)
+        self.tab_widget = QTabWidget(self)
         self.banking_book_widget = BRMSBankingBookWidget()
         self.trading_book_widget = BRMSTradingBookWidget()
         self.dashboard = BRMSDashboard()
         self.transaction_history_widget = BRMSTransactionHistoryWidget()
-        tab_widget.addTab(self.dashboard, "Dashboard")
-        tab_widget.addTab(self.banking_book_widget, "Banking Book")
-        tab_widget.addTab(self.trading_book_widget, "Trading Book")
-        tab_widget.addTab(self.transaction_history_widget, "Transaction History")
-        self.setCentralWidget(tab_widget)
+        self.tab_widget.addTab(self.dashboard, "Dashboard")
+        self.tab_widget.addTab(self.banking_book_widget, "Banking Book")
+        self.tab_widget.addTab(self.trading_book_widget, "Trading Book")
+        self.tab_widget.addTab(self.transaction_history_widget, "Transaction History")
+        self.setCentralWidget(self.tab_widget)
 
     def create_dock_widgets(self) -> None:
         """Create and dock the inspector widget."""
@@ -242,6 +258,10 @@ class MainWindow(QMainWindow):
         self.github_action.triggered.connect(self.on_github_action)
         self.bond_calculator_action.triggered.connect(self.toggle_bond_calculator)
         self.mortgage_calculator_action.triggered.connect(self.toggle_loan_calculator)
+        self.dashboard_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(0))
+        self.banking_book_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(1))
+        self.trading_book_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(2))
+        self.transaction_history_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(3))
 
     def toggle_bond_calculator(self):
         if self.bond_calculator_action.isChecked():
