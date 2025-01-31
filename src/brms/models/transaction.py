@@ -738,6 +738,12 @@ class SecurityPurchaseFVTPLTransaction(Transaction):
 
     cash_to_pay: Cash
 
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_pay: (Action.REMOVE, BookType.BANKING_BOOK, Position.LONG),
+            self.instrument: (Action.ADD, BookType.TRADING_BOOK, Position.LONG),
+        }
+
     def _execute(self) -> None:
         self.cash_to_pay = Cash(value=self.instrument.value)
         self.bank.trading_book.add_instrument(self.instrument, Position.LONG)
@@ -767,6 +773,12 @@ class SecuritySaleFVTPLTransaction(Transaction):
 
     tracker: UnrealizedTradingGainLossTracker
     cash_to_receive: Cash
+
+    def controller_actions(self) -> GUIControllerInstruction:
+        return {
+            self.cash_to_receive: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
+            self.instrument: (Action.REMOVE, BookType.TRADING_BOOK, Position.LONG),
+        }
 
     def _execute(self) -> None:
         self.tracker = self.bank.trading_book.unrealized_pnl_tracker
@@ -833,6 +845,12 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
     new_unrealized_trading_loss: float
     old_value: float
     new_value: float
+
+    def controller_actions(self) -> GUIControllerInstruction:
+        position = self.bank.trading_book.get_position(self.instrument)
+        return {
+            self.instrument: (Action.UPDATE, BookType.TRADING_BOOK, position),
+        }
 
     def _execute(self) -> None:
         if not isinstance(self.valuation_visitor, ValuationVisitor):

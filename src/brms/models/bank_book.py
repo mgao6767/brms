@@ -110,6 +110,18 @@ class BankBook:
                 return instrument
         return None
 
+    def get_position(self, instrument: Instrument) -> Position:
+        """Get the position of a given instrument in the bank book.
+
+        :param instrument: The instrument to find the position for.
+        :return: The position of the instrument (LONG or SHORT) or None if not found.
+        """
+        if instrument in self.long_exposure:
+            return Position.LONG
+        if instrument in self.short_exposure:
+            return Position.SHORT
+        raise ValueError("Instrument not found in either long or short exposure.")
+
     def accept(self, visitor: Visitor) -> None:
         """Accept a visitor to process the instruments in the book."""
         for instrument in self.long_exposure:

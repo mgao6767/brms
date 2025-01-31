@@ -28,6 +28,7 @@ class InstrumentFactory:
         issue_date: datetime.date,
         maturity_date: datetime.date,
         instrument_class: InstrumentClass,
+        book_type: BookType = BookType.BANKING_BOOK,
     ) -> TreasuryNote:
         issue_date_ql = ql.Date(issue_date.day, issue_date.month, issue_date.year)
         maturity_date_ql = ql.Date(maturity_date.day, maturity_date.month, maturity_date.year)
@@ -36,7 +37,7 @@ class InstrumentFactory:
             coupon_rate=coupon_rate,
             issue_date=issue_date_ql,
             maturity_date=maturity_date_ql,
-            book_type=BookType.BANKING_BOOK,
+            book_type=book_type,
             instrument_class=instrument_class,
             credit_rating=CreditRating.AAA,
             issuer=Issuer(

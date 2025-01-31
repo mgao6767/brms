@@ -240,9 +240,35 @@ class TradingBookController(BankBookController):
         inspector_ctrl: InspectorController,
     ) -> None:
         super().__init__(bank_book, view, inspector_ctrl)
-        self.bank_book_widget.assets_tree.setColumnHidden(AssetColumns.Class.value, True)
-        self.bank_book_widget.liabilities_tree.setColumnHidden(LiabilityColumns.Class.value, True)
 
     def connect_signals(self) -> None:
         super().connect_signals()
         assert isinstance(self.bank_book_widget, BRMSTradingBookWidget)
+        self.bank_book_widget.btn_trading_portfolio_overview.clicked.connect(self.on_btn_trading_portfolio_overview)
+        self.bank_book_widget.btn_risk_assessment.clicked.connect(self.on_btn_risk_assessment)
+        self.bank_book_widget.btn_mark_to_market_analysis.clicked.connect(self.on_btn_mark_to_market_analysis)
+        self.bank_book_widget.btn_trading_profitability.clicked.connect(self.on_btn_trading_profitability)
+        self.bank_book_widget.btn_trade_treasury_securities.clicked.connect(self.on_btn_trade_treasury_securities)
+        self.bank_book_widget.btn_trade_corporate_securities.clicked.connect(self.on_btn_trade_corporate_securities)
+        self.bank_book_widget.btn_trade_derivatives.clicked.connect(self.on_btn_trade_derivatives)
+
+    def on_btn_trading_portfolio_overview(self) -> None:
+        """Handle Trading Portfolio Overview button click."""
+
+    def on_btn_risk_assessment(self) -> None:
+        """Handle Market Risk Assessment button click."""
+
+    def on_btn_mark_to_market_analysis(self) -> None:
+        """Handle Mark-to-Market Analysis button click."""
+
+    def on_btn_trading_profitability(self) -> None:
+        """Handle Trading Profitability button click."""
+
+    def on_btn_trade_treasury_securities(self) -> None:
+        """Handle Trade Treasury Securities button click."""
+
+    def on_btn_trade_corporate_securities(self) -> None:
+        """Handle Trade Corporate Securities button click."""
+
+    def on_btn_trade_derivatives(self) -> None:
+        """Handle Trade Derivatives button click."""

@@ -6,8 +6,9 @@ from dateutil.relativedelta import relativedelta
 
 from brms.instruments.base import InstrumentClass
 from brms.instruments.factory import InstrumentFactory
-from brms.instruments.visitors.valuation import BankingBookValuationVisitor
+from brms.instruments.visitors.valuation import BankingBookValuationVisitor, TradingBookValuationVisitor
 from brms.models.bank import Bank
+from brms.models.bank_book import BookType
 from brms.models.bank_engine import BankEngine
 from brms.models.scenario import ScenarioManager
 from brms.models.transaction import Transaction, TransactionFactory, TransactionType
@@ -81,8 +82,7 @@ def create_bank_init_transactions(bank: Bank, scenario_manager: ScenarioManager)
         yield tx
 
     # FVOCI banking book security, a Treasury Note
-    fvoci_securities = []
-    for i in range(20):
+    for i in range(10):
         tn_fvoci = InstrumentFactory.create_treasury_note(
             face_value=100_000.0,
             coupon_rate=0.0125 * random.randint(1, 5),
@@ -98,7 +98,26 @@ def create_bank_init_transactions(bank: Bank, scenario_manager: ScenarioManager)
             transaction_date=today,
             description="Purchase banking book security FVOCI",
         )
-        fvoci_securities.append(tn_fvoci)
+        yield tx
+
+    # FVTPL
+    for i in range(10):
+        tn_fvtpl = InstrumentFactory.create_treasury_note(
+            face_value=100_000.0,
+            coupon_rate=0.0125 * random.randint(1, 5),
+            issue_date=datetime.date(2020, 1, 1),
+            maturity_date=datetime.date(2020, 1, 1) + relativedelta(years=random.choice([2, 3, 5, 7, 10])),
+            instrument_class=InstrumentClass.FVTPL,
+            book_type=BookType.TRADING_BOOK,
+        )
+        tn_fvtpl.accept(TradingBookValuationVisitor(scenario_manager, valuation_date=today))
+        tx = TransactionFactory.create_transaction(
+            bank=bank,
+            transaction_type=TransactionType.SECURITY_PURCHASE_TRADING,
+            instrument=tn_fvtpl,
+            transaction_date=today,
+            description="Purchase trading book security FVTPL",
+        )
         yield tx
 
     # Marking to market
