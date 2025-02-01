@@ -1,0 +1,86 @@
+site_name: BRMS - Bank Risk Management Simulation
+site_author: Mingze Gao
+site_url: https://bankrisk.org
+site_description: >-
+  A bank risk management simulation framework
+
+repo_url: https://github.com/mgao6767/brms
+repo_name: brms
+
+copyright: Copyright &copy; 2025 <a href="https://mingze-gao.com">Mingze Gao</a>
+
+extra_css:
+  - stylesheets/extra.css
+
+validation:
+  links:
+    absolute_links: relative_to_docs
+
+theme:
+  name: material
+  favicon: icon.png
+  logo: icon.png
+  palette: 
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default 
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  icon:
+    repo: fontawesome/brands/github
+    admonition:
+      example: octicons/log-24
+  features:
+    - announce.dismiss
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - search.share
+    # - content.action.edit
+    # - content.action.view
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow 
+    - navigation.prune 
+    - navigation.tabs
+    - navigation.path
+    - navigation.indexes 
+    - navigation.top
+
+extra:  
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mgao6767/brms
+    - icon: fontawesome/brands/linkedin
+      link: https://linkedin.com/in/adriangao
+    - icon: fontawesome/solid/paper-plane
+      link: mailto:mingze.gao@mq.edu.au
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
