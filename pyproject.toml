@@ -24,7 +24,12 @@ dependencies = [
 brms = "brms.main:main"
 
 [dependency-groups]
-dev = ["isort>=5.13.2", "pytest>=8.3.4", "ruff>=0.8.5"]
+dev = [
+    "isort>=5.13.2",
+    "mkdocs-material>=9.6.1",
+    "pytest>=8.3.4",
+    "ruff>=0.8.5",
+]
 
 [tool.hatch.build]
 include = ["src/brms/data/default/*.csv"]
