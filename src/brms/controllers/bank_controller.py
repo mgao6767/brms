@@ -23,7 +23,7 @@ class BankController(BRMSController):
     """
 
     transaction_processed = Signal(Transaction, name="Transaction Processed")
-    bank_financials_updated = Signal(float, float, float, name="Total Assets Updated")
+    bank_financials_updated = Signal(Report, name="Bank Financials Updated")
 
     def __init__(
         self,
@@ -121,22 +121,8 @@ class BankController(BRMSController):
 
         # Update the financial metrics and emit signals
         if date is not None:
-            total_assets = self.get_total_assets()
-            total_liabilities = self.get_total_liabilities()
-            total_equity = self.get_total_equity()
-            self.total_assets_history[date] = total_assets
-            self.total_liabilities_history[date] = total_liabilities
-            self.total_equity_history[date] = total_equity
-            self.bank_financials_updated.emit(total_assets, total_liabilities, total_equity)
+            self.total_assets_history[date] = self.report.get_total_assets()
+            self.total_liabilities_history[date] = self.report.get_total_liabilities()
+            self.total_equity_history[date] = self.report.get_total_equity()
 
-    def get_total_assets(self) -> float:
-        """Calculate and return the bank's total assets."""
-        return sum(self.report.balance_sheet.assets.values())
-
-    def get_total_liabilities(self) -> float:
-        """Calculate and return the bank's total liabilities."""
-        return sum(self.report.balance_sheet.liabilities.values())
-
-    def get_total_equity(self) -> float:
-        """Calculate and return the bank's total equity."""
-        return sum(self.report.balance_sheet.equities.values())
+            self.bank_financials_updated.emit(self.report)

@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from brms.accounting.report import Report
 from brms.accounting.statement_viewer import locale
 from brms.utils import pydate_to_qdate
 from brms.views.styler import BRMSStyler
@@ -202,6 +203,9 @@ class BRMSDashboard(QWidget):
         font.setBold(True)
         capital_ratio_label.setFont(font)
         stats_layout.addRow(capital_ratio_label)
+        self.cet1_label = QLabel("CET1:")
+        self.cet1_value = QLabel("0")
+        stats_layout.addRow(self.cet1_label, self.cet1_value)
         self.cet1_ratio_label = QLabel("CET1 Ratio:")
         self.cet1_ratio_value = QLabel("0%")
         stats_layout.addRow(self.cet1_ratio_label, self.cet1_ratio_value)
@@ -276,31 +280,27 @@ class BRMSDashboard(QWidget):
         """Update the simulation progress."""
         self.simulation_progress_value.setValue(progress)
 
-    def update_bank_financials(self, total_assets: float, total_liabilities: float, total_equity: float) -> None:
+    def update_bank_financials(self, report: Report) -> None:
         """Update the bank's financials."""
+        total_assets = report.get_total_assets()
+        total_liabilities = report.get_total_liabilities()
+        total_equity = report.get_total_equity()
+        cet1 = report.get_cet1()
+        cet1_ratio = report.get_cet1_ratio()
+        tier1_capital_ratio = report.get_tier1_capital_ratio()
+        total_capital_ratio = report.get_total_capital_ratio()
+        nsfr = report.get_net_stable_funding_ratio()
+        lcr = report.get_liquidity_coverage_ratio()
+
         self.total_assets_value.setText(locale.currency(total_assets, grouping=True))
         self.total_liabilities_value.setText(locale.currency(total_liabilities, grouping=True))
         self.total_equity_value.setText(locale.currency(total_equity, grouping=True))
-
-    def update_cet1_ratio(self, ratio: float) -> None:
-        """Update the CET1 ratio."""
-        self.cet1_ratio_value.setText(f"{ratio:.2f}%")
-
-    def update_tier1_capital_ratio(self, ratio: float) -> None:
-        """Update the Tier 1 Capital ratio."""
-        self.tier1_capital_ratio_value.setText(f"{ratio:.2f}%")
-
-    def update_total_capital_ratio(self, ratio: float) -> None:
-        """Update the Total Capital ratio."""
-        self.total_capital_ratio_value.setText(f"{ratio:.2f}%")
-
-    def update_nsfr(self, ratio: float) -> None:
-        """Update the NSFR ratio."""
-        self.nsfr_value.setText(f"{ratio:.2f}%")
-
-    def update_lcr(self, ratio: float) -> None:
-        """Update the LCR ratio."""
-        self.lcr_value.setText(f"{ratio:.2f}%")
+        self.cet1_value.setText(locale.currency(cet1, grouping=True))
+        self.cet1_ratio_value.setText(f"{cet1_ratio*100:.2f}%")
+        self.tier1_capital_ratio_value.setText(f"{tier1_capital_ratio*100:.2f}%")
+        self.total_capital_ratio_value.setText(f"{total_capital_ratio*100:.2f}%")
+        self.nsfr_value.setText(f"{nsfr*100:.2f}%")
+        self.lcr_value.setText(f"{lcr*100:.2f}%")
 
     def update_assets_plot(self, start, end, dates, assets_values) -> None:
         """Update the assets plot with new data."""

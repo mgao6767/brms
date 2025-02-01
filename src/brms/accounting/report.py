@@ -7,7 +7,14 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from brms.accounting.account import AccountBalances, AccountNormalBalance, AccountType
+from brms.accounting.account import (
+    AccountBalances,
+    AccountNormalBalance,
+    AccountType,
+    AccumulatedOCIAccount,
+    EquityAccount,
+    RetainedEarningsAccount,
+)
 
 if TYPE_CHECKING:
     from brms.accounting.account import TAccount
@@ -139,3 +146,47 @@ class Report:
     def print_balance_sheet(self) -> None:
         """Generate the balance sheet view."""
         self.balance_sheet.accept(self.viewer)
+
+    def get_total_assets(self) -> float:
+        """Calculate and return the bank's total assets."""
+        return sum(self.balance_sheet.assets.values())
+
+    def get_total_liabilities(self) -> float:
+        """Calculate and return the bank's total liabilities."""
+        return sum(self.balance_sheet.liabilities.values())
+
+    def get_total_equity(self) -> float:
+        """Calculate and return the bank's total equity."""
+        return sum(self.balance_sheet.equities.values())
+
+    def get_cet1(self) -> float:
+        """Calculate and return the bank's CET1 capital."""
+        cet1 = 0.0
+        for account, balance in self.balance_sheet.equities.items():
+            if isinstance(account, EquityAccount):
+                cet1 += balance
+            if isinstance(account, AccumulatedOCIAccount):
+                cet1 += balance
+            if isinstance(account, RetainedEarningsAccount):
+                cet1 += balance
+        return cet1
+
+    def get_cet1_ratio(self) -> float:
+        """Calculate and return the bank's CET1 ratio."""
+        return 0.0
+
+    def get_tier1_capital_ratio(self) -> float:
+        """Calculate and return the bank's Tier 1 capital ratio."""
+        return 0.0
+
+    def get_total_capital_ratio(self) -> float:
+        """Calculate and return the bank's total capital ratio."""
+        return 0.0
+
+    def get_net_stable_funding_ratio(self) -> float:
+        """Calculate and return the bank's Net Stable Funding Ratio (NSFR)."""
+        return 0.0
+
+    def get_liquidity_coverage_ratio(self) -> float:
+        """Calculate and return the bank's Liquidity Coverage Ratio (LCR)."""
+        return 0.0
