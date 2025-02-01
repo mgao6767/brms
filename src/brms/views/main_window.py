@@ -20,6 +20,7 @@ from brms.views.calculatory_widget import BRMSBondCalculatorWidget, BRMSMortgage
 from brms.views.dashboard_widget import BRMSDashboard
 from brms.views.dock_widget import BRMSDockWidget
 from brms.views.inspector_widget import BRMSInspectorWidget
+from brms.views.rwa_credit_risk_widget import BRMSRWACreditRiskWidget
 from brms.views.statement_viewer_widget import BRMSStatementViewer
 from brms.views.styler import BRMSStyler
 from brms.views.transaction_history_widget import BRMSTransactionHistoryWidget
@@ -50,6 +51,7 @@ class MainWindow(QMainWindow):
         self.bond_calculator_widget: BRMSBondCalculatorWidget | None = None
         self.mortgage_calculator_widget: BRMSMortgageCalculatorWidget | None = None
         self.transaction_history_widget: BRMSTransactionHistoryWidget
+        self.rwa_credit_risk_widget: BRMSRWACreditRiskWidget
         self.init_ui()
         self.connect_signals()
         # Actions
@@ -219,10 +221,12 @@ class MainWindow(QMainWindow):
         self.trading_book_widget = BRMSTradingBookWidget()
         self.dashboard = BRMSDashboard()
         self.transaction_history_widget = BRMSTransactionHistoryWidget()
+        self.rwa_credit_risk_widget = BRMSRWACreditRiskWidget()
         self.tab_widget.addTab(self.dashboard, "Dashboard")
         self.tab_widget.addTab(self.banking_book_widget, "Banking Book")
         self.tab_widget.addTab(self.trading_book_widget, "Trading Book")
         self.tab_widget.addTab(self.transaction_history_widget, "Transaction History")
+        self.tab_widget.addTab(self.rwa_credit_risk_widget, "RWA Credit Risk")
         self.setCentralWidget(self.tab_widget)
 
     def create_dock_widgets(self) -> None:

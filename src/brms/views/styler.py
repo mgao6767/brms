@@ -159,6 +159,30 @@ class BRMSStyler(QObject):
         QLabel {{
             background-color: transparent;
         }}
+        QRadioButton {{
+            background-color: transparent;
+        }}
+        QRadioButton::indicator {{
+            background-color: {self.Color_Sand};
+            border-radius: 2px;
+        }}
+        QRadioButton::indicator:checked {{
+            background-color: {self.Color_Deep_Red};
+        }}
+        QRadioButton::indicator:unchecked {{
+            color: {self.Color_Bright_Red};
+        }}
+        QRadioButton::indicator:hover {{
+            background-color: {self.Color_Red};
+        }}
+        QRadioButton::indicator:pressed {{
+            background-color: {self.Color_Dark_Purple};
+        }}
+        QRadioButton::indicator:disabled {{
+        }}
+        QRadioButton::disabled {{
+            color: gray;
+        }}
         """
 
         return app_style
