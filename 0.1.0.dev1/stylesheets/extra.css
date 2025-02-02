@@ -1,0 +1,33 @@
+:root {
+  --md-primary-fg-color: #a6192e;
+  --md-primary-fg-color--light: #d6001c;
+  --md-primary-fg-color--dark: #76232f;
+  --md-accent-fg-color: #d6001c;
+}
+
+/* strong {
+  color: var(--md-primary-fg-color);
+} */
+
+/* Make equations full-width */
+mjx-container {
+  width: 100% !important;
+}
+
+article p a,
+article li a {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 5px;
+  text-decoration-color: var(--md-primary-fg-color--dark);
+}
+
+code,
+pre {
+  font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+}
+
+h2 {
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #eaecef;
+}
