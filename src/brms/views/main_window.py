@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from brms import DEBUG_MODE, __about__, __github__, __version__
+from brms import DEBUG_MODE, __about__, __github__, __homepage__, __version__
 from brms.resources import icons  # noqa: F401
 from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
 from brms.views.calculatory_widget import BRMSBondCalculatorWidget, BRMSMortgageCalculatorWidget
@@ -75,6 +75,7 @@ class MainWindow(QMainWindow):
         self.bond_calculator_action: QAction
         self.mortgage_calculator_action: QAction
         self.about_action: QAction
+        self.homepage_action: QAction
         self.github_action: QAction
         if DEBUG_MODE:
             self.debug_panel = DebugPanel(self)
@@ -152,6 +153,7 @@ class MainWindow(QMainWindow):
         self.mortgage_calculator_action.setChecked(False)
         # Misc
         self.about_action = QAction("About", self)
+        self.homepage_action = QAction(qta.icon("mdi6.web"), "BankRisk.org", self)
         self.github_action = QAction(qta.icon("mdi6.github"), "GitHub", self)
 
     def create_toolbar(self) -> None:
@@ -206,6 +208,7 @@ class MainWindow(QMainWindow):
         calculator_menu.addAction(self.mortgage_calculator_action)
         # Help menu
         help_menu.addAction(self.about_action)
+        help_menu.addAction(self.homepage_action)
         help_menu.addAction(self.github_action)
 
     def create_statusbar(self) -> None:
@@ -259,6 +262,7 @@ class MainWindow(QMainWindow):
         self.mq_style_action.triggered.connect(self.on_mq_style_action)
         self.restore_views_action.triggered.connect(self.on_restore_views)
         self.about_action.triggered.connect(self.on_about_action)
+        self.homepage_action.triggered.connect(self.on_homepage_action)
         self.github_action.triggered.connect(self.on_github_action)
         self.bond_calculator_action.triggered.connect(self.toggle_bond_calculator)
         self.mortgage_calculator_action.triggered.connect(self.toggle_loan_calculator)
@@ -343,6 +347,16 @@ class MainWindow(QMainWindow):
         from PySide6.QtWidgets import QMessageBox
 
         QMessageBox.about(self, "About BRMS", __about__)
+
+    def on_homepage_action(self) -> None:
+        """Handle the homepage action.
+
+        Open the homepage of the BRMS application in the default web browser.
+        """
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+
+        QDesktopServices.openUrl(QUrl(__homepage__))
 
     def on_github_action(self) -> None:
         """Handle the GitHub action.
