@@ -1,4 +1,4 @@
-name: docs
+name: Documentation
 on:
   push:
     branches:
@@ -26,7 +26,13 @@ jobs:
         run: |
           uv sync --all-extras --dev
           uv pip install .
-      - name: Deploy MkDocs
+      - name: Get Version from pyproject.toml
+        id: version
         run: |
           source .venv/bin/activate
-          mkdocs gh-deploy --force --remote-branch gh-pages
+          echo "VERSION=$(python -c 'import importlib.metadata; print(importlib.metadata.version("brms"))')" >> $GITHUB_ENV
+      - name: Deploy MkDocs with Mike
+        run: |
+          source .venv/bin/activate
+          mike deploy --push --branch gh-pages --update-aliases ${{ env.VERSION }} latest
+          mike set-default --push --branch gh-pages latest
