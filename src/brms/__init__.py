@@ -9,6 +9,7 @@ __version__ = importlib.metadata.version("brms")
 __author__ = "Mingze Gao"
 __email__ = "adrian.gao@outlook.com"
 __github__ = "https://github.com/mgao6767/brms"
+__homepage__ = "https://bankrisk.org"
 
 __about__ = f"""
 <p><strong>BRMS - Bank Risk Management Simulation</strong> v{__version__}</p>

@@ -1,6 +1,6 @@
 [project]
 name = "brms"
-version = "0.1.0"
+version = "0.1.0.dev1"
 description = "A bank risk management simulation framework."
 readme = "README.md"
 authors = [{ name = "Mingze Gao", email = "adrian.gao@outlook.com" }]
@@ -23,13 +23,16 @@ dependencies = [
 [project.scripts]
 brms = "brms.main:main"
 
+[project.urls]
+Homepage = "https://bankrisk.org"
+
 [dependency-groups]
 dev = [
-    "isort>=5.13.2",
-    "mkdocs-git-revision-date-localized-plugin>=1.3.0",
-    "mkdocs-material>=9.6.1",
-    "pytest>=8.3.4",
-    "ruff>=0.8.5",
+  "isort>=5.13.2",
+  "mkdocs-git-revision-date-localized-plugin>=1.3.0",
+  "mkdocs-material>=9.6.1",
+  "pytest>=8.3.4",
+  "ruff>=0.8.5",
 ]
 
 [tool.hatch.build]
