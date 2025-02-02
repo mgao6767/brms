@@ -12,27 +12,49 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Configure Git Credentials
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
+
       - name: Set up Python
         run: uv python install
+
       - name: Install the project
         run: |
           uv sync --all-extras --dev
           uv pip install .
+
       - name: Get Version from pyproject.toml
         id: version
         run: |
           source .venv/bin/activate
           echo "VERSION=$(python -c 'import importlib.metadata; print(importlib.metadata.version("brms"))')" >> $GITHUB_ENV
-      - name: Deploy MkDocs with Mike
+
+      - name: Preserve CNAME from gh-pages
+        run: |
+          git fetch origin gh-pages --depth=1
+          git checkout gh-pages -- CNAME || echo "No CNAME file found, skipping."
+
+      - name: Deploy MkDocs with Mike to gh-pages
         run: |
           source .venv/bin/activate
-          mike deploy --push --branch gh-pages --update-aliases ${{ env.VERSION }} latest
-          mike set-default --push --branch gh-pages latest
+          mike deploy --allow-empty --push --update-aliases --branch gh-pages ${{ env.VERSION }} latest
+
+      - name: Restore CNAME
+        run: |
+          git checkout gh-pages -- CNAME
+          git add CNAME
+          git commit -m "Restore CNAME after deployment" || echo "No changes to commit."
+          git push origin gh-pages
+
+      - name: Set Default Version with Mike
+        run: |
+          source .venv/bin/activate
+          mike set-default --allow-empty --push --branch gh-pages latest
