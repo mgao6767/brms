@@ -66,6 +66,7 @@ theme:
     - navigation.path
     - navigation.indexes 
     - navigation.top
+    - navigation.expand
 
 extra:  
   generator: false
@@ -82,5 +83,21 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.superfences
 
+plugins:
+  - git-revision-date-localized:
+      enable_creation_date: true
+
 nav:
   - Home: index.md
+  - Basel III: 
+    - basel_3/index.md
+    - Risk-Based Capital Requirements: basel_3/rbc.md
+    - Definition of Capital: basel_3/capital.md
+    - Risk-Weighted Assets (RWA): 
+      - basel_3/rwa/index.md
+      - RWA for Credit Risk: basel_3/rwa/credit_risk.md
+      - RWA for Market Risk: basel_3/rwa/market_risk.md
+      - RWA for Operational Risk: basel_3/rwa/operational_risk.md
+    - Leverage Ratio: basel_3/lev.md
+    - Liquidity Coverage Ratio (LCR): basel_3/lcr.md
+    - Net Stable Funding Ratio (NSFR): basel_3/nsfr.md
