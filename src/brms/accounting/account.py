@@ -1,3 +1,5 @@
+"""Module for various types of accounts used in a bank's chart of accounts."""
+
 from collections import UserDict
 from collections.abc import Generator
 from dataclasses import dataclass, field

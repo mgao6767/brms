@@ -1,4 +1,4 @@
-"""Defines the Ledger class, which represents a ledger in an accounting system."""
+"""Module for accounting ledger."""
 
 import copy
 import datetime

@@ -1,3 +1,5 @@
+"""Module for data loader."""
+
 import os
 from abc import ABC, abstractmethod
 

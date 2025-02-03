@@ -1,1 +1,1 @@
-"""Module providing basic double-entry accounting system for a bank."""
+"""Module for bank accounting."""
