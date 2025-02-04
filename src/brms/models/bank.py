@@ -75,3 +75,6 @@ class Bank:
         for instrument in self.banking_book.long_exposure:
             if isinstance(instrument, FixedRateBond) and instrument.instrument_class == InstrumentClass.HTM:
                 yield instrument
+
+    def banking_book_assets(self) -> "Generator[Instrument, None, None]":
+        yield from self.banking_book.long_exposure

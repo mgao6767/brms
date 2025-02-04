@@ -15,11 +15,14 @@ from brms.accounting.account import (
     EquityAccount,
     RetainedEarningsAccount,
 )
+from brms.metrics.credit_risk.rwa import RWACreditRisk
 
 if TYPE_CHECKING:
     from brms.accounting.account import TAccount
     from brms.accounting.ledger import Ledger
     from brms.accounting.statement_viewer import StatementVisitor
+    from brms.models.bank import Bank
+    from brms.models.scenario import ScenarioManager
 
 
 class Statement(ABC):
@@ -117,13 +120,21 @@ class BalanceSheet(Statement):
 class Report:
     """Class for generating financial reports."""
 
-    def __init__(self, ledger: "Ledger", viewer: "StatementVisitor", date: datetime.date) -> None:
+    def __init__(
+        self,
+        bank: "Bank",
+        viewer: "StatementVisitor",
+        date: datetime.date,
+        scenario_manager: "ScenarioManager",
+    ) -> None:
         """Initialize the statements from the ledger."""
         # Report should not alter the ledger so we make a copy.
         # This is a design choice - there can be multiple report instances using the same ledger.
-        self.ledger = deepcopy(ledger)
+        self.bank = bank
+        self.ledger = deepcopy(bank.ledger)
         self.viewer = viewer
         self.date = date
+        self.scenario_manager = scenario_manager
 
         self.trial_balance = TrialBalance.from_ledger(deepcopy(self.ledger))
         self.trial_balance.date = self.date
@@ -171,9 +182,13 @@ class Report:
                 cet1 += balance
         return cet1
 
+    def get_rwa_credit_risk(self) -> float:
+        rwa = RWACreditRisk()
+        return rwa.compute_rwa(self.bank, self.date, self.scenario_manager)
+
     def get_cet1_ratio(self) -> float:
         """Calculate and return the bank's CET1 ratio."""
-        return 0.0
+        return self.get_cet1() / self.get_rwa_credit_risk()
 
     def get_tier1_capital_ratio(self) -> float:
         """Calculate and return the bank's Tier 1 capital ratio."""

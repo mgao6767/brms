@@ -4,13 +4,19 @@ import datetime
 
 from brms.metrics.base import RWAApproach, RWAComponent
 from brms.metrics.credit_risk import (
-    CentralCounterpartyRiskDefaultApproach, CounterpartyRiskDefaultApproach,
-    FallBackApproach, InternalAssessmentApproach, InternalRatingsBasedApproach,
-    LookThroughApproach, MandateBasedApproach,
+    CentralCounterpartyRiskDefaultApproach,
+    CounterpartyRiskDefaultApproach,
+    FallBackApproach,
+    InternalAssessmentApproach,
+    InternalRatingsBasedApproach,
+    LookThroughApproach,
+    MandateBasedApproach,
     SecuritisationExternalRatingsBasedApproach,
     SecuritisationInternalRatingsBasedApproach,
-    SecuritisationStandardisedApproach, StandardisedApproach,
-    UnsettledTransactionsFailedTradesDefaultApproach)
+    SecuritisationStandardisedApproach,
+    StandardisedApproach,
+    UnsettledTransactionsFailedTradesDefaultApproach,
+)
 from brms.models.bank import Bank
 from brms.models.scenario import ScenarioManager
 
@@ -104,7 +110,14 @@ class RWACreditRisk:
 
     def compute_rwa(self, bank: Bank, date: datetime.date, scenario_manager: ScenarioManager) -> float:
         """Compute the total Credit RWA for the bank under the given scenario."""
-        return sum(component.compute_rwa(bank, date, scenario_manager) for component in self._rwa_components)
+        # return sum(component.compute_rwa(bank, date, scenario_manager) for component in self._rwa_components)
+        rwa = 0.0
+        try:
+            for component in self._rwa_components:
+                rwa += component.compute_rwa(bank, date, scenario_manager)
+        except NotImplementedError:
+            pass
+        return rwa
 
     def set_approach_for_banking_book_exposures(self, approach: RWAApproach) -> None:
         """Set the approach for banking book exposures."""

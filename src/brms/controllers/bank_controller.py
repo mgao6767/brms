@@ -32,12 +32,14 @@ class BankController(BRMSController):
         trading_book_view: BRMSTradingBookWidget,
         inspector_ctrl: InspectorController,
         statement_view: BRMSStatementViewer,
+        scenario_manager: ScenarioManager,
     ) -> None:
         super().__init__()
         self.bank = bank
         self.banking_book_view = banking_book_view
         self.trading_book_view = trading_book_view
         self.statement_view = statement_view
+        self.scenario_manager = scenario_manager
         self.report: Report
         self.total_assets_history: dict[datetime.date, float] = {}
         self.total_liabilities_history: dict[datetime.date, float] = {}
@@ -88,7 +90,7 @@ class BankController(BRMSController):
 
     def update_statement(self, date: datetime.date | None = None) -> None:
         self.report = Report(
-            ledger=self.bank.ledger,
+            bank=self.bank,
             viewer=HTMLStatementViewer(
                 console=False,
                 padding=2,
@@ -96,6 +98,7 @@ class BankController(BRMSController):
                 balance_sheet_table_width=80,
             ),
             date=date or self.bank.ledger.date_closed,
+            scenario_manager=self.scenario_manager,
         )
         self.report.print_trial_balance()
         self.report.print_income_statement()
