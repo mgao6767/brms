@@ -108,23 +108,24 @@ class MainController(BRMSController):
         self.update_dashboard()
 
     def update_dashboard(self) -> None:
-        self.view.dashboard.update_assets_plot(
+        self.view.dashboard.update_assets_liabilities_plot(
             start=self.simulation.start_date,
             end=self.simulation.end_date,
             dates=list(self.bank_ctrl.total_assets_history.keys()),
-            assets_values=list(self.bank_ctrl.total_assets_history.values()),
-        )
-        self.view.dashboard.update_liabilities_plot(
-            start=self.simulation.start_date,
-            end=self.simulation.end_date,
-            dates=list(self.bank_ctrl.total_liabilities_history.keys()),
-            liabilities_values=list(self.bank_ctrl.total_liabilities_history.values()),
+            asset_values=list(self.bank_ctrl.total_assets_history.values()),
+            liability_values=list(self.bank_ctrl.total_liabilities_history.values()),
         )
         self.view.dashboard.update_equity_plot(
             start=self.simulation.start_date,
             end=self.simulation.end_date,
             dates=list(self.bank_ctrl.total_equity_history.keys()),
             equity_values=list(self.bank_ctrl.total_equity_history.values()),
+        )
+        self.view.dashboard.update_capital_ratio_plot(
+            start=self.simulation.start_date,
+            end=self.simulation.end_date,
+            dates=list(self.bank_ctrl.total_equity_history.keys()),
+            values=list(self.bank_ctrl.cet1_ratio_history.values()),
         )
 
     def on_next_scenario(self) -> None:

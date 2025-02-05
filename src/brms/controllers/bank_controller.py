@@ -44,6 +44,7 @@ class BankController(BRMSController):
         self.total_assets_history: dict[datetime.date, float] = {}
         self.total_liabilities_history: dict[datetime.date, float] = {}
         self.total_equity_history: dict[datetime.date, float] = {}
+        self.cet1_ratio_history: dict[datetime.date, float] = {}
         # Controllers passed in
         self.inspector_ctrl = inspector_ctrl
         # Sub controllers
@@ -127,5 +128,6 @@ class BankController(BRMSController):
             self.total_assets_history[date] = self.report.get_total_assets()
             self.total_liabilities_history[date] = self.report.get_total_liabilities()
             self.total_equity_history[date] = self.report.get_total_equity()
+            self.cet1_ratio_history[date] = self.report.get_cet1_ratio()  # TODO: repeated computation
 
             self.bank_financials_updated.emit(self.report)

@@ -1,4 +1,5 @@
 import datetime
+from typing import TYPE_CHECKING
 
 import pandas as pd
 from dateutil.relativedelta import relativedelta
@@ -7,8 +8,6 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
-    QCheckBox,
-    QFileDialog,
     QFormLayout,
     QFrame,
     QGroupBox,
@@ -25,47 +24,59 @@ from brms.accounting.statement_viewer import locale
 from brms.utils import pydate_to_qdate
 from brms.views.styler import BRMSStyler
 
+if TYPE_CHECKING:
+    from matplotlib.lines import Line2D
+
+
+def value_formatter(values: list[float]) -> FuncFormatter:
+    """Return a FuncFormatter for formatting dollar values."""
+    max_value = max(values, default=0)
+    if max_value >= 1_000_000:
+        return FuncFormatter(lambda x, _: locale.currency(x / 1_000_000, grouping=True) + "M")
+    if max_value >= 1_000:
+        return FuncFormatter(lambda x, _: locale.currency(x / 1_000, grouping=True) + "K")
+    return FuncFormatter(lambda x, _: locale.currency(x, grouping=True))
+
+
+def ratio_formatter() -> FuncFormatter:
+    """Return a FuncFormatter for formatting ratios as percentages."""
+    return FuncFormatter(lambda x, _: f"{x * 100:.2f}%")
+
 
 class PlotWidget(QWidget):
-    def __init__(self, title: str = "", series_title: str = "", parent=None) -> None:
+    def __init__(
+        self,
+        title: str,
+        line_titles: list[str],
+        line_colors: list[str],
+        *,
+        use_ratio_formatter: bool = False,
+        parent=None,
+    ) -> None:
         super().__init__(parent)
         self.styler = BRMSStyler.instance()
-        self.title = title
-        self.series_title = series_title
         self.start_date: datetime.date = datetime.date.today() - relativedelta(years=1)
         self.end_date: datetime.date = datetime.date.today()
         self.dates: list[datetime.date] = []
-        self.values: list[float] = []
-        self.show_grid = True
-
+        self.use_ratio_formatter = use_ratio_formatter
+        self.canvas = FigureCanvas(Figure(figsize=(5, 3), facecolor=self.styler.plot_background_color))
+        self.ax = self.canvas.figure.add_subplot()
+        self.ax.set_title(title)
+        self.ax.grid(visible=True, linestyle="--", alpha=0.7)
+        self.ax.tick_params(axis="both", which="major", labelsize=10)
+        self.formatter = value_formatter([1_000_000]) if not use_ratio_formatter else ratio_formatter()
+        self.ax.yaxis.set_major_formatter(self.formatter)
+        self.lines: dict[str, Line2D] = {}
+        for i, line_title in enumerate(line_titles):
+            (line2d,) = self.ax.plot([], [], color=line_colors[i], label=line_title)
+            self.lines[line_title] = line2d
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        self.canvas = FigureCanvas(Figure(figsize=(5, 3), facecolor=self.styler.plot_background_color))
         layout.addWidget(self.canvas)
-        self.ax = self.canvas.figure.add_subplot()
-        self.ax.set_title(self.title)
-        if self.show_grid:
-            self.ax.grid(self.show_grid, linestyle="--", alpha=0.7)
-        self.ax.tick_params(axis="both", which="major", labelsize=10)
-        self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: locale.currency(x, grouping=True)))
-        # Checkboxes
-        checkbox_layout = QHBoxLayout()
-        checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        # Add checkbox for controlling grid lines
-        self.grid_checkbox = QCheckBox("Show Grid Lines", self)
-        self.grid_checkbox.setChecked(True)  # Default to showing grid lines
-        checkbox_layout.addWidget(self.grid_checkbox)
-        layout.addLayout(checkbox_layout)
-        # Data containers
-        (self.line,) = self.ax.plot([], [], color="blue", label=self.series_title)
-        (self.marker,) = self.ax.plot([], [], "r+")
         # Signals
-        self.grid_checkbox.stateChanged.connect(self.on_grid_checkbox_state_changed)
         self.styler.style_changed.connect(self.update_plot_style)
-        # Finalize
-        self.on_grid_checkbox_state_changed()
 
-    def update_plot_style(self):
+    def update_plot_style(self) -> None:
         """Update an existing Matplotlib figure when the style changes."""
         if self.styler.use_custom_style:
             self.canvas.figure.patch.set_facecolor(self.styler.plot_background_color)  # Update figure background
@@ -73,74 +84,26 @@ class PlotWidget(QWidget):
             self.canvas.figure.patch.set_facecolor("white")  # Default background
         self.canvas.figure.canvas.draw_idle()  # Redraw canvas
 
-    def on_grid_checkbox_state_changed(self) -> None:
-        self.update_plot(
-            self.start_date,
-            self.end_date,
-            self.dates,
-            self.values,
-            self.grid_checkbox.isChecked(),
-        )
-
-    def clear_plot(self) -> None:
-        self.ax.clear()
-        # self.ax2.clear()
-        self.ax.set_title(self.title)
-        self.canvas.draw()
-
     def update_plot(
         self,
         start_date: datetime.date,
         end_date: datetime.date,
         dates: list[datetime.date],
-        values: list[float],
-        show_grid: bool,
+        data: dict[str, list[float]],
     ) -> None:
-        self.start_date = start_date
-        self.end_date = end_date
-        self.dates = dates
-        self.values = values
-        self.show_grid = show_grid
-
         self.ax.set_xlim(pd.Timestamp(start_date), pd.Timestamp(end_date))
-        if show_grid:
-            # When line properties are provided, the grid will be enabled regardless.
-            self.ax.grid(True, linestyle="--", alpha=0.7)
-        else:
-            self.ax.grid(False)
-
-        if dates and values:
-            self.line.set_data(dates, values)
-            self.marker.set_data([dates[-1]], [values[-1]])
+        for line_title, values in data.items():
+            if line2d := self.lines.get(line_title):
+                line2d.set_data(dates, values)
+                if not self.use_ratio_formatter:
+                    self.formatter = value_formatter(values)
             # Recalculate limits and autoscale view
             self.ax.relim()
             self.ax.autoscale_view()
-
-        if max(values, default=0) >= 1_000_000:
-            formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000_000, grouping=True) + "M")
-        elif max(values, default=0) >= 1_000:
-            formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000, grouping=True) + "K")
-        else:
-            formatter = FuncFormatter(lambda x, _: locale.currency(x, grouping=True))
-        self.ax.yaxis.set_major_formatter(formatter)
-
+        self.ax.yaxis.set_major_formatter(self.formatter)
         if dates:
             self.ax.legend(fontsize=9, loc="lower right")
-
         self.canvas.draw_idle()
-
-    def export_plot(self) -> None:
-        options = QFileDialog.Options()
-        plot_title = self.ax.get_title()
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            caption="Save Plot",
-            dir=f"BRMS - {plot_title}",
-            filter="PNG Files (*.png);;All Files (*)",
-            options=options,
-        )
-        if file_path:
-            self.canvas.figure.savefig(file_path)
 
 
 class BRMSDashboard(QWidget):
@@ -238,12 +201,27 @@ class BRMSDashboard(QWidget):
         # Plot display area
         self.plot_splitter = QSplitter()
         self.plot_splitter.setOrientation(Qt.Orientation.Vertical)
-        self.equity_plot = PlotWidget(title="Total Shareholders' Equity", series_title="Total Equity")
-        self.assets_plot = PlotWidget(title="Total Assets", series_title="Total Assets")
-        self.liabilities_plot = PlotWidget(title="Total Liabilities", series_title="Total Liabilities")
-        self.plot_splitter.addWidget(self.assets_plot)
-        self.plot_splitter.addWidget(self.liabilities_plot)
+        self.assets_liabilities_plot = PlotWidget(
+            title="Total Assets and Liabilities",
+            line_titles=["Total Assets", "Total Liabilities"],
+            line_colors=["blue", "red"],
+            use_ratio_formatter=False,
+        )
+        self.equity_plot = PlotWidget(
+            title="Total Shareholders' Equity",
+            line_titles=["Total Equity"],
+            line_colors=["blue"],
+            use_ratio_formatter=False,
+        )
+        self.capital_ratio_plot = PlotWidget(
+            title="Capital Ratio",
+            line_titles=["CET1 Ratio"],
+            line_colors=["blue"],
+            use_ratio_formatter=True,
+        )
+        self.plot_splitter.addWidget(self.assets_liabilities_plot)
         self.plot_splitter.addWidget(self.equity_plot)
+        self.plot_splitter.addWidget(self.capital_ratio_plot)
 
         # Main layout as QSplitter
         main_splitter = QSplitter()
@@ -286,7 +264,7 @@ class BRMSDashboard(QWidget):
         total_liabilities = report.get_total_liabilities()
         total_equity = report.get_total_equity()
         cet1 = report.get_cet1()
-        cet1_ratio = report.get_cet1_ratio()
+        cet1_ratio = report.get_cet1_ratio()  # TODO: repeated computation
         tier1_capital_ratio = report.get_tier1_capital_ratio()
         total_capital_ratio = report.get_total_capital_ratio()
         nsfr = report.get_net_stable_funding_ratio()
@@ -302,32 +280,16 @@ class BRMSDashboard(QWidget):
         self.nsfr_value.setText(f"{nsfr*100:.2f}%")
         self.lcr_value.setText(f"{lcr*100:.2f}%")
 
-    def update_assets_plot(self, start, end, dates, assets_values) -> None:
+    def update_assets_liabilities_plot(self, start, end, dates, asset_values, liability_values) -> None:
         """Update the assets plot with new data."""
-        self.assets_plot.update_plot(
-            start,
-            end,
-            dates,
-            assets_values,
-            self.assets_plot.grid_checkbox.isChecked(),
-        )
-
-    def update_liabilities_plot(self, start, end, dates, liabilities_values) -> None:
-        """Update the liabilities plot with new data."""
-        self.liabilities_plot.update_plot(
-            start,
-            end,
-            dates,
-            liabilities_values,
-            self.liabilities_plot.grid_checkbox.isChecked(),
+        self.assets_liabilities_plot.update_plot(
+            start, end, dates, {"Total Assets": asset_values, "Total Liabilities": liability_values}
         )
 
     def update_equity_plot(self, start, end, dates, equity_values) -> None:
         """Update the equity plot with new data."""
-        self.equity_plot.update_plot(
-            start,
-            end,
-            dates,
-            equity_values,
-            self.equity_plot.grid_checkbox.isChecked(),
-        )
+        self.equity_plot.update_plot(start, end, dates, {"Total Equity": equity_values})
+
+    def update_capital_ratio_plot(self, start, end, dates, values) -> None:
+        """Update the equity plot with new data."""
+        self.capital_ratio_plot.update_plot(start, end, dates, {"CET1 Ratio": values})
