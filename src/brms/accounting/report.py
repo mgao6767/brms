@@ -1,4 +1,4 @@
-"""Provides classes for generating financial statements and reports."""
+"""Module for financial statements and reports."""
 
 import datetime
 from abc import ABC, abstractmethod

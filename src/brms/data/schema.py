@@ -1,3 +1,5 @@
+"""Module for schemas in the BRMS."""
+
 from brms.models.base import ScenarioData
 
 SCHEMA = {

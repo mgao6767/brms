@@ -1,3 +1,5 @@
+"""Module for utility functions and classes."""
+
 import datetime
 import time
 from abc import ABC, abstractmethod

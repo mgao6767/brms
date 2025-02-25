@@ -1,4 +1,4 @@
-"""Module for handling journal entries in accounting."""
+"""Module for accounting journal and entries."""
 
 import datetime
 from abc import ABC, abstractmethod

@@ -1,3 +1,5 @@
+"""Module for default simulation."""
+
 import datetime
 import random
 from collections.abc import Generator
