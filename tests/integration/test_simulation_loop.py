@@ -90,3 +90,15 @@ def test_events_emitted() -> None:
 
     assert len(advanced) == 2  # noqa: PLR2004, S101
     assert len(reverted) == 1  # noqa: S101
+
+
+def test_sample_zip_loads() -> None:
+    """Verify the sample simulation zip fixture loads correctly."""
+    from pathlib import Path
+
+    from brms.core.services.data_service import DataService
+
+    service = DataService()
+    bank, store = service.load_simulation(Path("tests/fixtures/sample_simulation.zip"))
+    assert bank.name == "Sample Bank"  # noqa: S101
+    assert len(store.available_dates()) == 30  # noqa: PLR2004, S101
