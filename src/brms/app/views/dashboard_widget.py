@@ -21,8 +21,8 @@ from PySide6.QtWidgets import (
 
 from brms.accounting.report import Report
 from brms.accounting.statement_viewer import locale
+from brms.app.views.styler import BRMSStyler
 from brms.utils import pydate_to_qdate
-from brms.views.styler import BRMSStyler
 
 if TYPE_CHECKING:
     from matplotlib.lines import Line2D

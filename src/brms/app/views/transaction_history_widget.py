@@ -15,10 +15,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from brms.app.views.bank_book_widget import CurrencyDelegate
+from brms.app.views.tree_widget import QMODELINDEX, BRMSTreeWidget
 from brms.models.transaction import Transaction, TransactionFactory
 from brms.utils import pydate_to_qdate
-from brms.views.bank_book_widget import CurrencyDelegate
-from brms.views.tree_widget import QMODELINDEX, BRMSTreeWidget
 
 
 class BRMSTransactionHistoryWidget(QWidget):

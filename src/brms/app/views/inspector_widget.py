@@ -1,6 +1,6 @@
 """Provides a tree-view-based widget to inspect details of an instrument and more."""
 
-from brms.views.tree_widget import BRMSTreeWidget
+from brms.app.views.tree_widget import BRMSTreeWidget
 
 
 class BRMSInspectorWidget(BRMSTreeWidget):
@@ -13,7 +13,7 @@ if __name__ == "__main__":
     import QuantLib as ql
     from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget
 
-    from brms.controllers.inspector_controller import InspectorController
+    from brms.app.controllers.inspector_controller import InspectorController
     from brms.instruments.base import BookType, CreditRating, Issuer, IssuerType
     from brms.instruments.cash import Cash
     from brms.instruments.fixed_rate_bond import FixedRateBond

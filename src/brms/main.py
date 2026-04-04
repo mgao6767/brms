@@ -7,7 +7,8 @@ import pandas as pd
 from PySide6.QtWidgets import QApplication
 
 from brms import DEBUG_MODE
-from brms.controllers.main_controller import MainController
+from brms.app.controllers.main_controller import MainController
+from brms.app.views.main_window import MainWindow
 from brms.core.events import EventBus
 from brms.core.metrics.base import MetricRegistry
 from brms.core.models.accounting.accounts import BankChartOfAccounts
@@ -29,7 +30,6 @@ from brms.core.services.simulation_service import SimulationService
 from brms.core.services.valuation_service import ValuationService
 from brms.data import DEFAULT_DATA_FOLDER
 from brms.models.simulation import Simulation as SimulationModel
-from brms.views.main_window import MainWindow
 
 
 def _load_market_data() -> MarketDataStore:

@@ -17,7 +17,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from brms.views.styler import BRMSStyler
+
+from brms.app.views.styler import BRMSStyler
 
 
 class RightAlignHeaderView(QHeaderView):

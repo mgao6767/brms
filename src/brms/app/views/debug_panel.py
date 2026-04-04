@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 
 class DebugPanel(QWidget):

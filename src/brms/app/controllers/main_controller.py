@@ -9,20 +9,20 @@ from typing import TYPE_CHECKING, Any
 from PySide6.QtCore import QTimer, Signal
 
 from brms import DEBUG_MODE
-from brms.controllers.bank_controller import BankController
-from brms.controllers.base import BRMSController
-from brms.controllers.inspector_controller import InspectorController
-from brms.controllers.yield_curve_controller import YieldCurveController
+from brms.app.controllers.bank_controller import BankController
+from brms.app.controllers.base import BRMSController
+from brms.app.controllers.inspector_controller import InspectorController
+from brms.app.controllers.yield_curve_controller import YieldCurveController
 from brms.data import DEFAULT_DATA_FOLDER
 from brms.data.default import SIMULATION_START_DATE
 from brms.models.scenario import Scenario
 from brms.models.simulation import Simulation as SimulationModel
 
 if TYPE_CHECKING:
+    from brms.app.views.main_window import MainWindow
     from brms.core.events import DateAdvanced
     from brms.core.models.history import SimulationHistory
     from brms.core.services.simulation_service import SimulationService
-    from brms.views.main_window import MainWindow
 
 logger = logging.getLogger(__name__)
 

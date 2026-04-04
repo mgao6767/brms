@@ -34,9 +34,9 @@ from PySide6.QtWidgets import (
 )
 
 from brms.accounting.statement_viewer import locale
+from brms.app.views.styler import BRMSStyler
 from brms.instruments.factory import InstrumentFactory
 from brms.utils import qdate_to_qldate, qldate_to_pydate
-from brms.views.styler import BRMSStyler
 
 
 class BRMSDoubleSpinBox(QDoubleSpinBox):

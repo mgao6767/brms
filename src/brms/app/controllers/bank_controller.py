@@ -4,15 +4,15 @@ from PySide6.QtCore import Signal
 
 from brms.accounting.report import Report
 from brms.accounting.statement_viewer import HTMLStatementViewer
-from brms.controllers.bank_book_controller import BankingBookController, TradingBookController
-from brms.controllers.base import BRMSController
-from brms.controllers.inspector_controller import InspectorController
+from brms.app.controllers.bank_book_controller import BankingBookController, TradingBookController
+from brms.app.controllers.base import BRMSController
+from brms.app.controllers.inspector_controller import InspectorController
+from brms.app.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
+from brms.app.views.statement_viewer_widget import BRMSStatementViewer
 from brms.data.default import create_bank_init_transactions
 from brms.models.bank import Bank
 from brms.models.scenario import ScenarioManager
 from brms.models.transaction import Action, BookType, Transaction
-from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
-from brms.views.statement_viewer_widget import BRMSStatementViewer
 
 
 class BankController(BRMSController):

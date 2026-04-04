@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from brms.views.tree_widget import BRMSTreeWidget, OldValueRole
+from brms.app.views.tree_widget import BRMSTreeWidget, OldValueRole
 
 
 class ColumnOrder(IntEnum):

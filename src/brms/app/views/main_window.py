@@ -14,20 +14,20 @@ from PySide6.QtWidgets import (
 )
 
 from brms import DEBUG_MODE, __about__, __github__, __homepage__, __version__
+from brms.app.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
+from brms.app.views.calculatory_widget import BRMSBondCalculatorWidget, BRMSMortgageCalculatorWidget
+from brms.app.views.dashboard_widget import BRMSDashboard
+from brms.app.views.dock_widget import BRMSDockWidget
+from brms.app.views.inspector_widget import BRMSInspectorWidget
+from brms.app.views.rwa_credit_risk_widget import BRMSRWACreditRiskWidget
+from brms.app.views.statement_viewer_widget import BRMSStatementViewer
+from brms.app.views.styler import BRMSStyler
+from brms.app.views.transaction_history_widget import BRMSTransactionHistoryWidget
+from brms.app.views.yield_curve_widget import BRMSYieldCurveWidget
 from brms.resources import icons  # noqa: F401
-from brms.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
-from brms.views.calculatory_widget import BRMSBondCalculatorWidget, BRMSMortgageCalculatorWidget
-from brms.views.dashboard_widget import BRMSDashboard
-from brms.views.dock_widget import BRMSDockWidget
-from brms.views.inspector_widget import BRMSInspectorWidget
-from brms.views.rwa_credit_risk_widget import BRMSRWACreditRiskWidget
-from brms.views.statement_viewer_widget import BRMSStatementViewer
-from brms.views.styler import BRMSStyler
-from brms.views.transaction_history_widget import BRMSTransactionHistoryWidget
-from brms.views.yield_curve_widget import BRMSYieldCurveWidget
 
 if DEBUG_MODE:
-    from brms.views.debug_panel import DebugPanel
+    from brms.app.views.debug_panel import DebugPanel
 
 
 class MainWindow(QMainWindow):

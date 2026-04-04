@@ -6,11 +6,11 @@ import QuantLib as ql
 from dateutil.relativedelta import relativedelta
 from PySide6.QtCore import QItemSelectionModel, Qt, QTimer
 
-from brms.controllers.base import BRMSController
+from brms.app.controllers.base import BRMSController
+from brms.app.views.yield_curve_widget import BRMSYieldCurveWidget
 from brms.models.scenario import Scenario, ScenarioManager
 from brms.models.yield_curve_model import YieldCurve
 from brms.services.yield_curve_service import YieldCurveService
-from brms.views.yield_curve_widget import BRMSYieldCurveWidget
 
 if TYPE_CHECKING:
     import pandas as pd

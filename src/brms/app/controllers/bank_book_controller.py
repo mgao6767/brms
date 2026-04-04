@@ -1,12 +1,9 @@
 from typing import TYPE_CHECKING
 
 from brms import DEBUG_MODE
-from brms.controllers.base import BRMSController
-from brms.controllers.inspector_controller import InspectorController
-from brms.instruments.base import Instrument
-from brms.instruments.cash import Cash
-from brms.models.bank_book import BankBook, BankingBook, Position, TradingBook
-from brms.views.bank_book_widget import (
+from brms.app.controllers.base import BRMSController
+from brms.app.controllers.inspector_controller import InspectorController
+from brms.app.views.bank_book_widget import (
     AssetColumns,
     BRMSBankBookWidget,
     BRMSBankingBookWidget,
@@ -14,7 +11,10 @@ from brms.views.bank_book_widget import (
     ColumnOrder,
     LiabilityColumns,
 )
-from brms.views.tree_widget import QMODELINDEX, TreeModel
+from brms.app.views.tree_widget import QMODELINDEX, TreeModel
+from brms.instruments.base import Instrument
+from brms.instruments.cash import Cash
+from brms.models.bank_book import BankBook, BankingBook, Position, TradingBook
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QItemSelection
