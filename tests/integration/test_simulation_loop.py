@@ -191,3 +191,67 @@ def test_simulation_with_rules_and_accounting() -> None:
     for _ in range(3):
         service.advance()
     assert len(history.dates) == 6  # noqa: PLR2004, S101
+
+
+def test_simulation_with_reporting() -> None:
+    """Full simulation with reporting service generating financial statements."""
+    import json
+    import zipfile
+    from io import BytesIO
+
+    from brms.core.events import EventBus
+    from brms.core.metrics.base import MetricRegistry
+    from brms.core.models.accounting.accounts import BankChartOfAccounts
+    from brms.core.models.accounting.journal import Journal
+    from brms.core.models.accounting.ledger import Ledger
+    from brms.core.models.accounting.rules.base import RuleRegistry
+    from brms.core.models.accounting.service import AccountingService
+    from brms.core.models.history import SimulationHistory
+    from brms.core.services.data_service import DataService
+    from brms.core.services.metrics_service import MetricsService
+    from brms.core.services.reporting_service import ReportingService
+    from brms.core.services.simulation_service import SimulationService
+
+    buf = BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("bank.json", json.dumps({
+            "name": "Report Test Bank",
+            "as_of_date": "2024-01-01",
+            "banking_book": [],
+            "trading_book": [],
+            "initial_accounts": {"cash": 10000000},
+        }))
+        csv = "date,1Y,5Y\n"
+        for i in range(1, 6):
+            csv += f"2024-01-{i:02d},0.04,0.045\n"
+        zf.writestr("yields.csv", csv)
+    buf.seek(0)
+
+    bank, store = DataService().load_simulation_from_buffer(buf)
+    coa = BankChartOfAccounts()
+    ledger = Ledger(chart_of_accounts=coa, journal=Journal())
+    bank.ledger = ledger
+
+    history = SimulationHistory()
+    service = SimulationService(
+        bank=bank, market_data=store,
+        rule_registry=RuleRegistry(),
+        accounting_service=AccountingService(),
+        metrics_service=MetricsService(MetricRegistry()),
+        history=history, event_bus=EventBus(),
+    )
+
+    service.advance()
+
+    reporting = ReportingService()
+    bs = reporting.balance_sheet(bank.ledger)
+    assert "total_assets" in bs  # noqa: S101
+    assert "total_liabilities" in bs  # noqa: S101
+    assert "total_equity" in bs  # noqa: S101
+
+    is_data = reporting.income_statement(bank.ledger)
+    assert "net_income" in is_data  # noqa: S101
+
+    tb = reporting.trial_balance(bank.ledger)
+    assert isinstance(tb, list)  # noqa: S101
+    assert len(tb) > 0  # noqa: S101
