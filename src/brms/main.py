@@ -8,7 +8,12 @@ from brms import DEBUG_MODE
 from brms.controllers.main_controller import MainController
 from brms.core.events import EventBus
 from brms.core.metrics.base import MetricRegistry
+from brms.core.models.accounting.rules.amortization import AmortizationRule
 from brms.core.models.accounting.rules.base import RuleRegistry
+from brms.core.models.accounting.rules.coupon import CouponPaymentRule
+from brms.core.models.accounting.rules.interest import InterestPaymentRule
+from brms.core.models.accounting.rules.mark_to_market import MarkToMarketRule
+from brms.core.models.accounting.rules.maturity import MaturityRule
 from brms.core.models.accounting.service import AccountingService
 from brms.core.models.history import SimulationHistory
 from brms.core.services.metrics_service import MetricsService
@@ -25,6 +30,11 @@ def _build_core_services() -> dict:
     """
     event_bus = EventBus()
     rule_registry = RuleRegistry()
+    rule_registry.register(MaturityRule())
+    rule_registry.register(CouponPaymentRule())
+    rule_registry.register(InterestPaymentRule())
+    rule_registry.register(MarkToMarketRule())
+    rule_registry.register(AmortizationRule())
     metric_registry = MetricRegistry()
     accounting_service = AccountingService()
     metrics_service = MetricsService(metric_registry)
