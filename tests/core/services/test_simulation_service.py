@@ -95,3 +95,27 @@ def test_advance_twice_step_back() -> None:
     assert service.current_date == datetime.date(2024, 1, 2)
     service.step_back()
     assert service.current_date == datetime.date(2024, 1, 1)
+
+
+def test_step_back_emits_instrument_events() -> None:
+    """step_back() emits InstrumentAdded when reversing a 'removed' change."""
+    from brms.core.events import InstrumentAdded
+    from brms.core.models.history import InstrumentChange
+
+    service = _make_service()
+    service.advance()
+
+    # Manually inject an instrument change
+    day = service.history.current_day
+    mock_inst = MagicMock()
+    mock_inst.id = "test-bond"
+    day.instrument_changes.append(
+        InstrumentChange(instrument=mock_inst, book_type="banking", action="removed"),
+    )
+
+    added_events: list[InstrumentAdded] = []
+    service._events.subscribe(InstrumentAdded, lambda e: added_events.append(e))  # noqa: SLF001
+    service.step_back()
+
+    assert len(added_events) == 1  # noqa: S101
+    assert added_events[0].instrument_id == "test-bond"  # noqa: S101

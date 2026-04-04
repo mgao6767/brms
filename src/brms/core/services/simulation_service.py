@@ -5,7 +5,7 @@ from __future__ import annotations
 import itertools
 from typing import TYPE_CHECKING
 
-from brms.core.events import DateAdvanced, DateReverted, EventBus
+from brms.core.events import DateAdvanced, DateReverted, EventBus, InstrumentAdded, InstrumentRemoved
 from brms.core.models.history import DayRecord
 
 if TYPE_CHECKING:
@@ -131,8 +131,18 @@ class SimulationService:
             book = self._get_book(change.book_type)
             if change.action == "removed":
                 book.add(change.instrument)
+                self._events.emit(InstrumentAdded(
+                    instrument_id=change.instrument.id,
+                    book_type=change.book_type,
+                    instrument=change.instrument,
+                ))
             elif change.action == "added":
                 book.remove(change.instrument.id)
+                self._events.emit(InstrumentRemoved(
+                    instrument_id=change.instrument.id,
+                    book_type=change.book_type,
+                    instrument=change.instrument,
+                ))
 
         for tx in reversed(day_record.transactions):
             self._accounting.reverse(tx, self._bank.ledger)

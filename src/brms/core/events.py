@@ -63,3 +63,21 @@ class InstrumentMatured:
 
     instrument_id: str
     date: datetime.date
+
+
+@dataclass(frozen=True)
+class InstrumentAdded:
+    """Event emitted when an instrument is added to a book."""
+
+    instrument_id: str
+    book_type: str
+    instrument: Any
+
+
+@dataclass(frozen=True)
+class InstrumentRemoved:
+    """Event emitted when an instrument is removed from a book."""
+
+    instrument_id: str
+    book_type: str
+    instrument: Any

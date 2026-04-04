@@ -61,3 +61,19 @@ def test_unsubscribe() -> None:
     bus.unsubscribe(FakeEvent, handler)
     bus.emit(FakeEvent(value=1))
     assert received == []  # noqa: S101
+
+
+def test_instrument_added_event() -> None:
+    """InstrumentAdded event stores instrument_id, book_type, and instrument."""
+    from brms.core.events import InstrumentAdded
+
+    event = InstrumentAdded(instrument_id="bond-1", book_type="banking", instrument=None)
+    assert event.instrument_id == "bond-1"  # noqa: S101
+
+
+def test_instrument_removed_event() -> None:
+    """InstrumentRemoved event stores instrument_id, book_type, and instrument."""
+    from brms.core.events import InstrumentRemoved
+
+    event = InstrumentRemoved(instrument_id="bond-1", book_type="trading", instrument=None)
+    assert event.instrument_id == "bond-1"  # noqa: S101
