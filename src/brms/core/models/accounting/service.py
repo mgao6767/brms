@@ -44,7 +44,7 @@ class AccountingService:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _map_to_entries(self, transaction: Transaction, ledger: Ledger) -> list[JournalEntry]:
+    def _map_to_entries(self, transaction: Transaction, ledger: Ledger) -> list[JournalEntry]:  # noqa: C901, PLR0911, PLR0912
         """Return the list of JournalEntry objects that represent *transaction*.
 
         Raises:
@@ -62,6 +62,22 @@ class AccountingService:
                 return self._security_sale(transaction, ledger)
             case TransactionType.DEPOSIT_WITHDRAWAL:
                 return self._deposit_withdrawal(transaction, ledger)
+            case TransactionType.LOAN_DISBURSEMENT:
+                return self._loan_disbursement(transaction, ledger)
+            case TransactionType.LOAN_REPAYMENT:
+                return self._loan_repayment(transaction, ledger)
+            case TransactionType.INTEREST_PAYMENT | TransactionType.COUPON_PAYMENT:
+                return self._interest_payment(transaction, ledger)
+            case TransactionType.INTEREST_EXPENSE:
+                return self._interest_expense(transaction, ledger)
+            case TransactionType.MARK_TO_MARKET | TransactionType.REVALUATION:
+                return self._mark_to_market(transaction, ledger)
+            case TransactionType.PRINCIPAL_PAYMENT:
+                return self._principal_payment(transaction, ledger)
+            case TransactionType.AMORTIZATION:
+                return self._amortization(transaction, ledger)
+            case TransactionType.MATURITY_SETTLEMENT:
+                return self._maturity_settlement(transaction, ledger)
             case _:
                 msg = f"No accounting rule defined for TransactionType.{transaction.type.name}"
                 raise NotImplementedError(msg)
@@ -175,5 +191,142 @@ class AccountingService:
             value=float(tx.amount),
             date=tx.date,
             description=f"Deposit withdrawal (tx={tx.id})",
+        )
+        return [entry]
+
+    def _loan_disbursement(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """LOAN_DISBURSEMENT: debit Loans, credit Cash."""
+        cash = self._lookup(ledger, "Cash and Cash Equivalents")
+        loans = self._lookup(ledger, "Loans and Advances")
+        entry = SimpleEntry(
+            debit_account=loans,
+            credit_account=cash,
+            value=float(tx.amount),
+            date=tx.date,
+            description=f"Loan disbursement (tx={tx.id})",
+        )
+        return [entry]
+
+    def _loan_repayment(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """LOAN_REPAYMENT: debit Cash, credit Loans."""
+        cash = self._lookup(ledger, "Cash and Cash Equivalents")
+        loans = self._lookup(ledger, "Loans and Advances")
+        entry = SimpleEntry(
+            debit_account=cash,
+            credit_account=loans,
+            value=float(tx.amount),
+            date=tx.date,
+            description=f"Loan repayment (tx={tx.id})",
+        )
+        return [entry]
+
+    def _interest_payment(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """INTEREST_PAYMENT / COUPON_PAYMENT: debit Cash, credit Interest Income."""
+        cash = self._lookup(ledger, "Cash and Cash Equivalents")
+        interest_income = self._lookup(ledger, "Interest Income")
+        entry = SimpleEntry(
+            debit_account=cash,
+            credit_account=interest_income,
+            value=float(tx.amount),
+            date=tx.date,
+            description=f"Interest/coupon payment received (tx={tx.id})",
+        )
+        return [entry]
+
+    def _interest_expense(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """INTEREST_EXPENSE: debit Interest Expense, credit Cash."""
+        cash = self._lookup(ledger, "Cash and Cash Equivalents")
+        interest_expense = self._lookup(ledger, "Interest Expense")
+        entry = SimpleEntry(
+            debit_account=interest_expense,
+            credit_account=cash,
+            value=float(tx.amount),
+            date=tx.date,
+            description=f"Interest expense (tx={tx.id})",
+        )
+        return [entry]
+
+    def _mark_to_market(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """MARK_TO_MARKET / REVALUATION: debit/credit asset vs income account.
+
+        FVTPL: asset is 'Assets at FVTPL'; gain uses 'Unrealized Trading Gain',
+        loss uses 'Unrealized Trading Loss'.
+        FVOCI: asset is 'Investment Securities at FVOCI'; gain uses 'Unrealized OCI Gain',
+        loss uses 'Unrealized OCI Loss'.
+
+        A positive amount represents a gain (debit asset, credit income/equity).
+        A negative amount represents a loss (debit expense/contra-equity, credit asset).
+        """
+        meta = dict(tx.metadata)
+        instrument_class = meta.get("instrument_class", "")
+        amount = float(tx.amount)
+        if instrument_class == "FVTPL":
+            asset = self._lookup(ledger, "Assets at FVTPL")
+            if amount >= 0:
+                debit_account = asset
+                credit_account = self._lookup(ledger, "Unrealized Trading Gain")
+                value = amount
+            else:
+                debit_account = self._lookup(ledger, "Unrealized Trading Loss")
+                credit_account = asset
+                value = -amount
+        elif instrument_class == "FVOCI":
+            asset = self._lookup(ledger, "Investment Securities at FVOCI")
+            if amount >= 0:
+                debit_account = asset
+                credit_account = self._lookup(ledger, "Unrealized OCI Gain")
+                value = amount
+            else:
+                debit_account = self._lookup(ledger, "Unrealized OCI Loss")
+                credit_account = asset
+                value = -amount
+        else:
+            msg = f"Unknown instrument_class '{instrument_class}' for mark-to-market in tx={tx.id}"
+            raise ValueError(msg)
+        entry = SimpleEntry(
+            debit_account=debit_account,
+            credit_account=credit_account,
+            value=value,
+            date=tx.date,
+            description=f"Mark-to-market / revaluation (tx={tx.id})",
+        )
+        return [entry]
+
+    def _principal_payment(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """PRINCIPAL_PAYMENT: debit Cash, credit Loans."""
+        cash = self._lookup(ledger, "Cash and Cash Equivalents")
+        loans = self._lookup(ledger, "Loans and Advances")
+        entry = SimpleEntry(
+            debit_account=cash,
+            credit_account=loans,
+            value=float(tx.amount),
+            date=tx.date,
+            description=f"Principal payment (tx={tx.id})",
+        )
+        return [entry]
+
+    def _amortization(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """AMORTIZATION: debit Cash, credit Loans."""
+        cash = self._lookup(ledger, "Cash and Cash Equivalents")
+        loans = self._lookup(ledger, "Loans and Advances")
+        entry = SimpleEntry(
+            debit_account=cash,
+            credit_account=loans,
+            value=float(tx.amount),
+            date=tx.date,
+            description=f"Amortization (tx={tx.id})",
+        )
+        return [entry]
+
+    def _maturity_settlement(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """MATURITY_SETTLEMENT: debit Cash, credit Investment account (based on metadata)."""
+        cash = self._lookup(ledger, "Cash and Cash Equivalents")
+        investment = self._resolve_investment_account(tx, ledger)
+        entry = SimpleEntry(
+            debit_account=cash,
+            credit_account=investment,
+            value=float(tx.amount),
+            date=tx.date,
+            description=f"Maturity settlement (tx={tx.id})",
         )
         return [entry]

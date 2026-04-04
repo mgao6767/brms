@@ -66,8 +66,8 @@ def test_reverse_undoes_post() -> None:
     assert deposits.balance() == 0.0
 
 
-def test_post_unknown_transaction_type_raises() -> None:
-    """Posting an unsupported transaction type raises NotImplementedError."""
+def test_mark_to_market_unknown_instrument_class_raises() -> None:
+    """MARK_TO_MARKET with an unknown instrument_class raises ValueError."""
     ledger, _cash, _deposits = _make_ledger()
     service = AccountingService()
     tx = Transaction(
@@ -76,7 +76,7 @@ def test_post_unknown_transaction_type_raises() -> None:
         date=datetime.date(2024, 1, 1),
         amount=Decimal("500"),
     )
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError, match="Unknown instrument_class"):
         service.post(tx, ledger)
 
 
@@ -253,4 +253,313 @@ def test_deposit_withdrawal() -> None:
     service.post(withdrawal_tx, ledger)
     # After deposit then withdrawal, cash and deposits should be back to original
     assert coa.customer_deposits_account.balance() == 0.0
+    assert coa.cash_account.balance() == 500_000.0
+
+
+# ---------------------------------------------------------------------------
+# LOAN_DISBURSEMENT
+# ---------------------------------------------------------------------------
+
+
+def test_loan_disbursement() -> None:
+    """LOAN_DISBURSEMENT debits Loans and credits Cash."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    tx = Transaction(
+        id="tx-loan-1",
+        type=TransactionType.LOAN_DISBURSEMENT,
+        date=datetime.date(2024, 5, 1),
+        amount=Decimal("80000"),
+    )
+    service.post(tx, ledger)
+    assert coa.loan_account.balance() == 80_000.0
+    assert coa.cash_account.balance() == 420_000.0
+
+
+# ---------------------------------------------------------------------------
+# LOAN_REPAYMENT
+# ---------------------------------------------------------------------------
+
+
+def test_loan_repayment() -> None:
+    """LOAN_REPAYMENT debits Cash and credits Loans."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    disburse_tx = Transaction(
+        id="tx-loan-2",
+        type=TransactionType.LOAN_DISBURSEMENT,
+        date=datetime.date(2024, 5, 1),
+        amount=Decimal("80000"),
+    )
+    repay_tx = Transaction(
+        id="tx-loan-3",
+        type=TransactionType.LOAN_REPAYMENT,
+        date=datetime.date(2024, 6, 1),
+        amount=Decimal("80000"),
+    )
+    service.post(disburse_tx, ledger)
+    service.post(repay_tx, ledger)
+    assert coa.loan_account.balance() == 0.0
+    assert coa.cash_account.balance() == 500_000.0
+
+
+# ---------------------------------------------------------------------------
+# INTEREST_PAYMENT
+# ---------------------------------------------------------------------------
+
+
+def test_interest_payment() -> None:
+    """INTEREST_PAYMENT debits Cash and credits Interest Income."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    tx = Transaction(
+        id="tx-int-1",
+        type=TransactionType.INTEREST_PAYMENT,
+        date=datetime.date(2024, 6, 1),
+        amount=Decimal("3000"),
+    )
+    service.post(tx, ledger)
+    assert coa.cash_account.balance() == 503_000.0
+    assert coa.interest_income_account.balance() == 3_000.0
+
+
+# ---------------------------------------------------------------------------
+# COUPON_PAYMENT
+# ---------------------------------------------------------------------------
+
+
+def test_coupon_payment() -> None:
+    """COUPON_PAYMENT debits Cash and credits Interest Income."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    tx = Transaction(
+        id="tx-cpn-1",
+        type=TransactionType.COUPON_PAYMENT,
+        date=datetime.date(2024, 6, 15),
+        amount=Decimal("1500"),
+    )
+    service.post(tx, ledger)
+    assert coa.cash_account.balance() == 501_500.0
+    assert coa.interest_income_account.balance() == 1_500.0
+
+
+# ---------------------------------------------------------------------------
+# INTEREST_EXPENSE
+# ---------------------------------------------------------------------------
+
+
+def test_interest_expense() -> None:
+    """INTEREST_EXPENSE debits Interest Expense and credits Cash."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    tx = Transaction(
+        id="tx-iexp-1",
+        type=TransactionType.INTEREST_EXPENSE,
+        date=datetime.date(2024, 7, 1),
+        amount=Decimal("2000"),
+    )
+    service.post(tx, ledger)
+    assert coa.interest_expense_account.balance() == 2_000.0
+    assert coa.cash_account.balance() == 498_000.0
+
+
+# ---------------------------------------------------------------------------
+# MARK_TO_MARKET (FVTPL gain and loss)
+# ---------------------------------------------------------------------------
+
+
+def test_mark_to_market_fvtpl_gain() -> None:
+    """MARK_TO_MARKET with FVTPL and positive amount debits Asset FVTPL, credits Trading Income."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    tx = Transaction(
+        id="tx-mtm-1",
+        type=TransactionType.MARK_TO_MARKET,
+        date=datetime.date(2024, 7, 1),
+        amount=Decimal("5000"),
+        metadata=(("instrument_class", "FVTPL"),),
+    )
+    service.post(tx, ledger)
+    assert coa.asset_fvtpl_account.balance() == 5_000.0
+    assert coa.trading_income_account.balance() == 5_000.0
+
+
+def test_mark_to_market_fvtpl_loss() -> None:
+    """MARK_TO_MARKET with FVTPL and negative amount debits Trading Income, credits Asset FVTPL."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    tx = Transaction(
+        id="tx-mtm-2",
+        type=TransactionType.MARK_TO_MARKET,
+        date=datetime.date(2024, 7, 2),
+        amount=Decimal("-2000"),
+        metadata=(("instrument_class", "FVTPL"),),
+    )
+    service.post(tx, ledger)
+    assert coa.asset_fvtpl_account.balance() == -2_000.0
+    assert coa.trading_income_account.balance() == -2_000.0
+
+
+# ---------------------------------------------------------------------------
+# MARK_TO_MARKET (FVOCI gain and loss)
+# ---------------------------------------------------------------------------
+
+
+def test_mark_to_market_fvoci_gain() -> None:
+    """MARK_TO_MARKET with FVOCI and positive amount debits Investment FVOCI, credits Accumulated OCI."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    tx = Transaction(
+        id="tx-mtm-3",
+        type=TransactionType.MARK_TO_MARKET,
+        date=datetime.date(2024, 7, 3),
+        amount=Decimal("4000"),
+        metadata=(("instrument_class", "FVOCI"),),
+    )
+    service.post(tx, ledger)
+    assert coa.investment_fvoci_account.balance() == 4_000.0
+    assert coa.accumulated_oci_account.balance() == 4_000.0
+
+
+def test_mark_to_market_fvoci_loss() -> None:
+    """MARK_TO_MARKET with FVOCI and negative amount debits Accumulated OCI, credits Investment FVOCI."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    tx = Transaction(
+        id="tx-mtm-4",
+        type=TransactionType.MARK_TO_MARKET,
+        date=datetime.date(2024, 7, 4),
+        amount=Decimal("-1000"),
+        metadata=(("instrument_class", "FVOCI"),),
+    )
+    service.post(tx, ledger)
+    assert coa.investment_fvoci_account.balance() == -1_000.0
+    assert coa.accumulated_oci_account.balance() == -1_000.0
+
+
+# ---------------------------------------------------------------------------
+# REVALUATION (same logic as MARK_TO_MARKET)
+# ---------------------------------------------------------------------------
+
+
+def test_revaluation_fvtpl() -> None:
+    """REVALUATION with FVTPL debits Asset FVTPL and credits Trading Income."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    tx = Transaction(
+        id="tx-rev-1",
+        type=TransactionType.REVALUATION,
+        date=datetime.date(2024, 8, 1),
+        amount=Decimal("3000"),
+        metadata=(("instrument_class", "FVTPL"),),
+    )
+    service.post(tx, ledger)
+    assert coa.asset_fvtpl_account.balance() == 3_000.0
+    assert coa.trading_income_account.balance() == 3_000.0
+
+
+# ---------------------------------------------------------------------------
+# PRINCIPAL_PAYMENT
+# ---------------------------------------------------------------------------
+
+
+def test_principal_payment() -> None:
+    """PRINCIPAL_PAYMENT debits Cash and credits Loans."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    disburse_tx = Transaction(
+        id="tx-pp-1",
+        type=TransactionType.LOAN_DISBURSEMENT,
+        date=datetime.date(2024, 5, 1),
+        amount=Decimal("60000"),
+    )
+    principal_tx = Transaction(
+        id="tx-pp-2",
+        type=TransactionType.PRINCIPAL_PAYMENT,
+        date=datetime.date(2024, 6, 1),
+        amount=Decimal("10000"),
+    )
+    service.post(disburse_tx, ledger)
+    service.post(principal_tx, ledger)
+    assert coa.loan_account.balance() == 50_000.0
+    assert coa.cash_account.balance() == 450_000.0
+
+
+# ---------------------------------------------------------------------------
+# AMORTIZATION
+# ---------------------------------------------------------------------------
+
+
+def test_amortization() -> None:
+    """AMORTIZATION debits Cash and credits Loans."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    disburse_tx = Transaction(
+        id="tx-am-1",
+        type=TransactionType.LOAN_DISBURSEMENT,
+        date=datetime.date(2024, 5, 1),
+        amount=Decimal("50000"),
+    )
+    amort_tx = Transaction(
+        id="tx-am-2",
+        type=TransactionType.AMORTIZATION,
+        date=datetime.date(2024, 6, 1),
+        amount=Decimal("5000"),
+    )
+    service.post(disburse_tx, ledger)
+    service.post(amort_tx, ledger)
+    assert coa.loan_account.balance() == 45_000.0
+    assert coa.cash_account.balance() == 455_000.0
+
+
+# ---------------------------------------------------------------------------
+# MATURITY_SETTLEMENT
+# ---------------------------------------------------------------------------
+
+
+def test_maturity_settlement_htm() -> None:
+    """MATURITY_SETTLEMENT with HTM debits Cash and credits Investment HTM."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    purchase_tx = Transaction(
+        id="tx-mat-1",
+        type=TransactionType.SECURITY_PURCHASE,
+        date=datetime.date(2024, 1, 1),
+        amount=Decimal("100000"),
+        metadata=(("instrument_class", "HTM"),),
+    )
+    maturity_tx = Transaction(
+        id="tx-mat-2",
+        type=TransactionType.MATURITY_SETTLEMENT,
+        date=datetime.date(2025, 1, 1),
+        amount=Decimal("100000"),
+        metadata=(("instrument_class", "HTM"),),
+    )
+    service.post(purchase_tx, ledger)
+    service.post(maturity_tx, ledger)
+    assert coa.investment_htm_account.balance() == 0.0
+    assert coa.cash_account.balance() == 500_000.0
+
+
+def test_maturity_settlement_fvoci() -> None:
+    """MATURITY_SETTLEMENT with FVOCI debits Cash and credits Investment FVOCI."""
+    ledger, coa = _make_full_ledger()
+    service = AccountingService()
+    purchase_tx = Transaction(
+        id="tx-mat-3",
+        type=TransactionType.SECURITY_PURCHASE,
+        date=datetime.date(2024, 1, 1),
+        amount=Decimal("70000"),
+        metadata=(("instrument_class", "FVOCI"),),
+    )
+    maturity_tx = Transaction(
+        id="tx-mat-4",
+        type=TransactionType.MATURITY_SETTLEMENT,
+        date=datetime.date(2025, 1, 1),
+        amount=Decimal("70000"),
+        metadata=(("instrument_class", "FVOCI"),),
+    )
+    service.post(purchase_tx, ledger)
+    service.post(maturity_tx, ledger)
+    assert coa.investment_fvoci_account.balance() == 0.0
     assert coa.cash_account.balance() == 500_000.0
