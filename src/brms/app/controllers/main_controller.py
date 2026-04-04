@@ -15,8 +15,6 @@ from brms.data import DEFAULT_DATA_FOLDER
 from brms.data.default import SIMULATION_START_DATE
 
 if TYPE_CHECKING:
-    import datetime
-
     from brms.app.views.main_window import MainWindow
     from brms.core.events import DateAdvanced
     from brms.core.models.history import SimulationHistory
@@ -61,13 +59,15 @@ class MainController(BRMSController):
         self.simulation_timer.setInterval(self.simulation_interval)
         # Sub controllers
         self.inspector_ctrl = InspectorController(inspector_widget=self.view.inspector_widget)
+        core_bank = self._simulation_service.bank if self._simulation_service else None
         self.bank_ctrl = BankController(
-            bank=self.simulation.bank,
+            bank=core_bank,
+            event_bus=self._core.get("event_bus"),
+            reporting_service=self._core.get("reporting_service"),
             banking_book_view=self.view.banking_book_widget,
             trading_book_view=self.view.trading_book_widget,
             inspector_ctrl=self.inspector_ctrl,
             statement_view=self.view.statement_viewer_widget,
-            scenario_manager=self.simulation.scenario_manager,
         )
         self.yield_curve_ctrl = YieldCurveController(view=self.view.yield_curve_widget)
         # Connect signals
@@ -88,7 +88,6 @@ class MainController(BRMSController):
         self.view.exit_signal.connect(self.on_exit)
 
         self.bank_ctrl.bank_financials_updated.connect(self.view.dashboard.update_bank_financials)
-        self.bank_ctrl.transaction_processed.connect(self.view.transaction_history_widget.add_transaction)
 
     def init(self) -> None:
         """Initialize the simulation and set the starting scenario.
@@ -130,12 +129,12 @@ class MainController(BRMSController):
             cet1_series = self._history.get_series("cet1_ratio")
             cet1_values = [v for _, v in cet1_series]
         else:
-            # Fallback to old controller dicts
-            dates = list(self.bank_ctrl.total_assets_history.keys())
-            asset_values = list(self.bank_ctrl.total_assets_history.values())
-            liability_values = list(self.bank_ctrl.total_liabilities_history.values())
-            equity_values = list(self.bank_ctrl.total_equity_history.values())
-            cet1_values = list(self.bank_ctrl.cet1_ratio_history.values())
+            # No history data yet — use empty lists
+            dates = []
+            asset_values = []
+            liability_values = []
+            equity_values = []
+            cet1_values = []
 
         self.view.dashboard.update_assets_liabilities_plot(
             start=self.simulation.start_date,
@@ -188,26 +187,8 @@ class MainController(BRMSController):
         if start_date and end_date and end_date > start_date:
             progress = (date - start_date) / (end_date - start_date) * 100
             self.view.dashboard.update_simulation_progress(int(progress))
+        self.bank_ctrl.update_statement(date)
         self.update_dashboard()
-
-    def _record_day_metrics(self, date: datetime.date) -> None:
-        """Push bank controller metrics into the core SimulationHistory."""
-        if self._history is None:
-            return
-        from brms.core.models.history import DayRecord
-
-        metrics: dict[str, float] = {}
-        if date in self.bank_ctrl.total_assets_history:
-            metrics["total_assets"] = self.bank_ctrl.total_assets_history[date]
-        if date in self.bank_ctrl.total_liabilities_history:
-            metrics["total_liabilities"] = self.bank_ctrl.total_liabilities_history[date]
-        if date in self.bank_ctrl.total_equity_history:
-            metrics["total_equity"] = self.bank_ctrl.total_equity_history[date]
-        if date in self.bank_ctrl.cet1_ratio_history:
-            metrics["cet1_ratio"] = self.bank_ctrl.cet1_ratio_history[date]
-        if metrics:
-            record = DayRecord(date=date, market_state=None, metrics=metrics)
-            self._history.push_day(record)
 
     def on_start_action(self) -> None:
         """Start the simulation timer for continuous advancement."""

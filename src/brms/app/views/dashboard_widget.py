@@ -19,7 +19,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from brms.accounting.report import Report
 from brms.accounting.statement_viewer import locale
 from brms.app.views.styler import BRMSStyler
 from brms.utils import pydate_to_qdate
@@ -258,27 +257,36 @@ class BRMSDashboard(QWidget):
         """Update the simulation progress."""
         self.simulation_progress_value.setValue(progress)
 
-    def update_bank_financials(self, report: Report) -> None:
-        """Update the bank's financials."""
-        total_assets = report.get_total_assets()
-        total_liabilities = report.get_total_liabilities()
-        total_equity = report.get_total_equity()
-        cet1 = report.get_cet1()
-        cet1_ratio = report.get_cet1_ratio()  # TODO: repeated computation
-        tier1_capital_ratio = report.get_tier1_capital_ratio()
-        total_capital_ratio = report.get_total_capital_ratio()
-        nsfr = report.get_net_stable_funding_ratio()
-        lcr = report.get_liquidity_coverage_ratio()
+    def update_bank_financials(self, data: dict) -> None:
+        """Update the bank's financials from balance-sheet data dict.
+
+        Parameters
+        ----------
+        data:
+            Dict with keys ``total_assets``, ``total_liabilities``, ``total_equity``,
+            and optional ``cet1``, ``cet1_ratio``, ``tier1_capital_ratio``,
+            ``total_capital_ratio``, ``nsfr``, ``lcr``.
+
+        """
+        total_assets = data.get("total_assets", 0.0)
+        total_liabilities = data.get("total_liabilities", 0.0)
+        total_equity = data.get("total_equity", 0.0)
+        cet1 = data.get("cet1", 0.0)
+        cet1_ratio = data.get("cet1_ratio", 0.0)
+        tier1_capital_ratio = data.get("tier1_capital_ratio", 0.0)
+        total_capital_ratio = data.get("total_capital_ratio", 0.0)
+        nsfr = data.get("nsfr", 0.0)
+        lcr = data.get("lcr", 0.0)
 
         self.total_assets_value.setText(locale.currency(total_assets, grouping=True))
         self.total_liabilities_value.setText(locale.currency(total_liabilities, grouping=True))
         self.total_equity_value.setText(locale.currency(total_equity, grouping=True))
         self.cet1_value.setText(locale.currency(cet1, grouping=True))
-        self.cet1_ratio_value.setText(f"{cet1_ratio*100:.2f}%")
-        self.tier1_capital_ratio_value.setText(f"{tier1_capital_ratio*100:.2f}%")
-        self.total_capital_ratio_value.setText(f"{total_capital_ratio*100:.2f}%")
-        self.nsfr_value.setText(f"{nsfr*100:.2f}%")
-        self.lcr_value.setText(f"{lcr*100:.2f}%")
+        self.cet1_ratio_value.setText(f"{cet1_ratio * 100:.2f}%")
+        self.tier1_capital_ratio_value.setText(f"{tier1_capital_ratio * 100:.2f}%")
+        self.total_capital_ratio_value.setText(f"{total_capital_ratio * 100:.2f}%")
+        self.nsfr_value.setText(f"{nsfr * 100:.2f}%")
+        self.lcr_value.setText(f"{lcr * 100:.2f}%")
 
     def update_assets_liabilities_plot(self, start, end, dates, asset_values, liability_values) -> None:
         """Update the assets plot with new data."""

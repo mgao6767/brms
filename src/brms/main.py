@@ -45,6 +45,7 @@ from brms.core.models.instruments.registry import InstrumentRegistry
 from brms.core.models.market_data import MarketDataStore
 from brms.core.services.data_service import DataService
 from brms.core.services.metrics_service import MetricsService
+from brms.core.services.reporting_service import ReportingService
 from brms.core.services.risk_service import RiskService
 from brms.core.services.simulation_service import SimulationService
 from brms.core.services.valuation_service import ValuationService
@@ -108,6 +109,7 @@ def _build_core_services() -> dict:
     accounting_service = AccountingService()
     metrics_service = MetricsService(metric_registry)
     valuation_service = ValuationService()
+    reporting_service = ReportingService()
     risk_service = RiskService()
     history = SimulationHistory()
 
@@ -141,6 +143,7 @@ def _build_core_services() -> dict:
         "accounting_service": accounting_service,
         "metrics_service": metrics_service,
         "valuation_service": valuation_service,
+        "reporting_service": reporting_service,
         "risk_service": risk_service,
         "history": history,
         "simulation_service": simulation_service,

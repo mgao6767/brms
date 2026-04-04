@@ -1,133 +1,109 @@
-import datetime
+"""Controller for managing bank operations via core services and EventBus."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Signal
 
-from brms.accounting.report import Report
-from brms.accounting.statement_viewer import HTMLStatementViewer
 from brms.app.controllers.bank_book_controller import BankingBookController, TradingBookController
 from brms.app.controllers.base import BRMSController
-from brms.app.controllers.inspector_controller import InspectorController
-from brms.app.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
-from brms.app.views.statement_viewer_widget import BRMSStatementViewer
-from brms.data.default import create_bank_init_transactions
-from brms.models.bank import Bank
-from brms.models.scenario import ScenarioManager
-from brms.models.transaction import Action, BookType, Transaction
+from brms.app.reporting import HTMLStatementRenderer
+from brms.core.events import InstrumentAdded, InstrumentRemoved
+from brms.models.bank_book import Position
+
+if TYPE_CHECKING:
+    from brms.app.controllers.inspector_controller import InspectorController
+    from brms.app.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
+    from brms.app.views.statement_viewer_widget import BRMSStatementViewer
+    from brms.core.events import EventBus
+    from brms.core.models.bank import Bank
+    from brms.core.services.reporting_service import ReportingService
 
 
 class BankController(BRMSController):
-    """Controller for managing bank operations, including banking and trading books.
+    """Controller for managing bank operations using core services and EventBus.
 
-    The bank controller should only modify the state of the bank model through `Transaction`.
-    After transactions have been processed, the controller sync the state of the bank model and those for various views.
+    Uses ReportingService for financial statements and subscribes to instrument
+    lifecycle events via the EventBus.
     """
 
-    transaction_processed = Signal(Transaction, name="Transaction Processed")
-    bank_financials_updated = Signal(Report, name="Bank Financials Updated")
+    bank_financials_updated = Signal(dict, name="Bank Financials Updated")
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         bank: Bank,
+        event_bus: EventBus,
+        reporting_service: ReportingService,
         banking_book_view: BRMSBankingBookWidget,
         trading_book_view: BRMSTradingBookWidget,
         inspector_ctrl: InspectorController,
         statement_view: BRMSStatementViewer,
-        scenario_manager: ScenarioManager,
     ) -> None:
+        """Initialize the BankController with core services."""
         super().__init__()
         self.bank = bank
-        self.banking_book_view = banking_book_view
-        self.trading_book_view = trading_book_view
+        self._event_bus = event_bus
+        self._reporting = reporting_service
+        self._renderer = HTMLStatementRenderer()
         self.statement_view = statement_view
-        self.scenario_manager = scenario_manager
-        self.report: Report
-        self.total_assets_history: dict[datetime.date, float] = {}
-        self.total_liabilities_history: dict[datetime.date, float] = {}
-        self.total_equity_history: dict[datetime.date, float] = {}
-        self.cet1_ratio_history: dict[datetime.date, float] = {}
-        # Controllers passed in
         self.inspector_ctrl = inspector_ctrl
+
         # Sub controllers
-        # fmt: off
-        self.banking_book_ctrl = BankingBookController(self.bank.banking_book, self.banking_book_view, self.inspector_ctrl)
-        self.trading_book_ctrl = TradingBookController(self.bank.trading_book, self.trading_book_view, self.inspector_ctrl)
-        # fmt: on
-        # Connect signals
-        self.connect_signals()
+        self.banking_book_ctrl = BankingBookController(bank.banking_book, banking_book_view, inspector_ctrl)
+        self.trading_book_ctrl = TradingBookController(bank.trading_book, trading_book_view, inspector_ctrl)
 
-    def init(self, scenario_manager: ScenarioManager) -> None:
-        """Initialize the bank with default transactions."""
-        for tx in create_bank_init_transactions(self.bank, scenario_manager):
-            if self.bank.process_transaction(tx):
-                self.transaction_processed.emit(tx)
+        # Subscribe to instrument lifecycle events
+        event_bus.subscribe(InstrumentAdded, self._on_instrument_added)
+        event_bus.subscribe(InstrumentRemoved, self._on_instrument_removed)
 
-    def connect_signals(self) -> None:
-        """Connect signals to their respective slots."""
-        self.transaction_processed.connect(self.update_views)
+    def _on_instrument_added(self, event: InstrumentAdded) -> None:
+        """Handle an instrument being added to a book."""
+        position = Position.LONG  # Default; P4-7 will refine position handling
+        if event.book_type == "banking":
+            self.banking_book_ctrl.add_instrument(event.instrument, position)
+        else:
+            self.trading_book_ctrl.add_instrument(event.instrument, position)
 
-    def process_transaction(self, transaction: Transaction) -> None:
-        """Process a transaction and emit signal."""
-        # Let the bank (model) process the transaction
-        if self.bank.process_transaction(transaction):
-            # Then emit the signal so that this controller can update related views
-            self.transaction_processed.emit(transaction)
+    def _on_instrument_removed(self, event: InstrumentRemoved) -> None:
+        """Handle an instrument being removed from a book."""
+        position = Position.LONG  # Default; P4-7 will refine position handling
+        if event.book_type == "banking":
+            self.banking_book_ctrl.remove_instrument(event.instrument, position)
+        else:
+            self.trading_book_ctrl.remove_instrument(event.instrument, position)
 
-    def update_views(self, tx: Transaction) -> None:
-        """Update the views based on the given transaction."""
-        for instrument, (action, book_type, position) in tx.controller_actions().items():
-            match (action, book_type, position):
-                case (Action.ADD, BookType.BANKING_BOOK, _):
-                    self.banking_book_ctrl.add_instrument(instrument, position)
-                case (Action.ADD, BookType.TRADING_BOOK, _):
-                    self.trading_book_ctrl.add_instrument(instrument, position)
-                case (Action.REMOVE, BookType.BANKING_BOOK, _):
-                    self.banking_book_ctrl.remove_instrument(instrument, position)
-                case (Action.REMOVE, BookType.TRADING_BOOK, _):
-                    self.trading_book_ctrl.remove_instrument(instrument, position)
-                case (Action.UPDATE, BookType.BANKING_BOOK, _):
-                    self.banking_book_ctrl.update_instrument(instrument, position)
-                case (Action.UPDATE, BookType.TRADING_BOOK, _):
-                    self.trading_book_ctrl.update_instrument(instrument, position)
+    def update_statement(self, date=None) -> None:  # noqa: ANN001
+        """Refresh financial statement views using ReportingService and HTMLStatementRenderer."""
+        tb_data = self._reporting.trial_balance(self.bank.ledger)
+        bs_data = self._reporting.balance_sheet(self.bank.ledger)
+        is_data = self._reporting.income_statement(self.bank.ledger)
 
-    def update_statement(self, date: datetime.date | None = None) -> None:
-        self.report = Report(
-            bank=self.bank,
-            viewer=HTMLStatementViewer(
-                console=False,
-                padding=2,
-                income_statement_table_width=80,
-                balance_sheet_table_width=80,
-            ),
-            date=date or self.bank.ledger.date_closed,
-            scenario_manager=self.scenario_manager,
-        )
-        self.report.print_trial_balance()
-        self.report.print_income_statement()
-        self.report.print_balance_sheet()
+        tb_html = self._renderer.render_trial_balance(tb_data, date)
+        bs_html = self._renderer.render_balance_sheet(bs_data, date)
+        is_html = self._renderer.render_income_statement(is_data, date)
+
         # Save current scroll positions
-        trial_balance_v_scroll_pos = self.statement_view.trial_balance_browser.verticalScrollBar().value()
-        trial_balance_h_scroll_pos = self.statement_view.trial_balance_browser.horizontalScrollBar().value()
-        income_statement_v_scroll_pos = self.statement_view.income_statement_browser.verticalScrollBar().value()
-        income_statement_h_scroll_pos = self.statement_view.income_statement_browser.horizontalScrollBar().value()
-        balance_sheet_v_scroll_pos = self.statement_view.balance_sheet_browser.verticalScrollBar().value()
-        balance_sheet_h_scroll_pos = self.statement_view.balance_sheet_browser.horizontalScrollBar().value()
+        tb_v = self.statement_view.trial_balance_browser.verticalScrollBar().value()
+        tb_h = self.statement_view.trial_balance_browser.horizontalScrollBar().value()
+        is_v = self.statement_view.income_statement_browser.verticalScrollBar().value()
+        is_h = self.statement_view.income_statement_browser.horizontalScrollBar().value()
+        bs_v = self.statement_view.balance_sheet_browser.verticalScrollBar().value()
+        bs_h = self.statement_view.balance_sheet_browser.horizontalScrollBar().value()
+
         # Set new HTML content
-        self.statement_view.trial_balance_browser.setHtml(self.report.trial_balance.html)
-        self.statement_view.income_statement_browser.setHtml(self.report.income_statement.html)
-        self.statement_view.balance_sheet_browser.setHtml(self.report.balance_sheet.html)
+        self.statement_view.trial_balance_browser.setHtml(tb_html)
+        self.statement_view.income_statement_browser.setHtml(is_html)
+        self.statement_view.balance_sheet_browser.setHtml(bs_html)
+
         # Restore scroll positions
-        self.statement_view.trial_balance_browser.verticalScrollBar().setValue(trial_balance_v_scroll_pos)
-        self.statement_view.trial_balance_browser.horizontalScrollBar().setValue(trial_balance_h_scroll_pos)
-        self.statement_view.income_statement_browser.verticalScrollBar().setValue(income_statement_v_scroll_pos)
-        self.statement_view.income_statement_browser.horizontalScrollBar().setValue(income_statement_h_scroll_pos)
-        self.statement_view.balance_sheet_browser.verticalScrollBar().setValue(balance_sheet_v_scroll_pos)
-        self.statement_view.balance_sheet_browser.horizontalScrollBar().setValue(balance_sheet_h_scroll_pos)
+        self.statement_view.trial_balance_browser.verticalScrollBar().setValue(tb_v)
+        self.statement_view.trial_balance_browser.horizontalScrollBar().setValue(tb_h)
+        self.statement_view.income_statement_browser.verticalScrollBar().setValue(is_v)
+        self.statement_view.income_statement_browser.horizontalScrollBar().setValue(is_h)
+        self.statement_view.balance_sheet_browser.verticalScrollBar().setValue(bs_v)
+        self.statement_view.balance_sheet_browser.horizontalScrollBar().setValue(bs_h)
 
-        # Update the financial metrics and emit signals
+        # Emit balance-sheet data so dashboard can update
         if date is not None:
-            self.total_assets_history[date] = self.report.get_total_assets()
-            self.total_liabilities_history[date] = self.report.get_total_liabilities()
-            self.total_equity_history[date] = self.report.get_total_equity()
-            self.cet1_ratio_history[date] = self.report.get_cet1_ratio()  # TODO: repeated computation
-
-            self.bank_financials_updated.emit(self.report)
+            self.bank_financials_updated.emit(bs_data)
