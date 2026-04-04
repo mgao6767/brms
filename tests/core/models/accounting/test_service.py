@@ -563,3 +563,57 @@ def test_maturity_settlement_fvoci() -> None:
     service.post(maturity_tx, ledger)
     assert coa.investment_fvoci_account.balance() == 0.0
     assert coa.cash_account.balance() == 500_000.0
+
+
+# ---------------------------------------------------------------------------
+# Reversal round-trip parametrized tests
+# ---------------------------------------------------------------------------
+
+
+def _make_fresh_ledger() -> tuple[Ledger, BankChartOfAccounts]:
+    """Create a Ledger backed by BankChartOfAccounts with no initial balances."""
+    coa = BankChartOfAccounts()
+    journal = Journal()
+    ledger = Ledger(chart_of_accounts=coa, journal=journal)
+    return ledger, coa
+
+
+ROUND_TRIP_CASES = [
+    ("equity", TransactionType.EQUITY_ISSUANCE, Decimal("1000000"), ()),
+    ("deposit", TransactionType.DEPOSIT_RECEIVED, Decimal("50000"), ()),
+    ("withdrawal", TransactionType.DEPOSIT_WITHDRAWAL, Decimal("50000"), ()),
+    ("loan_disburse", TransactionType.LOAN_DISBURSEMENT, Decimal("200000"), ()),
+    ("loan_repay", TransactionType.LOAN_REPAYMENT, Decimal("10000"), ()),
+    ("interest", TransactionType.INTEREST_PAYMENT, Decimal("500"), ()),
+    ("coupon", TransactionType.COUPON_PAYMENT, Decimal("2500"), ()),
+    ("interest_exp", TransactionType.INTEREST_EXPENSE, Decimal("300"), ()),
+    ("sec_buy_htm", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("instrument_class", "HTM"),)),
+    ("sec_buy_fvoci", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("instrument_class", "FVOCI"),)),
+    ("sec_buy_fvtpl", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("instrument_class", "FVTPL"),)),
+    ("principal", TransactionType.PRINCIPAL_PAYMENT, Decimal("5000"), ()),
+    ("amortization", TransactionType.AMORTIZATION, Decimal("3000"), ()),
+    ("maturity_htm", TransactionType.MATURITY_SETTLEMENT, Decimal("100000"), (("instrument_class", "HTM"),)),
+]
+
+
+ROUND_TRIP_IDS = [c[0] for c in ROUND_TRIP_CASES]
+
+
+@pytest.mark.parametrize(("name", "tx_type", "amount", "metadata"), ROUND_TRIP_CASES, ids=ROUND_TRIP_IDS)
+def test_post_then_reverse_zeroes_balances(
+    name: str, tx_type: TransactionType, amount: Decimal, metadata: tuple,
+) -> None:
+    """Posting then reversing any transaction type leaves all account balances at zero."""
+    ledger, coa = _make_fresh_ledger()
+    service = AccountingService()
+    tx = Transaction(
+        id=f"rt-{name}",
+        type=tx_type,
+        date=datetime.date(2024, 1, 1),
+        amount=amount,
+        metadata=metadata,
+    )
+    service.post(tx, ledger)
+    service.reverse(tx, ledger)
+    for account in coa:
+        assert account.balance() == 0.0, f"Account {account.name} has non-zero balance after reversal of {name}"
