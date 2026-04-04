@@ -1,3 +1,4 @@
+# DEPRECATED: Transaction processing now handled by core/models/accounting/service.py
 """The Accountant class as a command manager responsible for managing bank and ledger."""
 
 from typing import TYPE_CHECKING
