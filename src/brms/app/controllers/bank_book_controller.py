@@ -12,9 +12,10 @@ from brms.app.views.bank_book_widget import (
     LiabilityColumns,
 )
 from brms.app.views.tree_widget import QMODELINDEX, TreeModel
+from brms.core.models.books import BankingBook, TradingBook
 from brms.core.models.instruments.base import Instrument
 from brms.core.models.instruments.deposits import Cash
-from brms.models.bank_book import BankBook, BankingBook, Position, TradingBook
+from brms.models.bank_book import Position
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QItemSelection
@@ -23,7 +24,9 @@ if TYPE_CHECKING:
 class BankBookController(BRMSController):
     """Controller for managing a bank's banking or trading book."""
 
-    def __init__(self, bank_book: BankBook, view: BRMSBankBookWidget, inspector_ctrl: InspectorController) -> None:
+    def __init__(
+        self, bank_book: BankingBook | TradingBook, view: BRMSBankBookWidget, inspector_ctrl: InspectorController
+    ) -> None:
         self.bank_book = bank_book  # must be read-only
         self.bank_book_widget = view
         # Controllers passed in
@@ -56,23 +59,29 @@ class BankBookController(BRMSController):
             }
         return [data]
 
-    def add_instrument(self, instrument: Instrument, position: Position) -> None:
+    def add_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
         """Add an instrument to the tree model."""
+        if position is None:
+            position = Position.LONG
         match position:
             case Position.LONG:
                 self.long_model.add_data(QMODELINDEX, self.instrument_to_data(instrument, position))
             case Position.SHORT:
                 self.short_model.add_data(QMODELINDEX, self.instrument_to_data(instrument, position))
 
-    def remove_instrument(self, instrument: Instrument, position: Position) -> None:
+    def remove_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
         """Remove an instrument from the tree model."""
+        if position is None:
+            position = Position.LONG
         match position:
             case Position.LONG:
                 self.long_model.remove_data(QMODELINDEX, instrument.id, id_column=AssetColumns.ID.value)
             case Position.SHORT:
                 self.short_model.remove_data(QMODELINDEX, instrument.id, id_column=LiabilityColumns.ID.value)
 
-    def update_instrument(self, instrument: Instrument, position: Position) -> None:
+    def update_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
+        if position is None:
+            position = Position.LONG
         match position:
             case Position.LONG:
                 if index := self.long_model.find_data(instrument.id, AssetColumns.ID.value):
@@ -158,7 +167,7 @@ class BankingBookController(BankBookController):
         if isinstance(cash_instrument, Cash):
             self.long_model.update_data(idx, {AssetColumns.Value: cash_instrument.value})
 
-    def add_instrument(self, instrument: Instrument, position: Position) -> None:
+    def add_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
         """Add an instrument to the tree model."""
         # For banking book, we specifically address cash instrument
         if isinstance(instrument, Cash):
@@ -166,7 +175,7 @@ class BankingBookController(BankBookController):
             return
         super().add_instrument(instrument, position)
 
-    def remove_instrument(self, instrument: Instrument, position: Position) -> None:
+    def remove_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
         """Remove an instrument from the tree model."""
         if isinstance(instrument, Cash):
             self._remove_cash(instrument)
