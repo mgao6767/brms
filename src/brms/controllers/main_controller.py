@@ -140,25 +140,44 @@ class MainController(BRMSController):
         self.update_dashboard()
 
     def update_dashboard(self) -> None:
-        """Refresh all dashboard plots from bank controller history dicts."""
+        """Refresh all dashboard plots, preferring SimulationHistory when available."""
+        # Prefer core SimulationHistory when available
+        if self._history and self._history.dates:
+            asset_series = self._history.get_series("total_assets")
+            dates = [d for d, _ in asset_series]
+            asset_values = [v for _, v in asset_series]
+            liability_series = self._history.get_series("total_liabilities")
+            liability_values = [v for _, v in liability_series]
+            equity_series = self._history.get_series("total_equity")
+            equity_values = [v for _, v in equity_series]
+            cet1_series = self._history.get_series("cet1_ratio")
+            cet1_values = [v for _, v in cet1_series]
+        else:
+            # Fallback to old controller dicts
+            dates = list(self.bank_ctrl.total_assets_history.keys())
+            asset_values = list(self.bank_ctrl.total_assets_history.values())
+            liability_values = list(self.bank_ctrl.total_liabilities_history.values())
+            equity_values = list(self.bank_ctrl.total_equity_history.values())
+            cet1_values = list(self.bank_ctrl.cet1_ratio_history.values())
+
         self.view.dashboard.update_assets_liabilities_plot(
             start=self.simulation.start_date,
             end=self.simulation.end_date,
-            dates=list(self.bank_ctrl.total_assets_history.keys()),
-            asset_values=list(self.bank_ctrl.total_assets_history.values()),
-            liability_values=list(self.bank_ctrl.total_liabilities_history.values()),
+            dates=dates,
+            asset_values=asset_values,
+            liability_values=liability_values,
         )
         self.view.dashboard.update_equity_plot(
             start=self.simulation.start_date,
             end=self.simulation.end_date,
-            dates=list(self.bank_ctrl.total_equity_history.keys()),
-            equity_values=list(self.bank_ctrl.total_equity_history.values()),
+            dates=dates,
+            equity_values=equity_values,
         )
         self.view.dashboard.update_capital_ratio_plot(
             start=self.simulation.start_date,
             end=self.simulation.end_date,
-            dates=list(self.bank_ctrl.total_equity_history.keys()),
-            values=list(self.bank_ctrl.cet1_ratio_history.values()),
+            dates=dates,
+            values=cet1_values,
         )
 
     def on_advance(self) -> None:
