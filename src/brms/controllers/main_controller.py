@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import logging
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QTimer, Signal
@@ -18,8 +19,12 @@ from brms.models.scenario import Scenario
 from brms.models.simulation import Simulation as SimulationModel
 
 if TYPE_CHECKING:
+    from brms.core.events import DateAdvanced
     from brms.core.models.history import SimulationHistory
+    from brms.core.services.simulation_service import SimulationService
     from brms.views.main_window import MainWindow
+
+logger = logging.getLogger(__name__)
 
 
 class MainController(BRMSController):
@@ -43,6 +48,15 @@ class MainController(BRMSController):
         # Store core services for future use as migration progresses
         self._core: dict[str, Any] = core_services or {}
         self._history: SimulationHistory | None = self._core.get("history")
+        self._simulation_service: SimulationService | None = self._core.get("simulation_service")
+
+        # Subscribe to EventBus DateAdvanced events for view updates
+        if self._simulation_service is not None:
+            from brms.core.events import DateAdvanced, EventBus
+
+            event_bus: EventBus | None = self._core.get("event_bus")
+            if event_bus is not None:
+                event_bus.subscribe(DateAdvanced, self._on_date_advanced)
 
         # Initialize the timer
         self.simulation_base_interval = 500
@@ -146,6 +160,39 @@ class MainController(BRMSController):
             dates=list(self.bank_ctrl.total_equity_history.keys()),
             values=list(self.bank_ctrl.cet1_ratio_history.values()),
         )
+
+    def on_advance(self) -> None:
+        """Advance simulation by one step using the new SimulationService."""
+        if self._simulation_service is None:
+            logger.warning("on_advance called but SimulationService is not available; falling back to legacy path.")
+            self.on_next_scenario()
+            return
+        try:
+            self._simulation_service.advance()
+        except IndexError:
+            logger.info("No more dates available in SimulationService; pausing.")
+            self.on_pause_action()
+
+    def step_back(self) -> None:
+        """Step the simulation back by one day using SimulationService."""
+        if self._simulation_service is None:
+            logger.warning("step_back called but SimulationService is not available.")
+            return
+        try:
+            self._simulation_service.step_back()
+        except IndexError:
+            logger.info("No history to step back through.")
+
+    def _on_date_advanced(self, event: DateAdvanced) -> None:
+        """Handle DateAdvanced events from the EventBus to update UI."""
+        date = event.date
+        self.view.statusBar().showMessage(f"Current date: {date}")
+        self.view.dashboard.update_simulation_date(date)
+        start_date = self.simulation.start_date
+        end_date = self.simulation.end_date
+        if start_date and end_date and end_date > start_date:
+            progress = (date - start_date) / (end_date - start_date) * 100
+            self.view.dashboard.update_simulation_progress(int(progress))
 
     def on_next_scenario(self) -> None:
         """Advance simulation by one scenario step (legacy path)."""
