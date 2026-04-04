@@ -52,3 +52,38 @@ def test_loaded_store_has_dates() -> None:
     dates = store.available_dates()
     assert len(dates) == EXPECTED_DATE_COUNT  # noqa: S101
     assert datetime.date(2024, 1, 1) in dates  # noqa: S101
+
+
+def test_load_zip_with_cash_instrument() -> None:
+    """DataService can deserialise a Cash instrument via InstrumentRegistry."""
+    import json
+    import zipfile
+    from io import BytesIO
+
+    from brms.core.models.instruments.deposits import Cash
+    from brms.core.models.instruments.registry import InstrumentRegistry
+    from brms.core.services.data_service import DataService
+
+    registry = InstrumentRegistry()
+    registry.register("cash", Cash)
+
+    buf = BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr(
+            "bank.json",
+            json.dumps({
+                "name": "Test",
+                "as_of_date": "2024-01-01",
+                "banking_book": [{"type": "cash", "value": 1000000}],
+                "trading_book": [],
+                "initial_accounts": {},
+            }),
+        )
+        zf.writestr("yields.csv", "date,1Y\n2024-01-01,0.04\n")
+    buf.seek(0)
+
+    service = DataService(instrument_registry=registry)
+    bank, _ = service.load_simulation_from_buffer(buf)
+    instruments = list(bank.banking_book)
+    assert len(instruments) == 1  # noqa: S101
+    assert isinstance(instruments[0], Cash)  # noqa: S101

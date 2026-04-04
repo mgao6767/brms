@@ -23,13 +23,62 @@ from brms.core.models.accounting.service import AccountingService
 from brms.core.models.bank import Bank
 from brms.core.models.books import BankingBook, TradingBook
 from brms.core.models.history import SimulationHistory
+from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond, TreasuryBond, TreasuryNote
+from brms.core.models.instruments.deposits import Cash, Deposit
+from brms.core.models.instruments.equity import CommonEquity
+from brms.core.models.instruments.loans import (
+    AmortizingFixedRateLoan,
+    CommercialMortgage,
+    CreditCard,
+    Mortgage,
+    PersonalLoan,
+    ResidentialMortgage,
+)
+from brms.core.models.instruments.other import (
+    Commitment,
+    LetterOfCredit,
+    RepurchaseAgreement,
+    StandByLetterOfCredit,
+    TradeLetterOfCredit,
+)
+from brms.core.models.instruments.registry import InstrumentRegistry
 from brms.core.models.market_data import MarketDataStore
+from brms.core.services.data_service import DataService
 from brms.core.services.metrics_service import MetricsService
 from brms.core.services.risk_service import RiskService
 from brms.core.services.simulation_service import SimulationService
 from brms.core.services.valuation_service import ValuationService
 from brms.data import DEFAULT_DATA_FOLDER
 from brms.models.simulation import Simulation as SimulationModel
+
+
+def _build_instrument_registry() -> InstrumentRegistry:
+    """Create and populate an InstrumentRegistry with all known instrument types."""
+    registry = InstrumentRegistry()
+    # Deposits
+    registry.register("cash", Cash)
+    registry.register("deposit", Deposit)
+    # Equity
+    registry.register("common_equity", CommonEquity)
+    # Bonds
+    registry.register("fixed_rate_bond", FixedRateBond)
+    registry.register("treasury_note", TreasuryNote)
+    registry.register("treasury_bond", TreasuryBond)
+    registry.register("covered_bond", CoveredBond)
+    # Loans
+    registry.register("amortizing_fixed_rate_loan", AmortizingFixedRateLoan)
+    registry.register("mortgage", Mortgage)
+    registry.register("residential_mortgage", ResidentialMortgage)
+    registry.register("commercial_mortgage", CommercialMortgage)
+    registry.register("personal_loan", PersonalLoan)
+    registry.register("credit_card", CreditCard)
+    # Off-balance-sheet / other
+    registry.register("commitment", Commitment)
+    registry.register("letter_of_credit", LetterOfCredit)
+    registry.register("standby_letter_of_credit", StandByLetterOfCredit)
+    registry.register("trade_letter_of_credit", TradeLetterOfCredit)
+    registry.register("repurchase_agreement", RepurchaseAgreement)
+    return registry
 
 
 def _load_market_data() -> MarketDataStore:
@@ -47,6 +96,8 @@ def _build_core_services() -> dict:
     Returns a dict of named services that can be passed to controllers.
     """
     event_bus = EventBus()
+    instrument_registry = _build_instrument_registry()
+    data_service = DataService(instrument_registry=instrument_registry)
     rule_registry = RuleRegistry()
     rule_registry.register(MaturityRule())
     rule_registry.register(CouponPaymentRule())
@@ -83,6 +134,8 @@ def _build_core_services() -> dict:
 
     return {
         "event_bus": event_bus,
+        "instrument_registry": instrument_registry,
+        "data_service": data_service,
         "rule_registry": rule_registry,
         "metric_registry": metric_registry,
         "accounting_service": accounting_service,
