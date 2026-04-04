@@ -107,7 +107,7 @@ class App(QApplication):
         # Core domain services (new architecture)
         self.core_services = _build_core_services()
 
-        # Legacy simulation model (still used by controllers and views)
+        # SimulationModel still needed by BankController and YieldCurveController
         self.model = SimulationModel()
 
         self.view = MainWindow()
