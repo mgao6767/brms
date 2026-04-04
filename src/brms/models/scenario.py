@@ -1,3 +1,4 @@
+# DEPRECATED: Replaced by core/models/market_data.py
 """Module containing classes for managing financial scenarios."""
 
 import datetime

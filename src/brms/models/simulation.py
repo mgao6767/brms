@@ -1,3 +1,4 @@
+# DEPRECATED: Replaced by core/services/simulation_service.py
 """Module containing the Simulation class for representing a simulation."""
 
 import datetime

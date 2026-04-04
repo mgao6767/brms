@@ -1,3 +1,4 @@
+# DEPRECATED: Replaced by core/models/accounting/rules/
 import datetime
 from collections.abc import Generator
 
