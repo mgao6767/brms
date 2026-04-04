@@ -1,7 +1,7 @@
 from brms.app.controllers.base import BRMSController
 from brms.app.views.inspector_widget import BRMSInspectorWidget
-from brms.instruments.base import Instrument
-from brms.instruments.visitors.inspection import InspectionVisitor
+from brms.core.models.instruments.base import Instrument
+from brms.core.visitors.inspection import InspectionVisitor
 
 
 class InspectorController(BRMSController):

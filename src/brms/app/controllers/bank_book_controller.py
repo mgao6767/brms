@@ -12,8 +12,8 @@ from brms.app.views.bank_book_widget import (
     LiabilityColumns,
 )
 from brms.app.views.tree_widget import QMODELINDEX, TreeModel
-from brms.instruments.base import Instrument
-from brms.instruments.cash import Cash
+from brms.core.models.instruments.base import Instrument
+from brms.core.models.instruments.deposits import Cash
 from brms.models.bank_book import BankBook, BankingBook, Position, TradingBook
 
 if TYPE_CHECKING:
