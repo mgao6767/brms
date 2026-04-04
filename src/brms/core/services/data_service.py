@@ -2,18 +2,68 @@
 
 from __future__ import annotations
 
+import datetime
 import json
+import re
 import zipfile
 from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
+import QuantLib as ql  # noqa: N813
 
 from brms.core.exceptions import DataLoadError
 from brms.core.models.bank import Bank
 from brms.core.models.books import BankingBook, TradingBook
+from brms.core.models.instruments.base import BookType, CreditRating, InstrumentClass, Issuer, IssuerType
 from brms.core.models.instruments.registry import InstrumentRegistry
 from brms.core.models.market_data import MarketDataStore
+
+_PERIOD_RE = re.compile(r"^(\d+)\s*(Y|M|W|D)$", re.IGNORECASE)
+
+_PERIOD_UNIT_MAP: dict[str, int] = {
+    "Y": ql.Years,
+    "M": ql.Months,
+    "W": ql.Weeks,
+    "D": ql.Days,
+}
+
+
+def _convert_kwargs(kwargs: dict[str, object]) -> dict[str, object]:
+    """Convert JSON-friendly values to QuantLib types expected by instrument constructors.
+
+    * Fields ending with ``_date``: ISO date string -> ``ql.Date``.
+    * Field ``maturity``: period string like ``"30Y"`` -> ``ql.Period``.
+    * Field ``instrument_class``: string -> ``InstrumentClass`` enum.
+    * Field ``book_type``: string -> ``BookType`` enum.
+    * Field ``credit_rating``: string -> ``CreditRating`` enum.
+    * Field ``issuer``: dict -> ``Issuer`` object.
+    """
+    for key, value in list(kwargs.items()):
+        if isinstance(value, str) and key.endswith("_date"):
+            d = datetime.date.fromisoformat(value)
+            kwargs[key] = ql.Date(d.day, d.month, d.year)
+
+        elif key == "maturity" and isinstance(value, str):
+            m = _PERIOD_RE.match(value)
+            if m:
+                kwargs[key] = ql.Period(int(m.group(1)), _PERIOD_UNIT_MAP[m.group(2).upper()])
+
+        elif key == "instrument_class" and isinstance(value, str):
+            kwargs[key] = InstrumentClass(value)
+
+        elif key == "book_type" and isinstance(value, str):
+            kwargs[key] = BookType(value)
+
+        elif key == "credit_rating" and isinstance(value, str):
+            kwargs[key] = CreditRating[value]
+
+        elif key == "issuer" and isinstance(value, dict):
+            issuer_type = IssuerType[value["issuer_type"]]
+            cr = CreditRating[value["credit_rating"]] if "credit_rating" in value else None
+            kwargs[key] = Issuer(name=value["name"], issuer_type=issuer_type, credit_rating=cr)
+
+    return kwargs
 
 
 class DataService:
@@ -74,12 +124,14 @@ class DataService:
         for item in bank_data.get("banking_book", []):
             item = dict(item)  # noqa: PLW2901
             type_id = item.pop("type")
+            _convert_kwargs(item)
             inst = self._instrument_registry.create(type_id, **item)
             banking_book.add(inst)
         trading_book = TradingBook()
         for item in bank_data.get("trading_book", []):
             item = dict(item)  # noqa: PLW2901
             type_id = item.pop("type")
+            _convert_kwargs(item)
             inst = self._instrument_registry.create(type_id, **item)
             trading_book.add(inst)
         # ledger is wired separately by the simulation layer
