@@ -1,10 +1,10 @@
 [project]
 name = "brms"
-version = "0.1.0.dev1"
+version = "0.1.0.dev2"
 description = "A bank risk management simulation framework."
 readme = "README.md"
 authors = [{ name = "Mingze Gao", email = "adrian.gao@outlook.com" }]
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",

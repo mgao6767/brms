@@ -3,10 +3,16 @@
 from typing import TYPE_CHECKING, Optional
 
 from brms.instruments.base import Instrument
-from brms.instruments.visitors.valuation import BankingBookValuationVisitor
+from brms.instruments.visitors.valuation import ValuationVisitor
+from brms.models.scenario import ScenarioManager
 
 if TYPE_CHECKING:
+    from brms.instruments.amortizing_fixed_rate_loan import AmortizingFixedRateLoan
     from brms.instruments.base import CreditRating, Issuer
+    from brms.instruments.covered_bond import CoveredBond
+    from brms.instruments.credit_card import CreditCard
+    from brms.instruments.fixed_rate_bond import FixedRateBond
+    from brms.instruments.personal_loan import PersonalLoan
     from brms.instruments.visitors import Visitor
     from brms.models.base import BookType
 
@@ -30,7 +36,7 @@ class MockInstrument(Instrument):
         visitor.visit_mock_instrument(self)
 
 
-class MockValuationVisitor(BankingBookValuationVisitor):
+class MockValuationVisitor(ValuationVisitor):
     """A mock valuation visitor that sets a new value for mock instruments."""
 
     def __init__(self, new_value: float) -> None:
@@ -38,9 +44,25 @@ class MockValuationVisitor(BankingBookValuationVisitor):
 
         :param new_value: The new value to set for the mock instrument.
         """
-        super().__init__(scenario=None)
+        sm = ScenarioManager()
+        super().__init__(scenario_manager=sm, valuation_date=None)
         self.new_value = new_value
 
     def visit_mock_instrument(self, instrument: "MockInstrument") -> None:
         """Visit a mock instrument."""
         instrument.value = self.new_value
+
+    def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> None:
+        """Value a fixed rate bond."""
+
+    def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> None:
+        """Value an amortizing fixed rate bond."""
+
+    def visit_covered_bond(self, instrument: "CoveredBond") -> None:
+        """Value a covered bond."""
+
+    def visit_personal_loan(self, instrument: "PersonalLoan") -> None:
+        """Value a personal loan."""
+
+    def visit_credit_card(self, instrument: "CreditCard") -> None:
+        """Value a credit card."""

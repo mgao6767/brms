@@ -9,10 +9,16 @@ from brms.instruments.base import Instrument
 from brms.instruments.cash import Cash
 from brms.instruments.common_equity import CommonEquity
 from brms.instruments.deposit import Deposit
+from brms.instruments.mock import MockValuationVisitor
 from brms.instruments.mortgage import Mortgage
 from brms.instruments.visitors.valuation import ValuationVisitor
 from brms.models.bank import Bank
-from brms.models.bank_book import BookType, Position, UnrealizedOCIGainLossTracker, UnrealizedTradingGainLossTracker
+from brms.models.bank_book import (
+    BookType,
+    Position,
+    UnrealizedOCIGainLossTracker,
+    UnrealizedTradingGainLossTracker,
+)
 
 
 class Action(Enum):
@@ -144,6 +150,8 @@ class Transaction(ABC):
         Returns:
             bool: True if the transaction was executed, False if it was already executed.
         """
+        if isinstance(self.valuation_visitor, MockValuationVisitor):
+            pass
         if not self.executed:
             self._execute()
             self.executed = True
@@ -238,7 +246,10 @@ class TransactionFactory:
         # Marking to market transactions must have a valuation visitor
         if (
             transaction_type
-            in (TransactionType.SECURITY_FVOCI_MARK_TO_MARKET, TransactionType.SECURITY_FVTPL_MARK_TO_MARKET)
+            in (
+                TransactionType.SECURITY_FVOCI_MARK_TO_MARKET,
+                TransactionType.SECURITY_FVTPL_MARK_TO_MARKET,
+            )
             and valuation_visitor is None
         ):
             error_message = f"ValuationVisitor must be provided for transaction type {transaction_type}."
@@ -404,7 +415,11 @@ class LoanDisbursementTransaction(Transaction):
 
     def controller_actions(self) -> GUIControllerInstruction:
         return {
-            self.cash_to_disburse: (Action.REMOVE, BookType.BANKING_BOOK, Position.LONG),
+            self.cash_to_disburse: (
+                Action.REMOVE,
+                BookType.BANKING_BOOK,
+                Position.LONG,
+            ),
             self.instrument: (Action.ADD, BookType.BANKING_BOOK, Position.LONG),
         }
 
@@ -536,7 +551,8 @@ class MortgagePrincipalPaymentTransaction(Transaction):
 
     def _execute(self) -> None:
         self.cash_to_receive = self.instrument
-        self.valuation_visitor.set_date(self.transaction_date, date_must_be_in_simulation=False)
+        if not isinstance(self.valuation_visitor, MockValuationVisitor):
+            self.valuation_visitor.set_date(self.transaction_date, date_must_be_in_simulation=False)
         self.mortgage.accept(self.valuation_visitor)
         self.bank.banking_book.add_instrument(self.cash_to_receive, Position.LONG)
         self.bank.ledger.post(self.journal_entry)
@@ -856,7 +872,7 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
         if not isinstance(self.valuation_visitor, ValuationVisitor):
             error = "ValuationVisitor not set"
             raise TypeError(error)
-        if self.transaction_date is None:
+        if self.transaction_date is None and not isinstance(self.valuation_visitor, MockValuationVisitor):
             error = "Transaction date not set"
             raise TypeError(error)
 
@@ -866,7 +882,8 @@ class SecurityMarkToMarketFVTPLTransaction(Transaction):
         self.old_unrealized_trading_loss = self.tracker.get_unrealized_loss(self.instrument)
         self.old_value = self.instrument.value
         # Value the FVTPL instrument at transaction date
-        self.valuation_visitor.set_date(self.transaction_date)
+        if not isinstance(self.valuation_visitor, MockValuationVisitor):
+            self.valuation_visitor.set_date(self.transaction_date)
         self.instrument.accept(self.valuation_visitor)
         self.new_value = self.instrument.value
         # P&L
@@ -923,7 +940,7 @@ class SecurityMarkToMarketFVOCITransaction(Transaction):
         if not isinstance(self.valuation_visitor, ValuationVisitor):
             error = "ValuationVisitor not set"
             raise TypeError(error)
-        if self.transaction_date is None:
+        if self.transaction_date is None and not isinstance(self.valuation_visitor, MockValuationVisitor):
             error = "Transaction date not set"
             raise TypeError(error)
 
@@ -933,7 +950,8 @@ class SecurityMarkToMarketFVOCITransaction(Transaction):
         self.old_unrealized_oci_loss = self.tracker.get_unrealized_loss(self.instrument)
         self.old_value = self.instrument.value
         # Value the FVOCI instrument at transaction date
-        self.valuation_visitor.set_date(self.transaction_date)
+        if not isinstance(self.valuation_visitor, MockValuationVisitor):
+            self.valuation_visitor.set_date(self.transaction_date)
         self.instrument.accept(self.valuation_visitor)
         self.new_value = self.instrument.value
         # P&L
