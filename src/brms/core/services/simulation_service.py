@@ -67,6 +67,21 @@ class SimulationService:
         return self._current_date
 
     @property
+    def start_date(self) -> datetime.date | None:
+        """The earliest available simulation date, or None if no data loaded."""
+        return self._available_dates[0] if self._available_dates else None
+
+    @property
+    def end_date(self) -> datetime.date | None:
+        """The latest available simulation date, or None if no data loaded."""
+        return self._available_dates[-1] if self._available_dates else None
+
+    @property
+    def market_data(self) -> MarketDataStore:
+        """The underlying market data store."""
+        return self._market_data
+
+    @property
     def current_market_state(self) -> MarketState | None:
         """Zero-copy market state for the current date, or None before the first advance."""
         if self._current_date is None:

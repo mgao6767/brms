@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
@@ -173,6 +175,21 @@ class YieldCurveController(BRMSController):
             new_yield_data[date] = rates
         self.model.update_yield_data(new_yield_data=new_yield_data)
         self.set_current_selection(0, 0)
+
+    def init_from_dataframe(self, yields_df: pd.DataFrame) -> None:
+        """Load treasury yields from a date-indexed DataFrame into the YieldCurve model.
+
+        This is the core-layer replacement for :meth:`init`, which required a
+        legacy ``ScenarioManager``.
+        """
+        new_yield_data: dict[date, list[tuple[str, float]]] = {}
+        for idx, row in yields_df.iterrows():
+            dt = idx.date() if hasattr(idx, "date") else idx
+            rates = [(col, row[col]) for col in yields_df.columns]
+            new_yield_data[dt] = rates
+        self.model.update_yield_data(new_yield_data=new_yield_data)
+        if self.model.rowCount() > 0:
+            self.set_current_selection(0, 0)
 
     def set_scenario(self, scenario: Scenario) -> None:
         """Set the scenario and update the plot.

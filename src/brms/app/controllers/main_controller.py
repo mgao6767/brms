@@ -11,15 +11,14 @@ from brms.app.controllers.bank_controller import BankController
 from brms.app.controllers.base import BRMSController
 from brms.app.controllers.inspector_controller import InspectorController
 from brms.app.controllers.yield_curve_controller import YieldCurveController
-from brms.data import DEFAULT_DATA_FOLDER
-from brms.data.default import SIMULATION_START_DATE
 
 if TYPE_CHECKING:
+    import datetime
+
     from brms.app.views.main_window import MainWindow
     from brms.core.events import DateAdvanced
     from brms.core.models.history import SimulationHistory
     from brms.core.services.simulation_service import SimulationService
-    from brms.models.simulation import Simulation as SimulationModel
 
 logger = logging.getLogger(__name__)
 
@@ -29,20 +28,25 @@ class MainController(BRMSController):
 
     def __init__(
         self,
-        model: SimulationModel,
         view: MainWindow,
         *,
         core_services: dict[str, Any] | None = None,
     ) -> None:
         """Initialize the MainController."""
         super().__init__()
-        self.simulation: SimulationModel = model
         self.view: MainWindow = view  # type: ignore[annotation-unchecked]
 
         # Store core services for future use as migration progresses
         self._core: dict[str, Any] = core_services or {}
         self._history: SimulationHistory | None = self._core.get("history")
         self._simulation_service: SimulationService | None = self._core.get("simulation_service")
+
+        # Derive start/end dates from SimulationService
+        self._start_date: datetime.date | None = None
+        self._end_date: datetime.date | None = None
+        if self._simulation_service is not None:
+            self._start_date = self._simulation_service.start_date
+            self._end_date = self._simulation_service.end_date
 
         # Subscribe to EventBus DateAdvanced events for view updates
         if self._simulation_service is not None:
@@ -58,8 +62,8 @@ class MainController(BRMSController):
         self.simulation_timer = QTimer()
         self.simulation_timer.setInterval(self.simulation_interval)
         # Sub controllers
-        self.inspector_ctrl = InspectorController(inspector_widget=self.view.inspector_widget)
         core_bank = self._simulation_service.bank if self._simulation_service else None
+        self.inspector_ctrl = InspectorController(inspector_widget=self.view.inspector_widget)
         self.bank_ctrl = BankController(
             bank=core_bank,
             event_bus=self._core.get("event_bus"),
@@ -94,22 +98,25 @@ class MainController(BRMSController):
 
         These should be init actions on a fresh simulation start.
         """
-        # 1. Scenario manager loads data (still needed by BankController and YieldCurveController)
-        self.simulation.scenario_manager.load_data("csv", DEFAULT_DATA_FOLDER)
-        # 2. Simulation sets the starting scenario (date)
-        self.simulation.set_scenario(SIMULATION_START_DATE)
-        # 3. Initialize sub controllers
-        self.yield_curve_ctrl.init(self.simulation.scenario_manager)
-        # 4. Set up dashboard dates
-        self.simulation.start_date = self.simulation.current_scenario.date
+        # Initialize yield curve controller with market data if available
+        if self._simulation_service is not None:
+            market_data = self._simulation_service.market_data
+            if market_data.has_frame("yields"):
+                yields_df = market_data.get_frame("yields")
+                self.yield_curve_ctrl.init_from_dataframe(yields_df)
+
+        # Set up dashboard dates
         self.view.dashboard.update_simulation_progress(0)
-        self.view.dashboard.update_simulation_date(self.simulation.current_scenario.date)
-        self.view.dashboard.update_simulation_start_date(self.simulation.start_date)
-        self.view.dashboard.update_simulation_end_date(self.simulation.end_date)
+        if self._start_date is not None:
+            self.view.dashboard.update_simulation_date(self._start_date)
+            self.view.dashboard.update_simulation_start_date(self._start_date)
+        if self._end_date is not None:
+            self.view.dashboard.update_simulation_end_date(self._end_date)
         self.update_dashboard()
         # misc
-        self.view.transaction_history_widget.set_end_date(self.simulation.current_scenario.date)
-        self.view.transaction_history_widget.set_start_date(self.simulation.current_scenario.date)
+        if self._start_date is not None:
+            self.view.transaction_history_widget.set_end_date(self._start_date)
+            self.view.transaction_history_widget.set_start_date(self._start_date)
 
     def on_exit(self) -> None:
         """Handle the exit signal from the view."""
@@ -137,21 +144,21 @@ class MainController(BRMSController):
             cet1_values = []
 
         self.view.dashboard.update_assets_liabilities_plot(
-            start=self.simulation.start_date,
-            end=self.simulation.end_date,
+            start=self._start_date,
+            end=self._end_date,
             dates=dates,
             asset_values=asset_values,
             liability_values=liability_values,
         )
         self.view.dashboard.update_equity_plot(
-            start=self.simulation.start_date,
-            end=self.simulation.end_date,
+            start=self._start_date,
+            end=self._end_date,
             dates=dates,
             equity_values=equity_values,
         )
         self.view.dashboard.update_capital_ratio_plot(
-            start=self.simulation.start_date,
-            end=self.simulation.end_date,
+            start=self._start_date,
+            end=self._end_date,
             dates=dates,
             values=cet1_values,
         )
@@ -182,10 +189,8 @@ class MainController(BRMSController):
         date = event.date
         self.view.statusBar().showMessage(f"Current date: {date}")
         self.view.dashboard.update_simulation_date(date)
-        start_date = self.simulation.start_date
-        end_date = self.simulation.end_date
-        if start_date and end_date and end_date > start_date:
-            progress = (date - start_date) / (end_date - start_date) * 100
+        if self._start_date and self._end_date and self._end_date > self._start_date:
+            progress = (date - self._start_date) / (self._end_date - self._start_date) * 100
             self.view.dashboard.update_simulation_progress(int(progress))
         self.bank_ctrl.update_statement(date)
         self.update_dashboard()

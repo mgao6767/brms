@@ -50,7 +50,6 @@ from brms.core.services.risk_service import RiskService
 from brms.core.services.simulation_service import SimulationService
 from brms.core.services.valuation_service import ValuationService
 from brms.data import DEFAULT_DATA_FOLDER
-from brms.models.simulation import Simulation as SimulationModel
 
 
 def _build_instrument_registry() -> InstrumentRegistry:
@@ -163,12 +162,8 @@ class App(QApplication):
         # Core domain services (new architecture)
         self.core_services = _build_core_services()
 
-        # SimulationModel still needed by BankController and YieldCurveController
-        self.model = SimulationModel()
-
         self.view = MainWindow()
         self.controller = MainController(
-            self.model,
             self.view,
             core_services=self.core_services,
         )
