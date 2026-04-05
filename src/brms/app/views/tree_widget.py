@@ -194,7 +194,7 @@ class TreeModel(QAbstractItemModel):
             self.old_values[(index.row(), column)] = old_value
             # Emit dataChanged signal for the updated index and column
             self.dataChanged.emit(
-                index.siblingAtColumn(column), index.siblingAtColumn(column), [Qt.ItemDataRole.DisplayRole]
+                index.siblingAtColumn(column), index.siblingAtColumn(column), [Qt.ItemDataRole.DisplayRole],
             )
 
 
@@ -214,7 +214,7 @@ class BRMSTreeWidget(QTreeView):
         self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
 
     def populate_data(
-        self, data: dict[str, str | object] | list[dict], *, clear_existing: bool = True, expand: bool = True
+        self, data: dict[str, str | object] | list[dict], *, clear_existing: bool = True, expand: bool = True,
     ) -> None:
         """Add data to the tree."""
         if clear_existing:

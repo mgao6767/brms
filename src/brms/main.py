@@ -3,7 +3,6 @@
 import sys
 from pathlib import Path
 
-import pandas as pd
 from PySide6.QtWidgets import QApplication
 
 from brms import DEBUG_MODE
@@ -26,8 +25,6 @@ from brms.core.models.accounting.rules.interest import InterestPaymentRule
 from brms.core.models.accounting.rules.mark_to_market import MarkToMarketRule
 from brms.core.models.accounting.rules.maturity import MaturityRule
 from brms.core.models.accounting.service import AccountingService
-from brms.core.models.bank import Bank
-from brms.core.models.books import BankingBook, TradingBook
 from brms.core.models.history import SimulationHistory
 from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond, TreasuryBond, TreasuryNote
 from brms.core.models.instruments.deposits import Cash, Deposit
@@ -48,16 +45,12 @@ from brms.core.models.instruments.other import (
     TradeLetterOfCredit,
 )
 from brms.core.models.instruments.registry import InstrumentRegistry
-from brms.core.models.market_data import MarketDataStore
 from brms.core.services.data_service import DataService
 from brms.core.services.metrics_service import MetricsService
 from brms.core.services.reporting_service import ReportingService
 from brms.core.services.risk_service import RiskService
 from brms.core.services.simulation_service import SimulationService
 from brms.core.services.valuation_service import ValuationService
-from brms.data import DEFAULT_DATA_FOLDER
-
-
 def _build_instrument_registry() -> InstrumentRegistry:
     """Create and populate an InstrumentRegistry with all known instrument types."""
     registry = InstrumentRegistry()
@@ -87,15 +80,6 @@ def _build_instrument_registry() -> InstrumentRegistry:
     return registry
 
 
-def _load_market_data() -> MarketDataStore:
-    """Load market data from the default CSV files into a MarketDataStore."""
-    store = MarketDataStore()
-    yields_path = Path(DEFAULT_DATA_FOLDER) / "treasury_yields.csv"
-    yields_frame = pd.read_csv(yields_path, parse_dates=["date"], index_col="date")
-    store.add_frame("yields", yields_frame)
-    return store
-
-
 def _build_core_services() -> dict:
     """Instantiate and wire core domain services.
 
@@ -122,15 +106,14 @@ def _build_core_services() -> dict:
     risk_service = RiskService()
     history = SimulationHistory()
 
-    # Build core Bank with BankChartOfAccounts-backed Ledger
+    # Load default simulation from zip (instruments + market data)
+    default_zip = Path(__file__).parent / "data" / "default_simulation.zip"
+    core_bank, market_data = data_service.load_simulation(default_zip)
+
+    # Wire a real ledger onto the bank (DataService creates bank with ledger=None)
     coa = BankChartOfAccounts()
     ledger = Ledger(chart_of_accounts=coa)
-    banking_book = BankingBook()
-    trading_book = TradingBook()
-    core_bank = Bank(name="Core Bank", banking_book=banking_book, trading_book=trading_book, ledger=ledger)
-
-    # Build MarketDataStore from CSV yield data
-    market_data = _load_market_data()
+    core_bank.ledger = ledger
 
     # Create SimulationService with all wired services
     simulation_service = SimulationService(

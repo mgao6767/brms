@@ -292,7 +292,7 @@ class BRMSDashboard(QWidget):
     def update_assets_liabilities_plot(self, start, end, dates, asset_values, liability_values) -> None:
         """Update the assets plot with new data."""
         self.assets_liabilities_plot.update_plot(
-            start, end, dates, {"Total Assets": asset_values, "Total Liabilities": liability_values}
+            start, end, dates, {"Total Assets": asset_values, "Total Liabilities": liability_values},
         )
 
     def update_equity_plot(self, start, end, dates, equity_values) -> None:
