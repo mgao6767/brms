@@ -5,38 +5,38 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from brms.core.models.history import SimulationHistory
+    from brms.core.enums import MetricName
     from brms.core.models.market_data import MarketState
+    from brms.core.stores.valuation_store import ValuationStore
 
 
 @runtime_checkable
 class Metric(Protocol):
     """Protocol defining the interface for a computable bank metric."""
 
-    name: str
-    requires_history: bool
+    name: MetricName
 
     def compute(
         self,
         bank: Any,  # noqa: ANN401
         market_state: MarketState,
-        history: SimulationHistory | None = None,
+        valuation_store: ValuationStore,
     ) -> Any:  # noqa: ANN401
         """Compute the metric value."""
         ...
 
 
 class MetricRegistry:
-    """Registry for Metric instances, keyed by name."""
+    """Registry for Metric instances, keyed by MetricName."""
 
     def __init__(self) -> None:  # noqa: D107
-        self._metrics: dict[str, Metric] = {}
+        self._metrics: dict[MetricName, Metric] = {}
 
     def register(self, metric: Metric) -> None:
         """Register a metric."""
         self._metrics[metric.name] = metric
 
-    def get(self, name: str) -> Metric:
+    def get(self, name: MetricName) -> Metric:
         """Retrieve a metric by name."""
         return self._metrics[name]
 

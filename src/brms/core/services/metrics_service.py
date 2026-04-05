@@ -1,13 +1,17 @@
-"""MetricsService: computes bank metrics via a MetricRegistry."""
+"""MetricsService: computes bank metrics and writes results to MetricStore."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    import datetime
+
+    from brms.core.enums import MetricName
     from brms.core.metrics.base import MetricRegistry
-    from brms.core.models.history import SimulationHistory
     from brms.core.models.market_data import MarketState
+    from brms.core.stores.metric_store import MetricStore
+    from brms.core.stores.valuation_store import ValuationStore
 
 
 class MetricsService:
@@ -16,27 +20,30 @@ class MetricsService:
     def __init__(self, metric_registry: MetricRegistry) -> None:  # noqa: D107
         self._registry = metric_registry
 
-    def compute_all(
+    def compute(
         self,
         bank: Any,  # noqa: ANN401
         market_state: MarketState,
-        history: SimulationHistory,
-    ) -> dict[str, Any]:
-        """Compute all registered metrics and return as a name→value dict."""
-        results: dict[str, Any] = {}
+        date: datetime.date,
+        metric_store: MetricStore,
+        valuation_store: ValuationStore,
+    ) -> None:
+        """Compute all registered metrics and write results to metric_store."""
         for metric in self._registry.all_metrics():
-            history_arg = history if metric.requires_history else None
-            results[metric.name] = metric.compute(bank, market_state, history_arg)
-        return results
+            value = metric.compute(bank, market_state, valuation_store)
+            metric_store.record(metric.name, date, value)
 
-    def compute_one(
+    def compute_one(  # noqa: PLR0913
         self,
-        name: str,
+        name: MetricName,
         bank: Any,  # noqa: ANN401
         market_state: MarketState,
-        history: SimulationHistory,
+        date: datetime.date,
+        metric_store: MetricStore,
+        valuation_store: ValuationStore,
     ) -> Any:  # noqa: ANN401
-        """Compute a single metric by name."""
+        """Compute a single metric by name and write it to metric_store."""
         metric = self._registry.get(name)
-        history_arg = history if metric.requires_history else None
-        return metric.compute(bank, market_state, history_arg)
+        value = metric.compute(bank, market_state, valuation_store)
+        metric_store.record(metric.name, date, value)
+        return value

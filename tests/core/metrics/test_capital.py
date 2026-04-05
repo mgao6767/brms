@@ -1,5 +1,7 @@
 """Tests for capital metrics."""
 
+from unittest.mock import MagicMock
+
 from brms.core.metrics.capital import CET1RatioMetric, TotalAssetsMetric, TotalEquityMetric, TotalLiabilitiesMetric
 from brms.core.models.accounting.accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal, SimpleEntry
@@ -39,20 +41,20 @@ def _make_bank() -> Bank:
 
 def test_total_assets() -> None:  # noqa: D103
     bank = _make_bank()
-    assert TotalAssetsMetric().compute(bank, None) == _TOTAL_ASSETS  # noqa: S101
+    assert TotalAssetsMetric().compute(bank, None, MagicMock()) == _TOTAL_ASSETS  # noqa: S101
 
 
 def test_total_liabilities() -> None:  # noqa: D103
     bank = _make_bank()
-    assert TotalLiabilitiesMetric().compute(bank, None) == _DEPOSIT  # noqa: S101
+    assert TotalLiabilitiesMetric().compute(bank, None, MagicMock()) == _DEPOSIT  # noqa: S101
 
 
 def test_total_equity() -> None:  # noqa: D103
     bank = _make_bank()
-    assert TotalEquityMetric().compute(bank, None) == _EQUITY  # noqa: S101
+    assert TotalEquityMetric().compute(bank, None, MagicMock()) == _EQUITY  # noqa: S101
 
 
 def test_cet1_ratio() -> None:  # noqa: D103
     bank = _make_bank()
-    ratio = CET1RatioMetric().compute(bank, None)
+    ratio = CET1RatioMetric().compute(bank, None, MagicMock())
     assert abs(ratio - _EQUITY / _TOTAL_ASSETS) < _TOLERANCE  # noqa: S101

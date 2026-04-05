@@ -4,24 +4,24 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from brms.core.enums import MetricName
 from brms.core.models.accounting.accounts import AccountType
 
 if TYPE_CHECKING:
-    from brms.core.models.history import SimulationHistory
     from brms.core.models.market_data import MarketState
+    from brms.core.stores.valuation_store import ValuationStore
 
 
 class TotalAssetsMetric:
     """Sum of all ASSET account balances."""
 
-    name = "total_assets"
-    requires_history = False
+    name = MetricName.TOTAL_ASSETS
 
     def compute(
         self,
         bank: Any,  # noqa: ANN401
         market_state: MarketState,  # noqa: ARG002
-        history: SimulationHistory | None = None,  # noqa: ARG002
+        valuation_store: ValuationStore,  # noqa: ARG002
     ) -> float:
         """Sum of all ASSET account balances."""
         total = 0.0
@@ -34,14 +34,13 @@ class TotalAssetsMetric:
 class TotalLiabilitiesMetric:
     """Sum of all LIABILITY account balances."""
 
-    name = "total_liabilities"
-    requires_history = False
+    name = MetricName.TOTAL_LIABILITIES
 
     def compute(
         self,
         bank: Any,  # noqa: ANN401
         market_state: MarketState,  # noqa: ARG002
-        history: SimulationHistory | None = None,  # noqa: ARG002
+        valuation_store: ValuationStore,  # noqa: ARG002
     ) -> float:
         """Sum of all LIABILITY account balances."""
         total = 0.0
@@ -54,14 +53,13 @@ class TotalLiabilitiesMetric:
 class TotalEquityMetric:
     """Sum of all EQUITY account balances."""
 
-    name = "total_equity"
-    requires_history = False
+    name = MetricName.TOTAL_EQUITY
 
     def compute(
         self,
         bank: Any,  # noqa: ANN401
         market_state: MarketState,  # noqa: ARG002
-        history: SimulationHistory | None = None,  # noqa: ARG002
+        valuation_store: ValuationStore,  # noqa: ARG002
     ) -> float:
         """Sum of all EQUITY account balances."""
         total = 0.0
@@ -74,14 +72,13 @@ class TotalEquityMetric:
 class CET1RatioMetric:
     """CET1 capital ratio: equity / total assets (simplified)."""
 
-    name = "cet1_ratio"
-    requires_history = False
+    name = MetricName.CET1_RATIO
 
     def compute(
         self,
         bank: Any,  # noqa: ANN401
         market_state: MarketState,  # noqa: ARG002
-        history: SimulationHistory | None = None,  # noqa: ARG002
+        valuation_store: ValuationStore,  # noqa: ARG002
     ) -> float:
         """CET1 / Total Assets (simplified)."""
         equity = 0.0
