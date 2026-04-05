@@ -1,4 +1,4 @@
-"""SimulationService: drives the simulation forward (advance) and backward (step_back)."""
+"""SimulationService: thin V2 orchestrator that sequences service calls for each date."""
 
 from __future__ import annotations
 
@@ -21,13 +21,68 @@ if TYPE_CHECKING:
 
 
 class SimulationService:
-    """Orchestrates one-step-at-a-time simulation with full reversibility.
+    """Thin V2 orchestrator: sequences service calls for each simulation date.
 
-    Calling :meth:`advance` moves the simulation to the next available date,
-    applies accounting rules, records metrics, and emits a :class:`DateAdvanced`
-    event. Calling :meth:`step_back` undoes the most recent advance, reverses
-    all posted transactions, restores book membership, and emits
-    :class:`DateReverted`.
+    Calling :meth:`advance` moves the simulation to the given date by running
+    valuation, rule application, accounting, metrics, and emitting
+    :class:`DateAdvanced`.  No step-back support — history is external.
+    """
+
+    def __init__(  # noqa: PLR0913
+        self,
+        bank: object,
+        market_data: object,
+        valuation_service: object,
+        rule_engine: object,
+        accounting_service: object,
+        metrics_service: object,
+        valuation_store: object,
+        metric_store: object,
+        transaction_log: object,
+        event_bus: EventBus,
+    ) -> None:
+        """Initialise the orchestrator with all required collaborators."""
+        self.bank = bank
+        self.market_data = market_data
+        self.valuation_service = valuation_service
+        self.rule_engine = rule_engine
+        self.accounting_service = accounting_service
+        self.metrics_service = metrics_service
+        self.valuation_store = valuation_store
+        self.metric_store = metric_store
+        self.transaction_log = transaction_log
+        self.event_bus = event_bus
+
+    def advance(self, date: datetime.date) -> None:  # type: ignore[name-defined]
+        """Advance the simulation to *date*.
+
+        Steps performed (in order):
+        1. Fetch market state for the date.
+        2. Value all positions via the valuation service.
+        3. Apply rules via the rule engine to obtain transactions.
+        4. Post all transactions to the ledger via the accounting service.
+        5. Record the transaction batch in the transaction log.
+        6. Compute metrics via the metrics service.
+        7. Emit :class:`DateAdvanced`.
+        """
+        market_state = self.market_data.get_state(date)
+        self.valuation_service.value_all(self.bank, self.market_data, date, self.valuation_store)
+        transactions = self.rule_engine.apply(self.bank, self.valuation_store, market_state, date)
+        self.accounting_service.post_all(transactions, self.bank.ledger, self.bank.positions)
+        self.transaction_log.record_batch(transactions)
+        self.metrics_service.compute(self.bank, market_state, date, self.metric_store, self.valuation_store)
+        self.event_bus.emit(DateAdvanced(date))
+
+    def __repr__(self) -> str:  # noqa: D105
+        return f"SimulationService(bank={self.bank!r})"
+
+
+class LegacySimulationService:
+    """Legacy V1 orchestrator with step-back support.
+
+    Kept for reference; the application entry point (main.py) still wires this
+    via keyword argument names from the old API.  New code should use
+    :class:`SimulationService`.
     """
 
     def __init__(  # noqa: PLR0913
@@ -98,17 +153,7 @@ class SimulationService:
     # ------------------------------------------------------------------
 
     def advance(self) -> None:
-        """Advance the simulation by one date.
-
-        Steps performed:
-        1. Move to the next available market date.
-        2. Build a :class:`DayRecord` with the current market state.
-        3. Apply all accounting rules to every instrument in both books.
-        4. Post generated transactions to the ledger.
-        5. Compute all registered metrics.
-        6. Push the day record onto the history stack.
-        7. Emit a :class:`DateAdvanced` event.
-        """
+        """Advance the simulation by one date."""
         self._current_date = self._available_dates[self._date_index]
         self._date_index += 1
 
@@ -129,16 +174,7 @@ class SimulationService:
         self._events.emit(DateAdvanced(self._current_date))
 
     def step_back(self) -> None:
-        """Reverse the most recent :meth:`advance`.
-
-        Steps performed:
-        1. Pop the most recent :class:`DayRecord` from the history stack.
-        2. Decrement the date index.
-        3. Restore instrument book membership (reverse order).
-        4. Reverse all posted transactions (reverse order).
-        5. Set :attr:`current_date` to the previous day's date, or None.
-        6. Emit a :class:`DateReverted` event.
-        """
+        """Reverse the most recent :meth:`advance`."""
         day_record: DayRecord = self._history.pop_day()
         self._date_index -= 1
 
@@ -178,7 +214,7 @@ class SimulationService:
 
     def __repr__(self) -> str:  # noqa: D105
         return (
-            f"SimulationService(bank={self._bank.name!r}, "
+            f"LegacySimulationService(bank={self._bank.name!r}, "
             f"current_date={self._current_date!r}, "
             f"date_index={self._date_index})"
         )
