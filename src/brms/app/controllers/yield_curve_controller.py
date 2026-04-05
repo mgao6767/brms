@@ -57,7 +57,7 @@ class YieldCurveController(BRMSController):
     def get_date_from_selection(self):
         indexes = self.view.table_view.selectionModel().selectedRows()
         if not indexes:
-            return
+            return None
         row = indexes[0].row()
         model = self.model
         # Retrieve the date from the vertical header
@@ -67,7 +67,7 @@ class YieldCurveController(BRMSController):
     def get_yields_from_selection(self):
         indexes = self.view.table_view.selectionModel().selectedRows()
         if not indexes:
-            return
+            return None
 
         row = indexes[0].row()
         model = self.model

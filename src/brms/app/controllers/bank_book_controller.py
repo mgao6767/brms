@@ -1,4 +1,3 @@
-from typing import TYPE_CHECKING
 
 from brms import DEBUG_MODE
 from brms.app.controllers.base import BRMSController
@@ -12,20 +11,16 @@ from brms.app.views.bank_book_widget import (
     LiabilityColumns,
 )
 from brms.app.views.tree_widget import QMODELINDEX, TreeModel
-from brms.core.models.books import BankingBook, TradingBook
+from brms.core.models.books import BankingBook, Position, TradingBook
 from brms.core.models.instruments.base import Instrument
 from brms.core.models.instruments.deposits import Cash
-from brms.core.models.books import Position
-
-if TYPE_CHECKING:
-    from PySide6.QtCore import QItemSelection
 
 
 class BankBookController(BRMSController):
     """Controller for managing a bank's banking or trading book."""
 
     def __init__(
-        self, bank_book: BankingBook | TradingBook, view: BRMSBankBookWidget, inspector_ctrl: InspectorController
+        self, bank_book: BankingBook | TradingBook, view: BRMSBankBookWidget, inspector_ctrl: InspectorController,
     ) -> None:
         self.bank_book = bank_book  # must be read-only
         self.bank_book_widget = view
