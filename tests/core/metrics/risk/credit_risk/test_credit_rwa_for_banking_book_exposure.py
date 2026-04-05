@@ -45,11 +45,12 @@ def test_compute_rwa():
     expected_rwa = 0
 
     # Cash has a risk weight of 0
-    cash = Cash(1000)
+    cash = Cash()
+    cash.value = 1000
     bank.add(cash)
 
     # Rated covered bond by a bank with AAA rating, risk weight is 0.1
-    instrument1 = CoveredBond("Covered Bond 1", book_type=BookType.BANKING, credit_rating=CreditRating.AAA)
+    instrument1 = CoveredBond(name="Covered Bond 1", book_type=BookType.BANKING, credit_rating=CreditRating.AAA)
     instrument1.issuer = Issuer("Bank 1", IssuerType.BANK)
     instrument1.value = 20000
     bank.add(instrument1)

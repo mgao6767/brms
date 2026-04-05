@@ -17,7 +17,8 @@ if TYPE_CHECKING:
 class FixedRateBond(Instrument):
     """A class representing a fixed rate bond."""
 
-    instrument_type = "Fixed Rate Bond"
+    _instrument_type_label = "Fixed Rate Bond"
+    _instrument_type_enum = InstrumentType.FIXED_RATE_BOND
 
     def __init__(  # noqa: PLR0913
         self,
@@ -64,7 +65,7 @@ class FixedRateBond(Instrument):
 
         """
         maturity_date_str = qldate_to_string(maturity_date)
-        name = f"{coupon_rate * 100:.2f}% {maturity_date_str} {self.instrument_type}"
+        name = f"{coupon_rate * 100:.2f}% {maturity_date_str} {self._instrument_type_label}"
         super().__init__(name, book_type, credit_rating, issuer, parent, instrument_class=instrument_class)
 
         coupons = [coupon_rate]
@@ -91,6 +92,8 @@ class FixedRateBond(Instrument):
             100.0,
             issue_date,
         )
+        self.instrument_type = self._instrument_type_enum
+        self.ql_instrument = self.instrument
 
     def notional(self, date: datetime.date) -> float:
         """Calculate the notional value of the bond on a given date.
@@ -136,17 +139,24 @@ class FixedRateBond(Instrument):
 class TreasuryNote(FixedRateBond):
     """Represents a Treasury Note with a fixed interest rate and maturity between one and ten years."""
 
-    instrument_type = "Treasury Note"
+    _instrument_type_label = "Treasury Note"
+    _instrument_type_enum = InstrumentType.TREASURY_NOTE
 
 
 class TreasuryBond(FixedRateBond):
     """Represents a Treasury Bond with a fixed interest rate and maturity greater than ten years."""
 
-    instrument_type = "Treasury Bond"
+    _instrument_type_label = "Treasury Bond"
+    _instrument_type_enum = InstrumentType.TREASURY_BOND
 
 
 class CoveredBond(Instrument):
     """A class to represent covered bond instruments."""
+
+    def __init__(self, **kwargs: object) -> None:
+        """Initialize a covered bond."""
+        super().__init__(**kwargs)  # type: ignore[arg-type]
+        self.instrument_type = InstrumentType.COVERED_BOND
 
     def accept(self, visitor: object) -> None:
         """Accept a visitor."""

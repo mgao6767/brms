@@ -1,27 +1,25 @@
 """Tests for V2 Instrument base: no .value, ql_instrument, InstrumentType."""
 
-# ruff: noqa: S101, ANN201, ANN001
+# ruff: noqa: S101, ANN201, ANN001, ANN003, ANN401
+
+from typing import Any
 
 import QuantLib as ql  # noqa: N813
 
 from brms.core.enums import InstrumentType
 from brms.core.models.instruments.base import Instrument
-from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond, TreasuryBond, TreasuryNote
+from brms.core.models.instruments.bonds import FixedRateBond, TreasuryBond, TreasuryNote
 from brms.core.models.instruments.deposits import Cash, Deposit
 from brms.core.models.instruments.equity import CommonEquity
 from brms.core.models.instruments.loans import (
     AmortizingFixedRateLoan,
     CommercialMortgage,
-    CreditCard,
-    Mortgage,
-    PersonalLoan,
     ResidentialMortgage,
 )
-from brms.core.models.instruments.other import Commitment, LetterOfCredit, RepurchaseAgreement
 
 
-def _make_bond(**kwargs) -> FixedRateBond:
-    defaults = {
+def _make_bond(**kwargs: Any) -> FixedRateBond:
+    defaults: dict[str, Any] = {
         "face_value": 1000.0,
         "coupon_rate": 0.05,
         "issue_date": ql.Date(1, 1, 2020),
@@ -31,8 +29,8 @@ def _make_bond(**kwargs) -> FixedRateBond:
     return FixedRateBond(**defaults)
 
 
-def _make_loan(**kwargs) -> AmortizingFixedRateLoan:
-    defaults = {
+def _make_loan(**kwargs: Any) -> AmortizingFixedRateLoan:
+    defaults: dict[str, Any] = {
         "face_value": 100_000.0,
         "interest_rate": 0.05,
         "issue_date": ql.Date(1, 1, 2020),
@@ -53,8 +51,6 @@ def test_instrument_has_no_value_attribute() -> None:
 
 def test_instrument_has_no_value_property() -> None:
     """Instrument instances should not expose a .value property."""
-    bond = _make_bond()
-    # value should not be a property on the class
     assert not isinstance(Instrument.__dict__.get("value"), property)
 
 

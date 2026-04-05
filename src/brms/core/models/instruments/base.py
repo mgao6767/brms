@@ -1,17 +1,18 @@
 """Base classes and enumerations for financial instruments in the core domain model."""
 
+from __future__ import annotations
+
 import uuid
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
 from enum import Enum, Flag, auto
-from typing import TYPE_CHECKING, Optional
-
-import QuantLib as ql  # noqa: N813
+from typing import TYPE_CHECKING
 
 from brms.core.enums import InstrumentType
 
 if TYPE_CHECKING:
-    pass
+    from collections.abc import Iterator
+
+    import QuantLib as ql  # noqa: N813
 
 
 class BookType(Enum):
@@ -71,25 +72,25 @@ class CreditRating(Enum):
     D = 22
     UNRATED = 23
 
-    def __lt__(self, other: "CreditRating") -> bool:
+    def __lt__(self, other: CreditRating) -> bool:
         """Compare if this credit rating is worse than another."""
         if isinstance(other, CreditRating):
             return self.value > other.value
         return NotImplemented
 
-    def __le__(self, other: "CreditRating") -> bool:
+    def __le__(self, other: CreditRating) -> bool:
         """Compare if this credit rating is worse than or equal to another."""
         if isinstance(other, CreditRating):
             return self.value >= other.value
         return NotImplemented
 
-    def __gt__(self, other: "CreditRating") -> bool:
+    def __gt__(self, other: CreditRating) -> bool:
         """Compare if this credit rating is better than another."""
         if isinstance(other, CreditRating):
             return self.value < other.value
         return NotImplemented
 
-    def __ge__(self, other: "CreditRating") -> bool:
+    def __ge__(self, other: CreditRating) -> bool:
         """Compare if this credit rating is better than or equal to another."""
         if isinstance(other, CreditRating):
             return self.value <= other.value
@@ -217,10 +218,10 @@ class Instrument(ABC):
         self,
         name: str = "",
         book_type: BookType | None = None,
-        credit_rating: Optional["CreditRating"] = None,
-        issuer: Optional["Issuer"] = None,
-        parent: Optional["Instrument"] = None,
-        instrument_class: Optional["InstrumentClass"] = None,
+        credit_rating: CreditRating | None = None,
+        issuer: Issuer | None = None,
+        parent: Instrument | None = None,
+        instrument_class: InstrumentClass | None = None,
     ) -> None:
         """Initialize a financial instrument."""
         self.id = uuid.uuid4()
@@ -234,39 +235,39 @@ class Instrument(ABC):
         self.ql_instrument: ql.Instrument | None = None
 
     @property
-    def parent(self) -> Optional["Instrument"]:
+    def parent(self) -> Instrument | None:
         """Get the parent instrument."""
         return self._parent
 
     @parent.setter
-    def parent(self, parent: Optional["Instrument"]) -> None:
+    def parent(self, parent: Instrument | None) -> None:
         self._parent = parent
 
     @property
-    def book_type(self) -> Optional["BookType"]:
+    def book_type(self) -> BookType | None:
         """Get the book type of the instrument."""
         return self._book_type
 
     @book_type.setter
-    def book_type(self, book_type: "BookType") -> None:
+    def book_type(self, book_type: BookType) -> None:
         self._book_type = book_type
 
     @property
-    def credit_rating(self) -> "CreditRating":
+    def credit_rating(self) -> CreditRating:
         """Get the instrument's credit rating."""
         return self._credit_rating
 
     @credit_rating.setter
-    def credit_rating(self, credit_rating: "CreditRating") -> None:
+    def credit_rating(self, credit_rating: CreditRating) -> None:
         self._credit_rating = credit_rating
 
     @property
-    def issuer(self) -> "Issuer":
+    def issuer(self) -> Issuer:
         """Get the instrument's issuer."""
         return self._issuer
 
     @issuer.setter
-    def issuer(self, issuer: "Issuer") -> None:
+    def issuer(self, issuer: Issuer) -> None:
         self._issuer = issuer
 
     def is_composite(self) -> bool:
@@ -289,9 +290,9 @@ class CompositeInstrument(Instrument):
         self,
         name: str = "",
         book_type: BookType | None = None,
-        credit_rating: Optional["CreditRating"] = None,
-        issuer: Optional["Issuer"] = None,
-        parent: Optional["Instrument"] = None,
+        credit_rating: CreditRating | None = None,
+        issuer: Issuer | None = None,
+        parent: Instrument | None = None,
     ) -> None:
         """Initialize a composite instrument with an empty list of instruments."""
         super().__init__(name, book_type, credit_rating, issuer, parent)

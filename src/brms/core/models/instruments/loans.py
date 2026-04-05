@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional
 
 import QuantLib as ql  # noqa: N813
 
+from brms.core.enums import InstrumentType
 from brms.core.models.instruments.base import Instrument, InstrumentClass
 from brms.core.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
 
@@ -16,7 +17,8 @@ if TYPE_CHECKING:
 class AmortizingFixedRateLoan(Instrument):
     """A class representing an amortizing fixed rate loan."""
 
-    instrument_type = "Amortizing Fixed Rate Loan"
+    _instrument_type_label = "Amortizing Fixed Rate Loan"
+    _instrument_type_enum = InstrumentType.AMORTIZING_FIXED_RATE_LOAN
 
     def __init__(  # noqa: PLR0913
         self,
@@ -57,7 +59,7 @@ class AmortizingFixedRateLoan(Instrument):
 
         """
         maturity_date_str = qldate_to_string(issue_date + maturity)
-        name = f"{interest_rate * 100:.2f}% {maturity_date_str} {self.instrument_type}"
+        name = f"{interest_rate * 100:.2f}% {maturity_date_str} {self._instrument_type_label}"
         super().__init__(name, book_type, credit_rating, issuer, parent, instrument_class=instrument_class)
 
         coupons = [interest_rate]
@@ -73,6 +75,8 @@ class AmortizingFixedRateLoan(Instrument):
             business_convention,
             issue_date,
         )
+        self.instrument_type = self._instrument_type_enum
+        self.ql_instrument = self.instrument
 
     def notional(self, date: datetime.date) -> float:
         """Calculate the notional value of the loan on a given date.
@@ -146,23 +150,31 @@ class AmortizingFixedRateLoan(Instrument):
 class Mortgage(AmortizingFixedRateLoan):
     """Base class for mortgages with a fixed interest rate."""
 
-    instrument_type = "Mortgage"
+    _instrument_type_label = "Mortgage"
+    _instrument_type_enum = InstrumentType.MORTGAGE
 
 
 class ResidentialMortgage(Mortgage):
     """Represents a residential mortgage with a fixed interest rate."""
 
-    instrument_type = "Residential Mortgage"
+    _instrument_type_label = "Residential Mortgage"
+    _instrument_type_enum = InstrumentType.RESIDENTIAL_MORTGAGE
 
 
 class CommercialMortgage(Mortgage):
     """Represents a commercial mortgage with a fixed interest rate."""
 
-    instrument_type = "Commercial Mortgage"
+    _instrument_type_label = "Commercial Mortgage"
+    _instrument_type_enum = InstrumentType.COMMERCIAL_MORTGAGE
 
 
 class PersonalLoan(Instrument):
     """A class to represent personal loan instruments."""
+
+    def __init__(self, **kwargs: object) -> None:
+        """Initialize a personal loan."""
+        super().__init__(**kwargs)  # type: ignore[arg-type]
+        self.instrument_type = InstrumentType.PERSONAL_LOAN
 
     def accept(self, visitor: object) -> None:
         """Accept a visitor."""
@@ -171,6 +183,11 @@ class PersonalLoan(Instrument):
 
 class CreditCard(Instrument):
     """A class to represent credit card instruments."""
+
+    def __init__(self, **kwargs: object) -> None:
+        """Initialize a credit card."""
+        super().__init__(**kwargs)  # type: ignore[arg-type]
+        self.instrument_type = InstrumentType.CREDIT_CARD
 
     def accept(self, visitor: object) -> None:
         """Accept a visitor."""

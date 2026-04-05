@@ -15,14 +15,14 @@ class InstrumentFactory:
     """Convenience factory for constructing common instruments."""
 
     @staticmethod
-    def create_common_equity(*, value: float) -> CommonEquity:
+    def create_common_equity() -> CommonEquity:
         """Create a CommonEquity instrument."""
-        return CommonEquity(value=value)
+        return CommonEquity()
 
     @staticmethod
-    def create_deposit(*, value: float) -> Deposit:
+    def create_deposit() -> Deposit:
         """Create a Deposit instrument."""
-        return Deposit(value=value)
+        return Deposit()
 
     @staticmethod
     def create_treasury_note(  # noqa: PLR0913
@@ -78,7 +78,7 @@ class InstrumentFactory:
                 issuer_type=IssuerType.INDIVIDUAL,
                 credit_rating=CreditRating.UNRATED,
             )
-        mortgage = ResidentialMortgage(
+        return ResidentialMortgage(
             face_value=face_value,
             interest_rate=interest_rate,
             issue_date=issue_date_ql,
@@ -93,8 +93,6 @@ class InstrumentFactory:
             issuer=issuer,
             instrument_class=instrument_class,
         )
-        mortgage.value = face_value
-        return mortgage
 
     @staticmethod
     def create_fixed_rate_bond(  # noqa: PLR0913

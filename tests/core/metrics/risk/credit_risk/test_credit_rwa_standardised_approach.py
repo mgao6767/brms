@@ -189,11 +189,13 @@ def test_compute_covered_bond_exposures():
     scenario_manager = None
     risk_table = RiskWeightTableForRatedCoveredBondExposures
 
-    instrument1 = CoveredBond("Covered Bond 1", book_type=BookType.BANKING, credit_rating=CreditRating.AAA)
-    instrument2 = CoveredBond("Covered Bond 2", book_type=BookType.BANKING, credit_rating=CreditRating.A_PLUS)
+    instrument1 = CoveredBond(name="Covered Bond 1", book_type=BookType.BANKING, credit_rating=CreditRating.AAA)
+    instrument2 = CoveredBond(name="Covered Bond 2", book_type=BookType.BANKING, credit_rating=CreditRating.A_PLUS)
 
     instrument1.issuer = Issuer("Bank 1", IssuerType.BANK)
+    instrument1.value = 100
     instrument2.issuer = Issuer("Bank 2", IssuerType.BANK)
+    instrument2.value = 100
 
     bank.add(instrument1)
     bank.add(instrument2)
@@ -252,7 +254,8 @@ def test_compute_other_exposures():
     bank = _MockBank()
     scenario_manager = None
 
-    cash = Cash(1000)
+    cash = Cash()
+    cash.value = 1000
     bank.add(cash)
 
     rwa = standardised_approach._compute_other_assets_exposures(bank, scenario_manager)
@@ -260,7 +263,7 @@ def test_compute_other_exposures():
     assert rwa == expected_rwa
 
     # Adding other assets should have no effect
-    instrument1 = CoveredBond("Covered Bond 1", book_type=BookType.BANKING, credit_rating=CreditRating.AAA)
+    instrument1 = CoveredBond(name="Covered Bond 1", book_type=BookType.BANKING, credit_rating=CreditRating.AAA)
     instrument1.issuer = Issuer("Bank 1", IssuerType.BANK)
     bank.add(instrument1)
 
@@ -278,13 +281,14 @@ def test_compute_rwa():
     expected_rwa = 0
 
     # Cash has a risk weight of 0
-    cash = Cash(1000)
+    cash = Cash()
+    cash.value = 1000
     bank.add(cash)
     rwa = standardised_approach.compute_rwa(bank, today, scenario_manager)
     assert rwa == expected_rwa
 
     # Rated covered bond by a bank with AAA rating, risk weight is 0.1
-    instrument1 = CoveredBond("Covered Bond 1", book_type=BookType.BANKING, credit_rating=CreditRating.AAA)
+    instrument1 = CoveredBond(name="Covered Bond 1", book_type=BookType.BANKING, credit_rating=CreditRating.AAA)
     instrument1.issuer = Issuer("Bank 1", IssuerType.BANK)
     instrument1.value = 20000
     bank.add(instrument1)

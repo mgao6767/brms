@@ -125,6 +125,7 @@ class DataService:
             item = dict(item)  # noqa: PLW2901
             type_id = item.pop("type")
             _convert_kwargs(item)
+            item.pop("value", None)  # value is no longer an instrument field
             inst = self._instrument_registry.create(type_id, **item)
             banking_book.add(inst)
         trading_book = TradingBook()
@@ -132,6 +133,7 @@ class DataService:
             item = dict(item)  # noqa: PLW2901
             type_id = item.pop("type")
             _convert_kwargs(item)
+            item.pop("value", None)  # value is no longer an instrument field
             inst = self._instrument_registry.create(type_id, **item)
             trading_book.add(inst)
         # ledger is wired separately by the simulation layer

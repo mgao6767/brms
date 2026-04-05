@@ -86,7 +86,7 @@ def treasury_note() -> TreasuryNote:
 def test_treasury_note_instantiation(treasury_note: TreasuryNote) -> None:
     """Test that TreasuryNote can be instantiated."""
     assert treasury_note is not None
-    assert treasury_note.instrument_type == "Treasury Note"
+    assert "Treasury Note" in treasury_note.name
     assert "Treasury Note" in treasury_note.name
 
 

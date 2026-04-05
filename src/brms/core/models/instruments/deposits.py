@@ -1,20 +1,16 @@
 """Deposit instrument classes for the core domain model."""
 
+from brms.core.enums import InstrumentType
 from brms.core.models.instruments.base import Instrument
 
 
 class Cash(Instrument):
     """A class to represent cash."""
 
-    def __init__(self, value: float = 0.0) -> None:
-        """Initialize cash with an optional value.
-
-        Args:
-            value (float): The value of the cash. Defaults to 0.0.
-
-        """
+    def __init__(self) -> None:
+        """Initialize cash."""
         super().__init__(name="Cash")
-        self.value = value
+        self.instrument_type = InstrumentType.CASH
 
     def accept(self, visitor: object) -> None:
         """Accept a visitor."""
@@ -24,16 +20,15 @@ class Cash(Instrument):
 class Deposit(Instrument):
     """A class to represent customer deposit."""
 
-    def __init__(self, *, name: str = "Deposit", value: float = 0.0) -> None:
-        """Initialize a deposit with an optional name and value.
+    def __init__(self, *, name: str = "Deposit") -> None:
+        """Initialize a deposit with an optional name.
 
         Args:
             name (str): The name of the deposit. Defaults to "Deposit".
-            value (float): The value of the deposit. Defaults to 0.0.
 
         """
         super().__init__(name=name)
-        self.value = value
+        self.instrument_type = InstrumentType.DEPOSIT
 
     def accept(self, visitor: object) -> None:
         """Accept a visitor."""

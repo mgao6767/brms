@@ -25,7 +25,7 @@ def test_visitor_dispatch_cash() -> None:
 
     market_state = MagicMock()
     visitor = BankingBookValuationVisitor(market_state)
-    cash = Cash(value=1000.0)
+    cash = Cash()
     # Should not raise; visit_cash is a no-op in ValuationVisitor
     cash.accept(visitor)
 
@@ -36,7 +36,7 @@ def test_visitor_dispatch_deposit() -> None:
 
     market_state = MagicMock()
     visitor = TradingBookValuationVisitor(market_state)
-    deposit = Deposit(value=5000.0)
+    deposit = Deposit()
     deposit.accept(visitor)
 
 
@@ -49,7 +49,7 @@ def test_banking_book_only_skips_trading_instruments() -> None:
 
     market_state = MagicMock()
     visitor = BankingBookValuationVisitor(market_state)
-    cash = Cash(value=999.0)
+    cash = Cash()
     cash._book_type = BookType.TRADING  # noqa: SLF001
 
     with patch.object(visitor, "visit_cash", wraps=visitor.visit_cash) as mock_visit:
@@ -73,7 +73,5 @@ def test_trading_book_only_skips_banking_instruments() -> None:
         maturity_date=ql.Date(1, 1, 2025),
         book_type=BookType.BANKING,
     )
-    # Should silently skip (no error, no value change)
-    initial_value = bond.value
+    # Should silently skip (no error)
     bond.accept(visitor)
-    assert bond.value == initial_value  # noqa: S101
