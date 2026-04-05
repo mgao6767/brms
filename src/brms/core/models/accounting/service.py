@@ -7,14 +7,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
+from brms.core.enums import TransactionType
 from brms.core.models.accounting.journal import SimpleEntry
-from brms.core.models.transaction import TransactionType
 
 if TYPE_CHECKING:
     from brms.core.models.accounting.accounts import TAccount
     from brms.core.models.accounting.journal import JournalEntry
     from brms.core.models.accounting.ledger import Ledger
     from brms.core.models.transaction import Transaction
+    from brms.core.stores.position_store import PositionStore
 
 
 class AccountingService:
@@ -23,6 +24,12 @@ class AccountingService:
     The service looks up named accounts from the ledger's chart of accounts so
     that callers do not need to pass account references explicitly.
     """
+
+    def post_all(self, transactions: list[Transaction], ledger: Ledger, position_store: PositionStore) -> None:
+        """Post all transactions to ledger and update positions as needed."""
+        for tx in transactions:
+            self._post_to_ledger(tx, ledger)
+            self._update_positions(tx, position_store)
 
     def post(self, transaction: Transaction, ledger: Ledger) -> None:
         """Map *transaction* to journal entries and post each one to *ledger*."""
@@ -43,6 +50,17 @@ class AccountingService:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _post_to_ledger(self, tx: Transaction, ledger: Ledger) -> None:
+        """Post a single transaction to the ledger."""
+        entries = self._map_to_entries(tx, ledger)
+        for entry in entries:
+            ledger.post(entry)
+
+    def _update_positions(self, tx: Transaction, position_store: PositionStore) -> None:
+        """Close positions on maturity or sale transactions."""
+        if tx.type in (TransactionType.MATURITY_SETTLEMENT, TransactionType.SECURITY_SALE) and tx.position_id:
+            position_store.close(tx.position_id)
 
     def _map_to_entries(self, transaction: Transaction, ledger: Ledger) -> list[JournalEntry]:  # noqa: C901, PLR0911, PLR0912
         """Return the list of JournalEntry objects that represent *transaction*.
@@ -92,6 +110,7 @@ class AccountingService:
             KeyError: if no account with *name* exists in the chart.
 
         """
+
         def _search(account: TAccount) -> TAccount | None:
             if account.name == name:
                 return account
