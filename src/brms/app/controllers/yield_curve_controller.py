@@ -6,11 +6,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 import QuantLib as ql
 from dateutil.relativedelta import relativedelta
-from PySide6.QtCore import QItemSelectionModel, Qt, QTimer
+from PySide6.QtCore import QItemSelectionModel, Qt
 
 from brms.app.controllers.base import BRMSController
 from brms.app.views.yield_curve_widget import BRMSYieldCurveWidget
-from brms.models.scenario import Scenario, ScenarioManager
 from brms.models.yield_curve_model import YieldCurve
 from brms.services.yield_curve_service import YieldCurveService
 
@@ -164,18 +163,6 @@ class YieldCurveController(BRMSController):
         show_grid = self.view.plot_widget.grid_checkbox.isChecked()
         self.view.plot_widget.update_plot(dates, yields, dates_zero_rates, zero_rates, title, rescale_y, show_grid)
 
-    def init(self, scenario_manager: ScenarioManager) -> None:
-        """Load all treasury yields data into the data container YieldCurve model."""
-        # Convert from loaded data (pd.DataFrame) to the required format of update_yield_data
-        data_df = scenario_manager.get_treasury_yields()
-        new_yield_data = {}
-        for _, row in data_df.iterrows():
-            date = row["date"].date()
-            rates = [(col, row[col]) for col in data_df.columns if col != "date"]
-            new_yield_data[date] = rates
-        self.model.update_yield_data(new_yield_data=new_yield_data)
-        self.set_current_selection(0, 0)
-
     def init_from_dataframe(self, yields_df: pd.DataFrame) -> None:
         """Load treasury yields from a date-indexed DataFrame into the YieldCurve model.
 
@@ -191,28 +178,3 @@ class YieldCurveController(BRMSController):
         if self.model.rowCount() > 0:
             self.set_current_selection(0, 0)
 
-    def set_scenario(self, scenario: Scenario) -> None:
-        """Set the scenario and update the plot.
-
-        :param scenario: The Scenario object containing the term structure.
-        """
-        date = scenario.date
-        # Change the current selection to the scenario's date
-        all_dates = self.get_all_dates()
-        if date in all_dates:
-            row = all_dates.index(date)
-            self.set_current_selection(row, 0)
-            self.filter_dates(scenario)
-            # Ensures that the UI updates before scrolling to bottom
-            index = self.model.index(row, 0)
-            QTimer.singleShot(100, lambda: self.view.table_view.scrollTo(index))
-
-    def filter_dates(self, scenario: Scenario) -> None:
-        """Filter the table to show only rows with dates on or before the given scenario date."""
-        scenario_date = scenario.date
-        model = self.view.table_view.model()
-        for row in range(model.rowCount()):
-            date_str = model.headerData(row, Qt.Orientation.Vertical)
-            row_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-            is_visible = row_date <= scenario_date
-            self.view.table_view.setRowHidden(row, not is_visible)
