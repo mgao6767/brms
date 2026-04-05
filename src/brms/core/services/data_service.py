@@ -14,10 +14,9 @@ import QuantLib as ql  # noqa: N813
 
 from brms.core.exceptions import DataLoadError
 from brms.core.models.bank import Bank
-from brms.core.models.instruments.base import BookType, CreditRating, InstrumentClass, Instrument, Issuer, IssuerType
+from brms.core.models.instruments.base import BookType, CreditRating, Instrument, InstrumentClass, Issuer, IssuerType
 from brms.core.models.instruments.registry import InstrumentRegistry
 from brms.core.models.market_data import MarketDataStore
-
 
 # ---------------------------------------------------------------------------
 # Lightweight v1 book containers (inlined; books.py has been removed)
@@ -36,6 +35,16 @@ class BankingBook:
     def add(self, instrument: Instrument) -> None:
         """Append *instrument* to the book."""
         self._instruments.append(instrument)
+
+    def remove(self, instrument_id: str) -> None:
+        """Remove the instrument with *instrument_id*; raise InstrumentNotFoundError if absent."""
+        from brms.core.exceptions import InstrumentNotFoundError
+
+        for i, inst in enumerate(self._instruments):
+            if inst.id == instrument_id:
+                self._instruments.pop(i)
+                return
+        raise InstrumentNotFoundError(instrument_id)
 
     def get_instrument_by_id(self, instrument_id: str) -> Instrument | None:
         """Return the instrument with *instrument_id*, or ``None`` if absent."""
@@ -62,6 +71,16 @@ class TradingBook:
     def add(self, instrument: Instrument) -> None:
         """Append *instrument* to the book."""
         self._instruments.append(instrument)
+
+    def remove(self, instrument_id: str) -> None:
+        """Remove the instrument with *instrument_id*; raise InstrumentNotFoundError if absent."""
+        from brms.core.exceptions import InstrumentNotFoundError
+
+        for i, inst in enumerate(self._instruments):
+            if inst.id == instrument_id:
+                self._instruments.pop(i)
+                return
+        raise InstrumentNotFoundError(instrument_id)
 
     def get_instrument_by_id(self, instrument_id: str) -> Instrument | None:
         """Return the instrument with *instrument_id*, or ``None`` if absent."""

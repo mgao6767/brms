@@ -5,7 +5,7 @@
 from unittest.mock import MagicMock
 
 from brms.core.models.bank import Bank
-from brms.core.models.books import BankingBook, TradingBook
+from brms.core.services.data_service import BankingBook, TradingBook
 
 
 def test_bank_owns_books_and_ledger() -> None:

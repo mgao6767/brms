@@ -8,7 +8,7 @@ from brms.core.events import EventBus
 from brms.core.metrics.base import MetricRegistry
 from brms.core.models.accounting.rules.base import RuleRegistry
 from brms.core.models.accounting.service import AccountingService
-from brms.core.models.history import SimulationHistory
+from brms.core.services.simulation_service import SimulationHistory
 from brms.core.services.data_service import DataService
 from brms.core.services.metrics_service import MetricsService
 from brms.core.services.simulation_service import SimulationService
@@ -123,7 +123,7 @@ def test_simulation_with_rules_and_accounting() -> None:
     from brms.core.models.accounting.rules.mark_to_market import MarkToMarketRule
     from brms.core.models.accounting.rules.maturity import MaturityRule
     from brms.core.models.accounting.service import AccountingService
-    from brms.core.models.history import SimulationHistory
+    from brms.core.services.simulation_service import SimulationHistory
     from brms.core.services.data_service import DataService
     from brms.core.services.metrics_service import MetricsService
     from brms.core.services.simulation_service import SimulationService
@@ -206,7 +206,7 @@ def test_simulation_with_reporting() -> None:
     from brms.core.models.accounting.ledger import Ledger
     from brms.core.models.accounting.rules.base import RuleRegistry
     from brms.core.models.accounting.service import AccountingService
-    from brms.core.models.history import SimulationHistory
+    from brms.core.services.simulation_service import SimulationHistory
     from brms.core.services.data_service import DataService
     from brms.core.services.metrics_service import MetricsService
     from brms.core.services.reporting_service import ReportingService

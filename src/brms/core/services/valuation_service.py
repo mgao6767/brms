@@ -14,8 +14,8 @@ from brms.core.visitors.valuation import BankingBookValuationVisitor, TradingBoo
 if TYPE_CHECKING:
     import datetime
 
-    from brms.core.models.books import BankingBook, TradingBook
     from brms.core.models.market_data import MarketState
+    from brms.core.services.data_service import BankingBook, TradingBook
     from brms.core.services.valuation_strategies import ValuationStrategy
     from brms.core.stores.valuation_store import ValuationStore
     from brms.core.visitors.base import Visitor

@@ -11,9 +11,10 @@ from brms.app.views.bank_book_widget import (
     LiabilityColumns,
 )
 from brms.app.views.tree_widget import QMODELINDEX, TreeModel
-from brms.core.models.books import BankingBook, Position, TradingBook
+from brms.core.enums import PositionSide as Position
 from brms.core.models.instruments.base import Instrument
 from brms.core.models.instruments.deposits import Cash
+from brms.core.services.data_service import BankingBook, TradingBook
 
 
 class BankBookController(BRMSController):

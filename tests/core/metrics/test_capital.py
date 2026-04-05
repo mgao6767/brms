@@ -7,7 +7,7 @@ from brms.core.models.accounting.accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal, SimpleEntry
 from brms.core.models.accounting.ledger import Ledger
 from brms.core.models.bank import Bank
-from brms.core.models.books import BankingBook, TradingBook
+from brms.core.services.data_service import BankingBook, TradingBook
 
 _EQUITY = 1000000.0
 _DEPOSIT = 500000.0

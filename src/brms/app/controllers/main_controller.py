@@ -17,8 +17,7 @@ if TYPE_CHECKING:
 
     from brms.app.views.main_window import MainWindow
     from brms.core.events import DateAdvanced
-    from brms.core.models.history import SimulationHistory
-    from brms.core.services.simulation_service import SimulationService
+    from brms.core.services.simulation_service import SimulationHistory, SimulationService
 
 logger = logging.getLogger(__name__)
 

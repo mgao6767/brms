@@ -25,7 +25,6 @@ from brms.core.models.accounting.rules.interest import InterestPaymentRule
 from brms.core.models.accounting.rules.mark_to_market import MarkToMarketRule
 from brms.core.models.accounting.rules.maturity import MaturityRule
 from brms.core.models.accounting.service import AccountingService
-from brms.core.models.history import SimulationHistory
 from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond, TreasuryBond, TreasuryNote
 from brms.core.models.instruments.deposits import Cash, Deposit
 from brms.core.models.instruments.equity import CommonEquity
@@ -49,8 +48,10 @@ from brms.core.services.data_service import DataService
 from brms.core.services.metrics_service import MetricsService
 from brms.core.services.reporting_service import ReportingService
 from brms.core.services.risk_service import RiskService
-from brms.core.services.simulation_service import SimulationService
+from brms.core.services.simulation_service import SimulationHistory, SimulationService
 from brms.core.services.valuation_service import ValuationService
+
+
 def _build_instrument_registry() -> InstrumentRegistry:
     """Create and populate an InstrumentRegistry with all known instrument types."""
     registry = InstrumentRegistry()

@@ -6,7 +6,7 @@ import datetime
 from decimal import Decimal
 from unittest.mock import MagicMock
 
-from brms.core.models.history import DayRecord, InstrumentChange, SimulationHistory
+from brms.core.services.simulation_service import DayRecord, InstrumentChange, SimulationHistory
 from brms.core.models.transaction import Transaction, TransactionType
 
 _TX_AMOUNT = Decimal("100")

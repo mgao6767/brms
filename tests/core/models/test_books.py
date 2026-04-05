@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from brms.core.models.books import BankingBook, TradingBook
+from brms.core.services.data_service import BankingBook, TradingBook
 from brms.core.models.instruments.base import BookType
 
 

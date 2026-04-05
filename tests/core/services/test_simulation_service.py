@@ -10,8 +10,8 @@ from brms.core.metrics.base import MetricRegistry
 from brms.core.models.accounting.rules.base import RuleRegistry
 from brms.core.models.accounting.service import AccountingService
 from brms.core.models.bank import Bank
-from brms.core.models.books import BankingBook, TradingBook
-from brms.core.models.history import SimulationHistory
+from brms.core.services.data_service import BankingBook, TradingBook
+from brms.core.services.simulation_service import SimulationHistory
 from brms.core.models.market_data import MarketDataStore
 from brms.core.services.metrics_service import MetricsService
 from brms.core.services.simulation_service import SimulationService
@@ -100,7 +100,7 @@ def test_advance_twice_step_back() -> None:
 def test_step_back_emits_instrument_events() -> None:
     """step_back() emits InstrumentAdded when reversing a 'removed' change."""
     from brms.core.events import InstrumentAdded
-    from brms.core.models.history import InstrumentChange
+    from brms.core.services.simulation_service import InstrumentChange
 
     service = _make_service()
     service.advance()
