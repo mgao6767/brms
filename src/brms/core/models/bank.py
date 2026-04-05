@@ -1,19 +1,20 @@
-"""Bank model owning the banking book, trading book, and general ledger."""
+"""Bank model holding InstrumentStore, PositionStore, and Ledger."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from brms.core.models.books import BankingBook, TradingBook
+    from brms.core.stores.instrument_store import InstrumentStore
+    from brms.core.stores.position_store import PositionStore
 
 
 class Bank:
-    """Owns the two books and the ledger. No business logic."""
+    """Holds instruments, positions, and ledger. No business logic."""
 
-    def __init__(self, name: str, banking_book: BankingBook, trading_book: TradingBook, ledger: object) -> None:
-        """Initialize a bank with its books and ledger."""
+    def __init__(self, name: str, instruments: InstrumentStore, positions: PositionStore, ledger: object) -> None:
+        """Initialize a bank with its stores and ledger."""
         self.name = name
-        self.banking_book = banking_book
-        self.trading_book = trading_book
+        self.instruments = instruments
+        self.positions = positions
         self.ledger = ledger
