@@ -14,10 +14,66 @@ import QuantLib as ql  # noqa: N813
 
 from brms.core.exceptions import DataLoadError
 from brms.core.models.bank import Bank
-from brms.core.models.books import BankingBook, TradingBook
-from brms.core.models.instruments.base import BookType, CreditRating, InstrumentClass, Issuer, IssuerType
+from brms.core.models.instruments.base import BookType, CreditRating, InstrumentClass, Instrument, Issuer, IssuerType
 from brms.core.models.instruments.registry import InstrumentRegistry
 from brms.core.models.market_data import MarketDataStore
+
+
+# ---------------------------------------------------------------------------
+# Lightweight v1 book containers (inlined; books.py has been removed)
+# ---------------------------------------------------------------------------
+
+
+class BankingBook:
+    """Holds instruments assigned to the banking book (v1 legacy container)."""
+
+    book_type: BookType = BookType.BANKING
+
+    def __init__(self) -> None:
+        """Initialise an empty banking book."""
+        self._instruments: list[Instrument] = []
+
+    def add(self, instrument: Instrument) -> None:
+        """Append *instrument* to the book."""
+        self._instruments.append(instrument)
+
+    def get_instrument_by_id(self, instrument_id: str) -> Instrument | None:
+        """Return the instrument with *instrument_id*, or ``None`` if absent."""
+        return next((i for i in self._instruments if i.id == instrument_id), None)
+
+    def __iter__(self):  # noqa: ANN204
+        """Iterate over instruments."""
+        return iter(self._instruments)
+
+    def __len__(self) -> int:
+        """Return the number of instruments."""
+        return len(self._instruments)
+
+
+class TradingBook:
+    """Holds instruments assigned to the trading book (v1 legacy container)."""
+
+    book_type: BookType = BookType.TRADING
+
+    def __init__(self) -> None:
+        """Initialise an empty trading book."""
+        self._instruments: list[Instrument] = []
+
+    def add(self, instrument: Instrument) -> None:
+        """Append *instrument* to the book."""
+        self._instruments.append(instrument)
+
+    def get_instrument_by_id(self, instrument_id: str) -> Instrument | None:
+        """Return the instrument with *instrument_id*, or ``None`` if absent."""
+        return next((i for i in self._instruments if i.id == instrument_id), None)
+
+    def __iter__(self):  # noqa: ANN204
+        """Iterate over instruments."""
+        return iter(self._instruments)
+
+    def __len__(self) -> int:
+        """Return the number of instruments."""
+        return len(self._instruments)
 
 _PERIOD_RE = re.compile(r"^(\d+)\s*(Y|M|W|D)$", re.IGNORECASE)
 
@@ -72,6 +128,35 @@ class DataService:
     def __init__(self, instrument_registry: InstrumentRegistry | None = None) -> None:
         """Initialise the service with an optional instrument registry."""
         self._instrument_registry = instrument_registry or InstrumentRegistry()
+
+    def load_and_initialize(self, loader: object, simulation_service: object) -> None:
+        """Populate stores from *loader* and replay advance() to derive initial state.
+
+        Args:
+            loader: Any object implementing the ``Loader`` protocol (must have a ``load()`` method
+                returning :class:`~brms.core.services.loaders.SimulationData`).
+            simulation_service: The simulation service whose bank stores and market data will be
+                populated, and whose ``advance()`` method will be called for replay dates.
+
+        """
+        data = loader.load()  # type: ignore[union-attr]
+
+        # 1. Populate stores
+        for inst in data.instruments:
+            simulation_service.bank.instruments.add(inst)  # type: ignore[union-attr]
+        for pos in data.positions:
+            simulation_service.bank.positions.add(pos)  # type: ignore[union-attr]
+        for name, df in data.market_frames.items():
+            simulation_service.market_data.add_frame(name, df)  # type: ignore[union-attr]
+
+        # 2. Replay advance() from replay_from to start_date
+        available = simulation_service.market_data.available_dates()  # type: ignore[union-attr]
+        for date in available:
+            if date < data.replay_from:
+                continue
+            if date >= data.start_date:
+                break
+            simulation_service.advance(date)  # type: ignore[union-attr]
 
     def load_simulation(self, zip_path: Path) -> tuple[Bank, MarketDataStore]:
         """Load a simulation from the zip file at *zip_path*.
