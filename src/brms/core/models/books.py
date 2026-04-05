@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
+from enum import Enum, auto
 from typing import TYPE_CHECKING, ClassVar
 
 from brms.core.exceptions import InstrumentNotFoundError
 from brms.core.models.instruments.base import BookType, Instrument
+
+
+class Position(Enum):
+    """Enumeration for position types (LONG or SHORT)."""
+
+    LONG = auto()
+    SHORT = auto()
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

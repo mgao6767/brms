@@ -10,7 +10,7 @@ from brms.app.controllers.bank_book_controller import BankingBookController, Tra
 from brms.app.controllers.base import BRMSController
 from brms.app.reporting import HTMLStatementRenderer
 from brms.core.events import InstrumentAdded, InstrumentRemoved
-from brms.models.bank_book import Position
+from brms.core.models.books import Position
 
 if TYPE_CHECKING:
     from brms.app.controllers.inspector_controller import InspectorController
