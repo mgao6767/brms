@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock
 
 from brms.core.models.instruments.base import BookType
-from brms.core.services.valuation_service import ValuationService
+from brms.core.services.valuation_service import LegacyValuationService as ValuationService
 
 EXPECTED_SINGLE = 42.0
 EXPECTED_I1 = 100.0
