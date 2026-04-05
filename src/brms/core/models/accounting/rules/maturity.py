@@ -15,12 +15,25 @@ if TYPE_CHECKING:
 class MaturityRule:
     """Generates a MATURITY_SETTLEMENT transaction on the instrument's maturity date."""
 
-    def applies_to(self, instrument: object, market_state: object, date: datetime.date) -> bool:  # noqa: ARG002
+    def applies_to(
+        self,
+        instrument: object,
+        _position: object,
+        _market_state: object,
+        date: datetime.date,
+    ) -> bool:
         """Return True only on the exact maturity date of the instrument."""
         maturity = getattr(instrument, "maturity_date", None)
         return maturity is not None and maturity == date
 
-    def generate(self, instrument: object, market_state: object, date: datetime.date) -> list[Transaction]:  # noqa: ARG002
+    def generate(
+        self,
+        instrument: object,
+        _position: object,
+        _valuation_store: object,
+        _market_state: object,
+        date: datetime.date,
+    ) -> list[Transaction]:
         """Generate a single maturity settlement transaction for the face value."""
         return [
             Transaction(

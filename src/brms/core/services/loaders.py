@@ -15,6 +15,7 @@ import pandas as pd
 
 from brms.core.enums import BookType, InstrumentClass, PositionSide
 from brms.core.models.position import Position
+from brms.core.services.data_service import _convert_kwargs
 
 if TYPE_CHECKING:
     from brms.core.models.instruments.base import Instrument
@@ -112,6 +113,8 @@ class ZipLoader:
             item = dict(item)  # noqa: PLW2901
             type_id = item.pop("type")
             instrument_id = item.pop("id", None)
+            item.pop("value", None)  # v1 field not used by constructors
+            _convert_kwargs(item)
             inst = self._registry.create(type_id, **item)
             if instrument_id is not None:
                 inst.id = instrument_id

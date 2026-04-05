@@ -18,14 +18,27 @@ _MTM_CLASSES = {InstrumentClass.FVTPL, InstrumentClass.FVOCI}
 class MarkToMarketRule:
     """Generates a MARK_TO_MARKET transaction for instruments classified as FVTPL or FVOCI."""
 
-    def applies_to(self, instrument: object, market_state: object, date: datetime.date) -> bool:  # noqa: ARG002
+    def applies_to(
+        self,
+        instrument: object,
+        _position: object,
+        _market_state: object,
+        _date: datetime.date,
+    ) -> bool:
         """Return True if the instrument is classified as FVTPL or FVOCI."""
         instrument_class = getattr(instrument, "instrument_class", None)
         if instrument_class is None:
             return False
         return instrument_class in _MTM_CLASSES
 
-    def generate(self, instrument: object, market_state: object, date: datetime.date) -> list[Transaction]:  # noqa: ARG002
+    def generate(
+        self,
+        instrument: object,
+        _position: object,
+        _valuation_store: object,
+        _market_state: object,
+        date: datetime.date,
+    ) -> list[Transaction]:
         """Generate a mark-to-market transaction using face_value vs current value as a proxy for fair value change."""
         face_value = Decimal(str(getattr(instrument, "face_value", "0")))
         current_value = Decimal(str(getattr(instrument, "value", "0")))

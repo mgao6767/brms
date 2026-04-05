@@ -15,12 +15,25 @@ if TYPE_CHECKING:
 class CouponPaymentRule:
     """Generates a COUPON_PAYMENT transaction on each scheduled coupon date."""
 
-    def applies_to(self, instrument: object, market_state: object, date: datetime.date) -> bool:  # noqa: ARG002
+    def applies_to(
+        self,
+        instrument: object,
+        _position: object,
+        _market_state: object,
+        date: datetime.date,
+    ) -> bool:
         """Return True if today is one of the instrument's coupon payment dates."""
         coupon_dates = getattr(instrument, "coupon_dates", [])
         return date in coupon_dates
 
-    def generate(self, instrument: object, market_state: object, date: datetime.date) -> list[Transaction]:  # noqa: ARG002
+    def generate(
+        self,
+        instrument: object,
+        _position: object,
+        _valuation_store: object,
+        _market_state: object,
+        date: datetime.date,
+    ) -> list[Transaction]:
         """Generate a coupon payment transaction using the instrument's coupon amount."""
         coupon_amount = getattr(instrument, "coupon_amount", None)
         if coupon_amount is None:

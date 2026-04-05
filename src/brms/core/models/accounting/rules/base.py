@@ -17,6 +17,7 @@ class AccountingRule(Protocol):
     def applies_to(
         self,
         instrument: object,
+        position: object,
         market_state: object,
         date: datetime.date,
     ) -> bool:
@@ -26,6 +27,8 @@ class AccountingRule(Protocol):
     def generate(
         self,
         instrument: object,
+        position: object,
+        valuation_store: object,
         market_state: object,
         date: datetime.date,
     ) -> list[Transaction]:
@@ -47,12 +50,14 @@ class RuleRegistry:
     def apply_all(
         self,
         instrument: object,
+        position: object,
+        valuation_store: object,
         market_state: object,
         date: datetime.date,
     ) -> list[Transaction]:
         """Apply all applicable rules and return the combined list of transactions."""
         transactions: list[Transaction] = []
         for rule in self._rules:
-            if rule.applies_to(instrument, market_state, date):
-                transactions.extend(rule.generate(instrument, market_state, date))
+            if rule.applies_to(instrument, position, market_state, date):
+                transactions.extend(rule.generate(instrument, position, valuation_store, market_state, date))
         return transactions

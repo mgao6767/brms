@@ -15,14 +15,27 @@ if TYPE_CHECKING:
 class AmortizationRule:
     """Generates an AMORTIZATION transaction on each scheduled payment date."""
 
-    def applies_to(self, instrument: object, market_state: object, date: datetime.date) -> bool:  # noqa: ARG002
+    def applies_to(
+        self,
+        instrument: object,
+        _position: object,
+        _market_state: object,
+        date: datetime.date,
+    ) -> bool:
         """Return True if today is one of the instrument's payment dates."""
         payment_dates = getattr(instrument, "payment_dates", None)
         if payment_dates is None:
             return False
         return date in payment_dates
 
-    def generate(self, instrument: object, market_state: object, date: datetime.date) -> list[Transaction]:  # noqa: ARG002
+    def generate(
+        self,
+        instrument: object,
+        _position: object,
+        _valuation_store: object,
+        _market_state: object,
+        date: datetime.date,
+    ) -> list[Transaction]:
         """Generate an amortization transaction using the instrument's periodic_payment amount."""
         periodic_payment = Decimal(str(getattr(instrument, "periodic_payment", "0")))
         return [

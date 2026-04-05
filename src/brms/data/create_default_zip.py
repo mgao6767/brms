@@ -1,15 +1,15 @@
-"""Generate the default simulation zip archive.
+"""Generate the default simulation zip archive (v2 format).
 
 This script builds ``default_simulation.zip`` containing:
 
-* ``bank.json`` -- bank definition with all instrument data.
-* ``treasury_yields.csv`` -- historical yield curve data.
-
-The instruments mirror those created by ``brms.data.default``.
+* ``config.json``       -- simulation configuration.
+* ``instruments.json``  -- instrument definitions with constructor kwargs.
+* ``positions.json``    -- one position per instrument.
+* ``yields.csv``        -- historical yield curve data.
 
 Run with::
 
-    uv run python -m brms.data.create_default_zip
+    uv run python src/brms/data/create_default_zip.py
 
 """
 
@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import random
+import uuid
 import zipfile
 from datetime import date
 from pathlib import Path
@@ -30,43 +31,64 @@ _DATA_DIR = Path(__file__).resolve().parent
 _OUT_PATH = _DATA_DIR / "default_simulation.zip"
 _YIELDS_CSV = _DATA_DIR / "default" / "treasury_yields.csv"
 
-# Key dates (matching default/__init__.py)
-_BASE_DATE = "2021-10-21"
-_MORTGAGE_ISSUE_DATE = "2020-10-01"
+_START_DATE = "2022-01-03"
 
 
 def _issuer_dict(name: str, issuer_type: str, credit_rating: str = "UNRATED") -> dict:
     return {"name": name, "issuer_type": issuer_type, "credit_rating": credit_rating}
 
 
-def _build_bank_json() -> dict:
-    """Build the bank.json structure with all instruments."""
-    banking_book: list[dict] = []
-    trading_book: list[dict] = []
+def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
+    """Build the instruments.json and positions.json structures."""
+    instruments: list[dict] = []
+    positions: list[dict] = []
+
+    def _add(inst: dict, book_type: str, instrument_class: str, acquisition_cost: float) -> None:
+        inst_id = str(uuid.uuid4())
+        inst["id"] = inst_id
+        instruments.append(inst)
+        positions.append({
+            "id": str(uuid.uuid4()),
+            "instrument_id": inst_id,
+            "book_type": book_type,
+            "instrument_class": instrument_class,
+            "side": "LONG",
+            "acquisition_date": _START_DATE,
+            "acquisition_cost": acquisition_cost,
+        })
 
     # 1. CommonEquity (1,000,000)
-    banking_book.append({
-        "type": "common_equity",
-        "value": 1_000_000,
-    })
+    _add(
+        {"type": "common_equity", "name": "Common Equity"},
+        book_type="BANKING",
+        instrument_class="LOAN_AND_MORTGAGE",
+        acquisition_cost=1_000_000,
+    )
 
     # 2. Deposit (6,000,000)
-    banking_book.append({
-        "type": "deposit",
-        "value": 6_000_000,
-    })
+    _add(
+        {"type": "deposit", "name": "Deposit"},
+        book_type="BANKING",
+        instrument_class="LOAN_AND_MORTGAGE",
+        acquisition_cost=6_000_000,
+    )
 
     # 3. HTM TreasuryNote (10,000 face, 5% coupon)
-    banking_book.append({
-        "type": "treasury_note",
-        "face_value": 10_000.0,
-        "coupon_rate": 0.05,
-        "issue_date": "2020-01-01",
-        "maturity_date": "2030-01-01",
-        "instrument_class": "HTM",
-        "credit_rating": "AAA",
-        "issuer": _issuer_dict("Government", "SOVEREIGN", "AAA"),
-    })
+    _add(
+        {
+            "type": "treasury_note",
+            "face_value": 10_000.0,
+            "coupon_rate": 0.05,
+            "issue_date": "2020-01-01",
+            "maturity_date": "2030-01-01",
+            "instrument_class": "HTM",
+            "credit_rating": "AAA",
+            "issuer": _issuer_dict("Government", "SOVEREIGN", "AAA"),
+        },
+        book_type="BANKING",
+        instrument_class="HTM",
+        acquisition_cost=10_000.0,
+    )
 
     # 4. Five residential mortgages (200k-500k, random rates/terms)
     for _i in range(5):
@@ -76,70 +98,87 @@ def _build_bank_json() -> dict:
         issue = date(2020, 10, 1) + relativedelta(months=months_offset)
         maturity_years = random.choice([10, 20, 30])  # noqa: S311
 
-        banking_book.append({
-            "type": "residential_mortgage",
-            "face_value": float(face_value),
-            "interest_rate": interest_rate,
-            "issue_date": issue.isoformat(),
-            "maturity": f"{maturity_years}Y",
-            "instrument_class": "Loan",
-            "credit_rating": "UNRATED",
-            "issuer": _issuer_dict("Residential Mortgage Issuer", "INDIVIDUAL"),
-        })
+        _add(
+            {
+                "type": "residential_mortgage",
+                "face_value": float(face_value),
+                "interest_rate": interest_rate,
+                "issue_date": issue.isoformat(),
+                "maturity": f"{maturity_years}Y",
+                "instrument_class": "Loan",
+                "credit_rating": "UNRATED",
+                "issuer": _issuer_dict("Residential Mortgage Issuer", "INDIVIDUAL"),
+            },
+            book_type="BANKING",
+            instrument_class="LOAN_AND_MORTGAGE",
+            acquisition_cost=float(face_value),
+        )
 
     # 5. Ten FVOCI TreasuryNotes (100k each)
     for _i in range(10):
         coupon_rate = 0.0125 * random.randint(1, 5)  # noqa: S311
         years = random.choice([2, 3, 5, 7, 10])  # noqa: S311
         mat = date(2020, 1, 1) + relativedelta(years=years)
-        banking_book.append({
-            "type": "treasury_note",
-            "face_value": 100_000.0,
-            "coupon_rate": coupon_rate,
-            "issue_date": "2020-01-01",
-            "maturity_date": mat.isoformat(),
-            "instrument_class": "FVOCI",
-            "credit_rating": "AAA",
-            "issuer": _issuer_dict("Government", "SOVEREIGN", "AAA"),
-        })
+        _add(
+            {
+                "type": "treasury_note",
+                "face_value": 100_000.0,
+                "coupon_rate": coupon_rate,
+                "issue_date": "2020-01-01",
+                "maturity_date": mat.isoformat(),
+                "instrument_class": "FVOCI",
+                "credit_rating": "AAA",
+                "issuer": _issuer_dict("Government", "SOVEREIGN", "AAA"),
+            },
+            book_type="BANKING",
+            instrument_class="FVOCI",
+            acquisition_cost=100_000.0,
+        )
 
     # 6. Ten FVTPL TreasuryNotes (100k each, trading book)
     for _i in range(10):
         coupon_rate = 0.0125 * random.randint(1, 5)  # noqa: S311
         years = random.choice([2, 3, 5, 7, 10])  # noqa: S311
         mat = date(2020, 1, 1) + relativedelta(years=years)
-        trading_book.append({
-            "type": "treasury_note",
-            "face_value": 100_000.0,
-            "coupon_rate": coupon_rate,
-            "issue_date": "2020-01-01",
-            "maturity_date": mat.isoformat(),
-            "instrument_class": "FVTPL",
-            "book_type": "trading",
-            "credit_rating": "AAA",
-            "issuer": _issuer_dict("Government", "SOVEREIGN", "AAA"),
-        })
+        _add(
+            {
+                "type": "treasury_note",
+                "face_value": 100_000.0,
+                "coupon_rate": coupon_rate,
+                "issue_date": "2020-01-01",
+                "maturity_date": mat.isoformat(),
+                "instrument_class": "FVTPL",
+                "book_type": "trading",
+                "credit_rating": "AAA",
+                "issuer": _issuer_dict("Government", "SOVEREIGN", "AAA"),
+            },
+            book_type="TRADING",
+            instrument_class="FVTPL",
+            acquisition_cost=100_000.0,
+        )
 
-    return {
-        "name": "Default Bank",
-        "as_of_date": _BASE_DATE,
-        "banking_book": banking_book,
-        "trading_book": trading_book,
-        "initial_accounts": {"cash": 0},
-    }
+    return instruments, positions
 
 
 def create_default_zip(out_path: Path | None = None) -> Path:
     """Write the default simulation zip to *out_path* and return its path."""
     out_path = out_path or _OUT_PATH
-    bank_json = _build_bank_json()
+    instruments, pos = _build_instruments_and_positions()
+
+    config = {
+        "name": "Default Bank",
+        "replay_from": _START_DATE,
+        "start_date": _START_DATE,
+    }
 
     with zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("bank.json", json.dumps(bank_json, indent=2))
+        zf.writestr("config.json", json.dumps(config, indent=2))
+        zf.writestr("instruments.json", json.dumps(instruments, indent=2))
+        zf.writestr("positions.json", json.dumps(pos, indent=2))
 
-        # Copy the treasury yields CSV into the archive under the name used by MarketDataStore
+        # Copy the treasury yields CSV as yields.csv
         if _YIELDS_CSV.exists():
-            zf.write(_YIELDS_CSV, "treasury_yields.csv")
+            zf.write(_YIELDS_CSV, "yields.csv")
         else:
             msg = f"Treasury yields CSV not found at {_YIELDS_CSV}"
             raise FileNotFoundError(msg)
