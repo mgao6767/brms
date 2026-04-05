@@ -8,8 +8,26 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 from brms.core.enums import ValuationType
 
 if TYPE_CHECKING:
+    from brms.core.models.position import Position
     from brms.core.services.valuation_context import ValuationContext
+    from brms.core.stores.instrument_store import InstrumentStore
     from brms.core.stores.valuation_store import ValuationStore
+
+
+def _face_value(instrument: object) -> Decimal:
+    """Safely get face value from an instrument, trying multiple accessors."""
+    # Direct attribute (simple instruments like Cash, Deposit)
+    fv = getattr(instrument, "face_value", None)
+    if fv is not None:
+        return Decimal(str(fv))
+    # QL-backed instruments store it in the QL object
+    ql_inst = getattr(instrument, "ql_instrument", None)
+    if ql_inst is not None:
+        try:
+            return Decimal(str(ql_inst.notional()))
+        except Exception:  # noqa: BLE001
+            pass
+    return Decimal("0")
 
 
 @runtime_checkable
@@ -18,8 +36,8 @@ class ValuationStrategy(Protocol):
 
     def value_batch(
         self,
-        positions: list[object],
-        instruments: object,
+        positions: list[Position],
+        instruments: InstrumentStore,
         context: ValuationContext,
         output: ValuationStore,
     ) -> None:
@@ -32,50 +50,53 @@ class FairValueStrategy:
 
     def value_batch(
         self,
-        positions: list[object],
-        instruments: object,
+        positions: list[Position],
+        instruments: InstrumentStore,
         context: ValuationContext,
         output: ValuationStore,
     ) -> None:
-        """Compute fair value for each position and record it as FAIR_VALUE."""
+        """Compute fair value for each position and record it."""
         for pos in positions:
-            inst = instruments.get(pos.instrument_id)  # type: ignore[union-attr]
+            inst = instruments.get(pos.instrument_id)
             if inst.ql_instrument is not None:
-                val = Decimal(str(inst.ql_instrument.NPV()))
+                try:
+                    val = Decimal(str(inst.ql_instrument.NPV()))
+                except Exception:  # noqa: BLE001
+                    val = _face_value(inst)
             else:
-                val = Decimal(str(inst.face_value))
+                val = _face_value(inst)
             output.record(pos.id, context.date, ValuationType.FAIR_VALUE, val)  # type: ignore[arg-type]
 
 
 class AmortizedCostStrategy:
-    """Values positions at amortized cost, recording the carrying (book) value."""
+    """Values positions at amortized cost (carrying/book value)."""
 
     def value_batch(
         self,
-        positions: list[object],
-        instruments: object,
+        positions: list[Position],
+        instruments: InstrumentStore,
         context: ValuationContext,
         output: ValuationStore,
     ) -> None:
-        """Record the carrying value for each position using face_value as the amortized cost proxy."""
+        """Record carrying value using face value or QL notional."""
         for pos in positions:
-            inst = instruments.get(pos.instrument_id)  # type: ignore[union-attr]
-            val = Decimal(str(inst.face_value))
+            inst = instruments.get(pos.instrument_id)
+            val = _face_value(inst)
             output.record(pos.id, context.date, ValuationType.CARRYING_VALUE, val)  # type: ignore[arg-type]
 
 
 class OutstandingBalanceStrategy:
-    """Values loan positions at their outstanding balance (carrying value)."""
+    """Values loan positions at their outstanding balance."""
 
     def value_batch(
         self,
-        positions: list[object],
-        instruments: object,
+        positions: list[Position],
+        instruments: InstrumentStore,
         context: ValuationContext,
         output: ValuationStore,
     ) -> None:
-        """Record the outstanding balance for each loan position as CARRYING_VALUE."""
+        """Record outstanding balance as carrying value."""
         for pos in positions:
-            inst = instruments.get(pos.instrument_id)  # type: ignore[union-attr]
-            val = Decimal(str(inst.face_value))
+            inst = instruments.get(pos.instrument_id)
+            val = _face_value(inst)
             output.record(pos.id, context.date, ValuationType.CARRYING_VALUE, val)  # type: ignore[arg-type]

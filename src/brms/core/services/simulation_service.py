@@ -146,8 +146,15 @@ class SimulationService:
         self.metric_store = metric_store
         self.transaction_log = transaction_log
         self.event_bus = event_bus
+        self._date_index: int = 0
+        self._current_date: datetime.date | None = None  # type: ignore[name-defined]
 
-    def advance(self, date: datetime.date) -> None:  # type: ignore[name-defined]
+    @property
+    def current_date(self) -> datetime.date | None:  # type: ignore[name-defined]
+        """The most recently advanced date, or None."""
+        return self._current_date
+
+    def advance(self, date: datetime.date | None = None) -> None:  # type: ignore[name-defined]
         """Advance the simulation to *date*.
 
         Steps performed (in order):
@@ -159,8 +166,16 @@ class SimulationService:
         6. Compute metrics via the metrics service.
         7. Emit :class:`DateAdvanced`.
         """
+        if date is None:
+            available = self.market_data.available_dates()
+            if self._date_index >= len(available):
+                msg = "No more dates available"
+                raise IndexError(msg)
+            date = available[self._date_index]
+            self._date_index += 1
+        self._current_date = date
         market_state = self.market_data.get_state(date)
-        self.valuation_service.value_all(self.bank, market_state, date, self.valuation_store)
+        self.valuation_service.value_all(self.bank, self.market_data, date, self.valuation_store)
         transactions = self.rule_engine.apply(self.bank, self.valuation_store, market_state, date)
         self.accounting_service.post_all(transactions, self.bank.ledger, self.bank.positions)
         self.transaction_log.record_batch(transactions)
