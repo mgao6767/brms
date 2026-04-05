@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, QLocale, Qt
 from PySide6.QtWidgets import (
     QFormLayout,
     QFrame,
@@ -19,9 +19,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from brms.accounting.statement_viewer import locale
 from brms.app.views.styler import BRMSStyler
 from brms.utils import pydate_to_qdate
+
+_locale = QLocale()
 
 if TYPE_CHECKING:
     from matplotlib.lines import Line2D
@@ -31,10 +32,10 @@ def value_formatter(values: list[float]) -> FuncFormatter:
     """Return a FuncFormatter for formatting dollar values."""
     max_value = max(values, default=0)
     if max_value >= 1_000_000:
-        return FuncFormatter(lambda x, _: locale.currency(x / 1_000_000, grouping=True) + "M")
+        return FuncFormatter(lambda x, _: _locale.toCurrencyString(x / 1_000_000) + "M")
     if max_value >= 1_000:
-        return FuncFormatter(lambda x, _: locale.currency(x / 1_000, grouping=True) + "K")
-    return FuncFormatter(lambda x, _: locale.currency(x, grouping=True))
+        return FuncFormatter(lambda x, _: _locale.toCurrencyString(x / 1_000) + "K")
+    return FuncFormatter(lambda x, _: _locale.toCurrencyString(x))
 
 
 def ratio_formatter() -> FuncFormatter:
@@ -278,10 +279,10 @@ class BRMSDashboard(QWidget):
         nsfr = data.get("nsfr", 0.0)
         lcr = data.get("lcr", 0.0)
 
-        self.total_assets_value.setText(locale.currency(total_assets, grouping=True))
-        self.total_liabilities_value.setText(locale.currency(total_liabilities, grouping=True))
-        self.total_equity_value.setText(locale.currency(total_equity, grouping=True))
-        self.cet1_value.setText(locale.currency(cet1, grouping=True))
+        self.total_assets_value.setText(_locale.toCurrencyString(total_assets))
+        self.total_liabilities_value.setText(_locale.toCurrencyString(total_liabilities))
+        self.total_equity_value.setText(_locale.toCurrencyString(total_equity))
+        self.cet1_value.setText(_locale.toCurrencyString(cet1))
         self.cet1_ratio_value.setText(f"{cet1_ratio * 100:.2f}%")
         self.tier1_capital_ratio_value.setText(f"{tier1_capital_ratio * 100:.2f}%")
         self.total_capital_ratio_value.setText(f"{total_capital_ratio * 100:.2f}%")

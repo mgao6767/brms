@@ -7,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
-from PySide6.QtCore import QDate, Qt, Signal
+from PySide6.QtCore import QDate, QLocale, Qt, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -33,10 +33,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from brms.accounting.statement_viewer import locale
 from brms.app.views.styler import BRMSStyler
 from brms.instruments.factory import InstrumentFactory
 from brms.utils import qdate_to_qldate, qldate_to_pydate
+
+_locale = QLocale()
 
 
 class BRMSDoubleSpinBox(QDoubleSpinBox):
@@ -1018,11 +1019,11 @@ class PlotWidget(QWidget):
         if self.show_grid:
             self.ax.grid(self.show_grid, linestyle="--", alpha=0.7)
         self.ax.tick_params(axis="both", which="major", labelsize=10)
-        self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: locale.currency(x, grouping=True)))
+        self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: _locale.toCurrencyString(x)))
         self.ax2 = self.ax.twinx()
         self.ax2.set_ylabel("Outstanding Balance")
         self.ax2.tick_params(axis="y")
-        self.ax2.yaxis.set_major_formatter(FuncFormatter(lambda x, _: locale.currency(x, grouping=True)))
+        self.ax2.yaxis.set_major_formatter(FuncFormatter(lambda x, _: _locale.toCurrencyString(x)))
         # Checkboxes
         checkbox_layout = QHBoxLayout()
         checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -1103,19 +1104,19 @@ class PlotWidget(QWidget):
             self.ax2.autoscale_view()
 
         if max(principal_pmt, default=0) >= 1_000_000:
-            formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000_000, grouping=True) + "M")
+            formatter = FuncFormatter(lambda x, _: _locale.toCurrencyString(x / 1_000_000) + "M")
         elif max(principal_pmt, default=0) >= 1_000:
-            formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000, grouping=True) + "K")
+            formatter = FuncFormatter(lambda x, _: _locale.toCurrencyString(x / 1_000) + "K")
         else:
-            formatter = FuncFormatter(lambda x, _: locale.currency(x, grouping=True))
+            formatter = FuncFormatter(lambda x, _: _locale.toCurrencyString(x))
         self.ax.yaxis.set_major_formatter(formatter)
 
         if max(outstanding_amt, default=0) >= 1_000_000:
-            formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000_000, grouping=True) + "M")
+            formatter = FuncFormatter(lambda x, _: _locale.toCurrencyString(x / 1_000_000) + "M")
         elif max(outstanding_amt, default=0) >= 1_000:
-            formatter = FuncFormatter(lambda x, _: locale.currency(x / 1_000, grouping=True) + "K")
+            formatter = FuncFormatter(lambda x, _: _locale.toCurrencyString(x / 1_000) + "K")
         else:
-            formatter = FuncFormatter(lambda x, _: locale.currency(x, grouping=True))
+            formatter = FuncFormatter(lambda x, _: _locale.toCurrencyString(x))
         self.ax2.yaxis.set_major_formatter(formatter)
 
         if dates:

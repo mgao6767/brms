@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 
 from brms.app.views.bank_book_widget import CurrencyDelegate
 from brms.app.views.tree_widget import QMODELINDEX, BRMSTreeWidget
-from brms.models.transaction import Transaction, TransactionFactory
+from brms.core.models.transaction import Transaction, TransactionType
 from brms.utils import pydate_to_qdate
 
 
@@ -54,7 +54,7 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.type_label = QLabel("Transaction Type:")
         self.type_filter = QComboBox()
         self.type_filter.addItem("All")
-        for tx_type in TransactionFactory.get_registered_transaction_types():
+        for tx_type in list(TransactionType):
             self.type_filter.addItem(tx_type.name)
         self.search_button = QPushButton("Search")
         self.reset_button = QPushButton("Reset")
@@ -177,11 +177,11 @@ class BRMSTransactionHistoryWidget(QWidget):
     def transaction_to_data(self, transaction: Transaction, tx_num: int) -> dict:
         return {
             0: tx_num,
-            1: str(transaction.transaction_date),
-            2: transaction.transaction_type.name,
-            3: transaction.instrument.name,
-            4: self._locale.toCurrencyString(transaction.value),
-            5: transaction.description,
-            # hidden
-            6: transaction.journal_entry,
+            1: str(transaction.date),
+            2: transaction.type.name,
+            3: transaction.instrument_id or "",
+            4: self._locale.toCurrencyString(float(transaction.amount)),
+            5: str(dict(transaction.metadata)) if transaction.metadata else "",
+            # hidden — journal entry not available on core Transaction
+            6: "",
         }
