@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from brms.app.views.styler import BRMSStyler
-from brms.instruments.factory import InstrumentFactory
+from brms.core.models.instruments.factory import InstrumentFactory
 from brms.utils import qdate_to_qldate, qldate_to_pydate
 
 _locale = QLocale()
@@ -199,7 +199,7 @@ class BRMSBondCalculatorWidget(BaseCalculatorWidget):
         valuation_parameters_layout.addRow(compounding_freq_label, self.compounding_freq_edit)
 
         self.compounding_edit.currentTextChanged.connect(
-            lambda _: self.compounding_freq_edit.setEnabled(self.compounding_edit.currentText() == "Compounded")
+            lambda _: self.compounding_freq_edit.setEnabled(self.compounding_edit.currentText() == "Compounded"),
         )
 
         valuation_parameters_group_box.setLayout(valuation_parameters_layout)
@@ -245,8 +245,7 @@ class BRMSBondCalculatorWidget(BaseCalculatorWidget):
         self.calculate_button.clicked.connect(self.update_bond_value)
 
     def show_bond_payment_schedule(self, payments):
-        """
-        Display the bond payment schedule in a table widget.
+        """Display the bond payment schedule in a table widget.
 
         This method retrieves the necessary parameters from the widget's input fields,
         calculates the bond payment schedule using the `fixed_rate_bond_payment_schedule` function,
@@ -271,13 +270,11 @@ class BRMSBondCalculatorWidget(BaseCalculatorWidget):
             self.table_widget.setItem(row, 2, payment_item)
 
     def show_bond_value(self, npv, clean_price, dirty_price, accrued_interest):
-        """
-        Display the bond value in a dialog.
+        """Display the bond value in a dialog.
 
         This method calculates the bond value using the provided parameters and displays it in a dialog box.
         The bond value includes the NPV, clean price, dirty price, and accrued interest.
         """
-
         value_dialog = QDialog(self)
         value_dialog.setWindowTitle("Bond Value")
         layout = QVBoxLayout(value_dialog)
@@ -422,7 +419,7 @@ class BRMSBondCalculatorWidget(BaseCalculatorWidget):
             )
         except RuntimeError as err:
             self.show_warning(str(err))
-            return
+            return None
 
         return bond, params
 
@@ -581,7 +578,7 @@ class BRMSMortgageCalculatorWidget(BaseCalculatorWidget):
         valuation_parameters_layout.addRow(compounding_freq_label, self.compounding_freq_edit)
 
         self.compounding_edit.currentTextChanged.connect(
-            lambda _: self.compounding_freq_edit.setEnabled(self.compounding_edit.currentText() == "Compounded")
+            lambda _: self.compounding_freq_edit.setEnabled(self.compounding_edit.currentText() == "Compounded"),
         )
 
         valuation_parameters_group_box.setLayout(valuation_parameters_layout)
@@ -633,14 +630,13 @@ class BRMSMortgageCalculatorWidget(BaseCalculatorWidget):
         self.calculate_button.clicked.connect(self.update_loan_value)
 
     def show_loan_payment_schedule(self, interest_pmt, principal_pmt, outstanding_amt):
-        """
-        Display the bond payment schedule in the table widget.
+        """Display the bond payment schedule in the table widget.
         """
         self.table_widget.clearContents()
         self.table_widget.setRowCount(len(interest_pmt))
 
         for row, ((date, pmt_i), (_, pmt_p), (_, amt)) in enumerate(
-            zip(interest_pmt, principal_pmt, outstanding_amt, strict=True)
+            zip(interest_pmt, principal_pmt, outstanding_amt, strict=True),
         ):
             weekday_string = date.strftime("%A")
             date_string = date.isoformat()
@@ -696,8 +692,7 @@ class BRMSMortgageCalculatorWidget(BaseCalculatorWidget):
         )
 
     def show_loan_value(self, npv, total_interest_pmt, total_principal_pmt, total_pmt):
-        """
-        Display the bond value in a dialog.
+        """Display the bond value in a dialog.
         """
         value_dialog = QDialog(self)
         value_dialog.setWindowTitle("Loan Value")
@@ -712,7 +707,7 @@ class BRMSMortgageCalculatorWidget(BaseCalculatorWidget):
                 "Total Interest Payment",
                 "Total Principal Payment",
                 "Total Payment",
-            ]
+            ],
         )
         # fmt: off
         npv_item = QTableWidgetItem(self.locale().toString(npv, "f", 2))
@@ -843,7 +838,7 @@ class BRMSMortgageCalculatorWidget(BaseCalculatorWidget):
             )
         except RuntimeError as err:
             self.show_warning(str(err))
-            return
+            return None
 
         return loan, params
 
@@ -940,7 +935,7 @@ class PaymentsWidget(QWidget):
                 "Interest Payment",
                 "Principal Payment",
                 "Outstanding Balance",
-            ]
+            ],
         )
         self.table_widget.resizeColumnsToContents()
         self.table_widget.horizontalHeader().setStretchLastSection(True)
@@ -1094,7 +1089,7 @@ class PlotWidget(QWidget):
             self.line_interest_pmt.set_data(dates, interest_pmt)
             self.line_principal_pmt.set_data(dates, principal_pmt)
             self.line_total_pmt.set_data(dates, interest_pmt + principal_pmt)
-            self.line_total_pmt.set_data(dates, [i + p for i, p in zip(interest_pmt, principal_pmt)])
+            self.line_total_pmt.set_data(dates, [i + p for i, p in zip(interest_pmt, principal_pmt, strict=False)])
             self.line_outstanding_amt.set_data(dates, outstanding_amt)
             # Recalculate limits and autoscale view
             # self.ax.relim()

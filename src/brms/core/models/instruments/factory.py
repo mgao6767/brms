@@ -1,35 +1,40 @@
+"""Factory helpers for creating instrument instances with sensible defaults."""
+
 import datetime
 
-import QuantLib as ql
+import QuantLib as ql  # noqa: N813
 
-from brms.instruments.base import CreditRating, InstrumentClass, Issuer, IssuerType
-from brms.instruments.common_equity import CommonEquity
-from brms.instruments.deposit import Deposit
-from brms.instruments.fixed_rate_bond import FixedRateBond
-from brms.instruments.mortgage import ResidentialMortgage
-from brms.instruments.treasury_security import TreasuryNote
-from brms.models.base import BookType
+from brms.core.models.instruments.base import BookType, CreditRating, InstrumentClass, Issuer, IssuerType
+from brms.core.models.instruments.bonds import FixedRateBond, TreasuryNote
+from brms.core.models.instruments.deposits import Deposit
+from brms.core.models.instruments.equity import CommonEquity
+from brms.core.models.instruments.loans import ResidentialMortgage
 
 
 class InstrumentFactory:
+    """Convenience factory for constructing common instruments."""
+
     @staticmethod
     def create_common_equity(*, value: float) -> CommonEquity:
+        """Create a CommonEquity instrument."""
         return CommonEquity(value=value)
 
     @staticmethod
     def create_deposit(*, value: float) -> Deposit:
+        """Create a Deposit instrument."""
         return Deposit(value=value)
 
     @staticmethod
-    def create_treasury_note(
+    def create_treasury_note(  # noqa: PLR0913
         *,
         face_value: float,
         coupon_rate: float,
         issue_date: datetime.date,
         maturity_date: datetime.date,
         instrument_class: InstrumentClass,
-        book_type: BookType = BookType.BANKING_BOOK,
+        book_type: BookType = BookType.BANKING,
     ) -> TreasuryNote:
+        """Create a TreasuryNote instrument."""
         issue_date_ql = ql.Date(issue_date.day, issue_date.month, issue_date.year)
         maturity_date_ql = ql.Date(maturity_date.day, maturity_date.month, maturity_date.year)
         return TreasuryNote(
@@ -48,7 +53,7 @@ class InstrumentFactory:
         )
 
     @staticmethod
-    def create_residential_mortgage(
+    def create_residential_mortgage(  # noqa: PLR0913
         *,
         face_value: float,
         interest_rate: float,
@@ -56,14 +61,15 @@ class InstrumentFactory:
         maturity_years: int,
         frequency: ql.Period = ql.Monthly,
         settlement_days: int = 0,
-        calendar: ql.Calendar = ql.NullCalendar(),
-        day_count: ql.DayCounter = ql.ActualActual(ql.ActualActual.Actual365),
-        business_convention=ql.Unadjusted,
-        book_type: BookType = BookType.BANKING_BOOK,
+        calendar: ql.Calendar = ql.NullCalendar(),  # noqa: B008
+        day_count: ql.DayCounter = ql.ActualActual(ql.ActualActual.Actual365),  # noqa: B008
+        business_convention: int = ql.Unadjusted,
+        book_type: BookType = BookType.BANKING,
         credit_rating: CreditRating = CreditRating.UNRATED,
         issuer: Issuer | None = None,
         instrument_class: InstrumentClass = InstrumentClass.LOAN_AND_MORTGAGE,
     ) -> ResidentialMortgage:
+        """Create a ResidentialMortgage instrument."""
         issue_date_ql = ql.Date(issue_date.day, issue_date.month, issue_date.year)
         maturity: ql.Period = ql.Period(maturity_years, ql.Years)
         if issuer is None:
@@ -87,12 +93,11 @@ class InstrumentFactory:
             issuer=issuer,
             instrument_class=instrument_class,
         )
-        # Set value to its face value
         mortgage.value = face_value
         return mortgage
 
     @staticmethod
-    def create_fixed_rate_bond(
+    def create_fixed_rate_bond(  # noqa: PLR0913
         *,
         face_value: float,
         coupon_rate: float,
@@ -100,16 +105,17 @@ class InstrumentFactory:
         maturity_date: datetime.date,
         frequency: ql.Period = ql.Annual,
         settlement_days: int = 0,
-        calendar: ql.Calendar = ql.NullCalendar(),
-        day_count: ql.DayCounter = ql.ActualActual(ql.ActualActual.Actual365),
-        business_convention=ql.Unadjusted,
+        calendar: ql.Calendar = ql.NullCalendar(),  # noqa: B008
+        day_count: ql.DayCounter = ql.ActualActual(ql.ActualActual.Actual365),  # noqa: B008
+        business_convention: int = ql.Unadjusted,
         date_generation: ql.DateGeneration = ql.DateGeneration.Backward,
         month_end: bool = False,
-        book_type: BookType = BookType.BANKING_BOOK,
+        book_type: BookType = BookType.BANKING,
         credit_rating: CreditRating = CreditRating.UNRATED,
         issuer: Issuer | None = None,
         instrument_class: InstrumentClass = InstrumentClass.HTM,
-    ) -> ql.FixedRateBond:
+    ) -> FixedRateBond:
+        """Create a FixedRateBond instrument."""
         issue_date_ql = ql.Date(issue_date.day, issue_date.month, issue_date.year)
         maturity_date_ql = ql.Date(maturity_date.day, maturity_date.month, maturity_date.year)
         if issuer is None:
@@ -118,7 +124,7 @@ class InstrumentFactory:
                 issuer_type=IssuerType.CORPORATE,
                 credit_rating=CreditRating.UNRATED,
             )
-        bond = FixedRateBond(
+        return FixedRateBond(
             face_value=face_value,
             coupon_rate=coupon_rate,
             issue_date=issue_date_ql,
@@ -135,4 +141,3 @@ class InstrumentFactory:
             credit_rating=credit_rating,
             issuer=issuer,
         )
-        return bond

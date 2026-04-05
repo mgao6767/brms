@@ -10,8 +10,8 @@ from PySide6.QtCore import QItemSelectionModel, Qt
 
 from brms.app.controllers.base import BRMSController
 from brms.app.views.yield_curve_widget import BRMSYieldCurveWidget
-from brms.models.yield_curve_model import YieldCurve
-from brms.services.yield_curve_service import YieldCurveService
+from brms.app.models.yield_curve_model import YieldCurve
+from brms.core.services.yield_curve_service import YieldCurveService
 
 if TYPE_CHECKING:
     import pandas as pd

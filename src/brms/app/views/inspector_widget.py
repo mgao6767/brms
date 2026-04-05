@@ -14,9 +14,9 @@ if __name__ == "__main__":
     from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget
 
     from brms.app.controllers.inspector_controller import InspectorController
-    from brms.instruments.base import BookType, CreditRating, Issuer, IssuerType
-    from brms.instruments.cash import Cash
-    from brms.instruments.fixed_rate_bond import FixedRateBond
+    from brms.core.models.instruments.base import BookType, CreditRating, Issuer, IssuerType
+    from brms.core.models.instruments.deposits import Cash
+    from brms.core.models.instruments.bonds import FixedRateBond
 
     class MainWindow(QWidget):
         """MainWindow class for testing."""

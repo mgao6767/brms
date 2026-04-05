@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional
 import QuantLib as ql  # noqa: N813
 
 from brms.core.models.instruments.base import Instrument, InstrumentClass
-from brms.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
+from brms.core.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
 
 if TYPE_CHECKING:
     from brms.core.models.instruments.base import BookType, CreditRating, Issuer

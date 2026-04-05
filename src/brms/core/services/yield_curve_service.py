@@ -108,7 +108,7 @@ class YieldCurveService:
                     schedule,
                     [coupon_rate],
                     day_count,
-                )
+                ),
             )
 
         # Combine rate helpers

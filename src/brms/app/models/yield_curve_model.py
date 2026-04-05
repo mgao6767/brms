@@ -67,6 +67,6 @@ class YieldCurve(QAbstractTableModel):
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
                 return self._maturities[section]
-            elif orientation == Qt.Vertical:
+            if orientation == Qt.Vertical:
                 return self._reference_dates[section].strftime("%Y-%m-%d")
         return None

@@ -11,6 +11,12 @@ from brms.app.controllers.main_controller import MainController
 from brms.app.views.main_window import MainWindow
 from brms.core.events import EventBus
 from brms.core.metrics.base import MetricRegistry
+from brms.core.metrics.capital import (
+    CET1RatioMetric,
+    TotalAssetsMetric,
+    TotalEquityMetric,
+    TotalLiabilitiesMetric,
+)
 from brms.core.models.accounting.accounts import BankChartOfAccounts
 from brms.core.models.accounting.ledger import Ledger
 from brms.core.models.accounting.rules.amortization import AmortizationRule
@@ -105,6 +111,10 @@ def _build_core_services() -> dict:
     rule_registry.register(MarkToMarketRule())
     rule_registry.register(AmortizationRule())
     metric_registry = MetricRegistry()
+    metric_registry.register(TotalAssetsMetric())
+    metric_registry.register(TotalLiabilitiesMetric())
+    metric_registry.register(TotalEquityMetric())
+    metric_registry.register(CET1RatioMetric())
     accounting_service = AccountingService()
     metrics_service = MetricsService(metric_registry)
     valuation_service = ValuationService()

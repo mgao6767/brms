@@ -9,8 +9,8 @@ import QuantLib as ql  # noqa: N813
 
 from brms.core.models.instruments.base import BookType, InstrumentClass
 from brms.core.visitors.base import Visitor
-from brms.services.yield_curve_service import YieldCurveService
-from brms.utils import pydate_to_qldate
+from brms.core.services.yield_curve_service import YieldCurveService
+from brms.core.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
     from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond

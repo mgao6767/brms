@@ -9,10 +9,10 @@ from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
 from brms.core.metrics.risk.base import RWAApproach
-from brms.instruments.base import CreditRating, Instrument
-from brms.instruments.cash import Cash
-from brms.instruments.covered_bond import CoveredBond
-from brms.instruments.registry import (
+from brms.core.models.instruments.base import CreditRating, Instrument
+from brms.core.models.instruments.deposits import Cash
+from brms.core.models.instruments.bonds import CoveredBond
+from brms.core.models.instruments.registry import (
     CorporateInstrumentRegistry,
     LoanInstrumentRegistry,
     MDBInstrumentRegistry,
@@ -41,7 +41,7 @@ class ExposureChecker:
         if not RetailInstrumentRegistry.has_instrument(instrument):
             return False
         # Must be from individuals or certain SMEs
-        return instrument.issuer.is_individual() or instrument.issuer.is_SME()
+        return instrument.issuer.is_individual() or instrument.issuer.is_sme()
 
     @staticmethod
     def is_sovereign_exposure(instrument: Instrument, bank: Any) -> bool:  # noqa: ANN401
@@ -55,14 +55,14 @@ class ExposureChecker:
         """Check if the instrument qualifies PSE exposure."""
         if PSEInstrumentRegistry.has_instrument(instrument):
             return True
-        return instrument.issuer.is_PSE()
+        return instrument.issuer.is_pse()
 
     @staticmethod
     def is_MDB_exposure(instrument: Instrument, bank: Any) -> bool:  # noqa: ANN401
         """Check if the instrument qualifies MDB exposure."""
         if MDBInstrumentRegistry.has_instrument(instrument):
             return True
-        return instrument.issuer.is_MDB()
+        return instrument.issuer.is_mdb()
 
     @staticmethod
     def is_covered_bond_exposure(instrument: Instrument, bank: Any) -> bool:  # noqa: ANN401
@@ -703,7 +703,7 @@ class RiskWeightTableForOtherRealEstate(RiskWeightTable):
         if True:  # FIXME: assume cash flow dependent
             if instrument.issuer.is_individual():
                 risk_weight_of_counterparty = 0.75
-            elif instrument.issuer.is_SME():
+            elif instrument.issuer.is_sme():
                 risk_weight_of_counterparty = 0.85
             else:
                 # should be the risk weight for an unsecured exposure to this counterparty

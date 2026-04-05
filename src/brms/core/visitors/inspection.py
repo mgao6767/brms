@@ -1,8 +1,8 @@
 """Contain inspection visitor class for examining instrument attributes."""
 
+import locale
 from typing import TYPE_CHECKING, ClassVar
 
-from brms.accounting.statement_viewer import locale
 from brms.core.visitors.base import Visitor
 
 if TYPE_CHECKING:
