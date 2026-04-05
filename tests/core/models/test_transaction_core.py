@@ -5,7 +5,8 @@ from decimal import Decimal
 
 import pytest
 
-from brms.core.models.transaction import Transaction, TransactionType
+from brms.core.enums import TransactionType
+from brms.core.models.transaction import Transaction
 
 
 def test_transaction_is_frozen() -> None:

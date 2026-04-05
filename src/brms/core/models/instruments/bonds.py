@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional
 
 import QuantLib as ql  # noqa: N813
 
+from brms.core.enums import InstrumentType
 from brms.core.models.instruments.base import Instrument, InstrumentClass
 from brms.core.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
 

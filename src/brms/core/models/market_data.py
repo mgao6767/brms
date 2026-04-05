@@ -71,7 +71,7 @@ class MarketState:
     @property
     def yields(self) -> pd.Series:
         """Yield curve data as a Series (view, not copy)."""
-        return self._store.get_frame("yields").loc[self._ts]
+        return self._store.get_frame("treasury_yields").loc[self._ts]
 
     @property
     def equity_prices(self) -> pd.Series:

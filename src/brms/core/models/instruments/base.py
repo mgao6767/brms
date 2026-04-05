@@ -4,7 +4,14 @@ import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from enum import Enum, Flag, auto
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+import QuantLib as ql  # noqa: N813
+
+from brms.core.enums import InstrumentType
+
+if TYPE_CHECKING:
+    pass
 
 
 class BookType(Enum):
@@ -219,11 +226,12 @@ class Instrument(ABC):
         self.id = uuid.uuid4()
         self.name = name
         self._parent = parent
-        self._value: float = 0.0
         self._credit_rating = credit_rating or CreditRating.UNRATED
         self._book_type = book_type or BookType.BANKING
         self._issuer = issuer or Issuer("unknown", IssuerType.UNSPECIFIED)
         self.instrument_class = instrument_class or InstrumentClass.NA
+        self.instrument_type: InstrumentType = InstrumentType.CASH  # overridden by subclasses
+        self.ql_instrument: ql.Instrument | None = None
 
     @property
     def parent(self) -> Optional["Instrument"]:
@@ -242,15 +250,6 @@ class Instrument(ABC):
     @book_type.setter
     def book_type(self, book_type: "BookType") -> None:
         self._book_type = book_type
-
-    @property
-    def value(self) -> float:
-        """Get the instrument's value."""
-        return self._value
-
-    @value.setter
-    def value(self, value: float) -> None:
-        self._value = value
 
     @property
     def credit_rating(self) -> "CreditRating":
@@ -297,16 +296,6 @@ class CompositeInstrument(Instrument):
         """Initialize a composite instrument with an empty list of instruments."""
         super().__init__(name, book_type, credit_rating, issuer, parent)
         self._instruments: list[Instrument] = []
-
-    @property
-    def value(self) -> float:
-        """Get the instrument's value as the sum of all contained instruments."""
-        return sum(instrument.value for instrument in self._instruments)
-
-    @value.setter
-    def value(self, value: float) -> None:  # noqa: ARG002
-        msg = "Cannot set value on a composite instrument"
-        raise AttributeError(msg)
 
     def add(self, instrument: Instrument) -> None:
         """Add an instrument to the composite."""
