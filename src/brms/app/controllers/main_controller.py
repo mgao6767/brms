@@ -44,8 +44,10 @@ class MainController(BRMSController):
         self._start_date: datetime.date | None = None
         self._end_date: datetime.date | None = None
         if self._simulation_service is not None:
-            self._start_date = self._simulation_service.start_date
-            self._end_date = self._simulation_service.end_date
+            dates = self._simulation_service.market_data.available_dates()
+            if dates:
+                self._start_date = dates[0]
+                self._end_date = dates[-1]
 
         # Subscribe to EventBus DateAdvanced events for view updates
         if self._simulation_service is not None:
