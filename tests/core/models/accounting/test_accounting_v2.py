@@ -610,12 +610,14 @@ class TestBankChartOfAccounts:
 
     def test_composite_sub_account_shortcuts(self) -> None:
         coa = BankChartOfAccounts()
-        # Investment securities sub-accounts
-        assert coa.investment_htm_account is coa.investment_securities_account.investment_htm_account
-        assert coa.investment_fvoci_account is coa.investment_securities_account.investment_fvoci_account
-        # Deposit sub-accounts
-        assert coa.customer_deposits_account is coa.deposit_account.customer_deposits_account
-        assert coa.public_borrowings_account is coa.deposit_account.public_borrowing_account
+        # Investment securities sub-accounts are children of the composite
+        inv_subs = list(coa.investment_securities_account.sub_accounts)
+        assert coa.investment_htm_account in inv_subs
+        assert coa.investment_fvoci_account in inv_subs
+        # Deposit sub-accounts are children of the composite
+        dep_subs = list(coa.deposit_account.sub_accounts)
+        assert coa.customer_deposits_account in dep_subs
+        assert coa.public_borrowings_account in dep_subs
 
     def test_trading_income_sub_accounts(self) -> None:
         coa = BankChartOfAccounts()
