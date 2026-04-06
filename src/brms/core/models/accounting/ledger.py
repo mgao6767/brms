@@ -212,72 +212,57 @@ class Ledger:
     ) -> CompoundEntry:
         """Build a closing entry that transfers *account*'s balance to Income Summary.
 
-        Handles three cases:
-        - Simple income account: debit the account, credit Income Summary.
-        - Simple expense account: debit Income Summary, credit the account.
-        - Composite income account with mixed sub-types (e.g., Trading Income
-          containing both gain/income and loss/expense sub-accounts):
-          The net balance is transferred, with income subs debited and expense
-          subs credited (or vice versa if net loss).
+        Works uniformly for income and expense accounts, including composites
+        with mixed sub-types (e.g., Trading Income containing both gain and
+        loss sub-accounts).
+
+        The entry zeroes every leaf account and absorbs the net into ISA::
+
+            Simple income (balance 5000):
+                Debit  Interest Income  5000
+                Credit Income Summary   5000
+
+            Simple expense (balance 2000):
+                Debit  Income Summary   2000
+                Credit Interest Expense 2000
+
+            Composite with mixed subs (net gain 3000):
+                Debit  Trading Gain     4000   (income sub)
+                Credit Trading Loss     1000   (expense sub)
+                Credit Income Summary   3000   (net)
         """
-        if account.type == AccountType.EXPENSE:
-            return self._close_expense_account(account, income_summary, date)
+        if account.type not in (AccountType.INCOME, AccountType.EXPENSE):
+            msg = f"Cannot close account of type {account.type} — only INCOME and EXPENSE are closable"
+            raise ValueError(msg)
 
-        if account.type == AccountType.INCOME:
-            return self._close_income_account(account, income_summary, date)
+        # Collect leaf accounts grouped by their normal side.
+        # "debit-normal" accounts (expenses) need to be credited to zero.
+        # "credit-normal" accounts (income) need to be debited to zero.
+        to_debit: dict[TAccount, float] = {}  # accounts we will debit (income-type leaves)
+        to_credit: dict[TAccount, float] = {}  # accounts we will credit (expense-type leaves)
 
-        msg = f"Cannot close account of type {account.type} — only INCOME and EXPENSE are closable"
-        raise ValueError(msg)
+        leaves = list(account.sub_accounts) if account.has_sub_account() else [account]
+        for leaf in leaves:
+            bal = leaf.balance()
+            if bal == 0:
+                continue
+            if leaf.type in (AccountType.INCOME, AccountType.EQUITY):
+                # Credit-normal: debit to zero
+                to_debit[leaf] = bal
+            else:
+                # Debit-normal (expense): credit to zero
+                to_credit[leaf] = bal
 
-    def _close_expense_account(
-        self, account: TAccount, income_summary: TAccount, date: datetime.date,
-    ) -> CompoundEntry:
-        """Close an expense account: debit ISA, credit the expense (or its subs)."""
-        account_entries = (
-            {sub: sub.balance() for sub in account.sub_accounts}
-            if account.has_sub_account()
-            else {account: account.balance()}
-        )
-        return CompoundEntry(
-            debit_accounts={income_summary: abs(account.balance())},
-            credit_accounts=account_entries,
-            date=date,
-            description=f"Close expense account: {account.name}",
-        )
-
-    def _close_income_account(
-        self, account: TAccount, income_summary: TAccount, date: datetime.date,
-    ) -> CompoundEntry:
-        """Close an income account: debit the income (or its subs), credit ISA.
-
-        Composite income accounts may contain expense-type sub-accounts
-        (e.g., Trading Income has Unrealized Trading Loss).  The entry must
-        balance: income subs are debited, expense subs are credited, and the
-        net goes to Income Summary.
-        """
-        if account.has_sub_account():
-            income_subs = {sub: sub.balance() for sub in account.sub_accounts if sub.type == AccountType.INCOME}
-            expense_subs = {sub: sub.balance() for sub in account.sub_accounts if sub.type == AccountType.EXPENSE}
+        # ISA absorbs the net. Positive net = credit ISA, negative = debit ISA.
+        net = sum(to_debit.values()) - sum(to_credit.values())
+        if net >= 0:
+            to_credit[income_summary] = net
         else:
-            income_subs = {account: account.balance()}
-            expense_subs = {}
+            to_debit[income_summary] = abs(net)
 
-        net_balance = account.balance()
-        isa_amount = abs(net_balance)
-
-        if net_balance >= 0:
-            # Net gain: debit income subs, credit ISA + expense subs
-            return CompoundEntry(
-                debit_accounts=income_subs,
-                credit_accounts={income_summary: isa_amount, **expense_subs},
-                date=date,
-                description=f"Close income account: {account.name}",
-            )
-
-        # Net loss: debit ISA + income subs, credit expense subs
         return CompoundEntry(
-            debit_accounts={income_summary: isa_amount, **income_subs},
-            credit_accounts=expense_subs,
+            debit_accounts=to_debit,
+            credit_accounts=to_credit,
             date=date,
-            description=f"Close income account: {account.name} (net loss)",
+            description=f"Close account: {account.name}",
         )
