@@ -2,14 +2,14 @@
 
 All bank-specific accounts are created as plain ``TAccount`` or
 ``CompositeTAccount`` instances — no subclasses needed.  The
-:class:`BankChartOfAccounts` wires them together and exposes each
-account as a named attribute.
+:class:`BankChartOfAccounts` uses :class:`ChartOfAccountsBuilder`
+to construct and validate the chart.
 """
 
 from __future__ import annotations
 
 from brms.core.models.accounting.accounts import AccountType, CompositeTAccount, TAccount
-from brms.core.models.accounting.chart_of_accounts import ChartOfAccounts
+from brms.core.models.accounting.chart_of_accounts import ChartOfAccounts, ChartOfAccountsBuilder
 
 
 class BankChartOfAccounts(ChartOfAccounts):
@@ -62,12 +62,17 @@ class BankChartOfAccounts(ChartOfAccounts):
         └── Operating Expense
     """
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # noqa: D107
         super().__init__()
+        self._create_accounts()
+        self._register_accounts()
 
+    def _create_accounts(self) -> None:
+        """Create all account instances and wire composites."""
         # ── Assets ───────────────────────────────────────────────────
         self.cash_account = TAccount("Cash and Cash Equivalents", AccountType.ASSET)
         self.receivable_account = TAccount("Receivables from Financial Institutions", AccountType.ASSET)
+
         self.loan_loss_provision_account = TAccount(
             "Loan Loss Provision", AccountType.ASSET, is_contra_account=True,
         )
@@ -132,13 +137,38 @@ class BankChartOfAccounts(ChartOfAccounts):
         self.interest_expense_account = TAccount("Interest Expense", AccountType.EXPENSE)
         self.operating_expense_account = TAccount("Operating Expense", AccountType.EXPENSE)
 
-        # ── Register in parent ChartOfAccounts ───────────────────────
-        self.assets.extend([
+    def _register_accounts(self) -> None:
+        """Register all accounts using the builder for type validation."""
+        builder = ChartOfAccountsBuilder()
+
+        # Assets
+        for acct in [
             self.cash_account, self.receivable_account, self.loan_account,
             self.asset_fvtpl_account, self.investment_securities_account,
             self.ppe_account, self.intangible_account,
-        ])
-        self.liabilities.extend([self.deposit_account, self.payable_account, self.debt_account])
-        self.equities.extend([self.equity_account, self.accumulated_oci_account])
-        self.income.extend([self.interest_income_account, self.trading_income_account, self.investment_income_account])
-        self.expenses.extend([self.interest_expense_account, self.operating_expense_account])
+        ]:
+            builder.add_asset_account(acct)
+
+        # Liabilities
+        for acct in [self.deposit_account, self.payable_account, self.debt_account]:
+            builder.add_liability_account(acct)
+
+        # Equity
+        for acct in [self.equity_account, self.accumulated_oci_account]:
+            builder.add_equity_account(acct)
+
+        # Income
+        for acct in [self.interest_income_account, self.trading_income_account, self.investment_income_account]:
+            builder.add_income_account(acct)
+
+        # Expenses
+        for acct in [self.interest_expense_account, self.operating_expense_account]:
+            builder.add_expense_account(acct)
+
+        # Build validates types, then copy lists into self
+        validated = builder.build()
+        self.assets = validated.assets
+        self.liabilities = validated.liabilities
+        self.equities = validated.equities
+        self.income = validated.income
+        self.expenses = validated.expenses
