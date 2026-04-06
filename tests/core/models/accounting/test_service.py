@@ -14,7 +14,7 @@ from brms.core.models.accounting.accounts import (
 )
 from brms.core.models.accounting.journal import Journal
 from brms.core.models.accounting.ledger import Ledger
-from brms.core.models.accounting.service import AccountingService
+from brms.core.services.accounting_service import AccountingService
 from brms.core.models.transaction import Transaction, TransactionType
 
 

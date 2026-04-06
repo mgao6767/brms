@@ -6,8 +6,8 @@ from io import BytesIO
 
 from brms.core.events import EventBus
 from brms.core.metrics.base import MetricRegistry
-from brms.core.models.accounting.rules.base import RuleRegistry
-from brms.core.models.accounting.service import AccountingService
+from brms.core.rules.base import RuleRegistry
+from brms.core.services.accounting_service import AccountingService
 from brms.core.services.data_service import DataService
 from brms.core.services.metrics_service import MetricsService
 from brms.core.services.simulation_service import LegacySimulationService, SimulationHistory
@@ -112,11 +112,11 @@ def test_simulation_with_rules_and_accounting() -> None:
     from brms.core.models.accounting.accounts import BankChartOfAccounts
     from brms.core.models.accounting.journal import Journal
     from brms.core.models.accounting.ledger import Ledger
-    from brms.core.models.accounting.rules.amortization import AmortizationRule
-    from brms.core.models.accounting.rules.coupon import CouponPaymentRule
-    from brms.core.models.accounting.rules.interest import InterestPaymentRule
-    from brms.core.models.accounting.rules.mark_to_market import MarkToMarketRule
-    from brms.core.models.accounting.rules.maturity import MaturityRule
+    from brms.core.rules.amortization import AmortizationRule
+    from brms.core.rules.coupon import CouponPaymentRule
+    from brms.core.rules.interest import InterestPaymentRule
+    from brms.core.rules.mark_to_market import MarkToMarketRule
+    from brms.core.rules.maturity import MaturityRule
 
     # Create zip
     buf = BytesIO()

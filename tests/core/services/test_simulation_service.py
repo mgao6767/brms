@@ -7,8 +7,8 @@ import pandas as pd
 
 from brms.core.events import DateAdvanced, DateReverted, EventBus
 from brms.core.metrics.base import MetricRegistry
-from brms.core.models.accounting.rules.base import RuleRegistry
-from brms.core.models.accounting.service import AccountingService
+from brms.core.rules.base import RuleRegistry
+from brms.core.services.accounting_service import AccountingService
 from brms.core.models.bank import Bank
 from brms.core.models.market_data import MarketDataStore
 from brms.core.services.data_service import BankingBook, TradingBook

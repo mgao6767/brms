@@ -7,7 +7,7 @@ import datetime
 from decimal import Decimal
 from unittest.mock import MagicMock
 
-from brms.core.models.accounting.rules.amortization import AmortizationRule
+from brms.core.rules.amortization import AmortizationRule
 from brms.core.models.transaction import TransactionType
 
 

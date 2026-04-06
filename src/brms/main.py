@@ -20,12 +20,12 @@ from brms.core.metrics.capital import (
 from brms.core.models.accounting.accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal
 from brms.core.models.accounting.ledger import Ledger
-from brms.core.models.accounting.rules.amortization import AmortizationRule
-from brms.core.models.accounting.rules.coupon import CouponPaymentRule
-from brms.core.models.accounting.rules.interest import InterestPaymentRule
-from brms.core.models.accounting.rules.mark_to_market import MarkToMarketRule
-from brms.core.models.accounting.rules.maturity import MaturityRule
-from brms.core.models.accounting.service import AccountingService
+from brms.core.rules.amortization import AmortizationRule
+from brms.core.rules.coupon import CouponPaymentRule
+from brms.core.rules.interest import InterestPaymentRule
+from brms.core.rules.mark_to_market import MarkToMarketRule
+from brms.core.rules.maturity import MaturityRule
+from brms.core.services.accounting_service import AccountingService
 from brms.core.models.bank import Bank
 from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond, TreasuryBond, TreasuryNote
 from brms.core.models.instruments.deposits import Cash, Deposit

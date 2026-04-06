@@ -13,7 +13,7 @@ from brms.core.metrics.base import MetricRegistry
 from brms.core.models.accounting.accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal
 from brms.core.models.accounting.ledger import Ledger
-from brms.core.models.accounting.service import AccountingService
+from brms.core.services.accounting_service import AccountingService
 from brms.core.models.bank import Bank
 from brms.core.models.instruments.deposits import Cash
 from brms.core.models.market_data import MarketDataStore

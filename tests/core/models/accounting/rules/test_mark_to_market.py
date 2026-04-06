@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 from brms.core.enums import InstrumentClass as CoreInstrumentClass
 from brms.core.enums import ValuationType
-from brms.core.models.accounting.rules.mark_to_market import MarkToMarketRule
+from brms.core.rules.mark_to_market import MarkToMarketRule
 from brms.core.models.instruments.base import InstrumentClass
 from brms.core.models.transaction import TransactionType
 from brms.core.stores.valuation_store import ValuationStore
