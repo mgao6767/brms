@@ -16,7 +16,8 @@ class BankChartOfAccounts(ChartOfAccounts):
     """Pre-configured chart of accounts for a commercial bank.
 
     Every account is accessible as a named attribute.  Composite accounts
-    automatically aggregate their sub-accounts.
+    automatically aggregate their sub-accounts.  Contra accounts reduce the
+    balance of the account they are attached to.
 
     Account hierarchy::
 
@@ -24,8 +25,9 @@ class BankChartOfAccounts(ChartOfAccounts):
         ├── Cash and Cash Equivalents
         ├── Receivables from Financial Institutions
         ├── Loans and Advances
+        │   └── Loan Loss Provision                ← contra
         ├── Assets at FVTPL (Trading Book)
-        ├── Investment Securities          ← composite
+        ├── Investment Securities                  ← composite
         │   ├── Investment Securities at Amortized Cost (HTM)
         │   └── Investment Securities at FVOCI
         ├── Property, Plant and Equipment
@@ -42,10 +44,10 @@ class BankChartOfAccounts(ChartOfAccounts):
         ├── Shareholders' Equity
         └── Accumulated OCI                        ← composite
             ├── Unrealized OCI Gain
-            └── Unrealized OCI Loss (contra)
+            └── Unrealized OCI Loss                ← contra
 
         Income
-        ├── Interest Income
+        ├── Interest Income                        ← composite
         ├── Trading Income (FVTPL)                 ← composite
         │   ├── Unrealized Trading Gain
         │   ├── Realized Trading Gain
