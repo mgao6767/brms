@@ -51,9 +51,21 @@ class ReportingService:
             elif account.type == AccountType.EQUITY:
                 equity.append(entry)
 
+        # Net income = income - expenses (before closing, these are in temporary accounts)
+        net_income = 0.0
+        for account in ledger.chart_of_accounts:
+            if account.type == AccountType.INCOME:
+                net_income += account.balance()
+            elif account.type == AccountType.EXPENSE:
+                net_income -= account.balance()
+
         total_assets = sum(row["balance"] for row in assets)
         total_liabilities = sum(row["balance"] for row in liabilities)
-        total_equity = sum(row["balance"] for row in equity)
+        total_equity = sum(row["balance"] for row in equity) + net_income
+
+        # Include net income as part of equity for interim reporting
+        # (before period-end closing, net income hasn't been transferred to retained earnings)
+        equity.append({"account": "Net Income (current period)", "balance": net_income})
 
         return {
             "assets": assets,
@@ -62,6 +74,7 @@ class ReportingService:
             "total_assets": total_assets,
             "total_liabilities": total_liabilities,
             "total_equity": total_equity,
+            "net_income": net_income,
         }
 
     def income_statement(self, ledger: Ledger) -> dict[str, Any]:

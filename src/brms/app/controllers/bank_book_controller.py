@@ -35,9 +35,11 @@ class BankBookController(BRMSController):
         self.connect_signals()
 
     @staticmethod
-    def instrument_to_data(instrument: Instrument, position: Position) -> list[dict]:
+    def instrument_to_data(
+        instrument: Instrument, position: Position, initial_value: float | None = None,
+    ) -> list[dict]:
         """Convert an instrument to data that can be used by the TreeModel."""
-        face_value = getattr(instrument, "face_value", 0)
+        value = initial_value if initial_value is not None else getattr(instrument, "face_value", 0)
         inst_class = getattr(instrument, "instrument_class", None)
         class_label = inst_class.value if inst_class is not None else ""
         data: dict[ColumnOrder, object]
@@ -45,27 +47,34 @@ class BankBookController(BRMSController):
             data = {
                 AssetColumns.ID: instrument.id,
                 AssetColumns.Asset: instrument.name,
-                AssetColumns.Value: face_value,
+                AssetColumns.Value: value,
                 AssetColumns.Class: class_label,
             }
         elif position == Position.SHORT:
             data = {
                 LiabilityColumns.ID: instrument.id,
                 LiabilityColumns.Liability: instrument.name,
-                LiabilityColumns.Value: face_value,
+                LiabilityColumns.Value: value,
                 LiabilityColumns.Class: class_label,
             }
         return [data]
 
-    def add_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
+    def add_instrument(
+        self, instrument: Instrument, position: Position | None = None,
+        initial_value: float | None = None,
+    ) -> None:
         """Add an instrument to the tree model."""
         if position is None:
             position = Position.LONG
         match position:
             case Position.LONG:
-                self.long_model.add_data(QMODELINDEX, self.instrument_to_data(instrument, position))
+                self.long_model.add_data(
+                    QMODELINDEX, self.instrument_to_data(instrument, position, initial_value),
+                )
             case Position.SHORT:
-                self.short_model.add_data(QMODELINDEX, self.instrument_to_data(instrument, position))
+                self.short_model.add_data(
+                    QMODELINDEX, self.instrument_to_data(instrument, position, initial_value),
+                )
 
     def remove_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
         """Remove an instrument from the tree model."""

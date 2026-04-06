@@ -74,10 +74,11 @@ class BankController(BRMSController):
             except KeyError:
                 continue
             side = Position.LONG if pos.side == Position.LONG else Position.SHORT
-            if pos.book_type == BookType.BANKING:
-                self.banking_book_ctrl.add_instrument(instrument, side)
-            else:
-                self.trading_book_ctrl.add_instrument(instrument, side)
+            ctrl = (
+                self.banking_book_ctrl if pos.book_type == BookType.BANKING
+                else self.trading_book_ctrl
+            )
+            ctrl.add_instrument(instrument, side, initial_value=float(pos.acquisition_cost))
 
     def _on_date_advanced(self, event: DateAdvanced) -> None:
         """Update instrument values in book trees from ValuationStore after each advance."""
