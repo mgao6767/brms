@@ -9,8 +9,8 @@ from PySide6.QtCore import Signal
 from brms.app.controllers.bank_book_controller import BankingBookController, TradingBookController
 from brms.app.controllers.base import BRMSController
 from brms.app.reporting import HTMLStatementRenderer
-from brms.core.events import InstrumentAdded, InstrumentRemoved
 from brms.core.enums import PositionSide as Position
+from brms.core.events import InstrumentAdded, InstrumentRemoved
 
 if TYPE_CHECKING:
     from brms.app.controllers.inspector_controller import InspectorController
@@ -78,6 +78,16 @@ class BankController(BRMSController):
         tb_data = self._reporting.trial_balance(self.bank.ledger)
         bs_data = self._reporting.balance_sheet(self.bank.ledger)
         is_data = self._reporting.income_statement(self.bank.ledger)
+
+        # Add capital adequacy and liquidity metrics for the dashboard panel
+        total_assets = bs_data.get("total_assets", 0.0)
+        total_equity = bs_data.get("total_equity", 0.0)
+        bs_data["cet1"] = total_equity  # simplified: CET1 = equity
+        bs_data["cet1_ratio"] = total_equity / total_assets if total_assets else 0.0
+        bs_data["tier1_capital_ratio"] = 0.0
+        bs_data["total_capital_ratio"] = 0.0
+        bs_data["nsfr"] = 0.0
+        bs_data["lcr"] = 0.0
 
         tb_html = self._renderer.render_trial_balance(tb_data, date)
         bs_html = self._renderer.render_balance_sheet(bs_data, date)

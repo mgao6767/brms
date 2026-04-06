@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from brms.app.views.main_window import MainWindow
     from brms.core.events import DateAdvanced
-    from brms.core.services.simulation_service import SimulationHistory, SimulationService
+    from brms.core.services.simulation_service import SimulationService
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,6 @@ class MainController(BRMSController):
 
         # Store core services for future use as migration progresses
         self._core: dict[str, Any] = core_services or {}
-        self._history: SimulationHistory | None = self._core.get("history")
         self._simulation_service: SimulationService | None = self._core.get("simulation_service")
 
         # Derive start/end dates from SimulationService
@@ -124,25 +123,22 @@ class MainController(BRMSController):
         self.view.close()
 
     def update_dashboard(self) -> None:
-        """Refresh all dashboard plots, preferring SimulationHistory when available."""
-        # Prefer core SimulationHistory when available
-        if self._history and self._history.dates:
-            asset_series = self._history.get_series("total_assets")
+        """Refresh all dashboard plots using MetricStore time-series data."""
+        metric_store = self._core.get("metric_store")
+        if metric_store:
+            from brms.core.enums import MetricName
+
+            asset_series = metric_store.series(MetricName.TOTAL_ASSETS)
             dates = [d for d, _ in asset_series]
             asset_values = [v for _, v in asset_series]
-            liability_series = self._history.get_series("total_liabilities")
+            liability_series = metric_store.series(MetricName.TOTAL_LIABILITIES)
             liability_values = [v for _, v in liability_series]
-            equity_series = self._history.get_series("total_equity")
+            equity_series = metric_store.series(MetricName.TOTAL_EQUITY)
             equity_values = [v for _, v in equity_series]
-            cet1_series = self._history.get_series("cet1_ratio")
+            cet1_series = metric_store.series(MetricName.CET1_RATIO)
             cet1_values = [v for _, v in cet1_series]
         else:
-            # No history data yet — use empty lists
-            dates = []
-            asset_values = []
-            liability_values = []
-            equity_values = []
-            cet1_values = []
+            dates, asset_values, liability_values, equity_values, cet1_values = [], [], [], [], []
 
         self.view.dashboard.update_assets_liabilities_plot(
             start=self._start_date,
@@ -195,6 +191,12 @@ class MainController(BRMSController):
             self.view.dashboard.update_simulation_progress(int(progress))
         self.bank_ctrl.update_statement(date)
         self.update_dashboard()
+
+        # Push today's transactions to the history widget
+        transaction_log = self._core.get("transaction_log")
+        if transaction_log:
+            for tx in transaction_log.by_date(date):
+                self.view.transaction_history_widget.add_transaction(tx)
 
     def on_start_action(self) -> None:
         """Start the simulation timer for continuous advancement."""
