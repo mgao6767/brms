@@ -66,7 +66,13 @@ class BankChartOfAccounts(ChartOfAccounts):
         # ── Assets ───────────────────────────────────────────────────
         self.cash_account = TAccount("Cash and Cash Equivalents", AccountType.ASSET)
         self.receivable_account = TAccount("Receivables from Financial Institutions", AccountType.ASSET)
-        self.loan_account = TAccount("Loans and Advances", AccountType.ASSET)
+        self.loan_loss_provision_account = TAccount(
+            "Loan Loss Provision", AccountType.ASSET, is_contra_account=True,
+        )
+        self.loan_account = TAccount(
+            "Loans and Advances", AccountType.ASSET,
+            contra_accounts=[self.loan_loss_provision_account],
+        )
         self.asset_fvtpl_account = TAccount("Assets at FVTPL", AccountType.ASSET)
 
         self.investment_htm_account = TAccount("Investment Securities at Amortized Cost", AccountType.ASSET)
