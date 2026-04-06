@@ -101,29 +101,14 @@ class AccountingService:
                 raise NotImplementedError(msg)
 
     def _lookup(self, ledger: Ledger, name: str) -> TAccount:
-        """Look up a TAccount by name from the ledger's chart of accounts.
-
-        Searches top-level accounts, their contra-accounts, and sub-accounts of
-        composite accounts recursively.
+        """Look up a TAccount by name, searching all accounts including sub-accounts.
 
         Raises:
             KeyError: if no account with *name* exists in the chart.
-
         """
-
-        def _search(account: TAccount) -> TAccount | None:
+        for account in ledger.chart_of_accounts.all_accounts():
             if account.name == name:
                 return account
-            for sub in account.sub_accounts:
-                found = _search(sub)
-                if found is not None:
-                    return found
-            return None
-
-        for account in ledger.chart_of_accounts:
-            found = _search(account)
-            if found is not None:
-                return found
         msg = f"Account '{name}' not found in chart of accounts"
         raise KeyError(msg)
 

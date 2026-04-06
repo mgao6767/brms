@@ -204,6 +204,16 @@ class TAccount:
         """Check if the T-account has any contra account."""
         return len(self.contra_accounts) > 0
 
+    def leaves(self) -> Generator[TAccount, None, None]:
+        """Yield all leaf (non-composite or childless) accounts in the sub-tree.
+
+        For a simple TAccount, yields itself.
+        For a CompositeTAccount, recursively yields the leaves of all children.
+        This is used by the Ledger when posting closing entries — only leaf
+        accounts can be directly debited/credited.
+        """
+        yield self
+
     def balance(self) -> float:
         """Return account balance."""
         match self.normal_balance:
@@ -276,6 +286,14 @@ class CompositeTAccount(TAccount):
     def has_sub_account(self) -> bool:
         """Check if the T-account has any sub account."""
         return len(self._sub_accounts) > 0
+
+    def leaves(self) -> Generator[TAccount, None, None]:
+        """Recursively yield all leaf accounts in this composite's sub-tree."""
+        if not self.has_sub_account():
+            yield self
+            return
+        for child in self._sub_accounts:
+            yield from child.leaves()
 
     def add(self, account: TAccount) -> None:
         """Add a T-account as a child."""

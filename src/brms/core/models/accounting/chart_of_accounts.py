@@ -70,7 +70,11 @@ class ChartOfAccounts:
     retained_earnings_account: RetainedEarningsAccount = field(default_factory=RetainedEarningsAccount)
 
     def __iter__(self) -> Generator[TAccount, None, None]:
-        """Yield all accounts in the chart of accounts."""
+        """Yield top-level accounts and their contra accounts.
+
+        Composite accounts are yielded as single entries (not expanded).
+        Use :meth:`all_accounts` to recursively include sub-accounts.
+        """
         all_accounts = chain(
             self.assets,
             self.equities,
@@ -83,6 +87,34 @@ class ChartOfAccounts:
             yield from account.contra_accounts
         yield self.income_summary_account
         yield self.retained_earnings_account
+
+    def all_accounts(self) -> Generator[TAccount, None, None]:
+        """Yield every account including nested sub-accounts (depth-first).
+
+        Unlike ``__iter__``, this expands composite accounts so that both the
+        composite and all of its descendants are yielded.  Useful for lookups
+        by name when the target may be a sub-account.
+        """
+        all_accounts = chain(
+            self.assets,
+            self.equities,
+            self.liabilities,
+            self.income,
+            self.expenses,
+        )
+        for account in all_accounts:
+            yield from self._walk(account)
+            for contra in account.contra_accounts:
+                yield from self._walk(contra)
+        yield self.income_summary_account
+        yield self.retained_earnings_account
+
+    @staticmethod
+    def _walk(account: TAccount) -> Generator[TAccount, None, None]:
+        """Yield *account* and all its descendants (depth-first)."""
+        yield account
+        for child in account.sub_accounts:
+            yield from ChartOfAccounts._walk(child)
 
 
 class ChartOfAccountsBuilder:

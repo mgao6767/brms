@@ -147,16 +147,35 @@ class Ledger:
             if account.type not in (AccountType.INCOME, AccountType.EXPENSE):
                 continue
 
-            contra_total = sum(contra.balance() for contra in account.contra_accounts)
+            # Collect contra leaf accounts with non-zero balances
+            contra_entries: dict[TAccount, float] = {}
+            for contra in account.contra_accounts:
+                for leaf in contra.leaves():
+                    bal = leaf.balance()
+                    if bal != 0:
+                        contra_entries[leaf] = bal
+
+            contra_total = sum(contra_entries.values())
             if contra_total == 0:
                 continue
 
-            if account.type == AccountType.INCOME:
-                debit_accounts = {account: contra_total}
-                credit_accounts = {contra: contra.balance() for contra in account.contra_accounts}
+            # The parent account absorbs the contra total.
+            # Use leaves if the parent is composite to avoid direct-set errors.
+            parent_entries: dict[TAccount, float] = {}
+            parent_leaves = list(account.leaves())
+            if len(parent_leaves) == 1:
+                parent_entries[parent_leaves[0]] = contra_total
             else:
-                debit_accounts = {contra: contra.balance() for contra in account.contra_accounts}
-                credit_accounts = {account: contra_total}
+                # Distribute proportionally across leaves (simplified: put it all on the first leaf)
+                # In practice, contra closing usually applies to simple accounts, not composites.
+                parent_entries[parent_leaves[0]] = contra_total
+
+            if account.type == AccountType.INCOME:
+                debit_accounts = parent_entries
+                credit_accounts = contra_entries
+            else:
+                debit_accounts = contra_entries
+                credit_accounts = parent_entries
 
             self.post(CompoundEntry(
                 debit_accounts=debit_accounts,
@@ -238,11 +257,11 @@ class Ledger:
         # Collect leaf accounts grouped by their normal side.
         # "debit-normal" accounts (expenses) need to be credited to zero.
         # "credit-normal" accounts (income) need to be debited to zero.
+        # Uses leaves() to recurse through any depth of composite nesting.
         to_debit: dict[TAccount, float] = {}  # accounts we will debit (income-type leaves)
         to_credit: dict[TAccount, float] = {}  # accounts we will credit (expense-type leaves)
 
-        leaves = list(account.sub_accounts) if account.has_sub_account() else [account]
-        for leaf in leaves:
+        for leaf in account.leaves():
             bal = leaf.balance()
             if bal == 0:
                 continue
