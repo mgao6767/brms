@@ -11,7 +11,6 @@ from dataclasses import dataclass, field
 from brms.core.models.accounting.accounts import AccountType, CompositeTAccount, TAccount
 from brms.core.models.accounting.chart_of_accounts import ChartOfAccounts
 
-
 # ---------------------------------------------------------------------------
 # Asset accounts
 # ---------------------------------------------------------------------------

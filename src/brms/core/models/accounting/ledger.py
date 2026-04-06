@@ -9,13 +9,14 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import datetime
 
+    from brms.core.models.accounting.chart_of_accounts import ChartOfAccounts
+
 from brms.core.models.accounting.accounts import (
     AccountBalances,
     AccountNormalBalance,
     AccountType,
     TAccount,
 )
-from brms.core.models.accounting.chart_of_accounts import ChartOfAccounts
 from brms.core.models.accounting.journal import CompoundEntry, Journal, JournalEntry, SimpleEntry
 
 
