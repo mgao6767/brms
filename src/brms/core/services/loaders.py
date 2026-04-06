@@ -113,11 +113,14 @@ class ZipLoader:
             item = dict(item)  # noqa: PLW2901
             type_id = item.pop("type")
             instrument_id = item.pop("id", None)
+            instrument_name = item.pop("name", None)
             item.pop("value", None)  # v1 field not used by constructors
             _convert_kwargs(item)
             inst = self._registry.create(type_id, **item)
             if instrument_id is not None:
                 inst.id = instrument_id
+            if instrument_name is not None:
+                inst.name = instrument_name
             instruments.append(inst)
         return instruments
 
