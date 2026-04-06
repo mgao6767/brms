@@ -78,10 +78,11 @@ class CouponPaymentRule:
         return [
             Transaction(
                 id=str(uuid.uuid4()),
-                type=TransactionType.COUPON_PAYMENT,
+                type=TransactionType.INTEREST_SETTLEMENT,
                 date=context.date,
                 amount=coupon_amount,
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
+                metadata=(("side", "income"),),
             ),
         ]

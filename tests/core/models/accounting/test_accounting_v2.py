@@ -560,14 +560,14 @@ class TestBankChartOfAccounts:
 
     def test_asset_accounts_populated(self) -> None:
         coa = BankChartOfAccounts()
-        assert len(coa.assets) == 7
+        assert len(coa.assets) == 8
         assert coa.cash_account in coa.assets
         assert coa.loan_account in coa.assets
         assert coa.investment_securities_account in coa.assets
 
     def test_liability_accounts_populated(self) -> None:
         coa = BankChartOfAccounts()
-        assert len(coa.liabilities) == 3
+        assert len(coa.liabilities) == 4
         assert coa.deposit_account in coa.liabilities
 
     def test_equity_accounts_populated(self) -> None:

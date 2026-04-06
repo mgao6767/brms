@@ -90,6 +90,7 @@ class BankChartOfAccounts(ChartOfAccounts):
 
         self.ppe_account = TAccount("Property, Plant and Equipment", AccountType.ASSET)
         self.intangible_account = TAccount("Intangible Assets", AccountType.ASSET)
+        self.accrued_interest_receivable = TAccount("Accrued Interest Receivable", AccountType.ASSET)
 
         # ── Liabilities ──────────────────────────────────────────────
         self.customer_deposits_account = TAccount("Deposits", AccountType.LIABILITY)
@@ -98,6 +99,7 @@ class BankChartOfAccounts(ChartOfAccounts):
         self.deposit_account.add_sub_account(self.customer_deposits_account)
         self.deposit_account.add_sub_account(self.public_borrowings_account)
 
+        self.interest_payable_account = TAccount("Interest Payable", AccountType.LIABILITY)
         self.payable_account = TAccount("Payables to Financial Institutions", AccountType.LIABILITY)
         self.debt_account = TAccount("Debt Issues", AccountType.LIABILITY)
 
@@ -145,12 +147,12 @@ class BankChartOfAccounts(ChartOfAccounts):
         for acct in [
             self.cash_account, self.receivable_account, self.loan_account,
             self.asset_fvtpl_account, self.investment_securities_account,
-            self.ppe_account, self.intangible_account,
+            self.ppe_account, self.intangible_account, self.accrued_interest_receivable,
         ]:
             builder.add_asset_account(acct)
 
         # Liabilities
-        for acct in [self.deposit_account, self.payable_account, self.debt_account]:
+        for acct in [self.deposit_account, self.interest_payable_account, self.payable_account, self.debt_account]:
             builder.add_liability_account(acct)
 
         # Equity

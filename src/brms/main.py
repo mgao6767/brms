@@ -43,8 +43,8 @@ from brms.core.models.instruments.registry import InstrumentRegistry
 from brms.core.models.market_data import MarketDataStore
 from brms.core.rules.amortization import AmortizationRule
 from brms.core.rules.coupon import CouponPaymentRule
-from brms.core.rules.deposit_interest import DepositInterestRule
-from brms.core.rules.interest import InterestPaymentRule
+from brms.core.rules.deposit_interest import DepositInterestAccrualRule, DepositInterestSettlementRule
+from brms.core.rules.interest_accrual import InterestIncomeAccrualRule
 from brms.core.rules.mark_to_market import MarkToMarketRule
 from brms.core.rules.maturity import MaturityRule
 from brms.core.services.accounting_service import AccountingService
@@ -101,10 +101,11 @@ def _build_core_services() -> dict:
     rule_engine = RuleEngine()
     rule_engine.register(MaturityRule())
     rule_engine.register(CouponPaymentRule())
-    rule_engine.register(InterestPaymentRule())
     rule_engine.register(MarkToMarketRule())
     rule_engine.register(AmortizationRule())
-    rule_engine.register(DepositInterestRule())
+    rule_engine.register(DepositInterestAccrualRule())
+    rule_engine.register(DepositInterestSettlementRule())
+    rule_engine.register(InterestIncomeAccrualRule())
 
     # Metrics
     metric_registry = MetricRegistry()
@@ -161,6 +162,7 @@ def _build_core_services() -> dict:
 
     # Load default simulation zip and initialize (replay to start_date)
     default_zip = Path(__file__).parent / "data" / "default_simulation.zip"
+    default_zip = Path("temp/simple_bank.zip")
     if default_zip.exists():
         loader = ZipLoader(path=default_zip, instrument_registry=instrument_registry)
         data_service.load_and_initialize(loader, simulation_service)

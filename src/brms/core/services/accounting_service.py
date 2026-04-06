@@ -88,6 +88,10 @@ class AccountingService:
                 return self._interest_payment(transaction, ledger)
             case TransactionType.INTEREST_EXPENSE:
                 return self._interest_expense(transaction, ledger)
+            case TransactionType.INTEREST_ACCRUAL:
+                return self._interest_accrual(transaction, ledger)
+            case TransactionType.INTEREST_SETTLEMENT:
+                return self._interest_settlement(transaction, ledger)
             case TransactionType.MARK_TO_MARKET | TransactionType.REVALUATION:
                 return self._mark_to_market(transaction, ledger)
             case TransactionType.PRINCIPAL_PAYMENT:
@@ -105,6 +109,7 @@ class AccountingService:
 
         Raises:
             KeyError: if no account with *name* exists in the chart.
+
         """
         for account in ledger.chart_of_accounts.all_accounts():
             if account.name == name:
@@ -334,3 +339,62 @@ class AccountingService:
             description=f"Maturity settlement (tx={tx.id})",
         )
         return [entry]
+
+    def _interest_accrual(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """INTEREST_ACCRUAL: accrue interest without cash movement.
+
+        side=income:  Dr Accrued Interest Receivable / Cr Interest Income
+        side=expense: Dr Interest Expense / Cr Interest Payable
+        """
+        meta = dict(tx.metadata)
+        side = meta.get("side", "")
+        if side == "income":
+            debit = self._lookup(ledger, "Accrued Interest Receivable")
+            credit = self._lookup(ledger, "Interest Income")
+            desc = "Interest income accrual"
+        elif side == "expense":
+            debit = self._lookup(ledger, "Interest Expense")
+            credit = self._lookup(ledger, "Interest Payable")
+            desc = "Interest expense accrual"
+        else:
+            msg = f"Unknown side '{side}' for INTEREST_ACCRUAL in tx={tx.id}"
+            raise ValueError(msg)
+        return [
+            SimpleEntry(
+                debit_account=debit,
+                credit_account=credit,
+                value=float(tx.amount),
+                date=tx.date,
+                description=f"{desc} (tx={tx.id})",
+            ),
+        ]
+
+    def _interest_settlement(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """INTEREST_SETTLEMENT: settle accrued interest with cash movement.
+
+        side=income:  Dr Cash / Cr Accrued Interest Receivable
+        side=expense: Dr Interest Payable / Cr Cash
+        """
+        meta = dict(tx.metadata)
+        side = meta.get("side", "")
+        cash = self._lookup(ledger, "Cash and Cash Equivalents")
+        if side == "income":
+            debit = cash
+            credit = self._lookup(ledger, "Accrued Interest Receivable")
+            desc = "Interest income settlement"
+        elif side == "expense":
+            debit = self._lookup(ledger, "Interest Payable")
+            credit = cash
+            desc = "Interest expense settlement"
+        else:
+            msg = f"Unknown side '{side}' for INTEREST_SETTLEMENT in tx={tx.id}"
+            raise ValueError(msg)
+        return [
+            SimpleEntry(
+                debit_account=debit,
+                credit_account=credit,
+                value=float(tx.amount),
+                date=tx.date,
+                description=f"{desc} (tx={tx.id})",
+            ),
+        ]

@@ -81,6 +81,8 @@ class TransactionType(Enum):
     INTEREST_EXPENSE = auto()
     PRINCIPAL_PAYMENT = auto()
     REVALUATION = auto()
+    INTEREST_ACCRUAL = auto()
+    INTEREST_SETTLEMENT = auto()
 
 
 class MetricName(Enum):
