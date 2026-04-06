@@ -27,7 +27,7 @@ class JournalEntry(ABC):
 
     @abstractmethod
     def reversed(self) -> JournalEntry:
-        """Return a new entry with debits and credits swapped (for step-back)."""
+        """Return a new entry with debits and credits swapped (reversing entry)."""
 
     def debit_account_value_pairs(self) -> Iterator[tuple[TAccount, float]]:
         """Return an iterator over debit account and value pairs."""
@@ -161,14 +161,6 @@ class Journal:
         """Get all journal entries involving a specific account."""
         return [entry for entry in self.entries if entry.involves_account(account)]
 
-    def get_entries_by_description(self, description: str) -> list[JournalEntry]:
-        """Get all journal entries matching a specific description."""
-        return [entry for entry in self.entries if description in entry.description]
-
     def get_entries_within_date_range(self, start_date: datetime.date, end_date: datetime.date) -> list[JournalEntry]:
         """Get all journal entries within a specific date range."""
         return [entry for entry in self.entries if entry.date is not None and start_date <= entry.date <= end_date]
-
-    def remove_entry(self, entry: JournalEntry) -> None:
-        """Remove a specific journal entry."""
-        self.entries.remove(entry)

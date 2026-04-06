@@ -150,7 +150,7 @@ class Ledger:
             # Collect contra leaf accounts with non-zero balances
             contra_entries: dict[TAccount, float] = {}
             for contra in account.contra_accounts:
-                for leaf in contra.leaves():
+                for leaf in contra.posting_accounts():
                     bal = leaf.balance()
                     if bal != 0:
                         contra_entries[leaf] = bal
@@ -162,7 +162,7 @@ class Ledger:
             # The parent account absorbs the contra total.
             # Use leaves if the parent is composite to avoid direct-set errors.
             parent_entries: dict[TAccount, float] = {}
-            parent_leaves = list(account.leaves())
+            parent_leaves = list(account.posting_accounts())
             if len(parent_leaves) == 1:
                 parent_entries[parent_leaves[0]] = contra_total
             else:
@@ -261,7 +261,7 @@ class Ledger:
         to_debit: dict[TAccount, float] = {}  # accounts we will debit (income-type leaves)
         to_credit: dict[TAccount, float] = {}  # accounts we will credit (expense-type leaves)
 
-        for leaf in account.leaves():
+        for leaf in account.posting_accounts():
             bal = leaf.balance()
             if bal == 0:
                 continue

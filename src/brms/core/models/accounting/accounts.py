@@ -150,10 +150,6 @@ class TAccount:
         """Add credit amount to account."""
         self.credit_value += amount
 
-    def is_balanced(self) -> bool:
-        """Check if the T-account is balanced."""
-        return self.debit_value == self.credit_value
-
     @property
     def parent(self) -> TAccount | None:
         """Get the parent account."""
@@ -172,7 +168,7 @@ class TAccount:
 
     @debit_value.setter
     def debit_value(self, value: float) -> None:
-        self._check_value_setting()
+        self._guard_composite_direct_posting()
         self._debit_value = value
         self._propagate_to_parent()
 
@@ -183,53 +179,51 @@ class TAccount:
 
     @credit_value.setter
     def credit_value(self, value: float) -> None:
-        self._check_value_setting()
+        self._guard_composite_direct_posting()
         self._credit_value = value
         self._propagate_to_parent()
 
     @property
     def sub_accounts(self) -> Generator[TAccount, None, None]:
-        """Return an iterator over sub-accounts."""
+        """Yield direct child accounts. Empty for simple accounts."""
         yield from ()
 
-    def is_composite(self) -> bool:
-        """Check if the T-account is composite."""
-        return False
-
-    def has_sub_account(self) -> bool:
-        """Check if the T-account has any sub account."""
-        return False
-
     def has_contra_account(self) -> bool:
-        """Check if the T-account has any contra account."""
+        """Check if this account has any contra accounts attached."""
         return len(self.contra_accounts) > 0
 
-    def leaves(self) -> Generator[TAccount, None, None]:
-        """Yield all leaf (non-composite or childless) accounts in the sub-tree.
+    def posting_accounts(self) -> Generator[TAccount, None, None]:
+        """Yield all accounts that can directly receive debit/credit postings.
 
-        For a simple TAccount, yields itself.
-        For a CompositeTAccount, recursively yields the leaves of all children.
-        This is used by the Ledger when posting closing entries — only leaf
-        accounts can be directly debited/credited.
+        For a simple account, yields itself.
+        For a composite account, recursively yields the lowest-level accounts
+        in the hierarchy that are not themselves composites with children.
+
+        The ledger uses this when building closing entries to ensure postings
+        go to accounts that accept direct value changes.
         """
         yield self
 
     def balance(self) -> float:
-        """Return account balance."""
-        match self.normal_balance:
-            case AccountNormalBalance.DEBIT_NORMAL:
-                return self.debit_value - self.credit_value
-            case AccountNormalBalance.CREDIT_NORMAL:
-                return self.credit_value - self.debit_value
+        """Return the net balance of this account.
 
-    def _check_value_setting(self) -> None:
-        """Check if a debit/credit value can be set.
-
-        The value of a composite account with sub accounts should be the sum of sub accounts' values.
+        Debit-normal accounts: balance = debits - credits.
+        Credit-normal accounts: balance = credits - debits.
         """
-        if self.is_composite() and self.has_sub_account():
-            error_message = "Cannot set value directly on a composite account with sub accounts"
-            raise ValueError(error_message)
+        if self.normal_balance == AccountNormalBalance.DEBIT_NORMAL:
+            return self.debit_value - self.credit_value
+        return self.credit_value - self.debit_value
+
+    def _guard_composite_direct_posting(self) -> None:
+        """Raise if this is a composite account with children.
+
+        Composite accounts derive their values from children. Direct debit/credit
+        on a composite would be overwritten by the next recalculation, so we
+        prevent it. Only posting accounts should be posted to directly.
+
+        Base TAccount is never composite, so this is a no-op.
+        CompositeTAccount overrides this to check for children.
+        """
 
     def _propagate_to_parent(self) -> None:
         """Propagate value changes to the parent composite account, if any."""
@@ -276,39 +270,41 @@ class CompositeTAccount(TAccount):
 
     @property
     def sub_accounts(self) -> Generator[TAccount, None, None]:
-        """Return an iterator over sub-accounts."""
+        """Yield direct child accounts."""
         yield from self._sub_accounts
 
-    def is_composite(self) -> bool:
-        """Check if the T-account is composite."""
-        return True
+    def posting_accounts(self) -> Generator[TAccount, None, None]:
+        """Recursively yield the lowest-level accounts that accept direct postings.
 
-    def has_sub_account(self) -> bool:
-        """Check if the T-account has any sub account."""
-        return len(self._sub_accounts) > 0
-
-    def leaves(self) -> Generator[TAccount, None, None]:
-        """Recursively yield all leaf accounts in this composite's sub-tree."""
-        if not self.has_sub_account():
+        If this composite has no children, yields itself.
+        Otherwise, recurses into each child's posting_accounts.
+        """
+        if not self._sub_accounts:
             yield self
             return
         for child in self._sub_accounts:
-            yield from child.leaves()
+            yield from child.posting_accounts()
 
-    def add(self, account: TAccount) -> None:
-        """Add a T-account as a child."""
-        if not isinstance(account, TAccount):
-            error_message = "Account must be an instance of TAccount"
-            raise TypeError(error_message)
+    def add_sub_account(self, account: TAccount) -> None:
+        """Add a child account to this composite.
+
+        The child's parent is set to this account, and balances are recalculated.
+        """
         self._sub_accounts.append(account)
         account.parent = self
         self._recalculate()
 
-    def remove(self, account: TAccount) -> None:
-        """Remove a T-account as a child."""
+    def remove_sub_account(self, account: TAccount) -> None:
+        """Remove a child account from this composite."""
         self._sub_accounts.remove(account)
         account.parent = None
         self._recalculate()
+
+    def _guard_composite_direct_posting(self) -> None:
+        """Raise if this composite has children (values must come from children)."""
+        if self._sub_accounts:
+            msg = "Cannot post directly to a composite account with sub-accounts"
+            raise ValueError(msg)
 
     def _recalculate(self) -> None:
         """Recalculate debit and credit values from sub-accounts and propagate upward."""

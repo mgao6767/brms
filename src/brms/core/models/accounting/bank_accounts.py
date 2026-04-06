@@ -85,8 +85,8 @@ class BankChartOfAccounts(ChartOfAccounts):
         self.investment_htm_account = TAccount("Investment Securities at Amortized Cost", AccountType.ASSET)
         self.investment_fvoci_account = TAccount("Investment Securities at FVOCI", AccountType.ASSET)
         self.investment_securities_account = CompositeTAccount("Investment Securities", AccountType.ASSET)
-        self.investment_securities_account.add(self.investment_htm_account)
-        self.investment_securities_account.add(self.investment_fvoci_account)
+        self.investment_securities_account.add_sub_account(self.investment_htm_account)
+        self.investment_securities_account.add_sub_account(self.investment_fvoci_account)
 
         self.ppe_account = TAccount("Property, Plant and Equipment", AccountType.ASSET)
         self.intangible_account = TAccount("Intangible Assets", AccountType.ASSET)
@@ -95,8 +95,8 @@ class BankChartOfAccounts(ChartOfAccounts):
         self.customer_deposits_account = TAccount("Deposits", AccountType.LIABILITY)
         self.public_borrowings_account = TAccount("Other Public Borrowings", AccountType.LIABILITY)
         self.deposit_account = CompositeTAccount("Deposits and Other Public Borrowings", AccountType.LIABILITY)
-        self.deposit_account.add(self.customer_deposits_account)
-        self.deposit_account.add(self.public_borrowings_account)
+        self.deposit_account.add_sub_account(self.customer_deposits_account)
+        self.deposit_account.add_sub_account(self.public_borrowings_account)
 
         self.payable_account = TAccount("Payables to Financial Institutions", AccountType.LIABILITY)
         self.debt_account = TAccount("Debt Issues", AccountType.LIABILITY)
@@ -111,8 +111,8 @@ class BankChartOfAccounts(ChartOfAccounts):
             "Unrealized OCI Gain", AccountType.EQUITY, contra_accounts=[self.unrealized_oci_loss_account],
         )
         self.accumulated_oci_account = CompositeTAccount("Accumulated OCI", AccountType.EQUITY)
-        self.accumulated_oci_account.add(self.unrealized_oci_gain_account)
-        self.accumulated_oci_account.add(self.unrealized_oci_loss_account)
+        self.accumulated_oci_account.add_sub_account(self.unrealized_oci_gain_account)
+        self.accumulated_oci_account.add_sub_account(self.unrealized_oci_loss_account)
 
         # ── Income ───────────────────────────────────────────────────
         self.interest_income_account = CompositeTAccount("Interest Income", AccountType.INCOME)
@@ -122,16 +122,16 @@ class BankChartOfAccounts(ChartOfAccounts):
         self.unrealized_trading_loss_account = TAccount("Unrealized Trading Loss", AccountType.EXPENSE)
         self.realized_trading_loss_account = TAccount("Realized Trading Loss", AccountType.EXPENSE)
         self.trading_income_account = CompositeTAccount("Trading Income (FVTPL)", AccountType.INCOME)
-        self.trading_income_account.add(self.unrealized_trading_gain_account)
-        self.trading_income_account.add(self.realized_trading_gain_account)
-        self.trading_income_account.add(self.unrealized_trading_loss_account)
-        self.trading_income_account.add(self.realized_trading_loss_account)
+        self.trading_income_account.add_sub_account(self.unrealized_trading_gain_account)
+        self.trading_income_account.add_sub_account(self.realized_trading_gain_account)
+        self.trading_income_account.add_sub_account(self.unrealized_trading_loss_account)
+        self.trading_income_account.add_sub_account(self.realized_trading_loss_account)
 
         self.realized_oci_gain_account = TAccount("Realized OCI Gain", AccountType.INCOME)
         self.realized_oci_loss_account = TAccount("Realized OCI Loss", AccountType.EXPENSE)
         self.investment_income_account = CompositeTAccount("Investment Income (FVOCI)", AccountType.INCOME)
-        self.investment_income_account.add(self.realized_oci_gain_account)
-        self.investment_income_account.add(self.realized_oci_loss_account)
+        self.investment_income_account.add_sub_account(self.realized_oci_gain_account)
+        self.investment_income_account.add_sub_account(self.realized_oci_loss_account)
 
         # ── Expenses ─────────────────────────────────────────────────
         self.interest_expense_account = TAccount("Interest Expense", AccountType.EXPENSE)

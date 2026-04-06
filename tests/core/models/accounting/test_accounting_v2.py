@@ -110,21 +110,9 @@ class TestTAccount:
         expense.debit(1500)
         assert expense.balance() == 1500
 
-    def test_is_balanced_when_equal(self) -> None:
-        account = TAccount("Test", AccountType.ASSET)
-        account.debit(100)
-        account.credit(100)
-        assert account.is_balanced()
-
-    def test_not_balanced_when_unequal(self) -> None:
-        account = TAccount("Test", AccountType.ASSET)
-        account.debit(100)
-        assert not account.is_balanced()
-
     def test_is_not_composite(self) -> None:
         account = TAccount("Test", AccountType.ASSET)
-        assert not account.is_composite()
-        assert not account.has_sub_account()
+        assert not list(account.sub_accounts)  # simple account has no children
 
     def test_contra_account(self) -> None:
         main = TAccount("Revenue", AccountType.INCOME)
@@ -145,17 +133,16 @@ class TestCompositeTAccount:
     def test_add_sub_account(self) -> None:
         parent = CompositeTAccount("Investment", AccountType.ASSET)
         child = TAccount("HTM", AccountType.ASSET)
-        parent.add(child)
-        assert parent.has_sub_account()
-        assert parent.is_composite()
+        parent.add_sub_account(child)
+        assert list(parent.sub_accounts)  # has children
         assert child.parent is parent
 
     def test_balance_aggregates_children(self) -> None:
         parent = CompositeTAccount("Investment", AccountType.ASSET)
         child1 = TAccount("HTM", AccountType.ASSET)
         child2 = TAccount("FVOCI", AccountType.ASSET)
-        parent.add(child1)
-        parent.add(child2)
+        parent.add_sub_account(child1)
+        parent.add_sub_account(child2)
 
         child1.debit(5000)
         child2.debit(3000)
@@ -164,20 +151,20 @@ class TestCompositeTAccount:
     def test_remove_sub_account(self) -> None:
         parent = CompositeTAccount("Investment", AccountType.ASSET)
         child = TAccount("HTM", AccountType.ASSET)
-        parent.add(child)
+        parent.add_sub_account(child)
         child.debit(5000)
         assert parent.balance() == 5000
 
-        parent.remove(child)
+        parent.remove_sub_account(child)
         assert parent.balance() == 0
         assert child.parent is None
 
     def test_cannot_set_value_directly_with_children(self) -> None:
         parent = CompositeTAccount("Investment", AccountType.ASSET)
         child = TAccount("HTM", AccountType.ASSET)
-        parent.add(child)
+        parent.add_sub_account(child)
 
-        with pytest.raises(ValueError, match="Cannot set value directly"):
+        with pytest.raises(ValueError, match="Cannot post directly"):
             parent.debit_value = 100
 
     def test_can_set_value_when_no_children(self) -> None:
@@ -190,8 +177,8 @@ class TestCompositeTAccount:
         parent = CompositeTAccount("Investment", AccountType.ASSET)
         child = TAccount("HTM", AccountType.ASSET)
 
-        grandparent.add(parent)
-        parent.add(child)
+        grandparent.add_sub_account(parent)
+        parent.add_sub_account(child)
 
         child.debit(1000)
         assert parent.balance() == 1000
@@ -201,8 +188,8 @@ class TestCompositeTAccount:
         parent = CompositeTAccount("Investment", AccountType.ASSET)
         child1 = TAccount("HTM", AccountType.ASSET)
         child2 = TAccount("FVOCI", AccountType.ASSET)
-        parent.add(child1)
-        parent.add(child2)
+        parent.add_sub_account(child1)
+        parent.add_sub_account(child2)
 
         subs = list(parent.sub_accounts)
         assert len(subs) == 2
@@ -351,15 +338,6 @@ class TestJournal:
         assert len(journal.entries) == 1
         assert journal.get_entries_by_date(datetime.date(2024, 1, 15)) == [entry]
         assert journal.get_entries_by_account(cash) == [entry]
-
-    def test_remove_entry(self) -> None:
-        journal = Journal()
-        cash = TAccount("Cash", AccountType.ASSET)
-        deposits = TAccount("Deposits", AccountType.LIABILITY)
-        entry = SimpleEntry(debit_account=cash, credit_account=deposits, value=1000)
-        journal.add_entry(entry)
-        journal.remove_entry(entry)
-        assert len(journal.entries) == 0
 
     def test_entries_within_date_range(self) -> None:
         journal = Journal()

@@ -83,24 +83,11 @@ def test_get_entries_by_account(
     assert entries[0] == sample_journal_entry
 
 
-def test_get_entries_by_description(sample_journal: Journal, sample_journal_entry: SimpleEntry) -> None:
-    """Test retrieving entries by description."""
-    entries = sample_journal.get_entries_by_description("Sample Entry")
-    assert len(entries) == 1
-    assert entries[0] == sample_journal_entry
-
-
 def test_get_entries_within_date_range(sample_journal: Journal, sample_journal_entry: SimpleEntry) -> None:
     """Test retrieving entries within a date range."""
     entries = sample_journal.get_entries_within_date_range(datetime.date(2023, 9, 30), datetime.date(2023, 10, 2))
     assert len(entries) == 1
     assert entries[0] == sample_journal_entry
-
-
-def test_remove_entry(sample_journal: Journal, sample_journal_entry: SimpleEntry) -> None:
-    """Test removing an entry from the journal."""
-    sample_journal.remove_entry(sample_journal_entry)
-    assert len(sample_journal.entries) == 0
 
 
 def test_compound_entry_total_debits(sample_compound_entry: CompoundEntry) -> None:
