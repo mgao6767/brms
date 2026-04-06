@@ -183,13 +183,15 @@ class BankingBookController(BankBookController):
         if isinstance(cash_instrument, Cash):
             self.long_model.update_data(idx, {AssetColumns.Value: cash_instrument.value})
 
-    def add_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
+    def add_instrument(
+        self, instrument: Instrument, position: Position | None = None,
+        initial_value: float | None = None,
+    ) -> None:
         """Add an instrument to the tree model."""
-        # For banking book, we specifically address cash instrument
         if isinstance(instrument, Cash):
             self._add_cash(instrument)
             return
-        super().add_instrument(instrument, position)
+        super().add_instrument(instrument, position, initial_value=initial_value)
 
     def remove_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
         """Remove an instrument from the tree model."""
