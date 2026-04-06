@@ -37,21 +37,23 @@ class BankBookController(BRMSController):
     @staticmethod
     def instrument_to_data(instrument: Instrument, position: Position) -> list[dict]:
         """Convert an instrument to data that can be used by the TreeModel."""
+        face_value = getattr(instrument, "face_value", 0)
+        inst_class = getattr(instrument, "instrument_class", None)
+        class_label = inst_class.value if inst_class is not None else ""
         data: dict[ColumnOrder, object]
         if position == Position.LONG:
-            # Notably the dict can be constructed in any order as it will be sorted by column order required by the view
             data = {
-                AssetColumns.ID: instrument.id,  # UUID is not displayable by TreeView
+                AssetColumns.ID: instrument.id,
                 AssetColumns.Asset: instrument.name,
-                AssetColumns.Value: instrument.value,
-                AssetColumns.Class: instrument.instrument_class.value,
+                AssetColumns.Value: face_value,
+                AssetColumns.Class: class_label,
             }
         elif position == Position.SHORT:
             data = {
                 LiabilityColumns.ID: instrument.id,
                 LiabilityColumns.Liability: instrument.name,
-                LiabilityColumns.Value: instrument.value,
-                LiabilityColumns.Class: instrument.instrument_class.value,
+                LiabilityColumns.Value: face_value,
+                LiabilityColumns.Class: class_label,
             }
         return [data]
 
@@ -76,15 +78,17 @@ class BankBookController(BRMSController):
                 self.short_model.remove_data(QMODELINDEX, instrument.id, id_column=LiabilityColumns.ID.value)
 
     def update_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
+        """Update an instrument's display in the tree model."""
         if position is None:
             position = Position.LONG
+        face_value = getattr(instrument, "face_value", 0)
         match position:
             case Position.LONG:
                 if index := self.long_model.find_data(instrument.id, AssetColumns.ID.value):
-                    self.long_model.update_data(index, {AssetColumns.Value: instrument.value})
+                    self.long_model.update_data(index, {AssetColumns.Value: face_value})
             case Position.SHORT:
                 if index := self.short_model.find_data(instrument.id, LiabilityColumns.ID.value):
-                    self.short_model.update_data(index, {LiabilityColumns.Value: instrument.value})
+                    self.short_model.update_data(index, {LiabilityColumns.Value: face_value})
 
     def set_id_column_visibility(self, *, visible: bool) -> None:
         """Set the visibility of the ID column in the tree view."""

@@ -57,6 +57,16 @@ class BankController(BRMSController):
         event_bus.subscribe(InstrumentAdded, self._on_instrument_added)
         event_bus.subscribe(InstrumentRemoved, self._on_instrument_removed)
 
+        # Populate tree widgets with existing instruments
+        self._populate_books()
+
+    def _populate_books(self) -> None:
+        """Populate the tree widgets with all existing instruments in the bank."""
+        for instrument in self.bank.banking_book:
+            self.banking_book_ctrl.add_instrument(instrument, Position.LONG)
+        for instrument in self.bank.trading_book:
+            self.trading_book_ctrl.add_instrument(instrument, Position.LONG)
+
     def _on_instrument_added(self, event: InstrumentAdded) -> None:
         """Handle an instrument being added to a book."""
         position = Position.LONG  # Default; P4-7 will refine position handling
