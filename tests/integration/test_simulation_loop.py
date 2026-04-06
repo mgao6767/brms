@@ -109,7 +109,7 @@ def test_simulation_with_rules_and_accounting() -> None:
     """Full simulation with registered rules, AccountingService, and real ledger."""
     import datetime
 
-    from brms.core.models.accounting.accounts import BankChartOfAccounts
+    from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
     from brms.core.models.accounting.journal import Journal
     from brms.core.models.accounting.ledger import Ledger
     from brms.core.rules.amortization import AmortizationRule
@@ -176,7 +176,7 @@ def test_simulation_with_rules_and_accounting() -> None:
 
 def test_simulation_with_reporting() -> None:
     """Full simulation with reporting service generating financial statements."""
-    from brms.core.models.accounting.accounts import BankChartOfAccounts
+    from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
     from brms.core.models.accounting.journal import Journal
     from brms.core.models.accounting.ledger import Ledger
     from brms.core.services.reporting_service import ReportingService

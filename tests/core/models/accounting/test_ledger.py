@@ -5,7 +5,7 @@ import datetime
 
 import pytest
 
-from brms.core.models.accounting.accounts import BankChartOfAccounts
+from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import CompoundEntry, SimpleEntry
 from brms.core.models.accounting.ledger import Ledger
 

@@ -8,10 +8,10 @@ import pytest
 
 from brms.core.models.accounting.accounts import (
     AccountType,
-    BankChartOfAccounts,
-    ChartOfAccounts,
     TAccount,
 )
+from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
+from brms.core.models.accounting.chart_of_accounts import ChartOfAccounts
 from brms.core.models.accounting.journal import Journal
 from brms.core.models.accounting.ledger import Ledger
 from brms.core.services.accounting_service import AccountingService

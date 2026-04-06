@@ -6,7 +6,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock
 
 from brms.core.enums import PositionStatus, TransactionType  # noqa: F401
-from brms.core.models.accounting.accounts import BankChartOfAccounts
+from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal
 from brms.core.models.accounting.ledger import Ledger
 from brms.core.services.accounting_service import AccountingService

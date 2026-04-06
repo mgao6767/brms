@@ -1,6 +1,6 @@
 """Tests for ReportingService."""
 
-from brms.core.models.accounting.accounts import BankChartOfAccounts
+from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal, SimpleEntry
 from brms.core.models.accounting.ledger import Ledger
 from brms.core.services.reporting_service import ReportingService

@@ -16,9 +16,9 @@ from brms.core.models.accounting.accounts import (
     AccountBalances,
     AccountNormalBalance,
     AccountType,
-    ChartOfAccounts,
     TAccount,
 )
+from brms.core.models.accounting.chart_of_accounts import ChartOfAccounts
 from brms.core.models.accounting.journal import CompoundEntry, Journal, JournalEntry, SimpleEntry
 
 

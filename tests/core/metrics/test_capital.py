@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock
 
 from brms.core.metrics.capital import CET1RatioMetric, TotalAssetsMetric, TotalEquityMetric, TotalLiabilitiesMetric
-from brms.core.models.accounting.accounts import BankChartOfAccounts
+from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal, SimpleEntry
 from brms.core.models.accounting.ledger import Ledger
 from brms.core.models.bank import Bank

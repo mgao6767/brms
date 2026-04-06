@@ -1,21 +1,21 @@
-"""Accounting models: T-accounts, journal entries, and ledger."""
+"""Accounting models: T-accounts, journal entries, ledger, and bank-specific accounts."""
 
 from brms.core.models.accounting.accounts import (
     AccountBalances,
     AccountNormalBalance,
     AccountType,
+    CompositeTAccount,
+    TAccount,
+)
+from brms.core.models.accounting.bank_accounts import (
     AccumulatedOCIAccount,
     AssetFVTPLAccount,
     BankChartOfAccounts,
     CashAccount,
-    ChartOfAccounts,
-    ChartOfAccountsBuilder,
-    CompositeTAccount,
     CustomerDepositAccount,
     DebtAccount,
     DepositAccount,
     EquityAccount,
-    IncomeSummaryAccount,
     IntangibleAccount,
     InterestExpenseAccount,
     InterestIncomeAccount,
@@ -34,14 +34,18 @@ from brms.core.models.accounting.accounts import (
     RealizedTradingLossAccount,
     RealizedTradingPnLAccount,
     ReceivableAccount,
-    RetainedEarningsAccount,
-    TAccount,
     TradingIncomeAccount,
     UnrealizedOCIGainAccount,
     UnrealizedOCILossAccount,
     UnrealizedTradingGainAccount,
     UnrealizedTradingLossAccount,
     UnrealizedTradingPnLAccount,
+)
+from brms.core.models.accounting.chart_of_accounts import (
+    ChartOfAccounts,
+    ChartOfAccountsBuilder,
+    IncomeSummaryAccount,
+    RetainedEarningsAccount,
 )
 from brms.core.models.accounting.journal import (
     CompoundEntry,

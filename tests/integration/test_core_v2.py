@@ -10,7 +10,7 @@ import pandas as pd
 from brms.core.enums import BookType, InstrumentClass, PositionSide, ValuationType
 from brms.core.events import DateAdvanced, EventBus
 from brms.core.metrics.base import MetricRegistry
-from brms.core.models.accounting.accounts import BankChartOfAccounts
+from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal
 from brms.core.models.accounting.ledger import Ledger
 from brms.core.services.accounting_service import AccountingService

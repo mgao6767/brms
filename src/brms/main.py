@@ -17,7 +17,7 @@ from brms.core.metrics.capital import (
     TotalEquityMetric,
     TotalLiabilitiesMetric,
 )
-from brms.core.models.accounting.accounts import BankChartOfAccounts
+from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal
 from brms.core.models.accounting.ledger import Ledger
 from brms.core.rules.amortization import AmortizationRule
