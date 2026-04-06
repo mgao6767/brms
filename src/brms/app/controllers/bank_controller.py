@@ -66,10 +66,18 @@ class BankController(BRMSController):
 
     def _populate_books(self) -> None:
         """Populate the tree widgets with all existing instruments in the bank."""
-        for instrument in self.bank.banking_book:
-            self.banking_book_ctrl.add_instrument(instrument, Position.LONG)
-        for instrument in self.bank.trading_book:
-            self.trading_book_ctrl.add_instrument(instrument, Position.LONG)
+        from brms.core.enums import BookType
+
+        for pos in self.bank.positions.open_positions():
+            try:
+                instrument = self.bank.instruments.get(pos.instrument_id)
+            except KeyError:
+                continue
+            side = Position.LONG if pos.side == Position.LONG else Position.SHORT
+            if pos.book_type == BookType.BANKING:
+                self.banking_book_ctrl.add_instrument(instrument, side)
+            else:
+                self.trading_book_ctrl.add_instrument(instrument, side)
 
     def _on_date_advanced(self, event: DateAdvanced) -> None:
         """Update instrument values in book trees from ValuationStore after each advance."""

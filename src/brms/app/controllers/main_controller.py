@@ -193,6 +193,12 @@ class MainController(BRMSController):
         self.bank_ctrl.update_statement(date)
         self.update_dashboard()
 
+        # Update yield curve selection to current date
+        all_dates = self.yield_curve_ctrl.get_all_dates()
+        if date in all_dates:
+            row = all_dates.index(date)
+            self.yield_curve_ctrl.set_current_selection(row, 0)
+
         # Push today's transactions to the history widget
         transaction_log = self._core.get("transaction_log")
         if transaction_log:

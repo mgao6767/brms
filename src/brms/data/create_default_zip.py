@@ -43,7 +43,10 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
     instruments: list[dict] = []
     positions: list[dict] = []
 
-    def _add(inst: dict, book_type: str, instrument_class: str, acquisition_cost: float) -> None:
+    def _add(
+        inst: dict, book_type: str, instrument_class: str, acquisition_cost: float,
+        side: str = "LONG",
+    ) -> None:
         inst_id = str(uuid.uuid4())
         inst["id"] = inst_id
         instruments.append(inst)
@@ -52,25 +55,27 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
             "instrument_id": inst_id,
             "book_type": book_type,
             "instrument_class": instrument_class,
-            "side": "LONG",
+            "side": side,
             "acquisition_date": _START_DATE,
             "acquisition_cost": acquisition_cost,
         })
 
-    # 1. CommonEquity (1,000,000)
+    # 1. CommonEquity (1,000,000) — liability side (SHORT)
     _add(
         {"type": "common_equity", "name": "Common Equity"},
         book_type="BANKING",
         instrument_class="LOAN_AND_MORTGAGE",
         acquisition_cost=1_000_000,
+        side="SHORT",
     )
 
-    # 2. Deposit (6,000,000)
+    # 2. Deposit (6,000,000) — liability side (SHORT)
     _add(
         {"type": "deposit", "name": "Deposit"},
         book_type="BANKING",
         instrument_class="LOAN_AND_MORTGAGE",
         acquisition_cost=6_000_000,
+        side="SHORT",
     )
 
     # 3. HTM TreasuryNote (10,000 face, 5% coupon)
