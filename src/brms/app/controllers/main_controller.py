@@ -72,6 +72,7 @@ class MainController(BRMSController):
             trading_book_view=self.view.trading_book_widget,
             inspector_ctrl=self.inspector_ctrl,
             statement_view=self.view.statement_viewer_widget,
+            valuation_store=self._core.get("valuation_store"),
         )
         self.yield_curve_ctrl = YieldCurveController(view=self.view.yield_curve_widget)
         # Connect signals

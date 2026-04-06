@@ -10,7 +10,7 @@ from brms.app.controllers.bank_book_controller import BankingBookController, Tra
 from brms.app.controllers.base import BRMSController
 from brms.app.reporting import HTMLStatementRenderer
 from brms.core.enums import PositionSide as Position
-from brms.core.events import InstrumentAdded, InstrumentRemoved
+from brms.core.events import DateAdvanced, InstrumentAdded, InstrumentRemoved
 
 if TYPE_CHECKING:
     from brms.app.controllers.inspector_controller import InspectorController
@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from brms.core.events import EventBus
     from brms.core.models.bank import Bank
     from brms.core.services.reporting_service import ReportingService
+    from brms.core.stores.valuation_store import ValuationStore
 
 
 class BankController(BRMSController):
@@ -39,12 +40,14 @@ class BankController(BRMSController):
         trading_book_view: BRMSTradingBookWidget,
         inspector_ctrl: InspectorController,
         statement_view: BRMSStatementViewer,
+        valuation_store: ValuationStore | None = None,
     ) -> None:
         """Initialize the BankController with core services."""
         super().__init__()
         self.bank = bank
         self._event_bus = event_bus
         self._reporting = reporting_service
+        self._valuation_store = valuation_store
         self._renderer = HTMLStatementRenderer()
         self.statement_view = statement_view
         self.inspector_ctrl = inspector_ctrl
@@ -53,9 +56,10 @@ class BankController(BRMSController):
         self.banking_book_ctrl = BankingBookController(bank.banking_book, banking_book_view, inspector_ctrl)
         self.trading_book_ctrl = TradingBookController(bank.trading_book, trading_book_view, inspector_ctrl)
 
-        # Subscribe to instrument lifecycle events
+        # Subscribe to events
         event_bus.subscribe(InstrumentAdded, self._on_instrument_added)
         event_bus.subscribe(InstrumentRemoved, self._on_instrument_removed)
+        event_bus.subscribe(DateAdvanced, self._on_date_advanced)
 
         # Populate tree widgets with existing instruments
         self._populate_books()
@@ -66,6 +70,30 @@ class BankController(BRMSController):
             self.banking_book_ctrl.add_instrument(instrument, Position.LONG)
         for instrument in self.bank.trading_book:
             self.trading_book_ctrl.add_instrument(instrument, Position.LONG)
+
+    def _on_date_advanced(self, event: DateAdvanced) -> None:
+        """Update instrument values in book trees from ValuationStore after each advance."""
+        if self._valuation_store is None:
+            return
+        from brms.core.enums import BookType, ValuationType
+
+        date = event.date
+        for pos in self.bank.positions.open_positions():
+            # Try fair value first, then carrying value
+            val = self._valuation_store.get(pos.id, date, ValuationType.FAIR_VALUE)
+            if val is None:
+                val = self._valuation_store.get(pos.id, date, ValuationType.CARRYING_VALUE)
+            if val is None:
+                continue
+            try:
+                instrument = self.bank.instruments.get(pos.instrument_id)
+            except KeyError:
+                continue
+            ctrl = (
+                self.banking_book_ctrl if pos.book_type == BookType.BANKING
+                else self.trading_book_ctrl
+            )
+            ctrl.update_instrument_value(instrument.id, float(val))
 
     def _on_instrument_added(self, event: InstrumentAdded) -> None:
         """Handle an instrument being added to a book."""

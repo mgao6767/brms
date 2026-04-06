@@ -90,6 +90,13 @@ class BankBookController(BRMSController):
                 if index := self.short_model.find_data(instrument.id, LiabilityColumns.ID.value):
                     self.short_model.update_data(index, {LiabilityColumns.Value: face_value})
 
+    def update_instrument_value(self, instrument_id: str, value: float) -> None:
+        """Update the displayed value for an instrument by its ID."""
+        if index := self.long_model.find_data(instrument_id, AssetColumns.ID.value):
+            self.long_model.update_data(index, {AssetColumns.Value: value})
+        elif index := self.short_model.find_data(instrument_id, LiabilityColumns.ID.value):
+            self.short_model.update_data(index, {LiabilityColumns.Value: value})
+
     def set_id_column_visibility(self, *, visible: bool) -> None:
         """Set the visibility of the ID column in the tree view."""
         self.bank_book_widget.assets_tree.setColumnHidden(AssetColumns.ID.value, not visible)

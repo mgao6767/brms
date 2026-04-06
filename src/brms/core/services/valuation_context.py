@@ -35,14 +35,17 @@ class ValuationContext:
         ql.Settings.instance().evaluationDate = ql_date
 
         try:
-            yields = market_data.yields  # type: ignore[union-attr]
+            # market_data can be MarketDataStore or MarketState
+            # Get yields: try .get_state(date).yields first, then .yields directly
+            if hasattr(market_data, "get_state"):
+                market_state = market_data.get_state(date)
+                yields = market_state.yields
+            else:
+                yields = market_data.yields  # type: ignore[union-attr]
             maturity_labels = list(yields.index)
             rates = list(yields.values)
             term_structure = YieldCurveService.build_yield_curve(date, maturity_labels, rates)
             if term_structure is not None:
                 self._yield_handle.linkTo(term_structure)
         except (AttributeError, KeyError):
-            # Yield data not available for this date/market state; strategies that
-            # do not require a term structure (e.g. AmortizedCostStrategy) will
-            # still work correctly without it.
             pass

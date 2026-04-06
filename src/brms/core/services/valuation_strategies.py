@@ -48,6 +48,9 @@ class ValuationStrategy(Protocol):
 class FairValueStrategy:
     """Values positions at fair value (NPV from QuantLib, or face_value fallback)."""
 
+    def __init__(self) -> None:
+        self._engines_set: set[str] = set()  # instrument IDs that have engines
+
     def value_batch(
         self,
         positions: list[Position],
@@ -56,9 +59,16 @@ class FairValueStrategy:
         output: ValuationStore,
     ) -> None:
         """Compute fair value for each position and record it."""
+        import QuantLib as ql  # noqa: N813
+
         for pos in positions:
             inst = instruments.get(pos.instrument_id)
             if inst.ql_instrument is not None:
+                # Set pricing engine on first encounter
+                if inst.id not in self._engines_set:
+                    engine = ql.DiscountingBondEngine(context._yield_handle)  # noqa: SLF001
+                    inst.ql_instrument.setPricingEngine(engine)
+                    self._engines_set.add(inst.id)
                 try:
                     val = Decimal(str(inst.ql_instrument.NPV()))
                 except Exception:  # noqa: BLE001
