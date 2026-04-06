@@ -6,13 +6,20 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.models.instruments.base import InstrumentClass
+from brms.core.enums import InstrumentClass as CoreInstrumentClass
+from brms.core.enums import ValuationType
+from brms.core.models.instruments.base import InstrumentClass as BaseInstrumentClass
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
     import datetime
 
-_MTM_CLASSES = {InstrumentClass.FVTPL, InstrumentClass.FVOCI}
+_MTM_CLASSES = {
+    BaseInstrumentClass.FVTPL,
+    BaseInstrumentClass.FVOCI,
+    CoreInstrumentClass.FVTPL,
+    CoreInstrumentClass.FVOCI,
+}
 
 
 class MarkToMarketRule:
@@ -20,37 +27,72 @@ class MarkToMarketRule:
 
     def applies_to(
         self,
-        instrument: object,
-        _position: object,
+        _instrument: object,
+        position: object,
         _market_state: object,
         _date: datetime.date,
     ) -> bool:
-        """Return True if the instrument is classified as FVTPL or FVOCI."""
-        instrument_class = getattr(instrument, "instrument_class", None)
+        """Return True if the position is classified as FVTPL or FVOCI."""
+        instrument_class = getattr(position, "instrument_class", None)
         if instrument_class is None:
             return False
         return instrument_class in _MTM_CLASSES
 
     def generate(
         self,
-        instrument: object,
-        _position: object,
-        _valuation_store: object,
+        _instrument: object,
+        position: object,
+        valuation_store: object,
         _market_state: object,
         date: datetime.date,
     ) -> list[Transaction]:
-        """Generate a mark-to-market transaction using face_value vs current value as a proxy for fair value change."""
-        face_value = Decimal(str(getattr(instrument, "face_value", "0")))
-        current_value = Decimal(str(getattr(instrument, "value", "0")))
-        fair_value_change = current_value - face_value
-        instrument_class: InstrumentClass = getattr(instrument, "instrument_class", InstrumentClass.NA)
+        """Generate a mark-to-market transaction based on fair value change from valuation store."""
+        position_id = getattr(position, "id", None)
+        instrument_id = getattr(position, "instrument_id", None)
+        acquisition_cost = Decimal(str(getattr(position, "acquisition_cost", "0")))
+
+        # Get current fair value from valuation store
+        current_fv = valuation_store.get(position_id, date, ValuationType.FAIR_VALUE)
+        if current_fv is None:
+            return []
+
+        # Find the most recent prior fair value, or fall back to acquisition cost
+        previous_fv: Decimal | None = None
+        pos_data = valuation_store._data.get(position_id, {})  # noqa: SLF001
+        prior_dates = sorted(d for d in pos_data if d < date)
+        for prior_date in reversed(prior_dates):
+            val = pos_data[prior_date].get(ValuationType.FAIR_VALUE)
+            if val is not None:
+                previous_fv = val
+                break
+        if previous_fv is None:
+            previous_fv = acquisition_cost
+
+        fair_value_change = current_fv - previous_fv
+        if fair_value_change == 0:
+            return []
+
+        instrument_class = getattr(position, "instrument_class", None)
+        if instrument_class in {BaseInstrumentClass.FVTPL, CoreInstrumentClass.FVTPL}:
+            class_name = "FVTPL"
+        elif instrument_class in {BaseInstrumentClass.FVOCI, CoreInstrumentClass.FVOCI}:
+            class_name = "FVOCI"
+        else:
+            class_name = ""
+
+        direction = "gain" if fair_value_change > 0 else "loss"
+
         return [
             Transaction(
                 id=str(uuid.uuid4()),
                 type=TransactionType.MARK_TO_MARKET,
                 date=date,
                 amount=fair_value_change,
-                instrument_id=getattr(instrument, "id", None),
-                metadata=(("instrument_class", instrument_class.name),),
+                position_id=position_id,
+                instrument_id=instrument_id,
+                metadata=(
+                    ("instrument_class", class_name),
+                    ("direction", direction),
+                ),
             ),
         ]

@@ -33,6 +33,18 @@ class MetricsService:
             value = metric.compute(bank, market_state, valuation_store)
             metric_store.record(metric.name, date, value)
 
+    def compute_all(
+        self,
+        bank: Any,  # noqa: ANN401
+        market_state: Any,  # noqa: ANN401
+        history: Any,  # noqa: ANN401, ARG002
+    ) -> dict[str, Any]:
+        """Legacy compute_all: compute all metrics and return as a dict (no store needed)."""
+        results: dict[str, Any] = {}
+        for metric in self._registry.all_metrics():
+            results[metric.name.name] = metric.compute(bank, market_state, None)
+        return results
+
     def compute_one(  # noqa: PLR0913
         self,
         name: MetricName,

@@ -23,7 +23,17 @@ def _make_instrument(
         inst.payment_dates = payment_dates
     else:
         del inst.payment_dates
+    # No callable payment_schedule for plain payment_dates instruments
+    del inst.payment_schedule
     return inst
+
+
+def _make_position(instrument_id: str = "loan-1") -> MagicMock:
+    """Return a mock position."""
+    pos = MagicMock()
+    pos.id = "pos-1"
+    pos.instrument_id = instrument_id
+    return pos
 
 
 def test_applies_on_payment_date() -> None:
@@ -52,8 +62,10 @@ def test_generates_amortization_transaction() -> None:
     rule = AmortizationRule()
     periodic_payment = Decimal("5000")
     inst = _make_instrument([datetime.date(2024, 6, 15)], periodic_payment=periodic_payment)
-    txs = rule.generate(inst, MagicMock(), MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
+    pos = _make_position()
+    txs = rule.generate(inst, pos, MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
     assert len(txs) >= 1
     assert txs[0].type == TransactionType.AMORTIZATION
     assert txs[0].instrument_id == "loan-1"
+    assert txs[0].position_id == "pos-1"
     assert txs[0].amount == periodic_payment

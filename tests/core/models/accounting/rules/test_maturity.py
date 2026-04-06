@@ -20,6 +20,17 @@ def _make_instrument(maturity_date: datetime.date | None) -> MagicMock:
     return inst
 
 
+def _make_position(instrument_id: str = "bond-1", acquisition_cost: Decimal = Decimal("1000000")) -> MagicMock:
+    """Return a mock position with the given instrument_id and acquisition_cost."""
+    pos = MagicMock()
+    pos.id = "pos-1"
+    pos.instrument_id = instrument_id
+    pos.acquisition_cost = acquisition_cost
+    pos.instrument_class = MagicMock()
+    pos.instrument_class.name = "HTM"
+    return pos
+
+
 def test_applies_on_maturity_date() -> None:
     """Rule should apply when the date matches the instrument's maturity date."""
     rule = MaturityRule()
@@ -45,7 +56,10 @@ def test_generates_settlement_transaction() -> None:
     """Rule should generate a MATURITY_SETTLEMENT transaction with the correct fields."""
     rule = MaturityRule()
     inst = _make_instrument(datetime.date(2024, 6, 15))
-    txs = rule.generate(inst, MagicMock(), MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
+    pos = _make_position()
+    txs = rule.generate(inst, pos, MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
     assert len(txs) >= 1
     assert txs[0].instrument_id == "bond-1"
+    assert txs[0].position_id == "pos-1"
     assert txs[0].type == TransactionType.MATURITY_SETTLEMENT
+    assert txs[0].amount == Decimal("1000000")

@@ -5,18 +5,23 @@ from __future__ import annotations
 import datetime
 import json
 import re
+import uuid
 import zipfile
+from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
 import QuantLib as ql  # noqa: N813
 
+from brms.core.enums import InstrumentClass as CoreInstrumentClass
+from brms.core.enums import InstrumentType, TransactionType
 from brms.core.exceptions import DataLoadError
 from brms.core.models.bank import Bank
 from brms.core.models.instruments.base import BookType, CreditRating, Instrument, InstrumentClass, Issuer, IssuerType
 from brms.core.models.instruments.registry import InstrumentRegistry
 from brms.core.models.market_data import MarketDataStore
+from brms.core.models.transaction import Transaction
 
 # ---------------------------------------------------------------------------
 # Lightweight v1 book containers (inlined; books.py has been removed)
@@ -168,7 +173,10 @@ class DataService:
         for name, df in data.market_frames.items():
             simulation_service.market_data.add_frame(name, df)  # type: ignore[union-attr]
 
-        # 2. Replay advance() from replay_from to start_date
+        # 2. Post acquisition transactions to establish initial ledger balances
+        self._post_acquisition_transactions(data, simulation_service)
+
+        # 3. Replay advance() from replay_from to start_date
         available = simulation_service.market_data.available_dates()  # type: ignore[union-attr]
         for date in available:
             if date < data.replay_from:
@@ -176,6 +184,60 @@ class DataService:
             if date >= data.start_date:
                 break
             simulation_service.advance(date)  # type: ignore[union-attr]
+
+    @staticmethod
+    def _post_acquisition_transactions(data: object, simulation_service: object) -> None:
+        """Generate and post initial acquisition transactions for every loaded position.
+
+        Equity positions produce EQUITY_ISSUANCE, deposit positions produce DEPOSIT_RECEIVED,
+        and bond/loan positions produce SECURITY_PURCHASE.
+        """
+        transactions: list[Transaction] = []
+        for pos in data.positions:  # type: ignore[union-attr]
+            inst = simulation_service.bank.instruments.get(pos.instrument_id)  # type: ignore[union-attr]
+            inst_type = getattr(inst, "instrument_type", None)
+            instrument_class = pos.instrument_class
+
+            if inst_type == InstrumentType.COMMON_EQUITY:
+                tx_type = TransactionType.EQUITY_ISSUANCE
+                metadata: tuple[tuple[str, object], ...] = ()
+            elif inst_type == InstrumentType.DEPOSIT:
+                tx_type = TransactionType.DEPOSIT_RECEIVED
+                metadata = ()
+            elif instrument_class in {CoreInstrumentClass.LOAN_AND_MORTGAGE}:
+                tx_type = TransactionType.LOAN_DISBURSEMENT
+                metadata = ()
+            else:
+                tx_type = TransactionType.SECURITY_PURCHASE
+                # Map instrument_class to account name used by AccountingService
+                class_name = ""
+                if instrument_class in {CoreInstrumentClass.HTM}:
+                    class_name = "HTM"
+                elif instrument_class in {CoreInstrumentClass.FVOCI}:
+                    class_name = "FVOCI"
+                elif instrument_class in {CoreInstrumentClass.FVTPL}:
+                    class_name = "FVTPL"
+                metadata = (("instrument_class", class_name),)
+
+            transactions.append(
+                Transaction(
+                    id=str(uuid.uuid4()),
+                    type=tx_type,
+                    date=pos.acquisition_date,
+                    amount=Decimal(str(pos.acquisition_cost)),
+                    position_id=pos.id,
+                    instrument_id=pos.instrument_id,
+                    metadata=metadata,
+                ),
+            )
+
+        if transactions:
+            simulation_service.accounting_service.post_all(  # type: ignore[union-attr]
+                transactions,
+                simulation_service.bank.ledger,  # type: ignore[union-attr]
+                simulation_service.bank.positions,  # type: ignore[union-attr]
+            )
+            simulation_service.transaction_log.record_batch(transactions)  # type: ignore[union-attr]
 
     def load_simulation(self, zip_path: Path) -> tuple[Bank, MarketDataStore]:
         """Load a simulation from the zip file at *zip_path*.
@@ -223,25 +285,21 @@ class DataService:
         return bank, store
 
     def _load_bank(self, zf: zipfile.ZipFile) -> Bank:
+        from brms.core.stores.instrument_store import InstrumentStore
+        from brms.core.stores.position_store import PositionStore
+
         bank_data = json.loads(zf.read("bank.json"))
-        banking_book = BankingBook()
-        for item in bank_data.get("banking_book", []):
-            item = dict(item)  # noqa: PLW2901
-            type_id = item.pop("type")
-            _convert_kwargs(item)
-            item.pop("value", None)  # value is no longer an instrument field
-            inst = self._instrument_registry.create(type_id, **item)
-            banking_book.add(inst)
-        trading_book = TradingBook()
-        for item in bank_data.get("trading_book", []):
-            item = dict(item)  # noqa: PLW2901
-            type_id = item.pop("type")
-            _convert_kwargs(item)
-            item.pop("value", None)  # value is no longer an instrument field
-            inst = self._instrument_registry.create(type_id, **item)
-            trading_book.add(inst)
+        instrument_store = InstrumentStore()
+        for book_key in ("banking_book", "trading_book"):
+            for item in bank_data.get(book_key, []):
+                item = dict(item)  # noqa: PLW2901
+                type_id = item.pop("type")
+                _convert_kwargs(item)
+                item.pop("value", None)  # value is no longer an instrument field
+                inst = self._instrument_registry.create(type_id, **item)
+                instrument_store.add(inst)
         # ledger is wired separately by the simulation layer
-        return Bank(name=bank_data["name"], banking_book=banking_book, trading_book=trading_book, ledger=None)
+        return Bank(name=bank_data["name"], instruments=instrument_store, positions=PositionStore(), ledger=None)
 
     def _load_market_data(self, zf: zipfile.ZipFile) -> MarketDataStore:
         store = MarketDataStore()

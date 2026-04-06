@@ -21,7 +21,7 @@ def _make_store() -> MarketDataStore:
         index=pd.to_datetime(["2024-01-01", "2024-01-02"]),
     )
     yields_df.index.name = "date"
-    store.add_frame("yields", yields_df)
+    store.add_frame("treasury_yields", yields_df)
 
     equities_df = pd.DataFrame(
         {"SPX": [_SPX_D1, 4850.0]},
@@ -60,7 +60,7 @@ def test_get_generic_accessor() -> None:
     """get() returns the correct row for the state's date."""
     store = _make_store()
     state = store.get_state(datetime.date(2024, 1, 2))
-    row = state.get("yields")
+    row = state.get("treasury_yields")
     assert row["1Y"] == _YIELD_1Y_D2
 
 

@@ -7,7 +7,8 @@ from brms.core.models.accounting.accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal, SimpleEntry
 from brms.core.models.accounting.ledger import Ledger
 from brms.core.models.bank import Bank
-from brms.core.services.data_service import BankingBook, TradingBook
+from brms.core.stores.instrument_store import InstrumentStore
+from brms.core.stores.position_store import PositionStore
 
 _EQUITY = 1000000.0
 _DEPOSIT = 500000.0
@@ -36,7 +37,7 @@ def _make_bank() -> Bank:
             description="Deposit",
         ),
     )
-    return Bank(name="Test", banking_book=BankingBook(), trading_book=TradingBook(), ledger=ledger)
+    return Bank(name="Test", instruments=InstrumentStore(), positions=PositionStore(), ledger=ledger)
 
 
 def test_total_assets() -> None:  # noqa: D103

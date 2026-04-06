@@ -43,3 +43,11 @@ class InstrumentStore:
     def all(self) -> list[object]:
         """Return all registered instruments."""
         return list(self._by_id.values())
+
+    def __iter__(self):  # noqa: ANN204
+        """Iterate over all registered instruments."""
+        return iter(self._by_id.values())
+
+    def __len__(self) -> int:
+        """Return the number of registered instruments."""
+        return len(self._by_id)

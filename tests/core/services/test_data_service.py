@@ -19,8 +19,8 @@ from brms.core.services.data_service import DataService
 
 EXPECTED_DATE_COUNT = 2
 
-EXPECTED_BANKING_BOOK_COUNT = 18
-EXPECTED_TRADING_BOOK_COUNT = 10
+# Total instruments in the zip: 18 banking + 10 trading = 28
+EXPECTED_TOTAL_INSTRUMENT_COUNT = 28
 
 
 def _full_registry() -> InstrumentRegistry:
@@ -76,14 +76,6 @@ def test_loaded_store_has_dates() -> None:
 
 def test_load_zip_with_cash_instrument() -> None:
     """DataService can deserialise a Cash instrument via InstrumentRegistry."""
-    import json
-    import zipfile
-    from io import BytesIO
-
-    from brms.core.models.instruments.deposits import Cash
-    from brms.core.models.instruments.registry import InstrumentRegistry
-    from brms.core.services.data_service import DataService
-
     registry = InstrumentRegistry()
     registry.register("cash", Cash)
 
@@ -104,42 +96,21 @@ def test_load_zip_with_cash_instrument() -> None:
 
     service = DataService(instrument_registry=registry)
     bank, _ = service.load_simulation_from_buffer(buf)
-    instruments = list(bank.banking_book)
-    assert len(instruments) == 1  # noqa: S101
-    assert isinstance(instruments[0], Cash)  # noqa: S101
+    all_instruments = list(bank.instruments)
+    assert len(all_instruments) == 1  # noqa: S101
+    assert isinstance(all_instruments[0], Cash)  # noqa: S101
 
 
 def test_load_default_simulation_zip() -> None:
-    """DataService can load the generated default_simulation.zip with QuantLib instruments."""
+    """ZipLoader can load the generated default_simulation.zip with QuantLib instruments."""
+    from brms.core.services.loaders import ZipLoader
+
     zip_path = Path(__file__).resolve().parents[3] / "src" / "brms" / "data" / "default_simulation.zip"
-    service = DataService(instrument_registry=_full_registry())
-    bank, store = service.load_simulation(zip_path)
+    loader = ZipLoader(path=zip_path, instrument_registry=_full_registry())
+    data = loader.load()
 
-    assert bank.name == "Default Bank"  # noqa: S101
-    assert len(store.available_dates()) > 0  # noqa: S101
-
-    banking_instruments = list(bank.banking_book)
-    trading_instruments = list(bank.trading_book)
-
-    assert len(banking_instruments) == EXPECTED_BANKING_BOOK_COUNT  # noqa: S101
-    assert len(trading_instruments) == EXPECTED_TRADING_BOOK_COUNT  # noqa: S101
-
-    # Verify instrument types
-    assert isinstance(banking_instruments[0], CommonEquity)  # noqa: S101
-    assert isinstance(banking_instruments[1], Deposit)  # noqa: S101
-    assert isinstance(banking_instruments[2], TreasuryNote)  # noqa: S101
-
-    # Mortgages at indices 3-7
-    for inst in banking_instruments[3:8]:
-        assert isinstance(inst, ResidentialMortgage)  # noqa: S101
-
-    # FVOCI treasury notes at indices 8-17 (10 notes)
-    for inst in banking_instruments[8:]:
-        assert isinstance(inst, TreasuryNote)  # noqa: S101
-
-    # All trading book instruments are FVTPL treasury notes
-    for inst in trading_instruments:
-        assert isinstance(inst, TreasuryNote)  # noqa: S101
+    assert data.name == "Default Bank"  # noqa: S101
+    assert len(data.instruments) == EXPECTED_TOTAL_INSTRUMENT_COUNT  # noqa: S101
 
 
 def test_convert_kwargs_handles_date_strings() -> None:

@@ -1,4 +1,4 @@
-"""InterestPaymentRule: generates a semi-annual coupon payment transaction on scheduled coupon dates."""
+"""InterestPaymentRule: generates interest payment transactions on scheduled coupon dates."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class InterestPaymentRule:
-    """Generates a COUPON_PAYMENT transaction on each scheduled coupon date using semi-annual convention."""
+    """Generates a COUPON_PAYMENT transaction on each scheduled coupon date using instrument terms."""
 
     def applies_to(
         self,
@@ -31,12 +31,12 @@ class InterestPaymentRule:
     def generate(
         self,
         instrument: object,
-        _position: object,
+        position: object,
         _valuation_store: object,
         _market_state: object,
         date: datetime.date,
     ) -> list[Transaction]:
-        """Generate a semi-annual coupon payment transaction (face_value * coupon_rate / 2)."""
+        """Generate an interest payment transaction (face_value * coupon_rate / 2)."""
         face_value = Decimal(str(getattr(instrument, "face_value", "0")))
         coupon_rate = Decimal(str(getattr(instrument, "coupon_rate", "0")))
         amount = face_value * coupon_rate / Decimal("2")
@@ -46,6 +46,7 @@ class InterestPaymentRule:
                 type=TransactionType.COUPON_PAYMENT,
                 date=date,
                 amount=amount,
-                instrument_id=getattr(instrument, "id", None),
+                position_id=getattr(position, "id", None),
+                instrument_id=getattr(position, "instrument_id", None),
             ),
         ]

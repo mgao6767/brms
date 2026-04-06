@@ -28,19 +28,23 @@ class MaturityRule:
 
     def generate(
         self,
-        instrument: object,
-        _position: object,
+        _instrument: object,
+        position: object,
         _valuation_store: object,
         _market_state: object,
         date: datetime.date,
     ) -> list[Transaction]:
-        """Generate a single maturity settlement transaction for the face value."""
+        """Generate a single maturity settlement transaction for the acquisition cost."""
+        instrument_class = getattr(position, "instrument_class", None)
+        instrument_class_name = instrument_class.name if instrument_class is not None else ""
         return [
             Transaction(
                 id=str(uuid.uuid4()),
                 type=TransactionType.MATURITY_SETTLEMENT,
                 date=date,
-                amount=Decimal(str(getattr(instrument, "face_value", "0"))),
-                instrument_id=getattr(instrument, "id", None),
+                amount=Decimal(str(getattr(position, "acquisition_cost", "0"))),
+                position_id=getattr(position, "id", None),
+                instrument_id=getattr(position, "instrument_id", None),
+                metadata=(("instrument_class", instrument_class_name),),
             ),
         ]
