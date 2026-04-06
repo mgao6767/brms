@@ -1,7 +1,4 @@
-"""Ledger for posting journal entries and closing accounts.
-
-Migrated from brms.accounting.ledger with updated imports.
-"""
+"""Ledger for posting journal entries and closing accounts."""
 
 from __future__ import annotations
 
@@ -24,7 +21,21 @@ from brms.core.models.accounting.journal import CompoundEntry, Journal, JournalE
 
 @dataclass
 class Ledger:
-    """A class representing a ledger."""
+    """The general ledger: posts journal entries and manages account closing.
+
+    Posting flow::
+
+        +------------+    +---------+    +----------+
+        | Transaction|--->| Journal |--->| Accounts |
+        |            |    | Entry   |    | (T-accts)|
+        +------------+    +---------+    +----------+
+
+    Period-end closing:
+
+    1. Close contra accounts (to their parent)
+    2. Close income/expense accounts (to Income Summary)
+    3. Close Income Summary (to Retained Earnings)
+    """
 
     chart_of_accounts: ChartOfAccounts
     journal: Journal = field(default_factory=Journal)

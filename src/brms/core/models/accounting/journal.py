@@ -1,7 +1,4 @@
-"""Journal entries and journal for recording accounting transactions.
-
-Migrated from brms.accounting.journal with added ``reversed()`` methods on entries.
-"""
+"""Journal entries and journal for recording accounting transactions."""
 
 from __future__ import annotations
 
@@ -43,7 +40,18 @@ class JournalEntry(ABC):
 
 @dataclass
 class SimpleEntry(JournalEntry):
-    """Represent a simple journal entry with debit and credit accounts and a value."""
+    """A simple journal entry affecting exactly two accounts.
+
+    Example: Receiving a $10,000 deposit::
+
+        +----------------------------------------------+
+        | Date: 2024-01-15                             |
+        | Description: Customer deposit received       |
+        +----------------------------------------------+
+        | Debit:  Cash ..................... $10,000    |
+        | Credit: Deposits ................ $10,000    |
+        +----------------------------------------------+
+    """
 
     debit_account: TAccount
     credit_account: TAccount
@@ -73,7 +81,22 @@ class SimpleEntry(JournalEntry):
 
 @dataclass
 class CompoundEntry(JournalEntry):
-    """Represent a compound journal entry that can affect multiple accounts."""
+    """A compound journal entry that can affect multiple accounts.
+
+    Used when a transaction touches more than two accounts. The total
+    debits must equal total credits (validated on creation).
+
+    Example: Closing a trading income account with sub-accounts::
+
+        +----------------------------------------------+
+        | Description: Closing Trading Income          |
+        +----------------------------------------------+
+        | Debit:  Unrealized Gain ......... $5,000     |
+        | Debit:  Realized Gain ........... $3,000     |
+        | Credit: Income Summary .......... $6,000     |
+        | Credit: Unrealized Loss ......... $2,000     |
+        +----------------------------------------------+
+    """
 
     debit_accounts: dict[TAccount, float]
     credit_accounts: dict[TAccount, float]
