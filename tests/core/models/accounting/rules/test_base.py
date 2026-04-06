@@ -8,7 +8,13 @@ from decimal import Decimal
 from unittest.mock import MagicMock
 
 from brms.core.rules.base import RuleRegistry
+from brms.core.rules.context import RuleContext
 from brms.core.models.transaction import Transaction, TransactionType
+
+
+def _ctx(date: datetime.date) -> RuleContext:
+    """Build a minimal RuleContext for testing."""
+    return RuleContext(date=date, previous_date=None, market_state=MagicMock(), valuation_store=MagicMock())
 
 
 class AlwaysRule:
@@ -18,8 +24,7 @@ class AlwaysRule:
         self,
         _instrument: object,
         _position: object,
-        _market_state: object,
-        _date: datetime.date,
+        _context: RuleContext,
     ) -> bool:
         """Return True unconditionally."""
         return True
@@ -28,12 +33,10 @@ class AlwaysRule:
         self,
         _instrument: object,
         _position: object,
-        _valuation_store: object,
-        _market_state: object,
-        date: datetime.date,
+        _context: RuleContext,
     ) -> list[Transaction]:
         """Return a single fixed transaction."""
-        return [Transaction(id="r1", type=TransactionType.INTEREST_PAYMENT, date=date, amount=Decimal("100"))]
+        return [Transaction(id="r1", type=TransactionType.INTEREST_PAYMENT, date=_context.date, amount=Decimal("100"))]
 
 
 class NeverRule:
@@ -43,8 +46,7 @@ class NeverRule:
         self,
         _instrument: object,
         _position: object,
-        _market_state: object,
-        _date: datetime.date,
+        _context: RuleContext,
     ) -> bool:
         """Return False unconditionally."""
         return False
@@ -53,9 +55,7 @@ class NeverRule:
         self,
         _instrument: object,
         _position: object,
-        _valuation_store: object,
-        _market_state: object,
-        _date: datetime.date,
+        _context: RuleContext,
     ) -> list[Transaction]:
         """Return an empty list."""
         return []

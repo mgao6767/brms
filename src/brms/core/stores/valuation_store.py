@@ -66,6 +66,23 @@ class ValuationStore:
         result.sort(key=lambda t: t[0])
         return result
 
+    def get_previous(
+        self,
+        position_id: str,
+        date: datetime.date,
+        valuation_type: ValuationType,
+    ) -> Decimal | None:
+        """Return the most recent value strictly before *date*, or None if absent."""
+        date_map = self._data.get(position_id)
+        if not date_map:
+            return None
+        prior_dates = sorted(d for d in date_map if d < date)
+        for prior_date in reversed(prior_dates):
+            val = date_map[prior_date].get(valuation_type)
+            if val is not None:
+                return val
+        return None
+
     def snapshot(
         self,
         date: datetime.date,

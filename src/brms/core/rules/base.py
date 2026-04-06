@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
+from brms.core.rules.context import RuleContext
+
 if TYPE_CHECKING:
     import datetime
 
@@ -18,8 +20,7 @@ class AccountingRule(Protocol):
         self,
         instrument: object,
         position: object,
-        market_state: object,
-        date: datetime.date,
+        context: RuleContext,
     ) -> bool:
         """Return True if this rule applies to the given instrument on the given date."""
         ...
@@ -28,9 +29,7 @@ class AccountingRule(Protocol):
         self,
         instrument: object,
         position: object,
-        valuation_store: object,
-        market_state: object,
-        date: datetime.date,
+        context: RuleContext,
     ) -> list[Transaction]:
         """Generate the transactions for the given instrument on the given date."""
         ...
@@ -56,8 +55,9 @@ class RuleRegistry:
         date: datetime.date,
     ) -> list[Transaction]:
         """Apply all applicable rules and return the combined list of transactions."""
+        context = RuleContext(date=date, previous_date=None, market_state=market_state, valuation_store=valuation_store)
         transactions: list[Transaction] = []
         for rule in self._rules:
-            if rule.applies_to(instrument, position, market_state, date):
-                transactions.extend(rule.generate(instrument, position, valuation_store, market_state, date))
+            if rule.applies_to(instrument, position, context):
+                transactions.extend(rule.generate(instrument, position, context))
         return transactions

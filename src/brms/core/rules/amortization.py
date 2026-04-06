@@ -9,7 +9,17 @@ from typing import TYPE_CHECKING
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
-    import datetime
+    from brms.core.rules.context import RuleContext
+
+
+def _date_in_window(d: object, context: RuleContext) -> bool:
+    """Return True if date *d* falls in the half-open window (previous_date, date].
+
+    When there is no previous_date (first simulation day), only exact match counts.
+    """
+    if context.previous_date is not None:
+        return context.previous_date < d <= context.date  # type: ignore[operator]
+    return d == context.date
 
 
 class AmortizationRule:
@@ -19,10 +29,9 @@ class AmortizationRule:
         self,
         instrument: object,
         _position: object,
-        _market_state: object,
-        date: datetime.date,
+        context: RuleContext,
     ) -> bool:
-        """Return True if today is one of the instrument's payment dates.
+        """Return True if a payment date falls in the (previous_date, date] window.
 
         Supports instruments with a ``payment_schedule()`` method returning a tuple of
         three lists (interest, principal, outstanding), as well as instruments with a
@@ -34,19 +43,17 @@ class AmortizationRule:
             # Loans return (interest_pmt, principal_pmt, outstanding) tuple of 3 lists
             if isinstance(result, tuple) and len(result) == 3:  # noqa: PLR2004
                 _interest_pmt, principal_pmt, _outstanding = result
-                return any(d == date for d, _amount in principal_pmt)
+                return any(_date_in_window(d, context) for d, _amount in principal_pmt)
         payment_dates = getattr(instrument, "payment_dates", None)
         if payment_dates is None:
             return False
-        return date in payment_dates
+        return any(_date_in_window(d, context) for d in payment_dates)
 
     def generate(
         self,
         instrument: object,
         position: object,
-        _valuation_store: object,
-        _market_state: object,
-        date: datetime.date,
+        context: RuleContext,
     ) -> list[Transaction]:
         """Generate an amortization transaction for the principal payment amount on this date."""
         amount = Decimal("0")
@@ -57,7 +64,7 @@ class AmortizationRule:
             if isinstance(result, tuple) and len(result) == 3:  # noqa: PLR2004
                 _interest_pmt, principal_pmt, _outstanding = result
                 for d, pmt_amount in principal_pmt:
-                    if d == date:
+                    if _date_in_window(d, context):
                         amount = Decimal(str(pmt_amount))
                         break
 
@@ -68,7 +75,7 @@ class AmortizationRule:
             Transaction(
                 id=str(uuid.uuid4()),
                 type=TransactionType.AMORTIZATION,
-                date=date,
+                date=context.date,
                 amount=amount,
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),

@@ -7,8 +7,14 @@ import datetime
 from decimal import Decimal
 from unittest.mock import MagicMock
 
+from brms.core.rules.context import RuleContext
 from brms.core.rules.interest import InterestPaymentRule
 from brms.core.models.transaction import TransactionType
+
+
+def _ctx(date: datetime.date, previous_date: datetime.date | None = None) -> RuleContext:
+    """Build a minimal RuleContext for testing."""
+    return RuleContext(date=date, previous_date=previous_date, market_state=MagicMock(), valuation_store=MagicMock())
 
 
 def _make_instrument(
@@ -25,6 +31,8 @@ def _make_instrument(
         inst.coupon_dates = coupon_dates
     else:
         del inst.coupon_dates
+    # No callable payment_schedule for these tests
+    del inst.payment_schedule
     return inst
 
 
@@ -40,21 +48,21 @@ def test_applies_on_coupon_date() -> None:
     """Rule should apply when the date is in the instrument's coupon_dates list."""
     rule = InterestPaymentRule()
     inst = _make_instrument([datetime.date(2024, 6, 15), datetime.date(2024, 12, 15)])
-    assert rule.applies_to(inst, MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
+    assert rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 15)))
 
 
 def test_does_not_apply_on_non_coupon_date() -> None:
     """Rule should not apply when the date is not in coupon_dates."""
     rule = InterestPaymentRule()
     inst = _make_instrument([datetime.date(2024, 6, 15)])
-    assert not rule.applies_to(inst, MagicMock(), MagicMock(), datetime.date(2024, 6, 14))
+    assert not rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 14)))
 
 
 def test_does_not_apply_if_no_coupon_dates_attr() -> None:
     """Rule should not apply when the instrument has no coupon_dates attribute."""
     rule = InterestPaymentRule()
     inst = MagicMock(spec=[])
-    assert not rule.applies_to(inst, MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
+    assert not rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 15)))
 
 
 def test_generates_coupon_payment_transaction() -> None:
@@ -64,10 +72,19 @@ def test_generates_coupon_payment_transaction() -> None:
     coupon_rate = Decimal("0.05")
     inst = _make_instrument([datetime.date(2024, 6, 15)], face_value=face_value, coupon_rate=coupon_rate)
     pos = _make_position()
-    txs = rule.generate(inst, pos, MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
+    txs = rule.generate(inst, pos, _ctx(datetime.date(2024, 6, 15)))
     assert len(txs) >= 1
     assert txs[0].type == TransactionType.COUPON_PAYMENT
     assert txs[0].instrument_id == "bond-1"
     assert txs[0].position_id == "pos-1"
     expected_amount = face_value * coupon_rate / Decimal("2")
     assert txs[0].amount == expected_amount
+
+
+def test_applies_with_window() -> None:
+    """Rule should apply when coupon date falls in the (previous, current] window."""
+    rule = InterestPaymentRule()
+    inst = _make_instrument([datetime.date(2024, 6, 15)])
+    # Coupon on Saturday, simulation jumps from Friday to Monday
+    ctx = _ctx(datetime.date(2024, 6, 17), previous_date=datetime.date(2024, 6, 14))
+    assert rule.applies_to(inst, MagicMock(), ctx)

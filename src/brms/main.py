@@ -20,12 +20,6 @@ from brms.core.metrics.capital import (
 from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal
 from brms.core.models.accounting.ledger import Ledger
-from brms.core.rules.amortization import AmortizationRule
-from brms.core.rules.coupon import CouponPaymentRule
-from brms.core.rules.interest import InterestPaymentRule
-from brms.core.rules.mark_to_market import MarkToMarketRule
-from brms.core.rules.maturity import MaturityRule
-from brms.core.services.accounting_service import AccountingService
 from brms.core.models.bank import Bank
 from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond, TreasuryBond, TreasuryNote
 from brms.core.models.instruments.deposits import Cash, Deposit
@@ -47,6 +41,13 @@ from brms.core.models.instruments.other import (
 )
 from brms.core.models.instruments.registry import InstrumentRegistry
 from brms.core.models.market_data import MarketDataStore
+from brms.core.rules.amortization import AmortizationRule
+from brms.core.rules.coupon import CouponPaymentRule
+from brms.core.rules.deposit_interest import DepositInterestRule
+from brms.core.rules.interest import InterestPaymentRule
+from brms.core.rules.mark_to_market import MarkToMarketRule
+from brms.core.rules.maturity import MaturityRule
+from brms.core.services.accounting_service import AccountingService
 from brms.core.services.data_service import DataService
 from brms.core.services.loaders import ZipLoader
 from brms.core.services.metrics_service import MetricsService
@@ -91,7 +92,7 @@ def _build_instrument_registry() -> InstrumentRegistry:
     return registry
 
 
-def _build_core_services() -> dict:  # noqa: C901
+def _build_core_services() -> dict:
     """Instantiate and wire all v2 core services."""
     event_bus = EventBus()
     instrument_registry = _build_instrument_registry()
@@ -103,6 +104,7 @@ def _build_core_services() -> dict:  # noqa: C901
     rule_engine.register(InterestPaymentRule())
     rule_engine.register(MarkToMarketRule())
     rule_engine.register(AmortizationRule())
+    rule_engine.register(DepositInterestRule())
 
     # Metrics
     metric_registry = MetricRegistry()

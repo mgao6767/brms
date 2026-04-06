@@ -7,8 +7,14 @@ import datetime
 from decimal import Decimal
 from unittest.mock import MagicMock
 
+from brms.core.rules.context import RuleContext
 from brms.core.rules.maturity import MaturityRule
 from brms.core.models.transaction import TransactionType
+
+
+def _ctx(date: datetime.date, previous_date: datetime.date | None = None) -> RuleContext:
+    """Build a minimal RuleContext for testing."""
+    return RuleContext(date=date, previous_date=previous_date, market_state=MagicMock(), valuation_store=MagicMock())
 
 
 def _make_instrument(maturity_date: datetime.date | None) -> MagicMock:
@@ -35,21 +41,21 @@ def test_applies_on_maturity_date() -> None:
     """Rule should apply when the date matches the instrument's maturity date."""
     rule = MaturityRule()
     inst = _make_instrument(datetime.date(2024, 6, 15))
-    assert rule.applies_to(inst, MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
+    assert rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 15)))
 
 
 def test_does_not_apply_before_maturity() -> None:
     """Rule should not apply before the maturity date."""
     rule = MaturityRule()
     inst = _make_instrument(datetime.date(2024, 6, 15))
-    assert not rule.applies_to(inst, MagicMock(), MagicMock(), datetime.date(2024, 6, 14))
+    assert not rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 14)))
 
 
 def test_does_not_apply_if_no_maturity() -> None:
     """Rule should not apply when the instrument has no maturity date."""
     rule = MaturityRule()
     inst = _make_instrument(None)
-    assert not rule.applies_to(inst, MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
+    assert not rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 15)))
 
 
 def test_generates_settlement_transaction() -> None:
@@ -57,9 +63,18 @@ def test_generates_settlement_transaction() -> None:
     rule = MaturityRule()
     inst = _make_instrument(datetime.date(2024, 6, 15))
     pos = _make_position()
-    txs = rule.generate(inst, pos, MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
+    txs = rule.generate(inst, pos, _ctx(datetime.date(2024, 6, 15)))
     assert len(txs) >= 1
     assert txs[0].instrument_id == "bond-1"
     assert txs[0].position_id == "pos-1"
     assert txs[0].type == TransactionType.MATURITY_SETTLEMENT
     assert txs[0].amount == Decimal("1000000")
+
+
+def test_applies_with_window() -> None:
+    """Rule should apply when maturity falls in the (previous, current] window."""
+    rule = MaturityRule()
+    inst = _make_instrument(datetime.date(2024, 6, 15))
+    # Maturity on Saturday, simulation jumps from Friday to Monday
+    ctx = _ctx(datetime.date(2024, 6, 17), previous_date=datetime.date(2024, 6, 14))
+    assert rule.applies_to(inst, MagicMock(), ctx)

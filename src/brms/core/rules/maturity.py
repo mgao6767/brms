@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
-    import datetime
+    from brms.core.rules.context import RuleContext
 
 
 class MaturityRule:
@@ -19,20 +19,21 @@ class MaturityRule:
         self,
         instrument: object,
         _position: object,
-        _market_state: object,
-        date: datetime.date,
+        context: RuleContext,
     ) -> bool:
-        """Return True only on the exact maturity date of the instrument."""
+        """Return True if the maturity date falls in the (previous_date, date] window."""
         maturity = getattr(instrument, "maturity_date", None)
-        return maturity is not None and maturity == date
+        if maturity is None:
+            return False
+        if context.previous_date is not None:
+            return context.previous_date < maturity <= context.date
+        return maturity == context.date
 
     def generate(
         self,
         _instrument: object,
         position: object,
-        _valuation_store: object,
-        _market_state: object,
-        date: datetime.date,
+        context: RuleContext,
     ) -> list[Transaction]:
         """Generate a single maturity settlement transaction for the acquisition cost."""
         instrument_class = getattr(position, "instrument_class", None)
@@ -41,7 +42,7 @@ class MaturityRule:
             Transaction(
                 id=str(uuid.uuid4()),
                 type=TransactionType.MATURITY_SETTLEMENT,
-                date=date,
+                date=context.date,
                 amount=Decimal(str(getattr(position, "acquisition_cost", "0"))),
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),

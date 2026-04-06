@@ -7,6 +7,7 @@ import datetime
 from unittest.mock import MagicMock
 
 from brms.core.models.transaction import Transaction
+from brms.core.rules.context import RuleContext
 from brms.core.services.rule_engine import RuleEngine
 
 EXPECTED_TWO = 2
@@ -19,8 +20,7 @@ class AlwaysRule:
         self,
         _instrument: object,
         _position: object,
-        _market_state: object,
-        _date: datetime.date,
+        _context: RuleContext,
     ) -> bool:
         """Return True unconditionally."""
         return True
@@ -29,9 +29,7 @@ class AlwaysRule:
         self,
         _instrument: object,
         _position: object,
-        _valuation_store: object,
-        _market_state: object,
-        _date: datetime.date,
+        _context: RuleContext,
     ) -> list[Transaction]:
         """Return a single mock transaction."""
         tx = MagicMock(spec=Transaction)
@@ -45,8 +43,7 @@ class NeverRule:
         self,
         _instrument: object,
         _position: object,
-        _market_state: object,
-        _date: datetime.date,
+        _context: RuleContext,
     ) -> bool:
         """Return False unconditionally."""
         return False
@@ -55,9 +52,7 @@ class NeverRule:
         self,
         _instrument: object,
         _position: object,
-        _valuation_store: object,
-        _market_state: object,
-        _date: datetime.date,
+        _context: RuleContext,
     ) -> list[Transaction]:
         """Return an empty list."""
         return []

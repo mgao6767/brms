@@ -11,11 +11,11 @@ from brms.core.events import DateAdvanced, DateReverted, EventBus, InstrumentAdd
 if TYPE_CHECKING:
     import datetime
 
-    from brms.core.rules.base import RuleRegistry
-    from brms.core.services.accounting_service import AccountingService
     from brms.core.models.bank import Bank
     from brms.core.models.market_data import MarketDataStore, MarketState
     from brms.core.models.transaction import Transaction
+    from brms.core.rules.base import RuleRegistry
+    from brms.core.services.accounting_service import AccountingService
     from brms.core.services.data_service import BankingBook, TradingBook
     from brms.core.services.metrics_service import MetricsService
 
@@ -173,10 +173,11 @@ class SimulationService:
                 raise IndexError(msg)
             date = available[self._date_index]
             self._date_index += 1
+        previous_date = self._current_date
         self._current_date = date
         market_state = self.market_data.get_state(date)
         self.valuation_service.value_all(self.bank, self.market_data, date, self.valuation_store)
-        transactions = self.rule_engine.apply(self.bank, self.valuation_store, market_state, date)
+        transactions = self.rule_engine.apply(self.bank, self.valuation_store, market_state, date, previous_date)
         self.accounting_service.post_all(transactions, self.bank.ledger, self.bank.positions)
         self.transaction_log.record_batch(transactions)
         self.metrics_service.compute(self.bank, market_state, date, self.metric_store, self.valuation_store)

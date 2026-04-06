@@ -8,7 +8,13 @@ from decimal import Decimal
 from unittest.mock import MagicMock
 
 from brms.core.rules.amortization import AmortizationRule
+from brms.core.rules.context import RuleContext
 from brms.core.models.transaction import TransactionType
+
+
+def _ctx(date: datetime.date, previous_date: datetime.date | None = None) -> RuleContext:
+    """Build a minimal RuleContext for testing."""
+    return RuleContext(date=date, previous_date=previous_date, market_state=MagicMock(), valuation_store=MagicMock())
 
 
 def _make_instrument(
@@ -40,21 +46,21 @@ def test_applies_on_payment_date() -> None:
     """Rule should apply when the date is in the instrument's payment_dates list."""
     rule = AmortizationRule()
     inst = _make_instrument([datetime.date(2024, 6, 15), datetime.date(2024, 12, 15)])
-    assert rule.applies_to(inst, MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
+    assert rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 15)))
 
 
 def test_does_not_apply_on_non_payment_date() -> None:
     """Rule should not apply when the date is not in payment_dates."""
     rule = AmortizationRule()
     inst = _make_instrument([datetime.date(2024, 6, 15)])
-    assert not rule.applies_to(inst, MagicMock(), MagicMock(), datetime.date(2024, 6, 14))
+    assert not rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 14)))
 
 
 def test_does_not_apply_if_no_payment_dates_attr() -> None:
     """Rule should not apply when the instrument has no payment_dates attribute."""
     rule = AmortizationRule()
     inst = MagicMock(spec=[])
-    assert not rule.applies_to(inst, MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
+    assert not rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 15)))
 
 
 def test_generates_amortization_transaction() -> None:
@@ -63,9 +69,17 @@ def test_generates_amortization_transaction() -> None:
     periodic_payment = Decimal("5000")
     inst = _make_instrument([datetime.date(2024, 6, 15)], periodic_payment=periodic_payment)
     pos = _make_position()
-    txs = rule.generate(inst, pos, MagicMock(), MagicMock(), datetime.date(2024, 6, 15))
+    txs = rule.generate(inst, pos, _ctx(datetime.date(2024, 6, 15)))
     assert len(txs) >= 1
     assert txs[0].type == TransactionType.AMORTIZATION
     assert txs[0].instrument_id == "loan-1"
     assert txs[0].position_id == "pos-1"
     assert txs[0].amount == periodic_payment
+
+
+def test_applies_with_window() -> None:
+    """Rule should apply when payment date falls in the (previous, current] window."""
+    rule = AmortizationRule()
+    inst = _make_instrument([datetime.date(2024, 6, 15)])
+    ctx = _ctx(datetime.date(2024, 6, 17), previous_date=datetime.date(2024, 6, 14))
+    assert rule.applies_to(inst, MagicMock(), ctx)
