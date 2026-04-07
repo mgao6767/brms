@@ -57,8 +57,16 @@ class InterestIncomeAccrualRule:
         else:
             notional = Decimal(str(getattr(position, "acquisition_cost", "0")))
 
-        daily_interest = notional * rate / _DAYS_PER_YEAR
-        if daily_interest == 0:
+        daily_rate = notional * rate / _DAYS_PER_YEAR
+
+        # Cover all calendar days since last advance (weekends/holidays)
+        if context.previous_date is not None:
+            calendar_days = (context.date - context.previous_date).days
+        else:
+            calendar_days = 1
+
+        amount = daily_rate * calendar_days
+        if amount == 0:
             return []
 
         return [
@@ -66,7 +74,7 @@ class InterestIncomeAccrualRule:
                 id=str(uuid.uuid4()),
                 type=TransactionType.INTEREST_ACCRUAL,
                 date=context.date,
-                amount=daily_interest,
+                amount=amount,
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
                 metadata=(("side", "income"),),

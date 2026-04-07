@@ -45,17 +45,30 @@ class DepositInterestAccrualRule:
         position: object,
         context: RuleContext,
     ) -> list[Transaction]:
-        """Generate a daily interest accrual transaction for the deposit."""
+        """Generate an interest accrual transaction covering all calendar days since last advance.
+
+        When the simulation skips weekends/holidays (e.g., Friday → Monday),
+        the accrual covers all skipped calendar days so that the total accrued
+        over a month matches the calendar-based settlement amount.
+        """
         acquisition_cost = Decimal(str(getattr(position, "acquisition_cost", "0")))
-        daily_interest = acquisition_cost * self._annual_rate / _DAYS_PER_YEAR
-        if daily_interest == 0:
+        daily_rate = acquisition_cost * self._annual_rate / _DAYS_PER_YEAR
+
+        # Number of calendar days since last advance (covers weekends/holidays)
+        if context.previous_date is not None:
+            calendar_days = (context.date - context.previous_date).days
+        else:
+            calendar_days = 1
+
+        amount = daily_rate * calendar_days
+        if amount == 0:
             return []
         return [
             Transaction(
                 id=str(uuid.uuid4()),
                 type=TransactionType.INTEREST_ACCRUAL,
                 date=context.date,
-                amount=daily_interest,
+                amount=amount,
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
                 metadata=(("side", "expense"),),
