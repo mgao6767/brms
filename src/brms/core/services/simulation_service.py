@@ -183,6 +183,12 @@ class SimulationService:
             else:
                 date = self._current_date + timedelta(days=1)
 
+        # Lazily resolve end date from market data (may not be available at construction)
+        if self._end_date is None:
+            available = self.market_data.available_dates()
+            if available:
+                self._end_date = available[-1]
+
         if self._end_date and date > self._end_date:
             msg = "Past end date"
             raise IndexError(msg)
