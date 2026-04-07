@@ -123,7 +123,7 @@ class BankController(BRMSController):
     def update_statement(self, date=None) -> None:  # noqa: ANN001
         """Refresh financial statement views using ReportingService and HTMLStatementRenderer."""
         tb_data = self._reporting.trial_balance(self.bank.ledger)
-        bs_data = self._reporting.balance_sheet(self.bank.ledger)
+        bs_data = self._reporting.balance_sheet(self.bank.ledger, date=date)
         is_data = self._reporting.income_statement(self.bank.ledger)
 
         # Add capital adequacy and liquidity metrics for the dashboard panel
