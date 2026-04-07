@@ -92,8 +92,8 @@ class BankController(BRMSController):
             val = self._valuation_store.get(pos.id, date, ValuationType.FAIR_VALUE)
             if val is None:
                 val = self._valuation_store.get(pos.id, date, ValuationType.CARRYING_VALUE)
-            if val is None:
-                continue
+            if val is None or val == 0:
+                continue  # skip — keep the initial display value (e.g. acquisition cost for deposits)
             try:
                 instrument = self.bank.instruments.get(pos.instrument_id)
             except KeyError:

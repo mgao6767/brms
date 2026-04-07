@@ -83,6 +83,7 @@ class MarkToMarketRule:
                 metadata=(
                     ("instrument_class", class_name),
                     ("direction", direction),
+                    ("description", f"Mark-to-market {direction} ({class_name})"),
                 ),
             ),
         ]

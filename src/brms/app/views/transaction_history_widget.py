@@ -175,13 +175,15 @@ class BRMSTransactionHistoryWidget(QWidget):
             self.flush_transactions()
 
     def transaction_to_data(self, transaction: Transaction, tx_num: int) -> dict:
+        meta = dict(transaction.metadata) if transaction.metadata else {}
+        type_label = transaction.type.name.replace("_", " ").title()
+        description = meta.get("description", type_label)
         return {
             0: tx_num,
             1: str(transaction.date),
-            2: transaction.type.name,
-            3: transaction.instrument_id or "",
+            2: type_label,
+            3: description,
             4: self._locale.toCurrencyString(float(transaction.amount)),
-            5: str(dict(transaction.metadata)) if transaction.metadata else "",
-            # hidden — journal entry not available on core Transaction
+            5: "",
             6: "",
         }

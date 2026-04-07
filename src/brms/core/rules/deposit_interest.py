@@ -71,7 +71,7 @@ class DepositInterestAccrualRule:
                 amount=amount,
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
-                metadata=(("side", "expense"),),
+                metadata=(("side", "expense"), ("description", f"Deposit interest accrual ({calendar_days}d)")),
             ),
         ]
 
@@ -145,6 +145,6 @@ class DepositInterestSettlementRule:
                 amount=amount,
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
-                metadata=(("side", "expense"),),
+                metadata=(("side", "expense"), ("description", f"Monthly deposit interest settlement ({days}d)")),
             ),
         ]

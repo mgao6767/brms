@@ -219,6 +219,9 @@ class DataService:
                     class_name = "FVTPL"
                 metadata = (("instrument_class", class_name),)
 
+            desc = tx_type.name.replace("_", " ").title()
+            metadata = (*metadata, ("description", desc))
+
             transactions.append(
                 Transaction(
                     id=str(uuid.uuid4()),
