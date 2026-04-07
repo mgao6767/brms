@@ -46,6 +46,7 @@ class MaturityRule:
                 amount=Decimal(str(getattr(position, "acquisition_cost", "0"))),
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
-                metadata=(("instrument_class", instrument_class_name), ("description", "Instrument matured — settlement")),
+                description="Instrument matured — settlement",
+                metadata=(("instrument_class", instrument_class_name),),
             ),
         ]

@@ -220,7 +220,6 @@ class DataService:
                 metadata = (("instrument_class", class_name),)
 
             desc = tx_type.name.replace("_", " ").title()
-            metadata = (*metadata, ("description", desc))
 
             transactions.append(
                 Transaction(
@@ -228,6 +227,7 @@ class DataService:
                     type=tx_type,
                     date=pos.acquisition_date,
                     amount=Decimal(str(pos.acquisition_cost)),
+                    description=desc,
                     position_id=pos.id,
                     instrument_id=pos.instrument_id,
                     metadata=metadata,

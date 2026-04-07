@@ -114,6 +114,12 @@ class MainController(BRMSController):
         if self._end_date is not None:
             self.view.dashboard.update_simulation_end_date(self._end_date)
         self.update_dashboard()
+
+        # Load initial transactions (acquisitions from DataService) into history widget
+        transaction_log = self._core.get("transaction_log")
+        if transaction_log:
+            for tx in transaction_log.all():
+                self.view.transaction_history_widget.add_transaction(tx)
         # misc
         if self._start_date is not None:
             self.view.transaction_history_widget.set_end_date(self._start_date)

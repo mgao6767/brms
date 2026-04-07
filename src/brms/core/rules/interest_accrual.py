@@ -77,6 +77,7 @@ class InterestIncomeAccrualRule:
                 amount=amount,
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
-                metadata=(("side", "income"), ("description", f"Interest income accrual ({calendar_days}d)")),
+                description=f"Interest income accrual ({calendar_days}d)",
+                metadata=(("side", "income"),),
             ),
         ]

@@ -80,10 +80,10 @@ class MarkToMarketRule:
                 amount=fair_value_change,
                 position_id=position_id,
                 instrument_id=instrument_id,
+                description=f"Mark-to-market {direction} ({class_name})",
                 metadata=(
                     ("instrument_class", class_name),
                     ("direction", direction),
-                    ("description", f"Mark-to-market {direction} ({class_name})"),
                 ),
             ),
         ]

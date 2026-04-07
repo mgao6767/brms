@@ -83,6 +83,7 @@ class CouponPaymentRule:
                 amount=coupon_amount,
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
-                metadata=(("side", "income"), ("description", "Coupon payment received")),
+                description="Coupon payment received",
+                metadata=(("side", "income"),),
             ),
         ]

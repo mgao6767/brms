@@ -23,6 +23,7 @@ class Transaction:
     type: TransactionType
     date: datetime.date
     amount: Decimal
+    description: str = ""
     position_id: str | None = None
     instrument_id: str | None = None
     metadata: tuple[tuple[str, Any], ...] = ()

@@ -175,9 +175,8 @@ class BRMSTransactionHistoryWidget(QWidget):
             self.flush_transactions()
 
     def transaction_to_data(self, transaction: Transaction, tx_num: int) -> dict:
-        meta = dict(transaction.metadata) if transaction.metadata else {}
         type_label = transaction.type.name.replace("_", " ").title()
-        description = meta.get("description", type_label)
+        description = transaction.description or type_label
         return {
             0: tx_num,
             1: str(transaction.date),
