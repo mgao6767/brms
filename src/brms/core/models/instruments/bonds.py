@@ -29,9 +29,9 @@ class FixedRateBond(Instrument):
         maturity_date: ql.Date,
         frequency: ql.Period = ql.Semiannual,
         settlement_days: int = 0,
-        calendar: ql.Calendar = ql.NullCalendar(),  # noqa: B008
+        calendar: ql.Calendar = ql.UnitedStates(ql.UnitedStates.GovernmentBond),  # noqa: B008
         day_count: ql.DayCounter = ql.Thirty360(ql.Thirty360.BondBasis),  # noqa: B008
-        business_convention: int = ql.Unadjusted,
+        business_convention: int = ql.Following,
         date_generation: ql.DateGeneration = ql.DateGeneration.Backward,
         month_end: bool = False,
         book_type: Optional["BookType"] = None,
