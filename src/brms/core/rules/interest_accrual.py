@@ -1,14 +1,11 @@
 """InterestIncomeAccrualRule: accrues interest income on bonds and loans.
 
-Uses the instrument's payment schedule (which has business-day-adjusted coupon
-dates) to compute a daily accrual rate for the current coupon period.  Since
-coupon dates are adjusted to business days, they always coincide with simulation
-dates, eliminating period-boundary mismatch.
+Uses the instrument's payment schedule (business-day-adjusted coupon dates)
+to derive an exact daily accrual rate for the current period.  The total
+accrued over each coupon period exactly equals the coupon payment amount,
+ensuring the Accrued Interest Receivable account zeroes at settlement.
 
-Accrual convention:
-- Daily rate for a period = coupon_amount / calendar_days_in_period.
-- Accrual range per advance: (previous_date, current_date].
-- First advance (previous_date=None): starts from issue_date inclusive.
+For non-QL instruments, falls back to face_value * rate / 365.
 """
 
 from __future__ import annotations
@@ -23,6 +20,8 @@ from brms.core.models.transaction import Transaction
 
 if TYPE_CHECKING:
     from brms.core.rules.context import RuleContext
+
+_DAYS_PER_YEAR = Decimal("365")
 
 
 class InterestIncomeAccrualRule:
@@ -61,7 +60,7 @@ class InterestIncomeAccrualRule:
 
         daily_rate = self._daily_rate(instrument, position, accrual_end)
         amount = daily_rate * calendar_days
-        if amount == 0:
+        if amount <= 0:
             return []
 
         return [
@@ -88,14 +87,11 @@ class InterestIncomeAccrualRule:
         """Return (exclusive_start, inclusive_end) for this accrual step.
 
         Normal: (previous_date, date].
-        First advance: (issue_date - 1day, date] so issue_date itself is included.
+        First advance: (issue_date, date] — issue date is day 0, no interest yet.
         """
         end = context.date
         if context.previous_date is not None:
             return context.previous_date, end
-
-        # First advance: accrue from issue_date (exclusive) to date (inclusive).
-        # Issue date is day 0 — no interest accrued yet. Interest starts day 1.
         issue_date = getattr(instrument, "issue_date", None)
         acq_date = getattr(position, "acquisition_date", None)
         return (issue_date or acq_date or end), end
@@ -104,11 +100,8 @@ class InterestIncomeAccrualRule:
     def _daily_rate(instrument: object, position: object, date: datetime.date) -> Decimal:
         """Compute daily accrual rate for the coupon period containing *date*.
 
-        For QL-backed instruments with a payment_schedule: finds the period
-        where period_start < date <= period_end, then returns
-        coupon_amount / days_in_period.
-
-        Falls back to face_value * rate / 365 for non-QL instruments.
+        For instruments with a payment_schedule: coupon_amount / days_in_period.
+        This ensures total accrual over the period exactly equals the coupon.
         """
         schedule_fn = getattr(instrument, "payment_schedule", None)
         if callable(schedule_fn):
@@ -131,4 +124,4 @@ class InterestIncomeAccrualRule:
             return Decimal("0")
         face_value = getattr(instrument, "face_value", None)
         notional = Decimal(str(face_value)) if face_value else Decimal(str(getattr(position, "acquisition_cost", "0")))
-        return notional * Decimal(str(rate)) / Decimal("365")
+        return notional * Decimal(str(rate)) / _DAYS_PER_YEAR
