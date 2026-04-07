@@ -122,6 +122,7 @@ class MainController(BRMSController):
             for tx in transaction_log.all():
                 self.view.transaction_history_widget.add_transaction(tx)
                 self._pushed_tx_ids.add(tx.id)
+            self.view.transaction_history_widget.flush_transactions()
         # misc
         if self._start_date is not None:
             self.view.transaction_history_widget.set_end_date(self._start_date)
