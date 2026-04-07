@@ -78,7 +78,10 @@ class BankController(BRMSController):
                 self.banking_book_ctrl if pos.book_type == BookType.BANKING
                 else self.trading_book_ctrl
             )
-            ctrl.add_instrument(instrument, side, initial_value=float(pos.acquisition_cost))
+            ctrl.add_instrument(
+                instrument, side, initial_value=float(pos.acquisition_cost),
+                instrument_class=pos.instrument_class,
+            )
 
     def _on_date_advanced(self, event: DateAdvanced) -> None:
         """Update instrument values in book trees from ValuationStore after each advance."""

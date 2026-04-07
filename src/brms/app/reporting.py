@@ -25,9 +25,9 @@ except locale.Error:
 
 def _format_amount(amount: float) -> Text:
     """Return a Text object styled green for non-negative, red for negative values."""
-    if amount >= 0:
-        return Text(locale.currency(amount, grouping=True), style="green")
-    return Text(f"({locale.currency(abs(amount), grouping=True)})", style="red")
+    formatted = f"${amount:,.2f}" if amount >= 0 else f"(${abs(amount):,.2f})"
+    style = "green" if amount >= 0 else "red"
+    return Text(formatted, style=style)
 
 
 def _export_html(table: Table) -> str:

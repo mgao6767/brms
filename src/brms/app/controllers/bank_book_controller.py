@@ -36,12 +36,15 @@ class BankBookController(BRMSController):
 
     @staticmethod
     def instrument_to_data(
-        instrument: Instrument, position: Position, initial_value: float | None = None,
+        instrument: Instrument,
+        position: Position,
+        initial_value: float | None = None,
+        instrument_class: object | None = None,
     ) -> list[dict]:
         """Convert an instrument to data that can be used by the TreeModel."""
         value = initial_value if initial_value is not None else getattr(instrument, "face_value", 0)
-        inst_class = getattr(instrument, "instrument_class", None)
-        class_label = inst_class.value if inst_class is not None else ""
+        inst_class = instrument_class or getattr(instrument, "instrument_class", None)
+        class_label = inst_class.name if inst_class is not None else ""
         data: dict[ColumnOrder, object]
         if position == Position.LONG:
             data = {
@@ -60,8 +63,11 @@ class BankBookController(BRMSController):
         return [data]
 
     def add_instrument(
-        self, instrument: Instrument, position: Position | None = None,
+        self,
+        instrument: Instrument,
+        position: Position | None = None,
         initial_value: float | None = None,
+        instrument_class: object | None = None,
     ) -> None:
         """Add an instrument to the tree model."""
         if position is None:
@@ -69,11 +75,13 @@ class BankBookController(BRMSController):
         match position:
             case Position.LONG:
                 self.long_model.add_data(
-                    QMODELINDEX, self.instrument_to_data(instrument, position, initial_value),
+                    QMODELINDEX,
+                    self.instrument_to_data(instrument, position, initial_value, instrument_class),
                 )
             case Position.SHORT:
                 self.short_model.add_data(
-                    QMODELINDEX, self.instrument_to_data(instrument, position, initial_value),
+                    QMODELINDEX,
+                    self.instrument_to_data(instrument, position, initial_value, instrument_class),
                 )
 
     def remove_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
@@ -184,14 +192,17 @@ class BankingBookController(BankBookController):
             self.long_model.update_data(idx, {AssetColumns.Value: cash_instrument.value})
 
     def add_instrument(
-        self, instrument: Instrument, position: Position | None = None,
+        self,
+        instrument: Instrument,
+        position: Position | None = None,
         initial_value: float | None = None,
+        instrument_class: object | None = None,
     ) -> None:
         """Add an instrument to the tree model."""
         if isinstance(instrument, Cash):
             self._add_cash(instrument)
             return
-        super().add_instrument(instrument, position, initial_value=initial_value)
+        super().add_instrument(instrument, position, initial_value=initial_value, instrument_class=instrument_class)
 
     def remove_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
         """Remove an instrument from the tree model."""

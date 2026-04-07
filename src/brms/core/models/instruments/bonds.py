@@ -68,6 +68,8 @@ class FixedRateBond(Instrument):
         name = f"{coupon_rate * 100:.2f}% {maturity_date_str} {self._instrument_type_label}"
         super().__init__(name, book_type, credit_rating, issuer, parent, instrument_class=instrument_class)
 
+        self.face_value = face_value
+        self.coupon_rate = coupon_rate
         coupons = [coupon_rate]
         tenor = ql.Period(frequency)
 

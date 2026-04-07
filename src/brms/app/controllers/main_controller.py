@@ -38,6 +38,7 @@ class MainController(BRMSController):
         # Store core services for future use as migration progresses
         self._core: dict[str, Any] = core_services or {}
         self._simulation_service: SimulationService | None = self._core.get("simulation_service")
+        self._pushed_tx_ids: set[str] = set()
 
         # Derive start/end dates from SimulationService
         self._start_date: datetime.date | None = None
@@ -120,6 +121,7 @@ class MainController(BRMSController):
         if transaction_log:
             for tx in transaction_log.all():
                 self.view.transaction_history_widget.add_transaction(tx)
+                self._pushed_tx_ids.add(tx.id)
         # misc
         if self._start_date is not None:
             self.view.transaction_history_widget.set_end_date(self._start_date)
@@ -197,11 +199,13 @@ class MainController(BRMSController):
             row = all_dates.index(date)
             self.yield_curve_ctrl.set_current_selection(row, 0)
 
-        # Push today's transactions to the history widget
+        # Push today's transactions to the history widget (skip already-pushed)
         transaction_log = self._core.get("transaction_log")
         if transaction_log:
             for tx in transaction_log.by_date(date):
-                self.view.transaction_history_widget.add_transaction(tx)
+                if tx.id not in self._pushed_tx_ids:
+                    self.view.transaction_history_widget.add_transaction(tx)
+                    self._pushed_tx_ids.add(tx.id)
 
     def on_start_action(self) -> None:
         """Start the simulation timer for continuous advancement."""
