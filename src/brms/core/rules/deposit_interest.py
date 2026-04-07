@@ -109,9 +109,32 @@ class DepositInterestSettlementRule:
         position: object,
         context: RuleContext,
     ) -> list[Transaction]:
-        """Generate a monthly interest settlement transaction."""
+        """Settle accrued interest for the previous month.
+
+        Computes the number of calendar days that were actually accrued in the
+        previous month.  For the first month, starts from acquisition_date
+        instead of the 1st to match the accrual rule.
+        """
+        import datetime
+
         acquisition_cost = Decimal(str(getattr(position, "acquisition_cost", "0")))
-        amount = acquisition_cost * self._annual_rate / Decimal("12")
+        prev = context.previous_date
+        acq_date = getattr(position, "acquisition_date", None)
+
+        # Start of accrual period: 1st of previous month, or acquisition date if later
+        month_start = datetime.date(prev.year, prev.month, 1)
+        if acq_date is not None and acq_date > month_start:
+            period_start = acq_date
+        else:
+            period_start = month_start
+
+        # End of accrual period: last day of previous month (= previous_date since month just changed)
+        period_end = prev
+
+        days = (period_end - period_start).days + 1
+        if days <= 0:
+            return []
+        amount = acquisition_cost * self._annual_rate * days / _DAYS_PER_YEAR
         if amount == 0:
             return []
         return [
