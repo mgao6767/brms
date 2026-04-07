@@ -181,8 +181,8 @@ class BRMSTransactionHistoryWidget(QWidget):
             0: tx_num,
             1: str(transaction.date),
             2: type_label,
-            3: description,
+            3: transaction.instrument_id or "",
             4: self._locale.toCurrencyString(float(transaction.amount)),
-            5: "",
+            5: description,
             6: "",
         }
