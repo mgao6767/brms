@@ -105,12 +105,12 @@ class InterestIncomeAccrualRule:
         if change > 0:
             # Normal accrual: interest grew since last advance
             amount = change
-        elif ai_today > 0:
-            # Coupon date crossed, but we're past it into a new period
-            # Record only the new period's accrual
+        elif change < 0 and ai_today > 0:
+            # Coupon date crossed (accruedAmount reset), new period started
+            # Record only the new period's accrual portion
             amount = ai_today
         else:
-            # On the coupon date itself: accruedAmount = 0, nothing to record
+            # No change (same day count) or coupon date (ai=0): nothing to record
             return []
 
         return self._make_tx(amount, context, position)
