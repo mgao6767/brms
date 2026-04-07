@@ -136,10 +136,8 @@ class MainController(BRMSController):
             liability_values = [v for _, v in liability_series]
             equity_series = metric_store.series(MetricName.TOTAL_EQUITY)
             equity_values = [v for _, v in equity_series]
-            cet1_series = metric_store.series(MetricName.CET1_RATIO)
-            cet1_values = [v for _, v in cet1_series]
         else:
-            dates, asset_values, liability_values, equity_values, cet1_values = [], [], [], [], []
+            dates, asset_values, liability_values, equity_values = [], [], [], []
 
         self.view.dashboard.update_assets_liabilities_plot(
             start=self._start_date,
@@ -153,12 +151,6 @@ class MainController(BRMSController):
             end=self._end_date,
             dates=dates,
             equity_values=equity_values,
-        )
-        self.view.dashboard.update_capital_ratio_plot(
-            start=self._start_date,
-            end=self._end_date,
-            dates=dates,
-            values=cet1_values,
         )
 
     def on_advance(self) -> None:

@@ -12,7 +12,6 @@ from brms.core.enums import InstrumentClass
 from brms.core.events import EventBus
 from brms.core.metrics.base import MetricRegistry
 from brms.core.metrics.capital import (
-    CET1RatioMetric,
     TotalAssetsMetric,
     TotalEquityMetric,
     TotalLiabilitiesMetric,
@@ -112,7 +111,7 @@ def _build_core_services() -> dict:
     metric_registry.register(TotalAssetsMetric())
     metric_registry.register(TotalLiabilitiesMetric())
     metric_registry.register(TotalEquityMetric())
-    metric_registry.register(CET1RatioMetric())
+    # CET1RatioMetric removed — requires proper CET1 capital and RWA calculations
 
     # Valuation service with strategies
     valuation_service = ValuationService()
