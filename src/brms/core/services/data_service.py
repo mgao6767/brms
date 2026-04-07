@@ -176,14 +176,11 @@ class DataService:
         # 2. Post acquisition transactions to establish initial ledger balances
         self._post_acquisition_transactions(data, simulation_service)
 
-        # 3. Replay advance() from replay_from to start_date
-        available = simulation_service.market_data.available_dates()  # type: ignore[union-attr]
-        for date in available:
-            if date < data.replay_from:
-                continue
-            if date >= data.start_date:
-                break
-            simulation_service.advance(date)  # type: ignore[union-attr]
+        # 3. Replay advance() from replay_from to start_date (calendar-day)
+        current = data.replay_from
+        while current < data.start_date:
+            simulation_service.advance(current)  # type: ignore[union-attr]
+            current += datetime.timedelta(days=1)
 
     @staticmethod
     def _post_acquisition_transactions(data: object, simulation_service: object) -> None:

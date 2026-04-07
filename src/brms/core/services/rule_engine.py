@@ -54,6 +54,8 @@ class RuleEngine:
         market_state: object,
         date: datetime.date,
         previous_date: datetime.date | None = None,
+        *,
+        has_market_data: bool = True,
     ) -> list[Transaction]:
         """Apply all rules to every open position and return aggregated transactions.
 
@@ -62,7 +64,7 @@ class RuleEngine:
         rules.  Rules whose ``applies_to`` returns ``True`` are asked to
         ``generate`` transactions, which are collected and returned as a flat list.
         """
-        context = RuleContext(date, previous_date, market_state, valuation_store)
+        context = RuleContext(date, previous_date, market_state, valuation_store, has_market_data=has_market_data)
         transactions: list[Transaction] = []
         for position in bank.positions.open_positions():  # type: ignore[union-attr]
             instrument = bank.instruments.get(position.instrument_id)  # type: ignore[union-attr]

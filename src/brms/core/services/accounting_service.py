@@ -372,29 +372,67 @@ class AccountingService:
     def _interest_settlement(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
         """INTEREST_SETTLEMENT: settle accrued interest with cash movement.
 
-        side=income:  Dr Cash / Cr Accrued Interest Receivable
-        side=expense: Dr Interest Payable / Cr Cash
+        side=income (coupon received)::
+
+            Dr  Cash                         coupon_amount
+            Cr  Accrued Interest Receivable  accrued_portion
+            Cr  Interest Income              catch_up (coupon - accrued)
+
+        The catch-up accounts for day count convention differences between
+        QL's accruedAmount and the contractual coupon payment.
+        If accrued_portion is not provided, uses the full coupon amount
+        (two-leg entry, no catch-up).
+
+        side=expense (deposit interest paid)::
+
+            Dr  Interest Payable             amount
+            Cr  Cash                         amount
         """
         meta = dict(tx.metadata)
         side = meta.get("side", "")
         cash = self._lookup(ledger, "Cash and Cash Equivalents")
-        if side == "income":
-            debit = cash
-            credit = self._lookup(ledger, "Accrued Interest Receivable")
-            desc = "Interest income settlement"
-        elif side == "expense":
-            debit = self._lookup(ledger, "Interest Payable")
-            credit = cash
-            desc = "Interest expense settlement"
-        else:
-            msg = f"Unknown side '{side}' for INTEREST_SETTLEMENT in tx={tx.id}"
-            raise ValueError(msg)
-        return [
-            SimpleEntry(
-                debit_account=debit,
-                credit_account=credit,
+
+        if side == "expense":
+            return [SimpleEntry(
+                debit_account=self._lookup(ledger, "Interest Payable"),
+                credit_account=cash,
                 value=float(tx.amount),
                 date=tx.date,
-                description=f"{desc} (tx={tx.id})",
-            ),
-        ]
+                description=f"Interest expense settlement (tx={tx.id})",
+            )]
+
+        if side == "income":
+            receivable = self._lookup(ledger, "Accrued Interest Receivable")
+            coupon_amount = float(tx.amount)
+
+            accrued_str = meta.get("accrued_portion")
+            if accrued_str is not None:
+                accrued_portion = float(accrued_str)
+            else:
+                accrued_portion = coupon_amount  # no catch-up
+
+            catch_up = coupon_amount - accrued_portion
+
+            if abs(catch_up) < 0.005:  # noqa: PLR2004
+                # No meaningful catch-up — simple two-leg entry
+                return [SimpleEntry(
+                    debit_account=cash,
+                    credit_account=receivable,
+                    value=coupon_amount,
+                    date=tx.date,
+                    description=f"Coupon settlement (tx={tx.id})",
+                )]
+
+            # Three-leg compound entry
+            from brms.core.models.accounting.journal import CompoundEntry
+
+            interest_income = self._lookup(ledger, "Interest Income")
+            return [CompoundEntry(
+                debit_accounts={cash: coupon_amount},
+                credit_accounts={receivable: accrued_portion, interest_income: catch_up},
+                date=tx.date,
+                description=f"Coupon settlement with day count catch-up (tx={tx.id})",
+            )]
+
+        msg = f"Unknown side '{side}' for INTEREST_SETTLEMENT in tx={tx.id}"
+        raise ValueError(msg)

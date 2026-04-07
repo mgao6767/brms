@@ -21,6 +21,8 @@ class RuleContext:
         market_state: object,
         valuation_store: object,
         market_data: object = None,
+        *,
+        has_market_data: bool = True,
     ) -> None:
         """Initialise the context with date, market state, and valuation data."""
         self.date = date
@@ -28,3 +30,4 @@ class RuleContext:
         self.market_state = market_state
         self.valuation_store = valuation_store
         self.market_data = market_data
+        self.has_market_data = has_market_data

@@ -11,7 +11,10 @@ def test_advance_calls_services_in_order() -> None:
     """advance() should call each collaborator in sequence and emit DateAdvanced."""
     bank = MagicMock()
     market_data = MagicMock()
+    market_data.available_dates.return_value = [datetime.date(2024, 1, 1)]
+    market_data.has_data.return_value = True
     market_data.get_state.return_value = MagicMock()
+    market_data.get_state_or_none.return_value = MagicMock()
     valuation_service = MagicMock()
     rule_engine = MagicMock()
     rule_engine.apply.return_value = []

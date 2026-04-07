@@ -77,9 +77,17 @@ def test_generates_amortization_transaction() -> None:
     assert txs[0].amount == periodic_payment
 
 
-def test_applies_with_window() -> None:
-    """Rule should apply when payment date falls in the (previous, current] window."""
+def test_applies_with_exact_match() -> None:
+    """Rule should apply when payment date matches the current date exactly."""
+    rule = AmortizationRule()
+    inst = _make_instrument([datetime.date(2024, 6, 15)])
+    ctx = _ctx(datetime.date(2024, 6, 15), previous_date=datetime.date(2024, 6, 14))
+    assert rule.applies_to(inst, MagicMock(), ctx)
+
+
+def test_does_not_apply_with_window() -> None:
+    """Rule should NOT apply when payment date falls between previous and current but is not current."""
     rule = AmortizationRule()
     inst = _make_instrument([datetime.date(2024, 6, 15)])
     ctx = _ctx(datetime.date(2024, 6, 17), previous_date=datetime.date(2024, 6, 14))
-    assert rule.applies_to(inst, MagicMock(), ctx)
+    assert not rule.applies_to(inst, MagicMock(), ctx)

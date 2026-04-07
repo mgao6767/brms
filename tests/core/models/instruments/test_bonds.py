@@ -30,7 +30,8 @@ def test_fixed_rate_bond_instantiation(fixed_rate_bond: FixedRateBond) -> None:
 
 def test_fixed_rate_bond_maturity_date(fixed_rate_bond: FixedRateBond) -> None:
     """Test the maturity date property."""
-    assert fixed_rate_bond.maturity_date == datetime.date(2030, 1, 1)
+    # Jan 1 2030 is a holiday — QL adjusts to next business day (Jan 2)
+    assert fixed_rate_bond.maturity_date == datetime.date(2030, 1, 2)
 
 
 def test_fixed_rate_bond_issue_date(fixed_rate_bond: FixedRateBond) -> None:
@@ -45,8 +46,9 @@ def test_fixed_rate_bond_notional(fixed_rate_bond: FixedRateBond) -> None:
 
 
 def test_fixed_rate_bond_notional_at_maturity(fixed_rate_bond: FixedRateBond) -> None:
-    """Test notional value at maturity date is zero."""
-    notional = fixed_rate_bond.notional(datetime.date(2030, 1, 1))
+    """Test notional value at adjusted maturity date is zero."""
+    # Maturity adjusted from Jan 1 to Jan 2 (holiday)
+    notional = fixed_rate_bond.notional(datetime.date(2030, 1, 2))
     assert notional == 0.0
 
 

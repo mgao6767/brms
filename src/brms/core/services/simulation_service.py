@@ -146,8 +146,12 @@ class SimulationService:
         self.metric_store = metric_store
         self.transaction_log = transaction_log
         self.event_bus = event_bus
-        self._date_index: int = 0
         self._current_date: datetime.date | None = None  # type: ignore[name-defined]
+        self._end_date: datetime.date | None = None  # type: ignore[name-defined]
+        # Derive end date from available market data
+        available = self.market_data.available_dates()
+        if available:
+            self._end_date = available[-1]
 
     @property
     def current_date(self) -> datetime.date | None:  # type: ignore[name-defined]
@@ -155,32 +159,52 @@ class SimulationService:
         return self._current_date
 
     def advance(self, date: datetime.date | None = None) -> None:  # type: ignore[name-defined]
-        """Advance the simulation to *date*.
+        """Advance the simulation by one calendar day (or to an explicit *date*).
 
         Steps performed (in order):
-        1. Fetch market state for the date.
-        2. Value all positions via the valuation service.
-        3. Apply rules via the rule engine to obtain transactions.
-        4. Post all transactions to the ledger via the accounting service.
-        5. Record the transaction batch in the transaction log.
-        6. Compute metrics via the metrics service.
-        7. Emit :class:`DateAdvanced`.
+        1. Determine the target date (next calendar day or explicit).
+        2. Fetch market state if available for this date.
+        3. Value all positions (only on market-data days).
+        4. Apply rules via the rule engine to obtain transactions.
+        5. Post all transactions to the ledger via the accounting service.
+        6. Record the transaction batch in the transaction log.
+        7. Compute metrics (only on market-data days).
+        8. Emit :class:`DateAdvanced`.
         """
+        from datetime import timedelta
+
         if date is None:
-            available = self.market_data.available_dates()
-            if self._date_index >= len(available):
-                msg = "No more dates available"
-                raise IndexError(msg)
-            date = available[self._date_index]
-            self._date_index += 1
+            if self._current_date is None:
+                available = self.market_data.available_dates()
+                if not available:
+                    msg = "No market data available"
+                    raise IndexError(msg)
+                date = available[0]
+            else:
+                date = self._current_date + timedelta(days=1)
+
+        if self._end_date and date > self._end_date:
+            msg = "Past end date"
+            raise IndexError(msg)
+
         previous_date = self._current_date
         self._current_date = date
-        market_state = self.market_data.get_state(date)
-        self.valuation_service.value_all(self.bank, self.market_data, date, self.valuation_store)
-        transactions = self.rule_engine.apply(self.bank, self.valuation_store, market_state, date, previous_date)
+        has_market = self.market_data.has_data(date)
+        market_state = self.market_data.get_state_or_none(date)
+
+        if has_market:
+            self.valuation_service.value_all(self.bank, self.market_data, date, self.valuation_store)
+
+        transactions = self.rule_engine.apply(
+            self.bank, self.valuation_store, market_state, date, previous_date,
+            has_market_data=has_market,
+        )
         self.accounting_service.post_all(transactions, self.bank.ledger, self.bank.positions)
         self.transaction_log.record_batch(transactions)
-        self.metrics_service.compute(self.bank, market_state, date, self.metric_store, self.valuation_store)
+
+        if has_market and market_state is not None:
+            self.metrics_service.compute(self.bank, market_state, date, self.metric_store, self.valuation_store)
+
         self.event_bus.emit(DateAdvanced(date))
 
     def __repr__(self) -> str:  # noqa: D105

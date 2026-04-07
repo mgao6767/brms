@@ -71,10 +71,17 @@ def test_generates_settlement_transaction() -> None:
     assert txs[0].amount == Decimal("1000000")
 
 
-def test_applies_with_window() -> None:
-    """Rule should apply when maturity falls in the (previous, current] window."""
+def test_applies_with_exact_match() -> None:
+    """Rule should apply when maturity date matches the current date exactly."""
     rule = MaturityRule()
     inst = _make_instrument(datetime.date(2024, 6, 15))
-    # Maturity on Saturday, simulation jumps from Friday to Monday
-    ctx = _ctx(datetime.date(2024, 6, 17), previous_date=datetime.date(2024, 6, 14))
+    ctx = _ctx(datetime.date(2024, 6, 15), previous_date=datetime.date(2024, 6, 14))
     assert rule.applies_to(inst, MagicMock(), ctx)
+
+
+def test_does_not_apply_with_window() -> None:
+    """Rule should NOT apply when maturity falls between previous and current but is not current."""
+    rule = MaturityRule()
+    inst = _make_instrument(datetime.date(2024, 6, 15))
+    ctx = _ctx(datetime.date(2024, 6, 17), previous_date=datetime.date(2024, 6, 14))
+    assert not rule.applies_to(inst, MagicMock(), ctx)

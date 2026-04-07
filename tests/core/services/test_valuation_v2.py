@@ -82,6 +82,8 @@ def test_valuation_context_update_sets_ql_evaluation_date() -> None:
 def test_fair_value_strategy_uses_npv_when_ql_instrument_present() -> None:
     """FairValueStrategy records NPV() when ql_instrument is not None."""
     strategy = FairValueStrategy()
+    # Pre-populate engines_set so it doesn't try to create a real QL engine with mocks
+    strategy._engines_set.add("inst-1")  # noqa: SLF001
     store = ValuationStore()
     context = MagicMock()
     context.date = DATE
@@ -90,6 +92,7 @@ def test_fair_value_strategy_uses_npv_when_ql_instrument_present() -> None:
     ql_inst.NPV.return_value = 1050.0
 
     inst = MagicMock()
+    inst.id = "inst-1"
     inst.ql_instrument = ql_inst
 
     instruments = MagicMock()
@@ -132,6 +135,7 @@ def test_fair_value_strategy_uses_face_value_when_no_ql_instrument() -> None:
 def test_fair_value_strategy_handles_multiple_positions() -> None:
     """FairValueStrategy records a value for each position in the batch."""
     strategy = FairValueStrategy()
+    strategy._engines_set.update({"p1", "p2"})  # noqa: SLF001
     store = ValuationStore()
     context = MagicMock()
     context.date = DATE
@@ -140,6 +144,7 @@ def test_fair_value_strategy_handles_multiple_positions() -> None:
         ql_inst = MagicMock()
         ql_inst.NPV.return_value = npv
         inst = MagicMock()
+        inst.id = pos_id
         inst.ql_instrument = ql_inst
         pos = MagicMock()
         pos.id = pos_id

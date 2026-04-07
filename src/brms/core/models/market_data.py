@@ -43,6 +43,19 @@ class MarketDataStore:
                 raise ScenarioNotAvailableError(msg)
         return MarketState(date, self)
 
+    def has_data(self, date: datetime.date) -> bool:
+        """Return True if all registered frames have data for *date*."""
+        if not self._frames:
+            return False
+        ts = pd.Timestamp(date)
+        return all(ts in df.index for df in self._frames.values())
+
+    def get_state_or_none(self, date: datetime.date) -> MarketState | None:
+        """Return a MarketState for *date*, or None if data is missing."""
+        if self.has_data(date):
+            return MarketState(date, self)
+        return None
+
     def available_dates(self) -> list[datetime.date]:
         """Return sorted list of dates present in all registered frames."""
         if not self._frames:

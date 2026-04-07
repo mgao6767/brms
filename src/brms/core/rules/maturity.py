@@ -21,12 +21,10 @@ class MaturityRule:
         _position: object,
         context: RuleContext,
     ) -> bool:
-        """Return True if the maturity date falls in the (previous_date, date] window."""
+        """Return True if the maturity date matches the current date exactly."""
         maturity = getattr(instrument, "maturity_date", None)
         if maturity is None:
             return False
-        if context.previous_date is not None:
-            return context.previous_date < maturity <= context.date
         return maturity == context.date
 
     def generate(

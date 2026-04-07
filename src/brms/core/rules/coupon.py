@@ -1,4 +1,14 @@
-"""CouponPaymentRule: generates a coupon payment transaction on scheduled coupon dates."""
+"""CouponPaymentRule: settles coupon payments on adjusted coupon dates.
+
+At settlement, the coupon amount (from the payment schedule) may differ from
+the total accrued interest (from QL's day count convention).  The transaction
+carries an ``accrued_portion`` in metadata so the AccountingService can post
+a three-leg entry:
+
+    Dr  Cash                         (coupon amount)
+    Cr  Accrued Interest Receivable  (what was actually accrued)
+    Cr  Interest Income              (catch-up difference)
+"""
 
 from __future__ import annotations
 
@@ -7,23 +17,14 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from brms.core.models.transaction import Transaction, TransactionType
+from brms.core.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
     from brms.core.rules.context import RuleContext
 
 
-def _date_in_window(d: object, context: RuleContext) -> bool:
-    """Return True if date *d* falls in the half-open window (previous_date, date].
-
-    When there is no previous_date (first simulation day), only exact match counts.
-    """
-    if context.previous_date is not None:
-        return context.previous_date < d <= context.date  # type: ignore[operator]
-    return d == context.date
-
-
 class CouponPaymentRule:
-    """Generates a COUPON_PAYMENT transaction on each scheduled coupon date."""
+    """Settle coupon payments on scheduled (business-day-adjusted) dates."""
 
     def applies_to(
         self,
@@ -31,20 +32,14 @@ class CouponPaymentRule:
         _position: object,
         context: RuleContext,
     ) -> bool:
-        """Return True if a coupon date falls in the (previous_date, date] window.
-
-        Supports QL-backed bonds with a ``payment_schedule()`` method returning
-        ``(date, amount)`` tuples, as well as instruments with a plain
-        ``coupon_dates`` attribute.
-        """
+        """Return True if a coupon date matches the current date exactly."""
         schedule = getattr(instrument, "payment_schedule", None)
         if callable(schedule):
             result = schedule()
-            # Bonds return list[(date, amount)]; loans return tuple of 3 lists
             if isinstance(result, list):
-                return any(_date_in_window(d, context) for d, _amount in result)
+                return any(d == context.date for d, _amount in result)
         coupon_dates = getattr(instrument, "coupon_dates", [])
-        return any(_date_in_window(d, context) for d in coupon_dates)
+        return any(d == context.date for d in coupon_dates)
 
     def generate(
         self,
@@ -52,28 +47,29 @@ class CouponPaymentRule:
         position: object,
         context: RuleContext,
     ) -> list[Transaction]:
-        """Generate a coupon payment transaction using the instrument's payment schedule or terms."""
+        """Generate a settlement transaction with the accrued portion for three-leg posting."""
         coupon_amount: Decimal | None = None
 
-        # Try QL-backed payment schedule first (bonds return list[(date, amount)])
         schedule = getattr(instrument, "payment_schedule", None)
         if callable(schedule):
             result = schedule()
             if isinstance(result, list):
                 for d, amount in result:
-                    if _date_in_window(d, context):
+                    if d == context.date:
                         coupon_amount = Decimal(str(amount))
                         break
 
-        # Fall back to explicit coupon_amount or compute from terms
         if coupon_amount is None:
-            explicit = getattr(instrument, "coupon_amount", None)
-            if explicit is not None:
-                coupon_amount = Decimal(str(explicit))
-            else:
-                face_value = Decimal(str(getattr(instrument, "face_value", "0")))
-                coupon_rate = Decimal(str(getattr(instrument, "coupon_rate", "0")))
-                coupon_amount = face_value * coupon_rate
+            face_value = Decimal(str(getattr(instrument, "face_value", "0")))
+            coupon_rate = Decimal(str(getattr(instrument, "coupon_rate", "0")))
+            coupon_amount = face_value * coupon_rate
+
+        # Compute accrued portion from QL for the three-leg settlement
+        accrued_portion = self._compute_accrued_portion(instrument, context)
+
+        metadata: tuple[tuple[str, object], ...] = (("side", "income"),)
+        if accrued_portion is not None:
+            metadata = (*metadata, ("accrued_portion", str(accrued_portion)))
 
         return [
             Transaction(
@@ -81,9 +77,36 @@ class CouponPaymentRule:
                 type=TransactionType.INTEREST_SETTLEMENT,
                 date=context.date,
                 amount=coupon_amount,
+                description="Coupon payment received",
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
-                description="Coupon payment received",
-                metadata=(("side", "income"),),
+                metadata=metadata,
             ),
         ]
+
+    @staticmethod
+    def _compute_accrued_portion(instrument: object, context: RuleContext) -> Decimal | None:
+        """Compute the accrued interest as of the previous simulation date.
+
+        This is what's currently sitting in the Accrued Interest Receivable
+        account — the amount to clear at settlement.  The difference between
+        the coupon amount and this value is the catch-up.
+
+        Returns None if QL accrued amount is unavailable.
+        """
+        ql_inst = getattr(instrument, "ql_instrument", None)
+        if ql_inst is None or not hasattr(ql_inst, "accruedAmount"):
+            return None
+
+        face_value = getattr(instrument, "face_value", None)
+        scale = Decimal(str(face_value)) / Decimal("100") if face_value else Decimal("1")
+
+        # Use previous_date because the accrual rule for today hasn't posted yet
+        # (rules run before posting), so the receivable = accruedAmount(previous_date)
+        if context.previous_date is not None:
+            ql_prev = pydate_to_qldate(context.previous_date)
+            try:
+                return Decimal(str(ql_inst.accruedAmount(ql_prev))) * scale
+            except Exception:  # noqa: BLE001
+                return None
+        return None

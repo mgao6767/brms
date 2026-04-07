@@ -1,22 +1,25 @@
-"""InterestIncomeAccrualRule: accrues interest income on bonds and loans.
+"""InterestIncomeAccrualRule: accrues interest income using QuantLib conventions.
 
-Uses the instrument's payment schedule (business-day-adjusted coupon dates)
-to derive an exact daily accrual rate for the current period.  The total
-accrued over each coupon period exactly equals the coupon payment amount,
-ensuring the Accrued Interest Receivable account zeroes at settlement.
+For QL-backed bonds, uses ``bond.accruedAmount(date)`` which correctly handles
+day count conventions (e.g., Thirty360), business day adjustments, and coupon
+period boundaries.  The accrual is the change in QL's accrued interest between
+the previous simulation date and today.
+
+Any difference between the sum of daily accruals and the coupon payment amount
+is handled as a "catch-up" at settlement by the CouponPaymentRule.
 
 For non-QL instruments, falls back to face_value * rate / 365.
 """
 
 from __future__ import annotations
 
-import datetime
 import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from brms.core.enums import PositionSide, TransactionType
 from brms.core.models.transaction import Transaction
+from brms.core.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
     from brms.core.rules.context import RuleContext
@@ -52,76 +55,109 @@ class InterestIncomeAccrualRule:
         position: object,
         context: RuleContext,
     ) -> list[Transaction]:
-        """Generate an accrual transaction for the days since last advance."""
-        accrual_start, accrual_end = self._accrual_range(instrument, position, context)
-        calendar_days = (accrual_end - accrual_start).days
-        if calendar_days <= 0:
+        """Generate an accrual transaction based on the change in accrued interest."""
+        ql_inst = getattr(instrument, "ql_instrument", None)
+        if ql_inst is not None and hasattr(ql_inst, "accruedAmount"):
+            return self._generate_ql(ql_inst, instrument, position, context)
+        return self._generate_fallback(instrument, position, context)
+
+    # ------------------------------------------------------------------
+    # QL-based accrual
+    # ------------------------------------------------------------------
+
+    def _generate_ql(
+        self,
+        ql_inst: object,
+        instrument: object,
+        position: object,
+        context: RuleContext,
+    ) -> list[Transaction]:
+        """Compute accrual from the change in QL accruedAmount.
+
+        accruedAmount returns per-100 face value, so we scale by face/100.
+
+        When a coupon date is crossed, accruedAmount resets to 0 and the change
+        goes negative.  In that case we record only accruedAmount(today) — the
+        new period's accrual (often 0 on the coupon date itself).  The catch-up
+        between total accrued and coupon amount is handled at settlement.
+        """
+        face_value = getattr(instrument, "face_value", None)
+        scale = Decimal(str(face_value)) / Decimal("100") if face_value else Decimal("1")
+
+        ql_today = pydate_to_qldate(context.date)
+        try:
+            ai_today = Decimal(str(ql_inst.accruedAmount(ql_today))) * scale
+        except Exception:  # noqa: BLE001
+            return self._generate_fallback(instrument, position, context)
+
+        if context.previous_date is not None:
+            ql_prev = pydate_to_qldate(context.previous_date)
+            try:
+                ai_prev = Decimal(str(ql_inst.accruedAmount(ql_prev))) * scale
+            except Exception:  # noqa: BLE001
+                ai_prev = Decimal("0")
+        else:
+            # First advance: no prior accrual recorded yet
+            ai_prev = Decimal("0")
+
+        change = ai_today - ai_prev
+
+        if change > 0:
+            # Normal accrual: interest grew since last advance
+            amount = change
+        elif ai_today > 0:
+            # Coupon date crossed, but we're past it into a new period
+            # Record only the new period's accrual
+            amount = ai_today
+        else:
+            # On the coupon date itself: accruedAmount = 0, nothing to record
             return []
 
-        daily_rate = self._daily_rate(instrument, position, accrual_end)
-        amount = daily_rate * calendar_days
+        return self._make_tx(amount, context, position)
+
+    # ------------------------------------------------------------------
+    # Fallback for non-QL instruments
+    # ------------------------------------------------------------------
+
+    def _generate_fallback(
+        self,
+        instrument: object,
+        position: object,
+        context: RuleContext,
+    ) -> list[Transaction]:
+        """Compute accrual using simple rate / 365 for non-QL instruments.
+
+        Since the simulation advances one calendar day at a time, the accrual
+        is always exactly 1 day (notional * rate / 365).
+        """
+        rate = getattr(instrument, "coupon_rate", None) or getattr(instrument, "interest_rate", None)
+        if rate is None:
+            return []
+
+        face_value = getattr(instrument, "face_value", None)
+        notional = Decimal(str(face_value)) if face_value else Decimal(str(getattr(position, "acquisition_cost", "0")))
+        amount = notional * Decimal(str(rate)) / _DAYS_PER_YEAR
+
         if amount <= 0:
             return []
+        return self._make_tx(amount, context, position)
 
+    # ------------------------------------------------------------------
+    # Helper
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _make_tx(amount: Decimal, context: RuleContext, position: object) -> list[Transaction]:
+        """Create an INTEREST_ACCRUAL transaction."""
         return [
             Transaction(
                 id=str(uuid.uuid4()),
                 type=TransactionType.INTEREST_ACCRUAL,
                 date=context.date,
                 amount=amount,
-                description=f"Interest income accrual ({calendar_days}d)",
+                description="Interest income accrual",
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
                 metadata=(("side", "income"),),
             ),
         ]
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _accrual_range(
-        instrument: object, position: object, context: RuleContext,
-    ) -> tuple[datetime.date, datetime.date]:
-        """Return (exclusive_start, inclusive_end) for this accrual step.
-
-        Normal: (previous_date, date].
-        First advance: (issue_date, date] — issue date is day 0, no interest yet.
-        """
-        end = context.date
-        if context.previous_date is not None:
-            return context.previous_date, end
-        issue_date = getattr(instrument, "issue_date", None)
-        acq_date = getattr(position, "acquisition_date", None)
-        return (issue_date or acq_date or end), end
-
-    @staticmethod
-    def _daily_rate(instrument: object, position: object, date: datetime.date) -> Decimal:
-        """Compute daily accrual rate for the coupon period containing *date*.
-
-        For instruments with a payment_schedule: coupon_amount / days_in_period.
-        This ensures total accrual over the period exactly equals the coupon.
-        """
-        schedule_fn = getattr(instrument, "payment_schedule", None)
-        if callable(schedule_fn):
-            payments = schedule_fn()
-            if isinstance(payments, list) and payments:
-                issue_date = getattr(instrument, "issue_date", None)
-                prev_date = issue_date
-                for pay_date, pay_amount in payments:
-                    if isinstance(pay_date, datetime.date) and pay_date >= date:
-                        if prev_date is not None:
-                            days_in_period = (pay_date - prev_date).days
-                            if days_in_period > 0:
-                                return Decimal(str(pay_amount)) / Decimal(str(days_in_period))
-                        break
-                    prev_date = pay_date
-
-        # Fallback: simple rate / 365
-        rate = getattr(instrument, "coupon_rate", None) or getattr(instrument, "interest_rate", None)
-        if rate is None:
-            return Decimal("0")
-        face_value = getattr(instrument, "face_value", None)
-        notional = Decimal(str(face_value)) if face_value else Decimal(str(getattr(position, "acquisition_cost", "0")))
-        return notional * Decimal(str(rate)) / _DAYS_PER_YEAR

@@ -45,22 +45,14 @@ class DepositInterestAccrualRule:
         position: object,
         context: RuleContext,
     ) -> list[Transaction]:
-        """Generate an interest accrual transaction covering all calendar days since last advance.
+        """Generate a 1-day interest accrual transaction.
 
-        When the simulation skips weekends/holidays (e.g., Friday → Monday),
-        the accrual covers all skipped calendar days so that the total accrued
-        over a month matches the calendar-based settlement amount.
+        Since the simulation advances one calendar day at a time, the accrual
+        is always exactly ``cost * rate / 365``.
         """
         acquisition_cost = Decimal(str(getattr(position, "acquisition_cost", "0")))
-        daily_rate = acquisition_cost * self._annual_rate / _DAYS_PER_YEAR
+        amount = acquisition_cost * self._annual_rate / _DAYS_PER_YEAR
 
-        # Number of calendar days since last advance (covers weekends/holidays)
-        if context.previous_date is not None:
-            calendar_days = (context.date - context.previous_date).days
-        else:
-            calendar_days = 1
-
-        amount = daily_rate * calendar_days
         if amount == 0:
             return []
         return [
@@ -71,7 +63,7 @@ class DepositInterestAccrualRule:
                 amount=amount,
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
-                description=f"Deposit interest accrual ({calendar_days}d)",
+                description="Deposit interest accrual (1d)",
                 metadata=(("side", "expense"),),
             ),
         ]
@@ -96,13 +88,13 @@ class DepositInterestSettlementRule:
         _position: object,
         context: RuleContext,
     ) -> bool:
-        """Return True on the first day of a new month for deposit instruments."""
+        """Return True on the 1st of each month for deposit instruments."""
         instrument_type = getattr(instrument, "instrument_type", None)
         if instrument_type != InstrumentType.DEPOSIT:
             return False
         if context.previous_date is None:
             return False
-        return context.previous_date.month != context.date.month
+        return context.date.day == 1
 
     def generate(
         self,
@@ -112,27 +104,26 @@ class DepositInterestSettlementRule:
     ) -> list[Transaction]:
         """Settle accrued interest for the previous month.
 
-        Computes the number of calendar days that were actually accrued in the
+        Uses ``calendar.monthrange`` to determine the number of days in the
         previous month.  For the first month, starts from acquisition_date
         instead of the 1st to match the accrual rule.
         """
+        import calendar
         import datetime
 
         acquisition_cost = Decimal(str(getattr(position, "acquisition_cost", "0")))
         prev = context.previous_date
         acq_date = getattr(position, "acquisition_date", None)
 
-        # Start of accrual period: 1st of previous month, or acquisition date if later
+        # Number of days in previous month
+        _, month_days = calendar.monthrange(prev.year, prev.month)
         month_start = datetime.date(prev.year, prev.month, 1)
+
         if acq_date is not None and acq_date > month_start:
-            period_start = acq_date
+            days = month_days - acq_date.day + 1
         else:
-            period_start = month_start
+            days = month_days
 
-        # End of accrual period: last day of previous month (= previous_date since month just changed)
-        period_end = prev
-
-        days = (period_end - period_start).days + 1
         if days <= 0:
             return []
         amount = acquisition_cost * self._annual_rate * days / _DAYS_PER_YEAR

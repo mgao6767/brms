@@ -29,9 +29,11 @@ class MarkToMarketRule:
         self,
         _instrument: object,
         position: object,
-        _context: RuleContext,
+        context: RuleContext,
     ) -> bool:
-        """Return True if the position is classified as FVTPL or FVOCI."""
+        """Return True if market data is available and the position is FVTPL or FVOCI."""
+        if not context.has_market_data:
+            return False
         instrument_class = getattr(position, "instrument_class", None)
         if instrument_class is None:
             return False

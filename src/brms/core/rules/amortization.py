@@ -12,16 +12,6 @@ if TYPE_CHECKING:
     from brms.core.rules.context import RuleContext
 
 
-def _date_in_window(d: object, context: RuleContext) -> bool:
-    """Return True if date *d* falls in the half-open window (previous_date, date].
-
-    When there is no previous_date (first simulation day), only exact match counts.
-    """
-    if context.previous_date is not None:
-        return context.previous_date < d <= context.date  # type: ignore[operator]
-    return d == context.date
-
-
 class AmortizationRule:
     """Generates an AMORTIZATION transaction on each scheduled payment date."""
 
@@ -31,7 +21,7 @@ class AmortizationRule:
         _position: object,
         context: RuleContext,
     ) -> bool:
-        """Return True if a payment date falls in the (previous_date, date] window.
+        """Return True if a payment date matches the current date exactly.
 
         Supports instruments with a ``payment_schedule()`` method returning a tuple of
         three lists (interest, principal, outstanding), as well as instruments with a
@@ -43,11 +33,11 @@ class AmortizationRule:
             # Loans return (interest_pmt, principal_pmt, outstanding) tuple of 3 lists
             if isinstance(result, tuple) and len(result) == 3:  # noqa: PLR2004
                 _interest_pmt, principal_pmt, _outstanding = result
-                return any(_date_in_window(d, context) for d, _amount in principal_pmt)
+                return any(d == context.date for d, _amount in principal_pmt)
         payment_dates = getattr(instrument, "payment_dates", None)
         if payment_dates is None:
             return False
-        return any(_date_in_window(d, context) for d in payment_dates)
+        return any(d == context.date for d in payment_dates)
 
     def generate(
         self,
@@ -64,7 +54,7 @@ class AmortizationRule:
             if isinstance(result, tuple) and len(result) == 3:  # noqa: PLR2004
                 _interest_pmt, principal_pmt, _outstanding = result
                 for d, pmt_amount in principal_pmt:
-                    if _date_in_window(d, context):
+                    if d == context.date:
                         amount = Decimal(str(pmt_amount))
                         break
 
