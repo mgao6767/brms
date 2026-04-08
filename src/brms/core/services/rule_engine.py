@@ -8,6 +8,7 @@ from brms.core.rules.context import RuleContext
 
 if TYPE_CHECKING:
     import datetime
+    from collections.abc import Iterable
 
     from brms.core.models.bank import Bank
     from brms.core.models.transaction import Transaction
@@ -39,9 +40,9 @@ class AccountingRule(Protocol):
 class RuleEngine:
     """Applies registered accounting rules across all open positions of a bank."""
 
-    def __init__(self) -> None:
-        """Initialise an empty rule engine."""
-        self._rules: list[AccountingRule] = []
+    def __init__(self, rules: Iterable[AccountingRule] = ()) -> None:
+        """Initialise the rule engine, optionally with initial rules."""
+        self._rules: list[AccountingRule] = list(rules)
 
     def register(self, rule: AccountingRule) -> None:
         """Register an accounting rule with the engine."""

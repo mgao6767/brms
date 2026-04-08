@@ -110,3 +110,16 @@ class OutstandingBalanceStrategy:
             inst = instruments.get(pos.instrument_id)
             val = _face_value(inst)
             output.record(pos.id, context.date, ValuationType.CARRYING_VALUE, val)  # type: ignore[arg-type]
+
+
+def default_valuation_strategies() -> dict:
+    """Return the default InstrumentClass → ValuationStrategy mapping."""
+    from brms.core.enums import InstrumentClass
+
+    fair_value = FairValueStrategy()
+    return {
+        InstrumentClass.HTM: AmortizedCostStrategy(),
+        InstrumentClass.FVOCI: fair_value,
+        InstrumentClass.FVTPL: fair_value,
+        InstrumentClass.LOAN_AND_MORTGAGE: OutstandingBalanceStrategy(),
+    }

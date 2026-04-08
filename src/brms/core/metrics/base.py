@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from brms.core.enums import MetricName
     from brms.core.models.market_data import MarketState
     from brms.core.stores.valuation_store import ValuationStore
@@ -29,8 +31,8 @@ class Metric(Protocol):
 class MetricRegistry:
     """Registry for Metric instances, keyed by MetricName."""
 
-    def __init__(self) -> None:  # noqa: D107
-        self._metrics: dict[MetricName, Metric] = {}
+    def __init__(self, metrics: Iterable[Metric] = ()) -> None:  # noqa: D107
+        self._metrics: dict[MetricName, Metric] = {m.name: m for m in metrics}
 
     def register(self, metric: Metric) -> None:
         """Register a metric."""

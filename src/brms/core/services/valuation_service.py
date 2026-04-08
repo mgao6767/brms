@@ -56,10 +56,10 @@ class ValuationService:
     rebuilding the term structure multiple times per date.
     """
 
-    def __init__(self) -> None:
-        """Initialise with an empty strategy registry and a shared context."""
+    def __init__(self, strategies: dict[InstrumentClass, ValuationStrategy] | None = None) -> None:
+        """Initialise with an optional strategy mapping and a shared context."""
         self._yield_handle: ql.RelinkableYieldTermStructureHandle = ql.RelinkableYieldTermStructureHandle()
-        self._strategies: dict[InstrumentClass, ValuationStrategy] = {}
+        self._strategies: dict[InstrumentClass, ValuationStrategy] = dict(strategies) if strategies else {}
         self._context: ValuationContext = ValuationContext(self._yield_handle)
 
     def register_strategy(self, instrument_class: InstrumentClass, strategy: ValuationStrategy) -> None:
