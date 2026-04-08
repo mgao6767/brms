@@ -9,6 +9,7 @@ from brms.core.enums import PositionStatus
 
 if TYPE_CHECKING:
     from brms.core.enums import BookType, InstrumentClass, InstrumentType, PositionSide
+    from brms.core.models.position import Position
 
 
 class PositionStore:
@@ -16,7 +17,7 @@ class PositionStore:
 
     def __init__(self) -> None:
         """Initialize empty position store with secondary indices."""
-        self._by_id: dict[str, object] = {}
+        self._by_id: dict[str, Position] = {}
         self._by_book: dict[Any, set[str]] = defaultdict(set)
         self._by_instrument: dict[str, set[str]] = defaultdict(set)
         self._by_side: dict[Any, set[str]] = defaultdict(set)
@@ -28,7 +29,7 @@ class PositionStore:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _index(self, position: Any) -> None:  # noqa: ANN401
+    def _index(self, position: Position) -> None:
         """Add *position* to all secondary indices."""
         pid = position.id
         self._by_book[position.book_type].add(pid)
@@ -40,7 +41,7 @@ class PositionStore:
         if hasattr(position, "instrument_class"):
             self._by_instrument_class[position.instrument_class].add(pid)
 
-    def _deindex(self, position: Any) -> None:  # noqa: ANN401
+    def _deindex(self, position: Position) -> None:
         """Remove *position* from all secondary indices."""
         pid = position.id
         self._by_book[position.book_type].discard(pid)
@@ -52,7 +53,7 @@ class PositionStore:
         if hasattr(position, "instrument_class"):
             self._by_instrument_class[position.instrument_class].discard(pid)
 
-    def _ids_to_positions(self, ids: set[str]) -> list[object]:
+    def _ids_to_positions(self, ids: set[str]) -> list[Position]:
         """Resolve a set of position ids to position objects."""
         return [self._by_id[pid] for pid in ids if pid in self._by_id]
 
@@ -60,12 +61,12 @@ class PositionStore:
     # Public API
     # ------------------------------------------------------------------
 
-    def add(self, position: Any) -> None:  # noqa: ANN401
+    def add(self, position: Position) -> None:
         """Register a position and build secondary indices."""
         self._by_id[position.id] = position
         self._index(position)
 
-    def get(self, position_id: str) -> object:
+    def get(self, position_id: str) -> Position:
         """Return the position for *position_id*; raise KeyError if absent."""
         try:
             return self._by_id[position_id]
@@ -80,23 +81,23 @@ class PositionStore:
         position.status = PositionStatus.CLOSED  # type: ignore[union-attr]
         self._index(position)
 
-    def by_book(self, book_type: BookType) -> list[object]:
+    def by_book(self, book_type: BookType) -> list[Position]:
         """Return all positions in *book_type*."""
         return self._ids_to_positions(self._by_book[book_type])
 
-    def by_instrument(self, instrument_id: str) -> list[object]:
+    def by_instrument(self, instrument_id: str) -> list[Position]:
         """Return all positions for *instrument_id*."""
         return self._ids_to_positions(self._by_instrument[instrument_id])
 
-    def by_side(self, side: PositionSide) -> list[object]:
+    def by_side(self, side: PositionSide) -> list[Position]:
         """Return all positions with *side*."""
         return self._ids_to_positions(self._by_side[side])
 
-    def by_status(self, status: PositionStatus) -> list[object]:
+    def by_status(self, status: PositionStatus) -> list[Position]:
         """Return all positions with *status*."""
         return self._ids_to_positions(self._by_status[status])
 
-    def open_positions(self) -> list[object]:
+    def open_positions(self) -> list[Position]:
         """Shortcut for by_status(PositionStatus.OPEN)."""
         return self.by_status(PositionStatus.OPEN)
 
@@ -108,7 +109,7 @@ class PositionStore:
         status: PositionStatus | None = None,
         instrument_type: InstrumentType | None = None,
         instrument_class: InstrumentClass | None = None,
-    ) -> list[object]:
+    ) -> list[Position]:
         """Return positions matching all non-None filter parameters."""
         result_ids: set[str] | None = None
 
