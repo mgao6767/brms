@@ -226,7 +226,7 @@ class Instrument(ABC):
         instrument_class: InstrumentClass | None = None,
     ) -> None:
         """Initialize a financial instrument."""
-        self.id = uuid.uuid4()
+        self.id: str = str(uuid.uuid4())
         self.name = name
         self._parent = parent
         self._credit_rating = credit_rating or CreditRating.UNRATED

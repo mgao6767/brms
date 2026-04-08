@@ -21,13 +21,12 @@ class InstrumentStore:
 
     def add(self, instrument: Instrument) -> None:
         """Register an instrument. Overwrites any existing entry with the same id."""
-        existing = self._by_id.get(instrument.id)  # type: ignore[union-attr]
+        existing = self._by_id.get(instrument.id)
         if existing is not None:
-            old_type = existing.instrument_type  # type: ignore[union-attr]
             with contextlib.suppress(ValueError):
-                self._by_type[old_type].remove(existing)
-        self._by_id[instrument.id] = instrument  # type: ignore[union-attr]
-        self._by_type[instrument.instrument_type].append(instrument)  # type: ignore[union-attr]
+                self._by_type[existing.instrument_type].remove(existing)
+        self._by_id[instrument.id] = instrument
+        self._by_type[instrument.instrument_type].append(instrument)
 
     def get(self, instrument_id: str) -> Instrument:
         """Return the instrument for *instrument_id*; raise KeyError if absent."""
