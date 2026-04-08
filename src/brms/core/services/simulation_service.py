@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from brms.core.events import DateAdvanced, EventBus
+from brms.core.events import (
+    DateAdvanced,
+    EventBus,
+    MetricsComputed,
+    StatementsChanged,
+    TransactionsRecorded,
+    ValuationsUpdated,
+)
 
 if TYPE_CHECKING:
     import datetime
@@ -64,19 +71,8 @@ class SimulationService:
         """The most recently advanced date, or None."""
         return self._current_date
 
-    def advance(self, date: datetime.date | None = None) -> None:  # type: ignore[name-defined]
-        """Advance the simulation by one calendar day (or to an explicit *date*).
-
-        Steps performed (in order):
-        1. Determine the target date (next calendar day or explicit).
-        2. Fetch market state if available for this date.
-        3. Value all positions (only on market-data days).
-        4. Apply rules via the rule engine to obtain transactions.
-        5. Post all transactions to the ledger via the accounting service.
-        6. Record the transaction batch in the transaction log.
-        7. Compute metrics (only on market-data days).
-        8. Emit :class:`DateAdvanced`.
-        """
+    def _resolve_date(self, date: datetime.date | None) -> datetime.date:  # type: ignore[name-defined]
+        """Resolve the next simulation date, raising IndexError if past end."""
         from datetime import timedelta
 
         if date is None:
@@ -99,6 +95,23 @@ class SimulationService:
             msg = "Past end date"
             raise IndexError(msg)
 
+        return date
+
+    def advance(self, date: datetime.date | None = None) -> None:  # type: ignore[name-defined]
+        """Advance the simulation by one calendar day (or to an explicit *date*).
+
+        Steps performed (in order):
+        1. Determine the target date (next calendar day or explicit).
+        2. Fetch market state if available for this date.
+        3. Value all positions (only on market-data days).
+        4. Apply rules via the rule engine to obtain transactions.
+        5. Post all transactions to the ledger via the accounting service.
+        6. Record the transaction batch in the transaction log.
+        7. Compute metrics (only on market-data days).
+        8. Emit granular events and :class:`DateAdvanced`.
+        """
+        date = self._resolve_date(date)
+
         previous_date = self._current_date
         self._current_date = date
         has_market = self.market_data.has_data(date)
@@ -114,8 +127,30 @@ class SimulationService:
         self.accounting_service.post_all(transactions, self.bank.ledger, self.bank.positions)
         self.transaction_log.record_batch(transactions)
 
+        # Emit ValuationsUpdated — merge carrying and fair value snapshots
+        from brms.core.enums import MetricName, ValuationType
+
+        carrying = self.valuation_store.snapshot(date, ValuationType.CARRYING_VALUE)
+        fair = self.valuation_store.snapshot(date, ValuationType.FAIR_VALUE)
+        combined = {**carrying, **fair}
+        self.event_bus.emit(ValuationsUpdated(date, combined))
+
+        # Emit TransactionsRecorded
+        self.event_bus.emit(TransactionsRecorded(date, tuple(transactions)))
+
+        # Emit StatementsChanged
+        self.event_bus.emit(StatementsChanged(date))
+
         if has_market and market_state is not None:
             self.metrics_service.compute(self.bank, market_state, date, self.metric_store, self.valuation_store)
+
+        # Emit MetricsComputed
+        metrics_dict: dict = {}
+        for mn in MetricName:
+            val = self.metric_store.get(mn, date)
+            if val is not None:
+                metrics_dict[mn] = val
+        self.event_bus.emit(MetricsComputed(date, metrics_dict))
 
         self.event_bus.emit(DateAdvanced(date))
 
