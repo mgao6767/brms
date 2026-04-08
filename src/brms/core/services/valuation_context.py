@@ -11,6 +11,8 @@ from brms.core.services.yield_curve_service import YieldCurveService
 if TYPE_CHECKING:
     import datetime
 
+    from brms.core.models.market_data import MarketDataStore
+
 
 class ValuationContext:
     """Holds the shared valuation state (date, market data, term structure) for a single valuation run."""
@@ -18,10 +20,10 @@ class ValuationContext:
     def __init__(self, yield_handle: ql.RelinkableYieldTermStructureHandle) -> None:
         """Initialise the context with a pre-created relinkable yield handle."""
         self._yield_handle = yield_handle
-        self.market_data: object | None = None
+        self.market_data: MarketDataStore | None = None
         self.date: datetime.date | None = None
 
-    def update(self, date: datetime.date, market_data: object) -> None:
+    def update(self, date: datetime.date, market_data: MarketDataStore) -> None:
         """Advance the context to *date* and rebuild the term structure from *market_data*.
 
         Sets the QuantLib global evaluation date, builds a new term structure from the

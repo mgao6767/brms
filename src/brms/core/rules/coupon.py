@@ -20,6 +20,8 @@ from brms.core.models.transaction import Transaction, TransactionType
 from brms.core.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
+    from brms.core.models.instruments.base import Instrument
+    from brms.core.models.position import Position
     from brms.core.rules.context import RuleContext
 
 
@@ -28,8 +30,8 @@ class CouponPaymentRule:
 
     def applies_to(
         self,
-        instrument: object,
-        _position: object,
+        instrument: Instrument,
+        _position: Position,
         context: RuleContext,
     ) -> bool:
         """Return True if a coupon date matches the current date exactly."""
@@ -43,8 +45,8 @@ class CouponPaymentRule:
 
     def generate(
         self,
-        instrument: object,
-        position: object,
+        instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Generate a settlement transaction with the accrued portion for three-leg posting."""
@@ -85,7 +87,7 @@ class CouponPaymentRule:
         ]
 
     @staticmethod
-    def _compute_accrued_portion(instrument: object, context: RuleContext) -> Decimal | None:
+    def _compute_accrued_portion(instrument: Instrument, context: RuleContext) -> Decimal | None:
         """Compute the accrued interest as of the previous simulation date.
 
         This is what's currently sitting in the Accrued Interest Receivable

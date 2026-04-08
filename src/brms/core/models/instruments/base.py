@@ -12,6 +12,8 @@ from brms.core.enums import InstrumentType
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+    from brms.core.visitors.base import Visitor
+
     import QuantLib as ql  # noqa: N813
 
 
@@ -275,7 +277,7 @@ class Instrument(ABC):
         return False
 
     @abstractmethod
-    def accept(self, visitor: object) -> None:
+    def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""
 
 
@@ -312,7 +314,7 @@ class CompositeInstrument(Instrument):
         """Check if the instrument is composite."""
         return True
 
-    def accept(self, visitor: object) -> None:
+    def accept(self, visitor: Visitor) -> None:
         """Accept a visitor by delegating to all contained instruments."""
         for instrument in self._instruments:
             instrument.accept(visitor)

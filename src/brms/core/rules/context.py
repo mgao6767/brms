@@ -7,6 +7,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import datetime
 
+    from brms.core.models.market_data import MarketState
+    from brms.core.stores.valuation_store import ValuationStore
+
 
 class RuleContext:
     """Everything a rule needs to make decisions, pre-packaged for convenience.
@@ -18,9 +21,9 @@ class RuleContext:
         self,
         date: datetime.date,
         previous_date: datetime.date | None,
-        market_state: object,
-        valuation_store: object,
-        market_data: object = None,
+        market_state: MarketState | None,
+        valuation_store: ValuationStore,
+        market_data: MarketState | None = None,
         *,
         has_market_data: bool = True,
     ) -> None:

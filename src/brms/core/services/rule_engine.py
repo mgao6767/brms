@@ -11,7 +11,11 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from brms.core.models.bank import Bank
+    from brms.core.models.instruments.base import Instrument
+    from brms.core.models.market_data import MarketState
+    from brms.core.models.position import Position
     from brms.core.models.transaction import Transaction
+    from brms.core.stores.valuation_store import ValuationStore
 
 
 @runtime_checkable
@@ -20,8 +24,8 @@ class AccountingRule(Protocol):
 
     def applies_to(
         self,
-        instrument: object,
-        position: object,
+        instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> bool:
         """Return True if this rule applies to the given instrument and position."""
@@ -29,8 +33,8 @@ class AccountingRule(Protocol):
 
     def generate(
         self,
-        instrument: object,
-        position: object,
+        instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Generate transactions for the given instrument and position."""
@@ -51,8 +55,8 @@ class RuleEngine:
     def apply(
         self,
         bank: Bank,
-        valuation_store: object,
-        market_state: object,
+        valuation_store: ValuationStore,
+        market_state: MarketState | None,
         date: datetime.date,
         previous_date: datetime.date | None = None,
         *,

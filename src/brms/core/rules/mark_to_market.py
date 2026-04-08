@@ -12,6 +12,8 @@ from brms.core.models.instruments.base import InstrumentClass as BaseInstrumentC
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
+    from brms.core.models.instruments.base import Instrument
+    from brms.core.models.position import Position
     from brms.core.rules.context import RuleContext
 
 _MTM_CLASSES = {
@@ -27,8 +29,8 @@ class MarkToMarketRule:
 
     def applies_to(
         self,
-        _instrument: object,
-        position: object,
+        _instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> bool:
         """Return True if market data is available and the position is FVTPL or FVOCI."""
@@ -41,8 +43,8 @@ class MarkToMarketRule:
 
     def generate(
         self,
-        _instrument: object,
-        position: object,
+        _instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Generate a mark-to-market transaction based on fair value change from valuation store."""

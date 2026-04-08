@@ -1,5 +1,7 @@
 """Bond instrument classes for the core domain model."""
 
+from __future__ import annotations
+
 import datetime
 from functools import cache
 from typing import TYPE_CHECKING, Optional
@@ -12,6 +14,7 @@ from brms.core.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
 
 if TYPE_CHECKING:
     from brms.core.models.instruments.base import BookType, CreditRating, Issuer
+    from brms.core.visitors.base import Visitor
 
 
 class FixedRateBond(Instrument):
@@ -119,7 +122,7 @@ class FixedRateBond(Instrument):
         """Get the issue date of the bond."""
         return qldate_to_pydate(self.instrument.issueDate())
 
-    def accept(self, visitor: object) -> None:
+    def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""
         visitor.visit_fixed_rate_bond(self)  # type: ignore[union-attr]
 
@@ -160,6 +163,6 @@ class CoveredBond(Instrument):
         super().__init__(**kwargs)  # type: ignore[arg-type]
         self.instrument_type = InstrumentType.COVERED_BOND
 
-    def accept(self, visitor: object) -> None:
+    def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""
         visitor.visit_covered_bond(self)  # type: ignore[union-attr]

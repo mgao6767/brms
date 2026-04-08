@@ -9,9 +9,19 @@ from brms.core.events import DateAdvanced, EventBus
 if TYPE_CHECKING:
     import datetime
 
+    from brms.core.models.bank import Bank
+    from brms.core.models.market_data import MarketDataStore
+    from brms.core.services.accounting_service import AccountingService
+    from brms.core.services.metrics_service import MetricsService
+    from brms.core.services.rule_engine import RuleEngine
+    from brms.core.services.valuation_service import ValuationService
+    from brms.core.stores.metric_store import MetricStore
+    from brms.core.stores.transaction_log import TransactionLog
+    from brms.core.stores.valuation_store import ValuationStore
+
 
 class SimulationService:
-    """Thin V2 orchestrator: sequences service calls for each simulation date.
+    """Thin orchestrator: sequences service calls for each simulation date.
 
     Calling :meth:`advance` moves the simulation to the given date by running
     valuation, rule application, accounting, metrics, and emitting
@@ -20,15 +30,15 @@ class SimulationService:
 
     def __init__(  # noqa: PLR0913
         self,
-        bank: object,
-        market_data: object,
-        valuation_service: object,
-        rule_engine: object,
-        accounting_service: object,
-        metrics_service: object,
-        valuation_store: object,
-        metric_store: object,
-        transaction_log: object,
+        bank: Bank,
+        market_data: MarketDataStore,
+        valuation_service: ValuationService,
+        rule_engine: RuleEngine,
+        accounting_service: AccountingService,
+        metrics_service: MetricsService,
+        valuation_store: ValuationStore,
+        metric_store: MetricStore,
+        transaction_log: TransactionLog,
         event_bus: EventBus,
     ) -> None:
         """Initialise the orchestrator with all required collaborators."""

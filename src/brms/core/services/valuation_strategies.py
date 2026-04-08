@@ -8,13 +8,14 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 from brms.core.enums import ValuationType
 
 if TYPE_CHECKING:
+    from brms.core.models.instruments.base import Instrument
     from brms.core.models.position import Position
     from brms.core.services.valuation_context import ValuationContext
     from brms.core.stores.instrument_store import InstrumentStore
     from brms.core.stores.valuation_store import ValuationStore
 
 
-def _face_value(instrument: object) -> Decimal:
+def _face_value(instrument: Instrument) -> Decimal:
     """Safely get face value from an instrument, trying multiple accessors."""
     # Direct attribute (simple instruments like Cash, Deposit)
     fv = getattr(instrument, "face_value", None)

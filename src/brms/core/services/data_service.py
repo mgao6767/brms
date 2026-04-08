@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import json
+from typing import TYPE_CHECKING
 import re
 import uuid
 import zipfile
@@ -22,6 +23,10 @@ from brms.core.models.instruments.base import BookType, CreditRating, Instrument
 from brms.core.models.instruments.registry import InstrumentRegistry
 from brms.core.models.market_data import MarketDataStore
 from brms.core.models.transaction import Transaction
+
+if TYPE_CHECKING:
+    from brms.core.services.loaders import Loader, SimulationData
+    from brms.core.services.simulation_service import SimulationService
 
 # ---------------------------------------------------------------------------
 # Lightweight v1 book containers (inlined; books.py has been removed)
@@ -153,7 +158,7 @@ class DataService:
         """Initialise the service with an optional instrument registry."""
         self._instrument_registry = instrument_registry or InstrumentRegistry()
 
-    def load_and_initialize(self, loader: object, simulation_service: object) -> None:
+    def load_and_initialize(self, loader: Loader, simulation_service: SimulationService) -> None:
         """Populate stores from *loader* and replay advance() to derive initial state.
 
         Args:
@@ -183,7 +188,7 @@ class DataService:
             current += datetime.timedelta(days=1)
 
     @staticmethod
-    def _post_acquisition_transactions(data: object, simulation_service: object) -> None:
+    def _post_acquisition_transactions(data: SimulationData, simulation_service: SimulationService) -> None:
         """Generate and post initial acquisition transactions for every loaded position.
 
         Equity positions produce EQUITY_ISSUANCE, deposit positions produce DEPOSIT_RECEIVED,

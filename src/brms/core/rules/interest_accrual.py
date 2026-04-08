@@ -22,6 +22,10 @@ from brms.core.models.transaction import Transaction
 from brms.core.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
+    import QuantLib as ql  # noqa: N813
+
+    from brms.core.models.instruments.base import Instrument
+    from brms.core.models.position import Position
     from brms.core.rules.context import RuleContext
 
 _DAYS_PER_YEAR = Decimal("365")
@@ -36,8 +40,8 @@ class InterestIncomeAccrualRule:
 
     def applies_to(
         self,
-        instrument: object,
-        position: object,
+        instrument: Instrument,
+        position: Position,
         _context: RuleContext,
     ) -> bool:
         """Return True if the instrument has an interest rate and position is LONG."""
@@ -51,8 +55,8 @@ class InterestIncomeAccrualRule:
 
     def generate(
         self,
-        instrument: object,
-        position: object,
+        instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Generate an accrual transaction based on the change in accrued interest."""
@@ -67,9 +71,9 @@ class InterestIncomeAccrualRule:
 
     def _generate_ql(
         self,
-        ql_inst: object,
-        instrument: object,
-        position: object,
+        ql_inst: ql.Bond,
+        instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Compute accrual from the change in QL accruedAmount.
@@ -121,8 +125,8 @@ class InterestIncomeAccrualRule:
 
     def _generate_fallback(
         self,
-        instrument: object,
-        position: object,
+        instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Compute accrual using simple rate / 365 for non-QL instruments.
@@ -147,7 +151,7 @@ class InterestIncomeAccrualRule:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _make_tx(amount: Decimal, context: RuleContext, position: object) -> list[Transaction]:
+    def _make_tx(amount: Decimal, context: RuleContext, position: Position) -> list[Transaction]:
         """Create an INTEREST_ACCRUAL transaction."""
         return [
             Transaction(

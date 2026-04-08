@@ -1,5 +1,7 @@
 """Loan instrument classes for the core domain model."""
 
+from __future__ import annotations
+
 import datetime
 from functools import cache
 from typing import TYPE_CHECKING, Optional
@@ -12,6 +14,7 @@ from brms.core.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
 
 if TYPE_CHECKING:
     from brms.core.models.instruments.base import BookType, CreditRating, Issuer
+    from brms.core.visitors.base import Visitor
 
 
 class AmortizingFixedRateLoan(Instrument):
@@ -110,7 +113,7 @@ class AmortizingFixedRateLoan(Instrument):
         """Get the face value of the loan."""
         return self.instrument.notional(self.instrument.issueDate())
 
-    def accept(self, visitor: object) -> None:
+    def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""
         visitor.visit_amortizing_fixed_rate_loan(self)  # type: ignore[union-attr]
 
@@ -176,7 +179,7 @@ class PersonalLoan(Instrument):
         super().__init__(**kwargs)  # type: ignore[arg-type]
         self.instrument_type = InstrumentType.PERSONAL_LOAN
 
-    def accept(self, visitor: object) -> None:
+    def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""
         visitor.visit_personal_loan(self)  # type: ignore[union-attr]
 
@@ -189,6 +192,6 @@ class CreditCard(Instrument):
         super().__init__(**kwargs)  # type: ignore[arg-type]
         self.instrument_type = InstrumentType.CREDIT_CARD
 
-    def accept(self, visitor: object) -> None:
+    def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""
         visitor.visit_credit_card(self)  # type: ignore[union-attr]

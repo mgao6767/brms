@@ -12,6 +12,8 @@ from brms.core.services.valuation_context import ValuationContext
 if TYPE_CHECKING:
     import datetime
 
+    from brms.core.models.bank import Bank
+    from brms.core.models.market_data import MarketDataStore
     from brms.core.services.valuation_strategies import ValuationStrategy
     from brms.core.stores.valuation_store import ValuationStore
 
@@ -35,8 +37,8 @@ class ValuationService:
 
     def value_all(
         self,
-        bank: object,
-        market_data: object,
+        bank: Bank,
+        market_data: MarketDataStore,
         date: datetime.date,
         valuation_store: ValuationStore,
     ) -> None:

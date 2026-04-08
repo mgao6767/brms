@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
+    from brms.core.models.instruments.base import Instrument
+    from brms.core.models.position import Position
     from brms.core.rules.context import RuleContext
 
 
@@ -17,8 +19,8 @@ class AmortizationRule:
 
     def applies_to(
         self,
-        instrument: object,
-        _position: object,
+        instrument: Instrument,
+        _position: Position,
         context: RuleContext,
     ) -> bool:
         """Return True if a payment date matches the current date exactly.
@@ -41,8 +43,8 @@ class AmortizationRule:
 
     def generate(
         self,
-        instrument: object,
-        position: object,
+        instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Generate an amortization transaction for the principal payment amount on this date."""

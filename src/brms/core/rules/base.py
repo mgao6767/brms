@@ -9,7 +9,11 @@ from brms.core.rules.context import RuleContext
 if TYPE_CHECKING:
     import datetime
 
+    from brms.core.models.instruments.base import Instrument
+    from brms.core.models.market_data import MarketState
+    from brms.core.models.position import Position
     from brms.core.models.transaction import Transaction
+    from brms.core.stores.valuation_store import ValuationStore
 
 
 @runtime_checkable
@@ -18,8 +22,8 @@ class AccountingRule(Protocol):
 
     def applies_to(
         self,
-        instrument: object,
-        position: object,
+        instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> bool:
         """Return True if this rule applies to the given instrument on the given date."""
@@ -27,8 +31,8 @@ class AccountingRule(Protocol):
 
     def generate(
         self,
-        instrument: object,
-        position: object,
+        instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Generate the transactions for the given instrument on the given date."""
@@ -48,10 +52,10 @@ class RuleRegistry:
 
     def apply_all(
         self,
-        instrument: object,
-        position: object,
-        valuation_store: object,
-        market_state: object,
+        instrument: Instrument,
+        position: Position,
+        valuation_store: ValuationStore,
+        market_state: MarketState | None,
         date: datetime.date,
     ) -> list[Transaction]:
         """Apply all applicable rules and return the combined list of transactions."""

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from brms.core.enums import BookType
 
 if TYPE_CHECKING:
+    from brms.core.models.accounting.ledger import Ledger
     from brms.core.stores.instrument_store import InstrumentStore
     from brms.core.stores.position_store import PositionStore
 
@@ -42,7 +43,7 @@ class _BookView:
 class Bank:
     """Holds instruments, positions, and ledger. No business logic."""
 
-    def __init__(self, name: str, instruments: InstrumentStore, positions: PositionStore, ledger: object) -> None:
+    def __init__(self, name: str, instruments: InstrumentStore, positions: PositionStore, ledger: Ledger) -> None:
         """Initialize a bank with its stores and ledger."""
         self.name = name
         self.instruments = instruments

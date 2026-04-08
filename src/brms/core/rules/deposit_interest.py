@@ -10,6 +10,8 @@ from brms.core.enums import InstrumentType, TransactionType
 from brms.core.models.transaction import Transaction
 
 if TYPE_CHECKING:
+    from brms.core.models.instruments.base import Instrument
+    from brms.core.models.position import Position
     from brms.core.rules.context import RuleContext
 
 _DEFAULT_ANNUAL_RATE = Decimal("0.02")
@@ -31,8 +33,8 @@ class DepositInterestAccrualRule:
 
     def applies_to(
         self,
-        instrument: object,
-        _position: object,
+        instrument: Instrument,
+        _position: Position,
         _context: RuleContext,
     ) -> bool:
         """Return True if the instrument is a deposit."""
@@ -41,8 +43,8 @@ class DepositInterestAccrualRule:
 
     def generate(
         self,
-        _instrument: object,
-        position: object,
+        _instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Generate a 1-day interest accrual transaction.
@@ -84,8 +86,8 @@ class DepositInterestSettlementRule:
 
     def applies_to(
         self,
-        instrument: object,
-        _position: object,
+        instrument: Instrument,
+        _position: Position,
         context: RuleContext,
     ) -> bool:
         """Return True on the 1st of each month for deposit instruments."""
@@ -98,8 +100,8 @@ class DepositInterestSettlementRule:
 
     def generate(
         self,
-        _instrument: object,
-        position: object,
+        _instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Settle accrued interest for the previous month.

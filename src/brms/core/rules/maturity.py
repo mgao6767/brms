@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
+    from brms.core.models.instruments.base import Instrument
+    from brms.core.models.position import Position
     from brms.core.rules.context import RuleContext
 
 
@@ -17,8 +19,8 @@ class MaturityRule:
 
     def applies_to(
         self,
-        instrument: object,
-        _position: object,
+        instrument: Instrument,
+        _position: Position,
         context: RuleContext,
     ) -> bool:
         """Return True if the maturity date matches the current date exactly."""
@@ -29,8 +31,8 @@ class MaturityRule:
 
     def generate(
         self,
-        _instrument: object,
-        position: object,
+        _instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Generate a single maturity settlement transaction for the acquisition cost."""

@@ -9,10 +9,14 @@ from typing import TYPE_CHECKING
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
+    import datetime
+
+    from brms.core.models.instruments.base import Instrument
+    from brms.core.models.position import Position
     from brms.core.rules.context import RuleContext
 
 
-def _date_in_window(d: object, context: RuleContext) -> bool:
+def _date_in_window(d: datetime.date, context: RuleContext) -> bool:
     """Return True if date *d* falls in the half-open window (previous_date, date].
 
     When there is no previous_date (first simulation day), only exact match counts.
@@ -27,8 +31,8 @@ class InterestPaymentRule:
 
     def applies_to(
         self,
-        instrument: object,
-        _position: object,
+        instrument: Instrument,
+        _position: Position,
         context: RuleContext,
     ) -> bool:
         """Return True if a payment date falls in the (previous_date, date] window.
@@ -55,8 +59,8 @@ class InterestPaymentRule:
 
     def generate(
         self,
-        instrument: object,
-        position: object,
+        instrument: Instrument,
+        position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
         """Generate an interest payment transaction (face_value * coupon_rate / 2)."""

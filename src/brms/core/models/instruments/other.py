@@ -1,7 +1,14 @@
 """Other off-balance-sheet and miscellaneous instrument classes for the core domain model."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from brms.core.enums import InstrumentType
 from brms.core.models.instruments.base import Instrument
+
+if TYPE_CHECKING:
+    from brms.core.visitors.base import Visitor
 
 
 class Commitment(Instrument):
@@ -12,7 +19,7 @@ class Commitment(Instrument):
         super().__init__(**kwargs)  # type: ignore[arg-type]
         self.instrument_type = InstrumentType.COMMITMENT
 
-    def accept(self, visitor: object) -> None:
+    def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""
         raise NotImplementedError
 
@@ -25,7 +32,7 @@ class LetterOfCredit(Instrument):
         super().__init__(**kwargs)  # type: ignore[arg-type]
         self.instrument_type = InstrumentType.LETTER_OF_CREDIT
 
-    def accept(self, visitor: object) -> None:
+    def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""
         raise NotImplementedError
 
@@ -46,6 +53,6 @@ class RepurchaseAgreement(Instrument):
         super().__init__(**kwargs)  # type: ignore[arg-type]
         self.instrument_type = InstrumentType.REPURCHASE_AGREEMENT
 
-    def accept(self, visitor: object) -> None:
+    def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""
         raise NotImplementedError
