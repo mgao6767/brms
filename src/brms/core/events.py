@@ -9,6 +9,10 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import datetime
     from collections.abc import Callable
+    from decimal import Decimal
+
+    from brms.core.enums import MetricName
+    from brms.core.models.transaction import Transaction
 
 
 class EventBus:
@@ -81,3 +85,34 @@ class InstrumentRemoved:
     instrument_id: str
     book_type: str
     instrument: Any
+
+
+@dataclass(frozen=True)
+class ValuationsUpdated:
+    """Event emitted after all positions have been valued for a date."""
+
+    date: datetime.date
+    valuations: dict[str, Decimal]  # position_id -> value
+
+
+@dataclass(frozen=True)
+class TransactionsRecorded:
+    """Event emitted after transactions are posted and logged for a date."""
+
+    date: datetime.date
+    transactions: tuple[Transaction, ...]
+
+
+@dataclass(frozen=True)
+class MetricsComputed:
+    """Event emitted after bank-level metrics are computed for a date."""
+
+    date: datetime.date
+    metrics: dict[MetricName, float]
+
+
+@dataclass(frozen=True)
+class StatementsChanged:
+    """Event emitted after accounting entries change (statements need re-render)."""
+
+    date: datetime.date

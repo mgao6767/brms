@@ -77,3 +77,50 @@ def test_instrument_removed_event() -> None:
 
     event = InstrumentRemoved(instrument_id="bond-1", book_type="trading", instrument=None)
     assert event.instrument_id == "bond-1"  # noqa: S101
+
+
+def test_valuations_updated_is_frozen() -> None:
+    """ValuationsUpdated event stores date and valuations dict."""
+    import datetime
+    from decimal import Decimal
+
+    from brms.core.events import ValuationsUpdated
+
+    event = ValuationsUpdated(date=datetime.date(2024, 1, 1), valuations={"p1": Decimal("100")})
+    assert event.date == datetime.date(2024, 1, 1)  # noqa: S101
+    assert event.valuations == {"p1": Decimal("100")}  # noqa: S101
+
+
+def test_transactions_recorded_is_frozen() -> None:
+    """TransactionsRecorded event stores date and transactions tuple."""
+    import datetime
+
+    from brms.core.events import TransactionsRecorded
+
+    event = TransactionsRecorded(date=datetime.date(2024, 1, 1), transactions=())
+    assert event.date == datetime.date(2024, 1, 1)  # noqa: S101
+    assert event.transactions == ()  # noqa: S101
+
+
+def test_metrics_computed_is_frozen() -> None:
+    """MetricsComputed event stores date and metrics dict."""
+    import datetime
+
+    from brms.core.enums import MetricName
+    from brms.core.events import MetricsComputed
+
+    event = MetricsComputed(
+        date=datetime.date(2024, 1, 1),
+        metrics={MetricName.TOTAL_ASSETS: 1_000_000.0},
+    )
+    assert event.metrics[MetricName.TOTAL_ASSETS] == 1_000_000.0  # noqa: S101, PLR2004
+
+
+def test_statements_changed_is_frozen() -> None:
+    """StatementsChanged event stores date."""
+    import datetime
+
+    from brms.core.events import StatementsChanged
+
+    event = StatementsChanged(date=datetime.date(2024, 1, 1))
+    assert event.date == datetime.date(2024, 1, 1)  # noqa: S101
