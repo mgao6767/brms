@@ -77,7 +77,7 @@ if __name__ == "__main__":
     import QuantLib as ql
 
     from brms.services.yield_curve_service import YieldCurveService
-    from brms.utils import pydate_to_qldate
+    from brms.core.utils import pydate_to_qldate
 
     current_file_path = os.path.dirname(os.path.abspath(__file__))
     data_folder_path = os.path.join(current_file_path, "./default")

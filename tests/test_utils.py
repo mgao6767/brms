@@ -1,25 +1,13 @@
 """Unit tests for utility functions in the brms package."""
 
 import datetime
-import time
 
 import pytest
 import QuantLib as ql
 from PySide6.QtCore import QDate
 
-from brms.utils import pydate_to_qldate, qdate_to_qldate, qldate_to_pydate, qldate_to_string, timeit
-
-
-def test_timeit_decorator():
-    """Test the timeit decorator."""
-
-    @timeit
-    def sample_function():
-        time.sleep(0.1)
-        return "done"
-
-    result = sample_function()
-    assert result == "done"
+from brms.app.utils import qdate_to_qldate
+from brms.core.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
 
 
 def test_qdate_to_qldate():

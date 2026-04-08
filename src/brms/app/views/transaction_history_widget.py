@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 from brms.app.views.bank_book_widget import CurrencyDelegate
 from brms.app.views.tree_widget import QMODELINDEX, BRMSTreeWidget
 from brms.core.models.transaction import Transaction, TransactionType
-from brms.utils import pydate_to_qdate
+from brms.app.utils import pydate_to_qdate
 
 
 class BRMSTransactionHistoryWidget(QWidget):

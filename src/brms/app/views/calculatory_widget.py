@@ -33,9 +33,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from brms.app.utils import qdate_to_qldate
 from brms.app.views.styler import BRMSStyler
 from brms.core.models.instruments.factory import InstrumentFactory
-from brms.utils import qdate_to_qldate, qldate_to_pydate
+from brms.core.utils import qldate_to_pydate
 
 _locale = QLocale()
 

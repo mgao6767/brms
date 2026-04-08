@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from brms.app.views.styler import BRMSStyler
-from brms.utils import pydate_to_qdate
+from brms.app.utils import pydate_to_qdate
 
 _locale = QLocale()
 
