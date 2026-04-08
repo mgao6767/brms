@@ -3,6 +3,7 @@
 import sys
 from pathlib import Path
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from brms import DEBUG_MODE
@@ -208,7 +209,19 @@ class App(QApplication):
 
 def main() -> None:
     """Run the main entry point for the BRMS application."""
+    # On Windows, set the app user model ID so the taskbar shows our icon instead of the Python default.
+    if sys.platform == "win32":
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("brms.brms")
+
     app = App(sys.argv)
+
+    # Import resources and set the application-level icon (needed for taskbar on Windows).
+    from brms.resources import icons  # noqa: F401
+
+    app.setWindowIcon(QIcon(":/icons/icon.png"))
+
     sys.exit(app.exec())
 
 
