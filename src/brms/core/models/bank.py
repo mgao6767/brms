@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from brms.core.stores.position_store import PositionStore
 
 
-class _BookView:
+class BookView:
     """Lightweight view over a Bank's positions filtered by book type.
 
     Provides iteration over instruments for backward compatibility
@@ -20,6 +20,7 @@ class _BookView:
     """
 
     def __init__(self, bank: Bank, book_type: BookType) -> None:
+        """Initialise the view for *book_type* over *bank*."""
         self._bank = bank
         self.book_type = book_type
 
@@ -51,11 +52,11 @@ class Bank:
         self.ledger = ledger
 
     @property
-    def banking_book(self) -> _BookView:
+    def banking_book(self) -> BookView:
         """View of banking book positions (for backward compatibility)."""
-        return _BookView(self, BookType.BANKING)
+        return BookView(self, BookType.BANKING)
 
     @property
-    def trading_book(self) -> _BookView:
+    def trading_book(self) -> BookView:
         """View of trading book positions (for backward compatibility)."""
-        return _BookView(self, BookType.TRADING)
+        return BookView(self, BookType.TRADING)
