@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import copy
+from pathlib import Path
 from typing import TYPE_CHECKING
+
+from PySide6.QtWidgets import QFileDialog
 
 from brms.app.controllers.base import BRMSController
 from brms.app.reporting import HTMLStatementRenderer
 from brms.core.events import StatementsChanged
 
 if TYPE_CHECKING:
+    import datetime
+
     from brms.app.views.statement_viewer.statement_viewer_widget import BRMSStatementViewer
     from brms.core.events import EventBus
     from brms.core.models.accounting.ledger import Ledger
@@ -16,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class StatementController(BRMSController):
-    """Subscribes to StatementsChanged, renders HTML statements."""
+    """Subscribes to StatementsChanged, populates statement tree models."""
 
     def __init__(
         self,
@@ -32,10 +38,29 @@ class StatementController(BRMSController):
         self._ledger = ledger
         self._renderer = HTMLStatementRenderer()
         self._dirty = False
-        self._last_date: object = None
+        self._last_date: datetime.date | None = None
         event_bus.subscribe(StatementsChanged, self._on_statements_changed)
 
-    def refresh(self, date: object = None) -> None:
+        # Connect export actions
+        self.view.trial_balance_tab.export_action.triggered.connect(
+            lambda: self._on_export("trial_balance"),
+        )
+        self.view.income_statement_tab.export_action.triggered.connect(
+            lambda: self._on_export("income_statement"),
+        )
+        self.view.balance_sheet_tab.export_action.triggered.connect(
+            lambda: self._on_export("balance_sheet"),
+        )
+
+    def reset(self) -> None:
+        """Clear all statement models."""
+        self.view.trial_balance_model._reset()  # noqa: SLF001
+        self.view.income_statement_model._reset()  # noqa: SLF001
+        self.view.balance_sheet_model._reset()  # noqa: SLF001
+        self._dirty = False
+        self._last_date = None
+
+    def refresh(self, date: datetime.date | None = None) -> None:
         """Manually trigger a statement refresh."""
         self._render(date)
 
@@ -52,30 +77,49 @@ class StatementController(BRMSController):
         else:
             self._dirty = True
 
-    def _render(self, date: object = None) -> None:
+    def _render(self, date: datetime.date | None = None) -> None:
+        # Trial balance — flat, uses ReportingService output
         tb_data = self._reporting.trial_balance(self._ledger)
-        bs_data = self._reporting.balance_sheet(self._ledger, date=date)
-        is_data = self._reporting.income_statement(self._ledger)
+        self.view.trial_balance_model.update(tb_data)
 
-        tb_html = self._renderer.render_trial_balance(tb_data, date)
-        bs_html = self._renderer.render_balance_sheet(bs_data, date)
-        is_html = self._renderer.render_income_statement(is_data, date)
+        # Balance sheet — walk closed ledger's chart of accounts
+        closed = copy.deepcopy(self._ledger)
+        if date is not None:
+            closed.close_ledger(date)
+        self.view.balance_sheet_model.update(closed.chart_of_accounts)
 
-        # Save scroll positions
-        tb_v = self.view.trial_balance_browser.verticalScrollBar().value()
-        tb_h = self.view.trial_balance_browser.horizontalScrollBar().value()
-        is_v = self.view.income_statement_browser.verticalScrollBar().value()
-        is_h = self.view.income_statement_browser.horizontalScrollBar().value()
-        bs_v = self.view.balance_sheet_browser.verticalScrollBar().value()
-        bs_h = self.view.balance_sheet_browser.horizontalScrollBar().value()
+        # Income statement — walk unclosed ledger's chart of accounts
+        self.view.income_statement_model.update(self._ledger.chart_of_accounts)
 
-        self.view.trial_balance_browser.setHtml(tb_html)
-        self.view.income_statement_browser.setHtml(is_html)
-        self.view.balance_sheet_browser.setHtml(bs_html)
+        # Expand all trees so accounts are visible
+        self.view.trial_balance_tab.tree.expandAll()
+        self.view.income_statement_tab.tree.expandAll()
+        self.view.balance_sheet_tab.tree.expandAll()
 
-        self.view.trial_balance_browser.verticalScrollBar().setValue(tb_v)
-        self.view.trial_balance_browser.horizontalScrollBar().setValue(tb_h)
-        self.view.income_statement_browser.verticalScrollBar().setValue(is_v)
-        self.view.income_statement_browser.horizontalScrollBar().setValue(is_h)
-        self.view.balance_sheet_browser.verticalScrollBar().setValue(bs_v)
-        self.view.balance_sheet_browser.horizontalScrollBar().setValue(bs_h)
+    def _on_export(self, statement_type: str) -> None:
+        """Export a statement as HTML via file dialog."""
+        date = self._last_date
+
+        if statement_type == "trial_balance":
+            data = self._reporting.trial_balance(self._ledger)
+            html = self._renderer.render_trial_balance(data, date)
+            title = "Trial Balance"
+        elif statement_type == "balance_sheet":
+            data = self._reporting.balance_sheet(self._ledger, date)
+            html = self._renderer.render_balance_sheet(data, date)
+            title = "Balance Sheet"
+        elif statement_type == "income_statement":
+            data = self._reporting.income_statement(self._ledger)
+            html = self._renderer.render_income_statement(data, date)
+            title = "Income Statement"
+        else:
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self.view,
+            caption=f"Export {title}",
+            dir=f"BRMS - {title}",
+            filter="HTML Files (*.html);;All Files (*)",
+        )
+        if file_path:
+            Path(file_path).write_text(html, encoding="utf-8")
