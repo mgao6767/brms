@@ -182,7 +182,7 @@ class BankingBookController(BankBookController):
     ) -> None:
         """Initialize the banking book controller."""
         super().__init__(bank_book, view, inspector_ctrl, event_bus, book_type, position_store)
-        self.bank_book_widget.liabilities_tree.setColumnHidden(LiabilityColumns.Class.value, hidden=True)
+        self.bank_book_widget.liabilities_tree.setColumnHidden(LiabilityColumns.Class.value, True)
 
     def _add_cash(self, cash: Cash) -> None:
         # Check if there is already cash instrument in the tree's model

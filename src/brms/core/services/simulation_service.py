@@ -144,13 +144,14 @@ class SimulationService:
         if has_market and market_state is not None:
             self.metrics_service.compute(self.bank, market_state, date, self.metric_store, self.valuation_store)
 
-        # Emit MetricsComputed
-        metrics_dict: dict = {}
-        for mn in MetricName:
-            val = self.metric_store.get(mn, date)
-            if val is not None:
-                metrics_dict[mn] = val
-        self.event_bus.emit(MetricsComputed(date, metrics_dict))
+        # Emit MetricsComputed only when metrics were actually computed
+        if has_market and market_state is not None:
+            metrics_dict: dict = {}
+            for mn in MetricName:
+                val = self.metric_store.get(mn, date)
+                if val is not None:
+                    metrics_dict[mn] = val
+            self.event_bus.emit(MetricsComputed(date, metrics_dict))
 
         self.event_bus.emit(DateAdvanced(date))
 
