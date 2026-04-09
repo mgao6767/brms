@@ -94,9 +94,10 @@ class BRMSTransactionHistoryWidget(QWidget):
         main_layout.addWidget(splitter)
         self.setLayout(main_layout)
 
-        # Connect signals
-        self.search_button.clicked.connect(self.search_transactions)
-        self.reset_button.clicked.connect(self.reset_filters)
+        # Filter active indicator
+        self._filter_group_default_title = "Filter"
+
+        # Connect signals (date validation only — search/reset owned by controller)
         self.start_date_filter.dateChanged.connect(self.validate_dates)
         self.end_date_filter.dateChanged.connect(self.validate_dates)
 
@@ -135,6 +136,15 @@ class BRMSTransactionHistoryWidget(QWidget):
 
     def set_end_date(self, date: QDate | datetime.date) -> None:
         self.end_date_filter.setDate(pydate_to_qdate(date) if isinstance(date, datetime.date) else date)
+
+    def set_filter_indicator(self, *, active: bool) -> None:
+        """Show or hide a visual indicator that filters are active."""
+        if active:
+            self.ctrl_group.setTitle("Filter (active)")
+            self.ctrl_group.setStyleSheet("QGroupBox { color: #e67e22; font-weight: bold; }")
+        else:
+            self.ctrl_group.setTitle(self._filter_group_default_title)
+            self.ctrl_group.setStyleSheet("")
 
     def flush_transactions(self) -> None:
         """Flush buffered row dicts to the tree model."""

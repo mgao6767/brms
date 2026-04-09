@@ -52,6 +52,8 @@ class MainController(BRMSController):
             event_bus=eb,
             transaction_log=services.transaction_log,
             journal=services.bank.ledger.journal,
+            start_date=start_date,
+            end_date=end_date,
         )
         self.statement_ctrl = StatementController(
             view=view.statement_viewer_widget,
