@@ -91,7 +91,7 @@ class BRMSYieldCurveWidget(QWidget):
         self.figure_action.triggered.connect(self.set_figure_view)
         self.save_action.triggered.connect(self.plot_widget.export_plot)
 
-        self.set_figure_view()
+        self.set_default_view()
 
     def set_model(self, model):
         self.table_view.setModel(model)
@@ -134,7 +134,7 @@ class PlotWidget(QWidget):
         self.styler = BRMSStyler.instance()
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
-        self.canvas = FigureCanvas(Figure(figsize=(5, 3)))
+        self.canvas = FigureCanvas(Figure(figsize=(5, 3), constrained_layout=True))
         self.layout.addWidget(self.canvas)
         self.ax = self.canvas.figure.add_subplot()
         self.ax.set_title("Yield Curve", fontsize=9)
@@ -143,7 +143,7 @@ class PlotWidget(QWidget):
         checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         # Add checkbox for controlling y-axis rescaling
         self.rescale_checkbox = QCheckBox("Rescale Y-Axis", self)
-        self.rescale_checkbox.setChecked(True)  # Default to rescaling
+        self.rescale_checkbox.setChecked(False)  # Default to fixed Y-axis
         checkbox_layout.addWidget(self.rescale_checkbox)
         # Add checkbox for controlling grid lines
         self.grid_checkbox = QCheckBox("Show Grid Lines", self)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+import datetime
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -47,6 +47,8 @@ class YieldCurveController(BRMSController):
         """Initialize yield curve data from market data store."""
         if self._market_data.has_frame("yields"):
             self.init_from_dataframe(self._market_data.get_frame("yields"))
+            # Hide all rows initially — they are revealed as the simulation advances
+            self._hide_future_rows(None)
 
     def set_current_selection(self, row: int, column: int):
         """Set the current selection of the table_view.
@@ -73,7 +75,7 @@ class YieldCurveController(BRMSController):
         model = self.model
         # Retrieve the date from the vertical header
         date_str = model.headerData(row, Qt.Vertical)
-        return datetime.strptime(date_str, "%Y-%m-%d")
+        return datetime.datetime.strptime(date_str, "%Y-%m-%d")
 
     def get_yields_from_selection(self):
         indexes = self.view.table_view.selectionModel().selectedRows()
@@ -85,7 +87,7 @@ class YieldCurveController(BRMSController):
 
         # Retrieve the date from the vertical header
         date_str = model.headerData(row, Qt.Vertical)
-        reference_date = datetime.strptime(date_str, "%Y-%m-%d")
+        reference_date = datetime.datetime.strptime(date_str, "%Y-%m-%d")
 
         # Retrieve the maturities from the horizontal header
         maturity_labels = np.array([model.headerData(col, Qt.Horizontal) for col in range(model.columnCount())])
@@ -133,9 +135,17 @@ class YieldCurveController(BRMSController):
             self.set_current_selection(0, 0)
 
     def _on_date_advanced(self, event: DateAdvanced) -> None:
-        """Select the row matching the advanced date."""
+        """Select the row matching the advanced date and reveal it."""
+        self._hide_future_rows(event.date)
         dates = self.model.reference_dates()
         for i, d in enumerate(dates):
             if d == event.date:
                 self.set_current_selection(i, 0)
                 return
+
+    def _hide_future_rows(self, current_date: datetime.date | None) -> None:
+        """Hide table rows for dates beyond *current_date*. Hide all if None."""
+        dates = self.model.reference_dates()
+        for i, d in enumerate(dates):
+            hidden = current_date is None or d > current_date
+            self.view.table_view.setRowHidden(i, hidden)
