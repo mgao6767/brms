@@ -1,27 +1,31 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 import numpy as np
-import QuantLib as ql
-from dateutil.relativedelta import relativedelta
 from PySide6.QtCore import QItemSelectionModel, Qt
 
 from brms.app.controllers.base import BRMSController
 from brms.app.models.yield_curve_model import YieldCurve
-from brms.app.views.yield_curve import BRMSYieldCurveWidget
+from brms.core.events import DateAdvanced
 from brms.core.services.yield_curve_service import YieldCurveService
 
 if TYPE_CHECKING:
     import pandas as pd
 
+    from brms.app.views.yield_curve import BRMSYieldCurveWidget
+    from brms.core.events import EventBus
+    from brms.core.stores.market_data_store import MarketDataStore
+
 
 class YieldCurveController(BRMSController):
-    def __init__(self, view: BRMSYieldCurveWidget):
+    def __init__(self, view: BRMSYieldCurveWidget, event_bus: EventBus, market_data: MarketDataStore) -> None:
         super().__init__()
         self.model = YieldCurve()  # model inside controller because it's just a data container
         self.view = view
+        self._event_bus = event_bus
+        self._market_data = market_data
 
         self.view.set_model(self.model)
 
@@ -33,9 +37,16 @@ class YieldCurveController(BRMSController):
         self.view.plot_widget.grid_checkbox.stateChanged.connect(self.update_plot)
         # fmt: on
 
+        self._event_bus.subscribe(DateAdvanced, self._on_date_advanced)
+
     def reset(self):
         self.model.reset()
         self.clear_plot()
+
+    def init(self) -> None:
+        """Initialize yield curve data from market data store."""
+        if self._market_data.has_frame("yields"):
+            self.init_from_dataframe(self._market_data.get_frame("yields"))
 
     def set_current_selection(self, row: int, column: int):
         """Set the current selection of the table_view.
@@ -77,98 +88,41 @@ class YieldCurveController(BRMSController):
         reference_date = datetime.strptime(date_str, "%Y-%m-%d")
 
         # Retrieve the maturities from the horizontal header
-        maturities = [model.headerData(col, Qt.Horizontal) for col in range(model.columnCount())]
-
-        # Maturity dates
-        maturity_dates = []
-        for m in maturities:
-            match m:
-                case "1M" | "1 Mo":
-                    new_date = reference_date + relativedelta(months=1)
-                case "2M" | "2 Mo":
-                    new_date = reference_date + relativedelta(months=2)
-                case "3M" | "3 Mo":
-                    new_date = reference_date + relativedelta(months=3)
-                case "4M" | "4 Mo":
-                    new_date = reference_date + relativedelta(months=4)
-                case "6M" | "6 Mo":
-                    new_date = reference_date + relativedelta(months=6)
-                case "1Y" | "1 Yr":
-                    new_date = reference_date + relativedelta(years=1)
-                case "2Y" | "2 Yr":
-                    new_date = reference_date + relativedelta(years=2)
-                case "3Y" | "3 Yr":
-                    new_date = reference_date + relativedelta(years=3)
-                case "5Y" | "5 Yr":
-                    new_date = reference_date + relativedelta(years=5)
-                case "7Y" | "7 Yr":
-                    new_date = reference_date + relativedelta(years=7)
-                case "10Y" | "10 Yr":
-                    new_date = reference_date + relativedelta(years=10)
-                case "20Y" | "20 Yr":
-                    new_date = reference_date + relativedelta(years=20)
-                case "30Y" | "30 Yr":
-                    new_date = reference_date + relativedelta(years=30)
-                case _:
-                    new_date = date
-
-            maturity_dates.append(new_date)
+        maturity_labels = np.array([model.headerData(col, Qt.Horizontal) for col in range(model.columnCount())])
 
         # Retrieve the yields for the selected row
-        yields = [model.index(row, col).data() for col in range(model.columnCount())]
-        # Maturity labels liek "1 Mo", "30Y"
-        maturity_labels = [self.model.headerData(col, Qt.Horizontal) for col in range(self.model.columnCount())]
+        yields = np.array([model.index(row, col).data() for col in range(model.columnCount())])
+
         # Filter out NaN values
-        yields = np.array(yields)
-        maturity_dates = np.array(maturity_dates)
-        maturity_labels = np.array(maturity_labels)
         valid_indices = ~np.isnan(yields)
 
-        return reference_date, maturity_dates[valid_indices], maturity_labels[valid_indices], yields[valid_indices]
+        return reference_date, maturity_labels[valid_indices], yields[valid_indices]
 
     def clear_plot(self):
         self.view.plot_widget.clear_plot()
 
     def update_plot(self):
-        # Update only when the yield curve widget is visible?
+        # Update only when the yield curve widget is visible
         if not self.view.is_visible:
             return
         yield_data = self.get_yields_from_selection()
         if yield_data is None:
             return
-        ref_date, _, maturity_labels, yields = yield_data
-        yield_curve = YieldCurveService.build_yield_curve(ref_date, maturity_labels=maturity_labels, rates=yields)
-        ref_date, dates, _, yields = yield_data
-        calendar = ql.ActualActual(ql.ActualActual.ISDA)
-        zero_rates = []
+        ref_date, maturity_labels, yields = yield_data
 
-        # Generate T evenly spaced dates between ref_date and longest_maturity_date
-        # Therefore the interpolated zero curve can have more obs
-        longest_maturity_date = max(dates)
-        n_date = 50  # Number of dates to generate
-        date_range = np.linspace(0, (longest_maturity_date - ref_date).days, n_date)
-        evenly_spaced_dates = [ref_date + relativedelta(days=int(days)) for days in date_range]
-        dates_zero_rates = []
-        for maturity_date in evenly_spaced_dates:
-            ql_maturity_date = ql.Date(maturity_date.day, maturity_date.month, maturity_date.year)
-            # Annually compounded zero rates
-            zero_rate = yield_curve.zeroRate(ql_maturity_date, calendar, ql.Compounded, ql.Annual).rate()
-            dates_zero_rates.append(maturity_date)
-            zero_rates.append(zero_rate * 100)
+        plot_data = YieldCurveService.compute_plot_data(ref_date.date(), maturity_labels.tolist(), yields.tolist())
 
-        # Update the plot with the new x and y values
-        date_str = ref_date.strftime("%B %d, %Y")  # Example: "January 01, 2023"
-        title = f"Yield Curve as at {date_str}"
         rescale_y = self.view.plot_widget.rescale_checkbox.isChecked()
         show_grid = self.view.plot_widget.grid_checkbox.isChecked()
-        self.view.plot_widget.update_plot(dates, yields, dates_zero_rates, zero_rates, title, rescale_y, show_grid)
+        self.view.plot_widget.update_plot(
+            plot_data.par_dates, plot_data.par_rates, plot_data.zero_dates, plot_data.zero_rates,
+            plot_data.title, rescale_y, show_grid,
+        )
 
     def init_from_dataframe(self, yields_df: pd.DataFrame) -> None:
-        """Load treasury yields from a date-indexed DataFrame into the YieldCurve model.
+        """Load treasury yields from a date-indexed DataFrame into the YieldCurve model."""
+        from datetime import date
 
-        This is the core-layer replacement for :meth:`init`, which required a
-        legacy ``ScenarioManager``.
-        """
         new_yield_data: dict[date, list[tuple[str, float]]] = {}
         for idx, row in yields_df.iterrows():
             dt = idx.date() if hasattr(idx, "date") else idx
@@ -178,3 +132,10 @@ class YieldCurveController(BRMSController):
         if self.model.rowCount() > 0:
             self.set_current_selection(0, 0)
 
+    def _on_date_advanced(self, event: DateAdvanced) -> None:
+        """Select the row matching the advanced date."""
+        dates = self.model.reference_dates()
+        for i, d in enumerate(dates):
+            if d == event.date:
+                self.set_current_selection(i, 0)
+                return

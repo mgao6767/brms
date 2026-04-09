@@ -67,6 +67,8 @@ class MainController(BRMSController):
         )
         self.yield_curve_ctrl = YieldCurveController(
             view=view.yield_curve_widget,
+            event_bus=eb,
+            market_data=services.market_data,
         )
 
         # Simulation timer
@@ -95,11 +97,7 @@ class MainController(BRMSController):
         self.transaction_history_ctrl.load_initial()
         self.dashboard_ctrl.init()
 
-        # Initialize yield curve from market data
-        market_data = self.services.market_data
-        if market_data.has_frame("yields"):
-            yields_df = market_data.get_frame("yields")
-            self.yield_curve_ctrl.init_from_dataframe(yields_df)
+        self.yield_curve_ctrl.init()
 
     def on_exit(self) -> None:
         """Handle the exit signal from the view."""
