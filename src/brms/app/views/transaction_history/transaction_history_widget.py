@@ -1,6 +1,6 @@
 import datetime
 
-from PySide6.QtCore import QDate, QLocale, Qt, QTimer
+from PySide6.QtCore import QDate, Qt, QTimer
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
@@ -18,23 +18,19 @@ from PySide6.QtWidgets import (
 from brms.app.utils import pydate_to_qdate
 from brms.app.views.bank_book.delegates import CurrencyDelegate
 from brms.app.views.widgets.tree_widget import QMODELINDEX, BRMSTreeWidget
-from brms.core.models.transaction import Transaction, TransactionType
 
 
 class BRMSTransactionHistoryWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.tx_count = 0
         # For performance
-        self._transaction_buffer = []
+        self._transaction_buffer: list[dict] = []
         self._transaction_buffer_max_size = 100
         self._transaction_timer = QTimer(self)
         self._transaction_timer.setInterval(200)
         self._transaction_timer.timeout.connect(self.flush_transactions)
         self._transaction_timer.start()
-        self._locale = QLocale()
-
         # Create a group box for journal entry
         self.journal_group = QGroupBox("Journal Entry")
         journal_layout = QVBoxLayout()
@@ -53,9 +49,6 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.end_date_filter = QDateEdit()
         self.type_label = QLabel("Transaction Type:")
         self.type_filter = QComboBox()
-        self.type_filter.addItem("All")
-        for tx_type in list(TransactionType):
-            self.type_filter.addItem(tx_type.name)
         self.search_button = QPushButton("Search")
         self.reset_button = QPushButton("Reset")
 
@@ -154,35 +147,22 @@ class BRMSTransactionHistoryWidget(QWidget):
     def set_end_date(self, date: QDate | datetime.date) -> None:
         self.end_date_filter.setDate(pydate_to_qdate(date) if isinstance(date, datetime.date) else date)
 
-    def flush_transactions(self):
+    def flush_transactions(self) -> None:
+        """Flush buffered row dicts to the tree model."""
         if not self._transaction_buffer:
             return
-        data = [self.transaction_to_data(tx, self.tx_count + i) for i, tx in enumerate(self._transaction_buffer)]
-        self.tx_count += len(self._transaction_buffer)
         self.setUpdatesEnabled(False)
         self.transactions_tree_model.layoutAboutToBeChanged.emit()
         self.transactions_tree_model.blockSignals(True)
-        self.transactions_tree_model.add_data(QMODELINDEX, data)
+        self.transactions_tree_model.add_data(QMODELINDEX, list(self._transaction_buffer))
         self.transactions_tree_model.blockSignals(False)
         self.transactions_tree_model.layoutChanged.emit()
         self._transaction_buffer.clear()
         self.transaction_tree.scrollToBottom()
         self.setUpdatesEnabled(True)
 
-    def add_transaction(self, transaction: Transaction) -> None:
-        self._transaction_buffer.append(transaction)
+    def add_row(self, row_data: dict) -> None:
+        """Buffer a pre-formatted row dict for batch insertion."""
+        self._transaction_buffer.append(row_data)
         if len(self._transaction_buffer) >= self._transaction_buffer_max_size:
             self.flush_transactions()
-
-    def transaction_to_data(self, transaction: Transaction, tx_num: int) -> dict:
-        type_label = transaction.type.name.replace("_", " ").title()
-        description = transaction.description or type_label
-        return {
-            0: tx_num,
-            1: str(transaction.date),
-            2: type_label,
-            3: transaction.instrument_id or "",
-            4: self._locale.toCurrencyString(float(transaction.amount)),
-            5: description,
-            6: "",
-        }
