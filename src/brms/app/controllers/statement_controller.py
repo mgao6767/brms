@@ -54,9 +54,9 @@ class StatementController(BRMSController):
 
     def reset(self) -> None:
         """Clear all statement models."""
-        self.view.trial_balance_model._reset()  # noqa: SLF001
-        self.view.income_statement_model._reset()  # noqa: SLF001
-        self.view.balance_sheet_model._reset()  # noqa: SLF001
+        self.view.trial_balance_model.reset()
+        self.view.income_statement_model.reset()
+        self.view.balance_sheet_model.reset()
         self._dirty = False
         self._last_date = None
 

@@ -109,7 +109,8 @@ class _StatementModel(QAbstractItemModel):
             return index.internalPointer()
         return self._root
 
-    def _reset(self) -> None:
+    def reset(self) -> None:
+        """Clear all rows from the model."""
         self.beginResetModel()
         self._root.children.clear()
         self.endResetModel()
