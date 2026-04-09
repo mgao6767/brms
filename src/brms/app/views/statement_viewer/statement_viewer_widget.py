@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import qtawesome as qta
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QHeaderView,
     QTabWidget,
@@ -64,6 +64,8 @@ def _make_tree(model: object, column_count: int) -> QTreeView:
 class BRMSStatementViewer(QWidget):
     """Tabbed widget showing Trial Balance, Income Statement, and Balance Sheet as tree views."""
 
+    export_requested = Signal(str)  # emits statement type key: "trial_balance", etc.
+
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialise tabs and models."""
         super().__init__(parent)
@@ -87,6 +89,13 @@ class BRMSStatementViewer(QWidget):
         self._tabs.addTab(self.trial_balance_tab, "Trial Balance")
         self._tabs.addTab(self.income_statement_tab, "Income Statement")
         self._tabs.addTab(self.balance_sheet_tab, "Balance Sheet")
+
+        # Wire export actions to signal (connected once, view-owned)
+        self.trial_balance_tab.export_action.triggered.connect(lambda: self.export_requested.emit("trial_balance"))
+        self.income_statement_tab.export_action.triggered.connect(
+            lambda: self.export_requested.emit("income_statement"),
+        )
+        self.balance_sheet_tab.export_action.triggered.connect(lambda: self.export_requested.emit("balance_sheet"))
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

@@ -40,23 +40,14 @@ class StatementController(BRMSController):
         self._dirty = False
         self._last_date: datetime.date | None = None
         event_bus.subscribe(StatementsChanged, self._on_statements_changed)
-
-        # Connect export actions
-        self.view.trial_balance_tab.export_action.triggered.connect(
-            lambda: self._on_export("trial_balance"),
-        )
-        self.view.income_statement_tab.export_action.triggered.connect(
-            lambda: self._on_export("income_statement"),
-        )
-        self.view.balance_sheet_tab.export_action.triggered.connect(
-            lambda: self._on_export("balance_sheet"),
-        )
+        self.view.export_requested.connect(self._on_export)
 
     def reset(self) -> None:
-        """Clear all statement models."""
+        """Clear all statement models and disconnect signals."""
         self.view.trial_balance_model.reset()
         self.view.income_statement_model.reset()
         self.view.balance_sheet_model.reset()
+        self.view.export_requested.disconnect(self._on_export)
         self._dirty = False
         self._last_date = None
 
