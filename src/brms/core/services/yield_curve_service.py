@@ -1,10 +1,39 @@
 import datetime
+import math
+from dataclasses import dataclass
 from typing import ClassVar
 
 import numpy as np
 import pandas as pd
 import QuantLib as ql
 from dateutil.relativedelta import relativedelta
+
+_LABEL_TO_RELATIVEDELTA: dict[str, relativedelta] = {
+    "1M": relativedelta(months=1), "1 Mo": relativedelta(months=1),
+    "2M": relativedelta(months=2), "2 Mo": relativedelta(months=2),
+    "3M": relativedelta(months=3), "3 Mo": relativedelta(months=3),
+    "4M": relativedelta(months=4), "4 Mo": relativedelta(months=4),
+    "6M": relativedelta(months=6), "6 Mo": relativedelta(months=6),
+    "1Y": relativedelta(years=1), "1 Yr": relativedelta(years=1),
+    "2Y": relativedelta(years=2), "2 Yr": relativedelta(years=2),
+    "3Y": relativedelta(years=3), "3 Yr": relativedelta(years=3),
+    "5Y": relativedelta(years=5), "5 Yr": relativedelta(years=5),
+    "7Y": relativedelta(years=7), "7 Yr": relativedelta(years=7),
+    "10Y": relativedelta(years=10), "10 Yr": relativedelta(years=10),
+    "20Y": relativedelta(years=20), "20 Yr": relativedelta(years=20),
+    "30Y": relativedelta(years=30), "30 Yr": relativedelta(years=30),
+}
+
+
+@dataclass(frozen=True)
+class YieldCurvePlotData:
+    """Plot-ready yield curve data."""
+
+    par_dates: list[datetime.datetime]
+    par_rates: list[float]
+    zero_dates: list[datetime.datetime]
+    zero_rates: list[float]
+    title: str
 
 
 class YieldCurveService:
@@ -135,3 +164,56 @@ class YieldCurveService:
         maturity_labels = [col for col in df.columns if col != "date"]
         rates = [row.iloc[0][col] for col in maturity_labels]
         return cls.build_yield_curve(date, maturity_labels, rates)
+
+    @classmethod
+    def compute_plot_data(
+        cls,
+        reference_date: datetime.date,
+        maturity_labels: list[str],
+        rates: list[float],
+        n_interpolation_points: int = 50,
+    ) -> YieldCurvePlotData:
+        """Compute plot-ready yield curve data with par rates and interpolated zero rates."""
+        # Filter out NaN rates
+        filtered_labels: list[str] = []
+        filtered_rates: list[float] = []
+        for label, rate in zip(maturity_labels, rates, strict=True):
+            if not math.isnan(rate):
+                filtered_labels.append(label)
+                filtered_rates.append(rate)
+
+        # Convert labels to datetime for par curve
+        par_dates = [
+            datetime.datetime(  # noqa: DTZ001
+                *(reference_date + _LABEL_TO_RELATIVEDELTA[label]).timetuple()[:3],
+            )
+            for label in filtered_labels
+        ]
+
+        # Build QL yield curve
+        yield_curve = cls.build_yield_curve(reference_date, filtered_labels, filtered_rates)
+
+        # Generate interpolated zero rates
+        day_count = ql.ActualActual(ql.ActualActual.ISDA)
+        max_date = max(par_dates)
+        ref_dt = datetime.datetime(reference_date.year, reference_date.month, reference_date.day)  # noqa: DTZ001
+        total_days = (max_date - ref_dt).days
+        zero_dates: list[datetime.datetime] = []
+        zero_rates: list[float] = []
+        for i in range(n_interpolation_points):
+            days = int(total_days * (i + 1) / n_interpolation_points)
+            dt = ref_dt + datetime.timedelta(days=days)
+            ql_dt = ql.Date(dt.day, dt.month, dt.year)
+            zero_rate = yield_curve.zeroRate(ql_dt, day_count, ql.Compounded, ql.Annual).rate() * 100
+            zero_dates.append(dt)
+            zero_rates.append(zero_rate)
+
+        title = f"Yield Curve — {reference_date.strftime('%B %d, %Y')}"
+
+        return YieldCurvePlotData(
+            par_dates=par_dates,
+            par_rates=filtered_rates,
+            zero_dates=zero_dates,
+            zero_rates=zero_rates,
+            title=title,
+        )
