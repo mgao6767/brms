@@ -1,32 +1,59 @@
+"""Controller for managing bank book tree widgets."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from brms import DEBUG_MODE
 from brms.app.controllers.base import BRMSController
-from brms.app.controllers.inspector_controller import InspectorController
 from brms.app.views.bank_book import BRMSBankBookWidget, BRMSBankingBookWidget, BRMSTradingBookWidget
 from brms.app.views.bank_book.columns import AssetColumns, ColumnOrder, LiabilityColumns
 from brms.app.views.widgets.tree_widget import QMODELINDEX, TreeModel
+from brms.core.enums import BookType
 from brms.core.enums import PositionSide as Position
-from brms.core.models.instruments.base import Instrument
+from brms.core.events import ValuationsUpdated
 from brms.core.models.instruments.deposits import Cash
-from brms.core.services.data_service import BankingBook, TradingBook
+
+if TYPE_CHECKING:
+    from brms.app.controllers.inspector_controller import InspectorController
+    from brms.core.events import EventBus
+    from brms.core.models.bank import BookView
+    from brms.core.models.instruments.base import Instrument
+    from brms.core.stores.position_store import PositionStore
 
 
 class BankBookController(BRMSController):
     """Controller for managing a bank's banking or trading book."""
 
-    def __init__(
-        self, bank_book: BankingBook | TradingBook, view: BRMSBankBookWidget, inspector_ctrl: InspectorController,
+    def __init__(  # noqa: PLR0913
+        self,
+        bank_book: BookView,
+        view: BRMSBankBookWidget,
+        inspector_ctrl: InspectorController,
+        event_bus: EventBus,
+        book_type: BookType,
+        position_store: PositionStore,
     ) -> None:
-        self.bank_book = bank_book  # must be read-only
+        """Initialize the bank book controller."""
+        self.bank_book = bank_book
         self.bank_book_widget = view
-        # Controllers passed in
         self.inspector_ctrl = inspector_ctrl
+        self._book_type = book_type
+        self._position_store = position_store
         # Pointers to TreeModel
         self.long_model: TreeModel = self.bank_book_widget.assets_tree.tree_model
         self.short_model: TreeModel = self.bank_book_widget.liabilities_tree.tree_model
         # Hide ID column since that instrument id is only used internally
         self.set_id_column_visibility(visible=DEBUG_MODE)
+        event_bus.subscribe(ValuationsUpdated, self._on_valuations_updated)
         self.connect_signals()
+
+    def _on_valuations_updated(self, event: ValuationsUpdated) -> None:
+        """Update instrument values from valuation event."""
+        for pos in self._position_store.by_book(self._book_type):
+            val = event.valuations.get(pos.id)
+            if val is not None and float(val) != 0:
+                self.update_instrument_value(pos.instrument_id, float(val))
 
     @staticmethod
     def instrument_to_data(
@@ -132,10 +159,10 @@ class BankBookController(BRMSController):
         """Connect signals to their respective slots."""
         # When selection changed or focused changed, update inspector
         self.bank_book_widget.assets_tree.selectionModel().selectionChanged.connect(
-            lambda selected, deselected: self.on_instrument_selected(Position.LONG),
+            lambda _s, _d: self.on_instrument_selected(Position.LONG),
         )
         self.bank_book_widget.liabilities_tree.selectionModel().selectionChanged.connect(
-            lambda selected, deselected: self.on_instrument_selected(Position.SHORT),
+            lambda _s, _d: self.on_instrument_selected(Position.SHORT),
         )
         self.bank_book_widget.assets_tree.focused.connect(lambda: self.on_instrument_selected(Position.LONG))
         self.bank_book_widget.liabilities_tree.focused.connect(lambda: self.on_instrument_selected(Position.SHORT))
@@ -144,18 +171,22 @@ class BankBookController(BRMSController):
 class BankingBookController(BankBookController):
     """Controller for banking book."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
-        bank_book: BankingBook,
+        bank_book: BookView,
         view: BRMSBankingBookWidget,
         inspector_ctrl: InspectorController,
+        event_bus: EventBus,
+        book_type: BookType,
+        position_store: PositionStore,
     ) -> None:
-        super().__init__(bank_book, view, inspector_ctrl)
-        self.bank_book_widget.liabilities_tree.setColumnHidden(LiabilityColumns.Class.value, True)
+        """Initialize the banking book controller."""
+        super().__init__(bank_book, view, inspector_ctrl, event_bus, book_type, position_store)
+        self.bank_book_widget.liabilities_tree.setColumnHidden(LiabilityColumns.Class.value, hidden=True)
 
     def _add_cash(self, cash: Cash) -> None:
         # Check if there is already cash instrument in the tree's model
-        idx = self.long_model.find_data("Cash", column=AssetColumns.Asset)  # TODO: needs improvement
+        idx = self.long_model.find_data("Cash", column=AssetColumns.Asset)  # noqa: FIX002, TD002, TD003  # TODO: improve
         # Not found, add it to the tree's model
         if idx is None:
             self.long_model.add_data(QMODELINDEX, self.instrument_to_data(cash, Position.LONG))
@@ -166,16 +197,15 @@ class BankingBookController(BankBookController):
         item = idx.internalPointer()
         cash_id = item.data(AssetColumns.ID.value)
         # Obtain a reference to the cash instrument
-        # Note that the cash instrument should have been updated by the transaction! It is a state of the bank.
-        # This controller MUST be read-only on all states of the bank model.
         cash_instrument = self.bank_book.get_instrument_by_id(cash_id)
         if isinstance(cash_instrument, Cash):
             self.long_model.update_data(idx, {AssetColumns.Value: cash_instrument.value})
 
-    def _remove_cash(self, cash: Cash) -> None:
-        idx = self.long_model.find_data("Cash", column=AssetColumns.Asset)  # TODO: needs improvement
+    def _remove_cash(self, _cash: Cash) -> None:
+        idx = self.long_model.find_data("Cash", column=AssetColumns.Asset)  # noqa: FIX002, TD002, TD003  # TODO: improve
         if idx is None:
-            raise ValueError("No cash in the asset tree model")
+            msg = "No cash in the asset tree model"
+            raise ValueError(msg)
         if not idx.isValid():
             return
         # Found existing cash record in the model
@@ -206,8 +236,9 @@ class BankingBookController(BankBookController):
         super().remove_instrument(instrument, position)
 
     def connect_signals(self) -> None:
+        """Connect signals to their respective slots."""
         super().connect_signals()
-        assert isinstance(self.bank_book_widget, BRMSBankingBookWidget)
+        assert isinstance(self.bank_book_widget, BRMSBankingBookWidget)  # noqa: S101
         self.bank_book_widget.btn_loan_portfolio_overview.clicked.connect(self.on_btn_loan_portfolio_overview)
         self.bank_book_widget.btn_loan_risk_assessment.clicked.connect(self.on_btn_loan_risk_assessment)
         self.bank_book_widget.btn_htm_portfolio_analysis.clicked.connect(self.on_btn_htm_portfolio_analysis)
@@ -265,17 +296,22 @@ class BankingBookController(BankBookController):
 class TradingBookController(BankBookController):
     """Controller for trading book."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
-        bank_book: TradingBook,
+        bank_book: BookView,
         view: BRMSTradingBookWidget,
         inspector_ctrl: InspectorController,
+        event_bus: EventBus,
+        book_type: BookType,
+        position_store: PositionStore,
     ) -> None:
-        super().__init__(bank_book, view, inspector_ctrl)
+        """Initialize the trading book controller."""
+        super().__init__(bank_book, view, inspector_ctrl, event_bus, book_type, position_store)
 
     def connect_signals(self) -> None:
+        """Connect signals to their respective slots."""
         super().connect_signals()
-        assert isinstance(self.bank_book_widget, BRMSTradingBookWidget)
+        assert isinstance(self.bank_book_widget, BRMSTradingBookWidget)  # noqa: S101
         self.bank_book_widget.btn_trading_portfolio_overview.clicked.connect(self.on_btn_trading_portfolio_overview)
         self.bank_book_widget.btn_risk_assessment.clicked.connect(self.on_btn_risk_assessment)
         self.bank_book_widget.btn_mark_to_market_analysis.clicked.connect(self.on_btn_mark_to_market_analysis)

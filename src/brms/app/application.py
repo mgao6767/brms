@@ -1,7 +1,6 @@
 """BRMS Qt application."""
 
 import sys
-from dataclasses import fields
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
@@ -33,9 +32,7 @@ class App(QApplication):
         self.setFont(font)
 
         self.view = MainWindow()
-        # Bridge: MainController still expects dict until Task 7
-        services_dict = {f.name: getattr(services, f.name) for f in fields(services)}
-        self.controller = MainController(self.view, core_services=services_dict)
+        self.controller = MainController(self.view, services=services)
         self.view.show()
         if DEBUG_MODE:
             self.view.debug_panel.show()
