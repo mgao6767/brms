@@ -189,6 +189,36 @@ def test_balance_sheet_totals_row() -> None:
     assert totals_val == 1_500_000.0  # Cash 1.3M + HTM 200k = 1.5M
 
 
+def test_balance_sheet_includes_retained_earnings() -> None:
+    """Retained Earnings should appear under Equity after closing."""
+    from datetime import date
+
+    ledger, coa = _make_ledger()
+    # Post some income so retained earnings has a balance after closing
+    ledger.post(
+        SimpleEntry(
+            debit_account=coa.cash_account,
+            credit_account=coa.interest_income_account,
+            value=10_000.0,
+            date=None,
+            description="Income",
+        ),
+    )
+    closed = copy.deepcopy(ledger)
+    closed.close_ledger(date(2024, 12, 31))
+    model = BalanceSheetModel()
+    model.update(closed.chart_of_accounts)
+    equity_idx = model.index(2, 0)
+    found = False
+    for row in range(model.rowCount(equity_idx)):
+        idx = model.index(row, 0, equity_idx)
+        if model.data(idx) == "Retained Earnings":
+            found = True
+            assert model.data(model.index(row, 1, equity_idx)) == 10_000.0
+            break
+    assert found, "Retained Earnings not found in Equity section"
+
+
 def test_balance_sheet_skips_zero_accounts() -> None:
     """Accounts with zero balance should not appear."""
     ledger, _ = _make_ledger()
@@ -261,6 +291,18 @@ def test_income_statement_model_net_income() -> None:
     model.update(ledger.chart_of_accounts)
     net_income_idx = model.index(2, 1)
     assert model.data(net_income_idx) == 3_000.0  # 5000 - 2000
+
+
+def test_income_statement_expenses_shown_as_negative() -> None:
+    """Expense values should be negative so they display in brackets."""
+    ledger, _ = _make_ledger_with_income()
+    model = IncomeStatementModel()
+    model.update(ledger.chart_of_accounts)
+    expense_idx = model.index(1, 0)
+    # Total Expenses should be negative
+    child_count = model.rowCount(expense_idx)
+    totals_val = model.data(model.index(child_count - 1, 1, expense_idx))
+    assert totals_val == -2_000.0
 
 
 def test_income_statement_model_income_children() -> None:

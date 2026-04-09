@@ -94,8 +94,11 @@ class _StatementModel(QAbstractItemModel):
         self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole,
     ) -> Any:  # noqa: ANN401
         """Return header data for the given section and orientation."""
-        if orientation == Qt.Horizontal and role == Qt.ItemDataRole.DisplayRole and 0 <= section < len(self._headers):
-            return self._headers[section]
+        if orientation == Qt.Horizontal and 0 <= section < len(self._headers):
+            if role == Qt.ItemDataRole.DisplayRole:
+                return self._headers[section]
+            if role == Qt.ItemDataRole.TextAlignmentRole and section > 0:
+                return Qt.AlignRight | Qt.AlignVCenter
         return None
 
     def flags(self, index: QModelIndex = _INVALID) -> Qt.ItemFlag:
@@ -168,6 +171,13 @@ class BalanceSheetModel(_StatementModel):
             section_total = 0.0
             for acct in accounts:
                 section_total += self._add_account(section, acct)
+            # Retained Earnings is a separate field, not in the equities list
+            if attr == "equities":
+                re_acct = chart.retained_earnings_account
+                re_bal = re_acct.balance()
+                if re_bal != 0.0:
+                    section.append(_Row([re_acct.name, re_bal]))
+                    section_total += re_bal
             section.append(_Row([total_label, section_total], bold=True))
 
         self.endResetModel()
@@ -222,34 +232,36 @@ class IncomeStatementModel(_StatementModel):
             total_income += self._add_account(income_section, acct)
         income_section.append(_Row(["Total Income", total_income], bold=True))
 
-        # Expenses section
+        # Expenses section — values shown as negative (brackets) since they reduce net income
         expense_section = _Row(["Expenses", None], bold=True)
         self._root.append(expense_section)
         total_expenses = 0.0
         for acct in chart.expenses:
             if acct.is_temporary_account or acct.is_contra_account:
                 continue
-            total_expenses += self._add_account(expense_section, acct)
-        expense_section.append(_Row(["Total Expenses", total_expenses], bold=True))
+            bal = self._add_account(expense_section, acct, negate=True)
+            total_expenses += abs(bal)
+        expense_section.append(_Row(["Total Expenses", -total_expenses], bold=True))
 
         # Net Income
         self._root.append(_Row(["Net Income", total_income - total_expenses], bold=True))
 
         self.endResetModel()
 
-    def _add_account(self, parent_row: _Row, account: TAccount) -> float:
-        """Recursively add an account. Returns balance."""
+    def _add_account(self, parent_row: _Row, account: TAccount, *, negate: bool = False) -> float:
+        """Recursively add an account. Returns display value (negated if requested)."""
         balance = account.balance()
         is_composite = isinstance(account, CompositeTAccount) and list(account.sub_accounts)
 
         if not is_composite and balance == 0.0:
             return 0.0
 
-        row = _Row([account.name, balance])
+        display_value = -balance if negate else balance
+        row = _Row([account.name, display_value])
         parent_row.append(row)
 
         if is_composite:
             for child in account.sub_accounts:
-                self._add_account(row, child)
+                self._add_account(row, child, negate=negate)
 
-        return balance
+        return display_value

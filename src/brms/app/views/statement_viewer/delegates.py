@@ -20,8 +20,10 @@ class StatementCurrencyDelegate(QStyledItemDelegate):
         option.displayAlignment = Qt.AlignRight | Qt.AlignVCenter
 
     def displayText(self, value: object, locale: QLocale) -> str:  # noqa: N802, ARG002
-        """Format numeric values as locale currency strings."""
+        """Format numeric values as locale currency strings. Negatives shown in brackets."""
         if isinstance(value, int | float):
+            if value < 0:
+                return f"({LOCALE.toCurrencyString(abs(value))})"
             return LOCALE.toCurrencyString(value)
         return str(value) if value is not None else ""
 
