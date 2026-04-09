@@ -19,8 +19,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from brms.app.views.styler import BRMSStyler
 from brms.app.utils import pydate_to_qdate
+from brms.app.views.styler import BRMSStyler
 
 _locale = QLocale()
 

@@ -9,8 +9,8 @@ from dateutil.relativedelta import relativedelta
 from PySide6.QtCore import QItemSelectionModel, Qt
 
 from brms.app.controllers.base import BRMSController
-from brms.app.views.yield_curve_widget import BRMSYieldCurveWidget
 from brms.app.models.yield_curve_model import YieldCurve
+from brms.app.views.yield_curve import BRMSYieldCurveWidget
 from brms.core.services.yield_curve_service import YieldCurveService
 
 if TYPE_CHECKING:

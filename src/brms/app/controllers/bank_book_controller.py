@@ -2,15 +2,9 @@
 from brms import DEBUG_MODE
 from brms.app.controllers.base import BRMSController
 from brms.app.controllers.inspector_controller import InspectorController
-from brms.app.views.bank_book_widget import (
-    AssetColumns,
-    BRMSBankBookWidget,
-    BRMSBankingBookWidget,
-    BRMSTradingBookWidget,
-    ColumnOrder,
-    LiabilityColumns,
-)
-from brms.app.views.tree_widget import QMODELINDEX, TreeModel
+from brms.app.views.bank_book import BRMSBankBookWidget, BRMSBankingBookWidget, BRMSTradingBookWidget
+from brms.app.views.bank_book.columns import AssetColumns, ColumnOrder, LiabilityColumns
+from brms.app.views.widgets.tree_widget import QMODELINDEX, TreeModel
 from brms.core.enums import PositionSide as Position
 from brms.core.models.instruments.base import Instrument
 from brms.core.models.instruments.deposits import Cash

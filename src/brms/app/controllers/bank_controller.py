@@ -14,8 +14,8 @@ from brms.core.events import DateAdvanced, InstrumentAdded, InstrumentRemoved
 
 if TYPE_CHECKING:
     from brms.app.controllers.inspector_controller import InspectorController
-    from brms.app.views.bank_book_widget import BRMSBankingBookWidget, BRMSTradingBookWidget
-    from brms.app.views.statement_viewer_widget import BRMSStatementViewer
+    from brms.app.views.bank_book import BRMSBankingBookWidget, BRMSTradingBookWidget
+    from brms.app.views.statement_viewer import BRMSStatementViewer
     from brms.core.events import EventBus
     from brms.core.models.bank import Bank
     from brms.core.services.reporting_service import ReportingService

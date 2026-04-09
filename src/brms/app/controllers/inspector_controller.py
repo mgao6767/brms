@@ -1,5 +1,5 @@
 from brms.app.controllers.base import BRMSController
-from brms.app.views.inspector_widget import BRMSInspectorWidget
+from brms.app.views.inspector import BRMSInspectorWidget
 from brms.core.models.instruments.base import Instrument
 from brms.core.visitors.inspection import InspectionVisitor
 
