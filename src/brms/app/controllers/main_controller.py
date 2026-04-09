@@ -61,6 +61,8 @@ class MainController(BRMSController):
         self.view.speed_down_action.triggered.connect(self.on_speed_down_action)
         self.view.open_action.triggered.connect(self.on_open_action)
         self.view.exit_signal.connect(self.on_exit)
+        self.view.tab_widget.currentChanged.connect(self._on_tab_changed)
+        self.view.dock_statement_viewer.visibilityChanged.connect(self._on_statement_dock_visible)
 
     def load_simulation(self, services: CoreServices) -> None:
         """(Re)initialize all sub-controllers and views for a loaded simulation."""
@@ -128,6 +130,16 @@ class MainController(BRMSController):
             return
         services = build_core_services(simulation_zip=Path(file_path))
         self.load_simulation(services)
+
+    def _on_tab_changed(self, index: int) -> None:
+        """Flush deferred updates when a tab becomes visible."""
+        if self.view.tab_widget.widget(index) is self.view.dashboard:
+            self.dashboard_ctrl.on_visible()
+
+    def _on_statement_dock_visible(self, visible: bool) -> None:  # noqa: FBT001
+        """Flush deferred statement render when dock becomes visible."""
+        if visible:
+            self.statement_ctrl.on_visible()
 
     def on_exit(self) -> None:
         """Handle the exit signal from the view."""

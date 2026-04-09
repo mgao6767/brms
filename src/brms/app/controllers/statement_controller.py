@@ -31,14 +31,26 @@ class StatementController(BRMSController):
         self._reporting = reporting_service
         self._ledger = ledger
         self._renderer = HTMLStatementRenderer()
+        self._dirty = False
+        self._last_date: object = None
         event_bus.subscribe(StatementsChanged, self._on_statements_changed)
 
     def refresh(self, date: object = None) -> None:
         """Manually trigger a statement refresh."""
         self._render(date)
 
+    def on_visible(self) -> None:
+        """Flush deferred statement render when the viewer becomes visible."""
+        if self._dirty:
+            self._render(self._last_date)
+            self._dirty = False
+
     def _on_statements_changed(self, event: StatementsChanged) -> None:
-        self._render(event.date)
+        self._last_date = event.date
+        if self.view.isVisible():
+            self._render(event.date)
+        else:
+            self._dirty = True
 
     def _render(self, date: object = None) -> None:
         tb_data = self._reporting.trial_balance(self._ledger)

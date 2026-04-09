@@ -40,6 +40,9 @@ class DashboardController(BRMSController):
         self._liability_values: list[float] = []
         self._equity_values: list[float] = []
         self._cet1_ratio_values: list[float] = []
+        self._plots_dirty = False
+        self._financials_dirty = False
+        self._last_financials_date: datetime.date | None = None
 
         event_bus.subscribe(DateAdvanced, self._on_date_advanced)
         event_bus.subscribe(MetricsComputed, self._on_metrics_computed)
@@ -54,6 +57,15 @@ class DashboardController(BRMSController):
         if self._end_date:
             self.view.update_simulation_end_date(self._end_date)
         self._refresh_plots()
+
+    def on_visible(self) -> None:
+        """Flush deferred plot and financial updates when the dashboard becomes visible."""
+        if self._plots_dirty:
+            self._refresh_plots()
+            self._plots_dirty = False
+        if self._financials_dirty and self._last_financials_date is not None:
+            self._update_financials(self._last_financials_date)
+            self._financials_dirty = False
 
     def update_speed(self, speed_label: str) -> None:
         """Update the speed label on the dashboard."""
@@ -75,10 +87,20 @@ class DashboardController(BRMSController):
         self._liability_values.append(m.get(MetricName.TOTAL_LIABILITIES, 0.0))
         self._equity_values.append(m.get(MetricName.TOTAL_EQUITY, 0.0))
         self._cet1_ratio_values.append(m.get(MetricName.CET1_RATIO, 0.0))
-        self._refresh_plots()
+        if self.view.isVisible():
+            self._refresh_plots()
+        else:
+            self._plots_dirty = True
 
     def _on_statements_changed(self, event: StatementsChanged) -> None:
-        bs_data = self._reporting.balance_sheet(self._ledger, date=event.date)
+        self._last_financials_date = event.date
+        if self.view.isVisible():
+            self._update_financials(event.date)
+        else:
+            self._financials_dirty = True
+
+    def _update_financials(self, date: datetime.date) -> None:
+        bs_data = self._reporting.balance_sheet(self._ledger, date=date)
         bs_data.setdefault("cet1", 0.0)
         bs_data.setdefault("cet1_ratio", 0.0)
         bs_data.setdefault("tier1_capital_ratio", 0.0)
