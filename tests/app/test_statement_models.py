@@ -6,7 +6,7 @@ import copy
 
 from PySide6.QtCore import Qt
 
-from brms.app.models.statement_models import BalanceSheetModel, TrialBalanceModel
+from brms.app.models.statement_models import BalanceSheetModel, IncomeStatementModel, TrialBalanceModel
 from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal, SimpleEntry
 from brms.core.models.accounting.ledger import Ledger
@@ -200,3 +200,83 @@ def test_balance_sheet_skips_zero_accounts() -> None:
     for row in range(model.rowCount(assets_idx)):
         idx = model.index(row, 0, assets_idx)
         assert model.data(idx) != "Property, Plant and Equipment"
+
+
+def _make_ledger_with_income() -> tuple[Ledger, BankChartOfAccounts]:
+    coa = BankChartOfAccounts()
+    ledger = Ledger(chart_of_accounts=coa, journal=Journal())
+    # Equity
+    ledger.post(
+        SimpleEntry(
+            debit_account=coa.cash_account,
+            credit_account=coa.equity_account,
+            value=1_000_000.0,
+            date=None,
+            description="Equity",
+        ),
+    )
+    # Interest income
+    ledger.post(
+        SimpleEntry(
+            debit_account=coa.cash_account,
+            credit_account=coa.interest_income_account,
+            value=5_000.0,
+            date=None,
+            description="Interest received",
+        ),
+    )
+    # Interest expense
+    ledger.post(
+        SimpleEntry(
+            debit_account=coa.interest_expense_account,
+            credit_account=coa.cash_account,
+            value=2_000.0,
+            date=None,
+            description="Interest paid",
+        ),
+    )
+    return ledger, coa
+
+
+def test_income_statement_model_columns() -> None:
+    model = IncomeStatementModel()
+    assert model.headerData(0, Qt.Horizontal) == "Account"
+    assert model.headerData(1, Qt.Horizontal) == "Balance"
+
+
+def test_income_statement_model_has_sections() -> None:
+    ledger, _ = _make_ledger_with_income()
+    model = IncomeStatementModel()
+    model.update(ledger.chart_of_accounts)
+    # Root rows: Income, Expenses, Net Income
+    assert model.rowCount() == 3
+    assert model.data(model.index(0, 0)) == "Income"
+    assert model.data(model.index(1, 0)) == "Expenses"
+    assert model.data(model.index(2, 0)) == "Net Income"
+
+
+def test_income_statement_model_net_income() -> None:
+    ledger, _ = _make_ledger_with_income()
+    model = IncomeStatementModel()
+    model.update(ledger.chart_of_accounts)
+    net_income_idx = model.index(2, 1)
+    assert model.data(net_income_idx) == 3_000.0  # 5000 - 2000
+
+
+def test_income_statement_model_income_children() -> None:
+    ledger, _ = _make_ledger_with_income()
+    model = IncomeStatementModel()
+    model.update(ledger.chart_of_accounts)
+    income_idx = model.index(0, 0)
+    # Should have at least Interest Income + Total Income
+    assert model.rowCount(income_idx) >= 2
+
+
+def test_income_statement_model_totals_bold() -> None:
+    ledger, _ = _make_ledger_with_income()
+    model = IncomeStatementModel()
+    model.update(ledger.chart_of_accounts)
+    # Net Income row should be bold
+    assert model.data(model.index(2, 0), Qt.UserRole) is True
+    # Income section header should be bold
+    assert model.data(model.index(0, 0), Qt.UserRole) is True

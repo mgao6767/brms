@@ -197,3 +197,58 @@ class BalanceSheetModel(_StatementModel):
                 row.append(_Row([contra.name, -contra_bal]))
 
         return balance
+
+
+class IncomeStatementModel(_StatementModel):
+    """Tree: Income/Expenses sections + Net Income row."""
+
+    def __init__(self) -> None:
+        """Initialise with Account and Balance columns."""
+        super().__init__(["Account", "Balance"])
+
+    def update(self, chart: ChartOfAccounts) -> None:
+        """Populate from an unclosed ChartOfAccounts."""
+        self.beginResetModel()
+        self._root.children.clear()
+
+        # Income section
+        income_section = _Row(["Income", None], bold=True)
+        self._root.append(income_section)
+        total_income = 0.0
+        for acct in chart.income:
+            if acct.is_temporary_account or acct.is_contra_account:
+                continue
+            total_income += self._add_account(income_section, acct)
+        income_section.append(_Row(["Total Income", total_income], bold=True))
+
+        # Expenses section
+        expense_section = _Row(["Expenses", None], bold=True)
+        self._root.append(expense_section)
+        total_expenses = 0.0
+        for acct in chart.expenses:
+            if acct.is_temporary_account or acct.is_contra_account:
+                continue
+            total_expenses += self._add_account(expense_section, acct)
+        expense_section.append(_Row(["Total Expenses", total_expenses], bold=True))
+
+        # Net Income
+        self._root.append(_Row(["Net Income", total_income - total_expenses], bold=True))
+
+        self.endResetModel()
+
+    def _add_account(self, parent_row: _Row, account: TAccount) -> float:
+        """Recursively add an account. Returns balance."""
+        balance = account.balance()
+        is_composite = isinstance(account, CompositeTAccount) and list(account.sub_accounts)
+
+        if not is_composite and balance == 0.0:
+            return 0.0
+
+        row = _Row([account.name, balance])
+        parent_row.append(row)
+
+        if is_composite:
+            for child in account.sub_accounts:
+                self._add_account(row, child)
+
+        return balance
