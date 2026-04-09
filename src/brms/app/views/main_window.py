@@ -326,18 +326,19 @@ class MainWindow(QMainWindow):
         """Restore the dock widgets to their default positions and sizes."""
         # Left dock: economic indicators
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dock_econ_indicator)
-        # Right dock: statement viewer and inspector (tabified)
+        # Right dock: statement viewer on top, inspector on bottom
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock_statement_viewer)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock_inspector)
-        self.tabifyDockWidget(self.dock_statement_viewer, self.dock_inspector)
-        self.dock_statement_viewer.raise_()
+        self.splitDockWidget(self.dock_statement_viewer, self.dock_inspector, Qt.Orientation.Vertical)
         for widget in self._dock_widgets:
             widget.setFloating(False)
             widget.show()
-        # Resize right dock width
+        # Resize right dock: thinner width, inspector gets more height
         screen_geometry = QApplication.primaryScreen().availableGeometry()
         if screen_geometry.width() >= 1080:
-            self.resizeDocks([self.dock_statement_viewer], [670], Qt.Orientation.Horizontal)
+            self.resizeDocks([self.dock_statement_viewer], [500], Qt.Orientation.Horizontal)
+        self.resizeDocks(
+            [self.dock_statement_viewer, self.dock_inspector], [300, 500], Qt.Orientation.Vertical,
+        )
 
     def on_about_action(self) -> None:
         """Handle the about action.
