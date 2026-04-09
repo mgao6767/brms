@@ -36,5 +36,5 @@ SCHEMA = {
             "20 Yr": "float64",
             "30 Yr": "float64",
         },
-    }
+    },
 }

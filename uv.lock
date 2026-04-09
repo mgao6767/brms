@@ -16,8 +16,8 @@ wheels = [
 
 [[package]]
 name = "brms"
-version = "0.1.0.dev1"
-source = { virtual = "." }
+version = "0.1.0.dev2"
+source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },
     { name = "pandas" },

@@ -73,9 +73,11 @@ class DataLoaderFactory:
 
 if __name__ == "__main__":
     import time
+
     import QuantLib as ql
+
     from brms.services.yield_curve_service import YieldCurveService
-    from brms.utils import pydate_to_qldate
+    from brms.core.utils import pydate_to_qldate
 
     current_file_path = os.path.dirname(os.path.abspath(__file__))
     data_folder_path = os.path.join(current_file_path, "./default")
@@ -96,7 +98,7 @@ if __name__ == "__main__":
         # Test the zero rates at various maturities
         zero_rates = [
             term_structure.zeroRate(
-                pydate_to_qldate(ref_date) + ql.Period(m, ql.Years), calendar, ql.Compounded, ql.Annual
+                pydate_to_qldate(ref_date) + ql.Period(m, ql.Years), calendar, ql.Compounded, ql.Annual,
             ).rate()
             * 100
             for m in test_maturities
