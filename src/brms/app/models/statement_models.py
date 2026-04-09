@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, Qt
+
+from brms.core.models.accounting.accounts import CompositeTAccount, TAccount
+
+if TYPE_CHECKING:
+    from brms.core.models.accounting.chart_of_accounts import ChartOfAccounts
 
 # Qt.UserRole signals "this row should be bold" (section headers, totals)
 BoldRole = Qt.ItemDataRole.UserRole
@@ -135,3 +140,60 @@ class TrialBalanceModel(_StatementModel):
 
         self._root.append(_Row(["Total", total_debit, total_credit], bold=True))
         self.endResetModel()
+
+
+class BalanceSheetModel(_StatementModel):
+    """Tree: Assets/Liabilities/Equity sections with expandable composite accounts."""
+
+    _SECTION_CONFIG: ClassVar[list[tuple[str, str, str]]] = [
+        ("Assets", "assets", "Total Assets"),
+        ("Liabilities", "liabilities", "Total Liabilities"),
+        ("Equity", "equities", "Total Equity"),
+    ]
+
+    def __init__(self) -> None:
+        """Initialise with Account and Balance columns."""
+        super().__init__(["Account", "Balance"])
+
+    def update(self, chart: ChartOfAccounts) -> None:
+        """Populate from a (closed) ChartOfAccounts, walking the account tree."""
+        self.beginResetModel()
+        self._root.children.clear()
+
+        for section_label, attr, total_label in self._SECTION_CONFIG:
+            section = _Row([section_label, None], bold=True)
+            self._root.append(section)
+            accounts: list[TAccount] = getattr(chart, attr)
+            section_total = 0.0
+            for acct in accounts:
+                section_total += self._add_account(section, acct)
+            section.append(_Row([total_label, section_total], bold=True))
+
+        self.endResetModel()
+
+    def _add_account(self, parent_row: _Row, account: TAccount) -> float:
+        """Recursively add an account and its children. Returns the account balance."""
+        balance = account.balance()
+        is_composite = isinstance(account, CompositeTAccount) and list(account.sub_accounts)
+
+        if account.is_temporary_account:
+            return 0.0
+        if not is_composite and balance == 0.0:
+            return 0.0
+        if account.is_contra_account and balance == 0.0:
+            return 0.0
+
+        row = _Row([account.name, balance])
+        parent_row.append(row)
+
+        if is_composite:
+            for child in account.sub_accounts:
+                self._add_account(row, child)
+
+        # Add contra accounts as children
+        for contra in account.contra_accounts:
+            contra_bal = contra.balance()
+            if contra_bal != 0.0:
+                row.append(_Row([contra.name, -contra_bal]))
+
+        return balance

@@ -2,9 +2,14 @@
 
 # ruff: noqa: S101, D103, PLR2004
 
+import copy
+
 from PySide6.QtCore import Qt
 
-from brms.app.models.statement_models import TrialBalanceModel
+from brms.app.models.statement_models import BalanceSheetModel, TrialBalanceModel
+from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
+from brms.core.models.accounting.journal import Journal, SimpleEntry
+from brms.core.models.accounting.ledger import Ledger
 
 
 def test_trial_balance_model_empty() -> None:
@@ -74,3 +79,124 @@ def test_trial_balance_model_update_clears_old_data() -> None:
     model.update(data2)
     assert model.rowCount() == 3  # 2 + totals
     assert model.data(model.index(0, 0)) == "A"
+
+
+def _make_ledger() -> tuple[Ledger, BankChartOfAccounts]:
+    coa = BankChartOfAccounts()
+    ledger = Ledger(chart_of_accounts=coa, journal=Journal())
+    # Equity issuance
+    ledger.post(
+        SimpleEntry(
+            debit_account=coa.cash_account,
+            credit_account=coa.equity_account,
+            value=1_000_000.0,
+            date=None,
+            description="Equity",
+        ),
+    )
+    # Deposit
+    ledger.post(
+        SimpleEntry(
+            debit_account=coa.cash_account,
+            credit_account=coa.customer_deposits_account,
+            value=500_000.0,
+            date=None,
+            description="Deposit",
+        ),
+    )
+    # Buy HTM bond
+    ledger.post(
+        SimpleEntry(
+            debit_account=coa.investment_htm_account,
+            credit_account=coa.cash_account,
+            value=200_000.0,
+            date=None,
+            description="Buy HTM",
+        ),
+    )
+    return ledger, coa
+
+
+def test_balance_sheet_model_columns() -> None:
+    model = BalanceSheetModel()
+    assert model.headerData(0, Qt.Horizontal) == "Account"
+    assert model.headerData(1, Qt.Horizontal) == "Balance"
+
+
+def test_balance_sheet_model_has_three_sections() -> None:
+    ledger, _ = _make_ledger()
+    closed = copy.deepcopy(ledger)
+    model = BalanceSheetModel()
+    model.update(closed.chart_of_accounts)
+    # Root rows: Assets, Liabilities, Equity
+    assert model.rowCount() == 3
+    assert model.data(model.index(0, 0)) == "Assets"
+    assert model.data(model.index(1, 0)) == "Liabilities"
+    assert model.data(model.index(2, 0)) == "Equity"
+
+
+def test_balance_sheet_model_section_headers_are_bold() -> None:
+    ledger, _ = _make_ledger()
+    closed = copy.deepcopy(ledger)
+    model = BalanceSheetModel()
+    model.update(closed.chart_of_accounts)
+    for row in range(3):
+        assert model.data(model.index(row, 0), Qt.UserRole) is True
+
+
+def test_balance_sheet_model_assets_have_children() -> None:
+    ledger, _ = _make_ledger()
+    closed = copy.deepcopy(ledger)
+    model = BalanceSheetModel()
+    model.update(closed.chart_of_accounts)
+    assets_idx = model.index(0, 0)
+    # Should have child rows (accounts with non-zero balances + totals row)
+    child_count = model.rowCount(assets_idx)
+    assert child_count >= 2  # at least Cash + Total Assets
+
+
+def test_balance_sheet_model_composite_has_children() -> None:
+    """Investment Securities (composite) should expand to show HTM child."""
+    ledger, _ = _make_ledger()
+    closed = copy.deepcopy(ledger)
+    model = BalanceSheetModel()
+    model.update(closed.chart_of_accounts)
+    assets_idx = model.index(0, 0)
+    # Find Investment Securities row
+    found = False
+    for row in range(model.rowCount(assets_idx)):
+        idx = model.index(row, 0, assets_idx)
+        if model.data(idx) == "Investment Securities":
+            found = True
+            # Should have at least HTM child with non-zero balance
+            assert model.rowCount(idx) >= 1
+            break
+    assert found, "Investment Securities row not found"
+
+
+def test_balance_sheet_totals_row() -> None:
+    ledger, _ = _make_ledger()
+    closed = copy.deepcopy(ledger)
+    model = BalanceSheetModel()
+    model.update(closed.chart_of_accounts)
+    assets_idx = model.index(0, 0)
+    child_count = model.rowCount(assets_idx)
+    # Last child of Assets section is "Total Assets" (bold)
+    totals_idx = model.index(child_count - 1, 0, assets_idx)
+    assert model.data(totals_idx) == "Total Assets"
+    assert model.data(totals_idx, Qt.UserRole) is True
+    totals_val = model.data(model.index(child_count - 1, 1, assets_idx))
+    assert totals_val == 1_500_000.0  # Cash 1.3M + HTM 200k = 1.5M
+
+
+def test_balance_sheet_skips_zero_accounts() -> None:
+    """Accounts with zero balance should not appear."""
+    ledger, _ = _make_ledger()
+    closed = copy.deepcopy(ledger)
+    model = BalanceSheetModel()
+    model.update(closed.chart_of_accounts)
+    assets_idx = model.index(0, 0)
+    # PPE has zero balance — should not appear
+    for row in range(model.rowCount(assets_idx)):
+        idx = model.index(row, 0, assets_idx)
+        assert model.data(idx) != "Property, Plant and Equipment"
