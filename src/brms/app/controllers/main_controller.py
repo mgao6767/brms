@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QFileDialog
 
 from brms.app.controllers.bank_controller import BankController
 from brms.app.controllers.base import BRMSController
@@ -14,6 +16,7 @@ from brms.app.controllers.inspector_controller import InspectorController
 from brms.app.controllers.statement_controller import StatementController
 from brms.app.controllers.transaction_history_controller import TransactionHistoryController
 from brms.app.controllers.yield_curve_controller import YieldCurveController
+from brms.core.services import build_core_services
 
 if TYPE_CHECKING:
     from brms.app.views.main_window import MainWindow
@@ -29,15 +32,46 @@ class MainController(BRMSController):
         """Initialize the MainController."""
         super().__init__()
         self.view = view
+
+        # Sub-controllers (created once, rebound on load)
+        self.inspector_ctrl = InspectorController(inspector_widget=view.inspector_widget)
+        self.dashboard_ctrl: DashboardController
+        self.transaction_history_ctrl: TransactionHistoryController
+        self.statement_ctrl: StatementController
+        self.bank_ctrl: BankController
+        self.yield_curve_ctrl: YieldCurveController
+
+        # Simulation timer
+        self.simulation_base_interval = 500
+        self.simulation_interval = self.simulation_base_interval
+        self.simulation_timer = QTimer()
+        self.simulation_timer.setInterval(self.simulation_interval)
+
+        self._connect_toolbar_signals()
+        self.load_simulation(services)
+
+    def _connect_toolbar_signals(self) -> None:
+        """Connect toolbar and menu actions (done once, not per simulation load)."""
+        self.simulation_timer.timeout.connect(self.on_advance)
+        self.view.next_action.triggered.connect(self.on_advance)
+        self.view.start_action.triggered.connect(self.on_start_action)
+        self.view.pause_action.triggered.connect(self.on_pause_action)
+        self.view.stop_action.triggered.connect(self.on_stop_action)
+        self.view.speed_up_action.triggered.connect(self.on_speed_up_action)
+        self.view.speed_down_action.triggered.connect(self.on_speed_down_action)
+        self.view.open_action.triggered.connect(self.on_open_action)
+        self.view.exit_signal.connect(self.on_exit)
+
+    def load_simulation(self, services: CoreServices) -> None:
+        """(Re)initialize all sub-controllers and views for a loaded simulation."""
         self.services = services
+        self.on_pause_action()
         eb = services.event_bus
+        view = self.view
 
         dates = services.market_data.available_dates()
         start_date = dates[0] if dates else None
         end_date = dates[-1] if dates else None
-
-        # Sub-controllers
-        self.inspector_ctrl = InspectorController(inspector_widget=view.inspector_widget)
 
         self.dashboard_ctrl = DashboardController(
             view=view.dashboard,
@@ -74,33 +108,26 @@ class MainController(BRMSController):
             market_data=services.market_data,
         )
 
-        # Simulation timer
-        self.simulation_base_interval = 500
-        self.simulation_interval = self.simulation_base_interval
-        self.simulation_timer = QTimer()
-        self.simulation_timer.setInterval(self.simulation_interval)
-
-        self.connect_signals()
-        QTimer.singleShot(100, self._init_views)
-
-    def connect_signals(self) -> None:
-        """Connect signals from the view to the controller's slots."""
-        self.simulation_timer.timeout.connect(self.on_advance)
-        self.view.next_action.triggered.connect(self.on_advance)
-        self.view.start_action.triggered.connect(self.on_start_action)
-        self.view.pause_action.triggered.connect(self.on_pause_action)
-        self.view.stop_action.triggered.connect(self.on_stop_action)
-        self.view.speed_up_action.triggered.connect(self.on_speed_up_action)
-        self.view.speed_down_action.triggered.connect(self.on_speed_down_action)
-        self.view.exit_signal.connect(self.on_exit)
-
-    def _init_views(self) -> None:
-        """Initialize views after the event loop starts."""
+        # Populate views from current state
         self.statement_ctrl.refresh()
         self.transaction_history_ctrl.load_initial()
         self.dashboard_ctrl.init()
-
         self.yield_curve_ctrl.init()
+
+        # Advance first day so dashboard metrics and plots are populated
+        self.on_advance()
+
+    def on_open_action(self) -> None:
+        """Open a simulation zip file and reload."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self.view,
+            caption="Open Simulation",
+            filter="Simulation Files (*.zip);;All Files (*)",
+        )
+        if not file_path:
+            return
+        services = build_core_services(simulation_zip=Path(file_path))
+        self.load_simulation(services)
 
     def on_exit(self) -> None:
         """Handle the exit signal from the view."""
