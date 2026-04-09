@@ -63,6 +63,17 @@ class TransactionHistoryController(BRMSController):
         # Re-apply filter after flush adds rows to the model
         self.view.transactions_tree_model.layoutChanged.connect(self._enforce_filter)
 
+    def reset(self) -> None:
+        """Clear all transaction data from the view."""
+        self.view.transactions_tree_model.blockSignals(True)
+        self.view.transaction_tree.clear_data()
+        self.view.transactions_tree_model.blockSignals(False)
+        self.view._transaction_buffer.clear()  # noqa: SLF001
+        self._pushed_tx_ids.clear()
+        self._tx_count = 0
+        self._filter_active = False
+        self.view.set_filter_indicator(active=False)
+
     def load_initial(self) -> None:
         """Load all existing transactions from the log into the view."""
         for tx in self._transaction_log.all():

@@ -40,7 +40,9 @@ class YieldCurveController(BRMSController):
         self._event_bus.subscribe(DateAdvanced, self._on_date_advanced)
 
     def reset(self):
+        self.model.blockSignals(True)
         self.model.reset()
+        self.model.blockSignals(False)
         self.clear_plot()
 
     def init(self) -> None:

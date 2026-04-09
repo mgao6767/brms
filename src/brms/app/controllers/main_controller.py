@@ -66,6 +66,12 @@ class MainController(BRMSController):
 
     def load_simulation(self, services: CoreServices) -> None:
         """(Re)initialize all sub-controllers and views for a loaded simulation."""
+        # Clear stale data via existing controllers (skip on first load)
+        if hasattr(self, "transaction_history_ctrl"):
+            self.transaction_history_ctrl.reset()
+            self.bank_ctrl.reset()
+            self.yield_curve_ctrl.reset()
+
         self.services = services
         self.on_pause_action()
         eb = services.event_bus

@@ -48,6 +48,13 @@ class BankBookController(BRMSController):
         event_bus.subscribe(ValuationsUpdated, self._on_valuations_updated)
         self.connect_signals()
 
+    def reset(self) -> None:
+        """Clear all data from the book tree widgets."""
+        for tree in (self.bank_book_widget.assets_tree, self.bank_book_widget.liabilities_tree):
+            tree.tree_model.blockSignals(True)
+            tree.clear_data()
+            tree.tree_model.blockSignals(False)
+
     def _on_valuations_updated(self, event: ValuationsUpdated) -> None:
         """Update instrument values from valuation event."""
         for pos in self._position_store.by_book(self._book_type):

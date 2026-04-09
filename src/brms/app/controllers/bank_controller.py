@@ -46,6 +46,11 @@ class BankController(BRMSController):
         event_bus.subscribe(InstrumentRemoved, self._on_instrument_removed)
         self._populate_books()
 
+    def reset(self) -> None:
+        """Clear all data from both book tree widgets."""
+        self.banking_book_ctrl.reset()
+        self.trading_book_ctrl.reset()
+
     def _populate_books(self) -> None:
         """Populate the tree widgets with all existing instruments in the bank."""
         for pos in self.bank.positions.open_positions():
