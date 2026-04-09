@@ -51,6 +51,7 @@ class MainController(BRMSController):
             view=view.transaction_history_widget,
             event_bus=eb,
             transaction_log=services.transaction_log,
+            journal=services.bank.ledger.journal,
         )
         self.statement_ctrl = StatementController(
             view=view.statement_viewer_widget,

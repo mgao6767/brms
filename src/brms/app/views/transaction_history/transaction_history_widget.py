@@ -99,7 +99,6 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.reset_button.clicked.connect(self.reset_filters)
         self.start_date_filter.dateChanged.connect(self.validate_dates)
         self.end_date_filter.dateChanged.connect(self.validate_dates)
-        self.transaction_tree.selectionModel().selectionChanged.connect(self.on_transaction_selected)
 
     def validate_dates(self):
         """Ensure start date is earlier than or equal to end date."""
@@ -107,16 +106,6 @@ class BRMSTransactionHistoryWidget(QWidget):
         end_date = self.end_date_filter.date()
         if start_date > end_date:
             self.start_date_filter.setDate(end_date)  # Reset start date to match end date
-
-    def on_transaction_selected(self, selected, deselected) -> None:
-        """Slot to handle selection changes."""
-        indexes = self.transaction_tree.selectedIndexes()
-        id_column = 6  # journal entry
-        if indexes:
-            selected_index = indexes[0]
-            item = selected_index.internalPointer()
-            entry = item.data(id_column)
-            self.journal_display.setText(entry.to_html())
 
     def search_transactions(self) -> None:
         self.reset_filters()
