@@ -1,5 +1,5 @@
 """Statement viewer views."""
 
-from brms.app.views.statement_viewer.statement_viewer_widget import BRMSStatementBrowser, BRMSStatementViewer
+from brms.app.views.statement_viewer.statement_viewer_widget import BRMSStatementViewer
 
-__all__ = ["BRMSStatementBrowser", "BRMSStatementViewer"]
+__all__ = ["BRMSStatementViewer"]
