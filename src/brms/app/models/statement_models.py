@@ -239,8 +239,7 @@ class IncomeStatementModel(_StatementModel):
         for acct in chart.expenses:
             if acct.is_temporary_account or acct.is_contra_account:
                 continue
-            bal = self._add_account(expense_section, acct, negate=True)
-            total_expenses += abs(bal)
+            total_expenses += self._add_account(expense_section, acct, negate=True)
         expense_section.append(_Row(["Total Expenses", -total_expenses], bold=True))
 
         # Net Income
@@ -249,14 +248,23 @@ class IncomeStatementModel(_StatementModel):
         self.endResetModel()
 
     def _add_account(self, parent_row: _Row, account: TAccount, *, negate: bool = False) -> float:
-        """Recursively add an account. Returns display value (negated if requested)."""
+        """Recursively add an account. Returns the raw balance for totalling.
+
+        *negate* forces display as negative (for the Expenses section).
+        Expense-type sub-accounts under an Income composite (e.g. Unrealized Trading Loss
+        under Trading Income) are always negated regardless of the flag.
+        """
+        from brms.core.models.accounting.accounts import AccountType
+
         balance = account.balance()
         is_composite = isinstance(account, CompositeTAccount) and list(account.sub_accounts)
 
         if not is_composite and balance == 0.0:
             return 0.0
 
-        display_value = -balance if negate else balance
+        # Expense-type accounts are subtractive — always show in brackets
+        should_negate = negate or account.type == AccountType.EXPENSE
+        display_value = -balance if should_negate else balance
         row = _Row([account.name, display_value])
         parent_row.append(row)
 
@@ -264,4 +272,4 @@ class IncomeStatementModel(_StatementModel):
             for child in account.sub_accounts:
                 self._add_account(row, child, negate=negate)
 
-        return display_value
+        return balance

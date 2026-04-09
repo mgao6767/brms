@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QLocale, QModelIndex, Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPalette
+from PySide6.QtGui import QFont, QPainter
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem
 
 from brms.app.models.statement_models import BoldRole
@@ -28,10 +28,7 @@ class StatementCurrencyDelegate(QStyledItemDelegate):
         return str(value) if value is not None else ""
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
-        """Paint with red text for negative values and bold for header rows."""
-        value = index.data(Qt.DisplayRole)
-        if isinstance(value, int | float) and value < 0:
-            option.palette.setColor(QPalette.Text, QColor("red"))
+        """Paint with bold for header rows."""
         bold = index.data(BoldRole)
         if bold:
             option.font.setWeight(QFont.Weight.Bold)
