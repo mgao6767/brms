@@ -106,7 +106,9 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     )
 
     if simulation_zip is None:
-        simulation_zip = Path("temp/simple_bank.zip")
+        import importlib.resources as pkg_resources
+
+        simulation_zip = Path(str(pkg_resources.files("brms.data").joinpath("default_simulation.zip")))
     if simulation_zip.exists():
         loader = ZipLoader(path=simulation_zip, instrument_registry=instrument_registry)
         data_service.load_and_initialize(loader, simulation_service)
