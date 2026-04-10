@@ -75,9 +75,9 @@ class BRMSYieldCurveWidget(QWidget):
         self.plot_widget = PlotWidget(self)
 
         self.splitter = QSplitter()
-        self.splitter.setOrientation(Qt.Orientation.Vertical)
-        self.splitter.addWidget(self.plot_widget)
+        self.splitter.setOrientation(Qt.Orientation.Horizontal)
         self.splitter.addWidget(self.table_view)
+        self.splitter.addWidget(self.plot_widget)
 
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(self.toolbar)
@@ -109,13 +109,13 @@ class BRMSYieldCurveWidget(QWidget):
         self.table_action.setChecked(True)
         self.figure_action.setChecked(False)
         self.all_view_action.setChecked(False)
-        self.splitter.setSizes([0, 1])
+        self.splitter.setSizes([1, 0])
 
     def set_figure_view(self):
         self.figure_action.setChecked(True)
         self.table_action.setChecked(False)
         self.all_view_action.setChecked(False)
-        self.splitter.setSizes([1, 0])
+        self.splitter.setSizes([0, 1])
 
     def showEvent(self, event: QShowEvent):
         self.is_visible = True

@@ -7,6 +7,8 @@ from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
     QMenuBar,
+    QSizePolicy,
+    QSplitter,
     QStatusBar,
     QTabWidget,
     QToolBar,
@@ -230,7 +232,22 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(self.trading_book_widget, "Trading Book")
         self.tab_widget.addTab(self.transaction_history_widget, "Transaction History")
         self.tab_widget.addTab(self.rwa_credit_risk_widget, "RWA Credit Risk")
-        self.setCentralWidget(self.tab_widget)
+        # Economic indicators at the bottom
+        self.econ_indicator_tabs = QTabWidget(self)
+        self.econ_indicator_tabs.addTab(self.yield_curve_widget, "Yield Curve")
+        self.econ_indicator_tabs.addTab(QWidget(), "Stock Market")
+        # Vertical splitter: bank tabs on top, economic indicators on bottom
+        self.tab_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+        self.tab_widget.setMinimumHeight(self.window_height // 3)
+        self.econ_indicator_tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+        self.econ_indicator_tabs.setMinimumHeight(self.window_height // 3)
+        self.central_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.central_splitter.setChildrenCollapsible(False)
+        self.central_splitter.addWidget(self.tab_widget)
+        self.central_splitter.addWidget(self.econ_indicator_tabs)
+        self.central_splitter.setStretchFactor(0, 1)
+        self.central_splitter.setStretchFactor(1, 1)
+        self.setCentralWidget(self.central_splitter)
 
     def create_dock_widgets(self) -> None:
         """Create and dock the inspector widget."""
@@ -239,13 +256,6 @@ class MainWindow(QMainWindow):
         self.inspector_widget = BRMSInspectorWidget(["Property", "Value"], self.dock_inspector)
         self.dock_inspector.setWidget(self.inspector_widget)
         self._dock_widgets.append(self.dock_inspector)
-        # Economic indicator
-        self.dock_econ_indicator = BRMSDockWidget("Economic Indicators", self)
-        econ_indicator_widget = QTabWidget()
-        econ_indicator_widget.addTab(self.yield_curve_widget, "Yield Curve")
-        econ_indicator_widget.addTab(QWidget(), "Stock Market")
-        self.dock_econ_indicator.setWidget(econ_indicator_widget)  # TODO: placeholder widget
-        self._dock_widgets.append(self.dock_econ_indicator)
         # Statements viewer
         self.dock_statement_viewer = BRMSDockWidget("Financial Statements", self)
         self.dock_statement_viewer.setMinimumWidth(400)
@@ -297,6 +307,12 @@ class MainWindow(QMainWindow):
         self.mortgage_calculator_action.setChecked(False)
         event.accept()
 
+    def showEvent(self, event: object) -> None:  # noqa: N802
+        """Equalize the central splitter after the window geometry is resolved."""
+        super().showEvent(event)
+        half = self.central_splitter.height() // 2
+        self.central_splitter.setSizes([half, half])
+
     def on_exit(self) -> None:
         """Handle the exit action.
 
@@ -324,8 +340,6 @@ class MainWindow(QMainWindow):
 
     def on_restore_views(self) -> None:
         """Restore the dock widgets to their default positions and sizes."""
-        # Left dock: economic indicators
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dock_econ_indicator)
         # Right dock: statement viewer on top, inspector on bottom
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock_statement_viewer)
         self.splitDockWidget(self.dock_statement_viewer, self.dock_inspector, Qt.Orientation.Vertical)
@@ -337,7 +351,7 @@ class MainWindow(QMainWindow):
         if screen_geometry.width() >= 1080:
             self.resizeDocks([self.dock_statement_viewer], [500], Qt.Orientation.Horizontal)
         self.resizeDocks(
-            [self.dock_statement_viewer, self.dock_inspector], [300, 500], Qt.Orientation.Vertical,
+            [self.dock_statement_viewer, self.dock_inspector], [400, 400], Qt.Orientation.Vertical,
         )
 
     def on_about_action(self) -> None:
