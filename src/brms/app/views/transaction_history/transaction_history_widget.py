@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QLineEdit,
     QPushButton,
     QSplitter,
     QVBoxLayout,
@@ -49,6 +50,9 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.end_date_filter = QDateEdit()
         self.type_label = QLabel("Transaction Type:")
         self.type_filter = QComboBox()
+        self.instrument_label = QLabel("Instrument ID:")
+        self.instrument_filter = QLineEdit()
+        self.instrument_filter.setPlaceholderText("Partial match…")
         self.search_button = QPushButton("Search")
         self.reset_button = QPushButton("Reset")
 
@@ -59,6 +63,8 @@ class BRMSTransactionHistoryWidget(QWidget):
         group_layout.addWidget(self.end_date_filter)
         group_layout.addWidget(self.type_label)
         group_layout.addWidget(self.type_filter)
+        group_layout.addWidget(self.instrument_label)
+        group_layout.addWidget(self.instrument_filter)
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.NoFrame)
         group_layout.addWidget(separator)
@@ -113,19 +119,25 @@ class BRMSTransactionHistoryWidget(QWidget):
         start_date = self.start_date_filter.date().toPython()
         end_date = self.end_date_filter.date().toPython()
         tx_type = self.type_filter.currentText()
+        instrument_query = self.instrument_filter.text().strip().lower()
         model = self.transactions_tree_model
         for row in range(model.rowCount()):
             idx_date = model.index(row, 1, QMODELINDEX)  # date
             idx_tx_type = model.index(row, 2, QMODELINDEX)  # transaction type
+            idx_instrument = model.index(row, 3, QMODELINDEX)  # instrument id
             if not (idx_date.isValid() and idx_tx_type.isValid()):
                 continue
             date_text = model.data(idx_date, Qt.ItemDataRole.DisplayRole)
             tx_type_text = model.data(idx_tx_type, Qt.ItemDataRole.DisplayRole)
             date = datetime.datetime.strptime(date_text, "%Y-%m-%d").date()
-            if start_date <= date <= end_date and (tx_type == "All" or tx_type_text == tx_type):
-                self.transaction_tree.setRowHidden(row, QMODELINDEX, False)
+            date_ok = start_date <= date <= end_date
+            type_ok = tx_type == "All" or tx_type_text == tx_type
+            if instrument_query:
+                inst_text = str(model.data(idx_instrument, Qt.ItemDataRole.DisplayRole) or "").lower()
+                inst_ok = instrument_query in inst_text
             else:
-                self.transaction_tree.setRowHidden(row, QMODELINDEX, True)
+                inst_ok = True
+            self.transaction_tree.setRowHidden(row, QMODELINDEX, not (date_ok and type_ok and inst_ok))
 
     def reset_filters(self) -> None:
         for row in range(self.transactions_tree_model.rowCount()):
