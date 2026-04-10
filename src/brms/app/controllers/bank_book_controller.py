@@ -93,7 +93,7 @@ class BankBookController(BRMSController):
         """Update the displayed value for an instrument by its ID."""
         self.model.update_instrument_value(instrument_id, value)
 
-    def on_instrument_selected(self) -> None:
+    def _on_selection_changed(self, _selected: object, _deselected: object) -> None:
         """Slot to handle selection changes."""
         indexes = self.tree.selectedIndexes()
         if not indexes:
@@ -104,9 +104,11 @@ class BankBookController(BRMSController):
 
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
-        self.tree.selectionModel().selectionChanged.connect(
-            lambda _s, _d: self.on_instrument_selected(),
-        )
+        self.tree.selectionModel().selectionChanged.connect(self._on_selection_changed)
+
+    def disconnect_signals(self) -> None:
+        """Disconnect signals to prevent stale references on reload."""
+        self.tree.selectionModel().selectionChanged.disconnect(self._on_selection_changed)
 
 
 class BankingBookController(BankBookController):

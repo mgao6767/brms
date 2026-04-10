@@ -48,7 +48,9 @@ class BankController(BRMSController):
         self._populate_books()
 
     def reset(self) -> None:
-        """Clear all data from both book tree widgets."""
+        """Disconnect signals and clear all data from both book trees."""
+        self.banking_book_ctrl.disconnect_signals()
+        self.trading_book_ctrl.disconnect_signals()
         self.banking_book_ctrl.reset()
         self.trading_book_ctrl.reset()
 
