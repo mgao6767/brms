@@ -10,21 +10,25 @@ class ColumnOrder(IntEnum):
     """
 
 
-class AssetColumns(ColumnOrder):
+class BookColumns(ColumnOrder):
+    """Unified columns for bank book trees (assets and liabilities share a tree)."""
+
     ID = 0
-    Asset = 1
+    Name = 1
     Class = 2
     Value = 3
 
 
-class LiabilityColumns(ColumnOrder):
-    ID = 0
-    Liability = 1
-    Class = 2
-    Value = 3
+BOOK_COLUMN_HEADERS = [col.name for col in BookColumns]
 
 
-BANKING_BOOK_ASSET_COLUMNS = [col.name for col in AssetColumns]
-BANKING_BOOK_LIABILITY_COLUMNS = [col.name for col in LiabilityColumns]
-TRADING_BOOK_ASSET_COLUMNS = [col.name for col in AssetColumns]
-TRADING_BOOK_LIABILITY_COLUMNS = [col.name for col in LiabilityColumns]
+CLASS_DISPLAY_NAMES: dict[str, str] = {
+    "HTM": "Held-to-Maturity",
+    "FVOCI": "Fair Value through OCI",
+    "FVTPL": "Fair Value through P&L",
+    "LOAN_AND_MORTGAGE": "Loans & Mortgages",
+}
+
+# Legacy aliases kept for backward compatibility
+AssetColumns = BookColumns
+LiabilityColumns = BookColumns

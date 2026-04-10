@@ -1,7 +1,5 @@
 """Bank book views."""
 
-from brms.app.views.bank_book.bank_book_widget import BRMSBankBookWidget
-from brms.app.views.bank_book.banking_book_widget import BRMSBankingBookWidget
-from brms.app.views.bank_book.trading_book_widget import BRMSTradingBookWidget
+from brms.app.views.bank_book.combined_book_widget import BRMSCombinedBookWidget
 
-__all__ = ["BRMSBankBookWidget", "BRMSBankingBookWidget", "BRMSTradingBookWidget"]
+__all__ = ["BRMSCombinedBookWidget"]

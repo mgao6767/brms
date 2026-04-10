@@ -106,8 +106,7 @@ class MainController(BRMSController):
         self.bank_ctrl = BankController(
             bank=services.bank,
             event_bus=eb,
-            banking_book_view=view.banking_book_widget,
-            trading_book_view=view.trading_book_widget,
+            combined_book_view=view.combined_book_widget,
             inspector_ctrl=self.inspector_ctrl,
         )
         self.yield_curve_ctrl = YieldCurveController(

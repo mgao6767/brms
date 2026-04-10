@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from brms import DEBUG_MODE, __about__, __github__, __homepage__, __version__
-from brms.app.views.bank_book import BRMSBankingBookWidget, BRMSTradingBookWidget
+from brms.app.views.bank_book import BRMSCombinedBookWidget
 from brms.app.views.calculators import BRMSBondCalculatorWidget, BRMSMortgageCalculatorWidget
 from brms.app.views.dashboard import BRMSDashboard
 from brms.app.views.inspector import BRMSInspectorWidget
@@ -45,8 +45,7 @@ class MainWindow(QMainWindow):
         # UI components
         self.dashboard: BRMSDashboard
         self.inspector_widget: BRMSInspectorWidget
-        self.banking_book_widget: BRMSBankingBookWidget
-        self.trading_book_widget: BRMSTradingBookWidget
+        self.combined_book_widget: BRMSCombinedBookWidget
         self.statement_viewer_widget: BRMSStatementViewer
         self._dock_widgets: list[BRMSDockWidget] = []
         self.yield_curve_widget = BRMSYieldCurveWidget(self)
@@ -70,8 +69,7 @@ class MainWindow(QMainWindow):
         self.fushion_style_action: QAction
         self.mq_style_action: QAction
         self.dashboard_action: QAction
-        self.banking_book_action: QAction
-        self.trading_book_action: QAction
+        self.bank_book_action: QAction
         self.transaction_history_action: QAction
         self.restore_views_action: QAction
         self.bond_calculator_action: QAction
@@ -139,12 +137,10 @@ class MainWindow(QMainWindow):
         self.mq_style_action.setCheckable(True)
         self.dashboard_action = QAction("Show Dashboard", self)
         self.dashboard_action.setShortcut("Ctrl+1")
-        self.banking_book_action = QAction("Show Banking Book", self)
-        self.banking_book_action.setShortcut("Ctrl+2")
-        self.trading_book_action = QAction("Show Trading Book", self)
-        self.trading_book_action.setShortcut("Ctrl+3")
+        self.bank_book_action = QAction("Show Bank Book", self)
+        self.bank_book_action.setShortcut("Ctrl+2")
         self.transaction_history_action = QAction("Show Transaction History", self)
-        self.transaction_history_action.setShortcut("Ctrl+4")
+        self.transaction_history_action.setShortcut("Ctrl+3")
         self.restore_views_action = QAction("Restore Views", self)
         # Calculator
         self.bond_calculator_action = QAction("Fixed-Rate Bond Calculator", self)
@@ -194,8 +190,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.mq_style_action)
         view_menu.addSeparator()
         view_menu.addAction(self.dashboard_action)
-        view_menu.addAction(self.banking_book_action)
-        view_menu.addAction(self.trading_book_action)
+        view_menu.addAction(self.bank_book_action)
         view_menu.addAction(self.transaction_history_action)
         view_menu.addAction(self.restore_views_action)
         # Simulation menu
@@ -222,14 +217,12 @@ class MainWindow(QMainWindow):
     def create_central_widget(self) -> None:
         """Create the central widget."""
         self.tab_widget = QTabWidget(self)
-        self.banking_book_widget = BRMSBankingBookWidget()
-        self.trading_book_widget = BRMSTradingBookWidget()
         self.dashboard = BRMSDashboard()
+        self.combined_book_widget = BRMSCombinedBookWidget()
         self.transaction_history_widget = BRMSTransactionHistoryWidget()
         self.rwa_credit_risk_widget = BRMSRWACreditRiskWidget()
         self.tab_widget.addTab(self.dashboard, "Dashboard")
-        self.tab_widget.addTab(self.banking_book_widget, "Banking Book")
-        self.tab_widget.addTab(self.trading_book_widget, "Trading Book")
+        self.tab_widget.addTab(self.combined_book_widget, "Bank Book")
         self.tab_widget.addTab(self.transaction_history_widget, "Transaction History")
         self.tab_widget.addTab(self.rwa_credit_risk_widget, "RWA Credit Risk")
         # Economic indicators at the bottom
@@ -277,9 +270,8 @@ class MainWindow(QMainWindow):
         self.bond_calculator_action.triggered.connect(self.toggle_bond_calculator)
         self.mortgage_calculator_action.triggered.connect(self.toggle_loan_calculator)
         self.dashboard_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(0))
-        self.banking_book_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(1))
-        self.trading_book_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(2))
-        self.transaction_history_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(3))
+        self.bank_book_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(1))
+        self.transaction_history_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(2))
 
     def toggle_bond_calculator(self):
         if self.bond_calculator_action.isChecked():

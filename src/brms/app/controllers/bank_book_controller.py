@@ -4,18 +4,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from brms import DEBUG_MODE
 from brms.app.controllers.base import BRMSController
-from brms.app.views.bank_book import BRMSBankBookWidget, BRMSBankingBookWidget, BRMSTradingBookWidget
-from brms.app.views.bank_book.columns import AssetColumns, ColumnOrder, LiabilityColumns
-from brms.app.views.widgets.tree_widget import QMODELINDEX, TreeModel
+from brms.app.views.bank_book.columns import CLASS_DISPLAY_NAMES
 from brms.core.enums import BookType
 from brms.core.enums import PositionSide as Position
 from brms.core.events import ValuationsUpdated
 from brms.core.models.instruments.deposits import Cash
 
 if TYPE_CHECKING:
+    from PySide6.QtWidgets import QTreeView
+
     from brms.app.controllers.inspector_controller import InspectorController
+    from brms.app.models.bank_book_model import BankBookModel
     from brms.core.events import EventBus
     from brms.core.models.bank import BookView
     from brms.core.models.instruments.base import Instrument
@@ -23,12 +23,17 @@ if TYPE_CHECKING:
 
 
 class BankBookController(BRMSController):
-    """Controller for managing a bank's banking or trading book."""
+    """Controller for managing a single book tree (banking or trading).
+
+    Each tree has two top-level nodes: Assets (row 0) and Liabilities (row 1).
+    Instruments are grouped by InstrumentClass under the appropriate node.
+    """
 
     def __init__(  # noqa: PLR0913
         self,
         bank_book: BookView,
-        view: BRMSBankBookWidget,
+        tree: QTreeView,
+        model: BankBookModel,
         inspector_ctrl: InspectorController,
         event_bus: EventBus,
         book_type: BookType,
@@ -36,59 +41,25 @@ class BankBookController(BRMSController):
     ) -> None:
         """Initialize the bank book controller."""
         self.bank_book = bank_book
-        self.bank_book_widget = view
+        self.tree = tree
+        self.model = model
         self.inspector_ctrl = inspector_ctrl
         self._book_type = book_type
         self._position_store = position_store
-        # Pointers to TreeModel
-        self.long_model: TreeModel = self.bank_book_widget.assets_tree.tree_model
-        self.short_model: TreeModel = self.bank_book_widget.liabilities_tree.tree_model
-        # Hide ID column since that instrument id is only used internally
-        self.set_id_column_visibility(visible=DEBUG_MODE)
         event_bus.subscribe(ValuationsUpdated, self._on_valuations_updated)
         self.connect_signals()
 
     def reset(self) -> None:
-        """Clear all data from the book tree widgets."""
-        for tree in (self.bank_book_widget.assets_tree, self.bank_book_widget.liabilities_tree):
-            tree.tree_model.blockSignals(True)
-            tree.clear_data()
-            tree.tree_model.blockSignals(False)
+        """Clear all instrument children from Assets and Liabilities nodes."""
+        self.model.clear_instruments()
+        self.tree.expandAll()
 
     def _on_valuations_updated(self, event: ValuationsUpdated) -> None:
         """Update instrument values from valuation event."""
         for pos in self._position_store.by_book(self._book_type):
             val = event.valuations.get(pos.id)
             if val is not None and float(val) != 0:
-                self.update_instrument_value(pos.instrument_id, float(val))
-
-    @staticmethod
-    def instrument_to_data(
-        instrument: Instrument,
-        position: Position,
-        initial_value: float | None = None,
-        instrument_class: object | None = None,
-    ) -> list[dict]:
-        """Convert an instrument to data that can be used by the TreeModel."""
-        value = initial_value if initial_value is not None else getattr(instrument, "face_value", 0)
-        inst_class = instrument_class or getattr(instrument, "instrument_class", None)
-        class_label = inst_class.name if inst_class is not None else ""
-        data: dict[ColumnOrder, object]
-        if position == Position.LONG:
-            data = {
-                AssetColumns.ID: instrument.id,
-                AssetColumns.Asset: instrument.name,
-                AssetColumns.Value: value,
-                AssetColumns.Class: class_label,
-            }
-        elif position == Position.SHORT:
-            data = {
-                LiabilityColumns.ID: instrument.id,
-                LiabilityColumns.Liability: instrument.name,
-                LiabilityColumns.Value: value,
-                LiabilityColumns.Class: class_label,
-            }
-        return [data]
+                self.model.update_instrument_value(pos.instrument_id, float(val))
 
     def add_instrument(
         self,
@@ -97,130 +68,70 @@ class BankBookController(BRMSController):
         initial_value: float | None = None,
         instrument_class: object | None = None,
     ) -> None:
-        """Add an instrument to the tree model."""
+        """Add an instrument under the appropriate class group node."""
         if position is None:
             position = Position.LONG
-        match position:
-            case Position.LONG:
-                self.long_model.add_data(
-                    QMODELINDEX,
-                    self.instrument_to_data(instrument, position, initial_value, instrument_class),
-                )
-            case Position.SHORT:
-                self.short_model.add_data(
-                    QMODELINDEX,
-                    self.instrument_to_data(instrument, position, initial_value, instrument_class),
-                )
+        side_node = self.model.assets if position == Position.LONG else self.model.liabilities
+        inst_class = instrument_class or getattr(instrument, "instrument_class", None)
+        class_name = inst_class.name if inst_class is not None else "Other"
+        class_label = CLASS_DISPLAY_NAMES.get(class_name, class_name)
+        group = self.model.find_or_create_class_group(side_node, class_label)
+        value = initial_value if initial_value is not None else getattr(instrument, "face_value", 0)
+        self.model.add_instrument(group, instrument.name, float(value), instrument.id)
+        self.tree.expandAll()
 
-    def remove_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
+    def remove_instrument(self, instrument: Instrument, position: Position | None = None) -> None:  # noqa: ARG002
         """Remove an instrument from the tree model."""
-        if position is None:
-            position = Position.LONG
-        match position:
-            case Position.LONG:
-                self.long_model.remove_data(QMODELINDEX, instrument.id, id_column=AssetColumns.ID.value)
-            case Position.SHORT:
-                self.short_model.remove_data(QMODELINDEX, instrument.id, id_column=LiabilityColumns.ID.value)
+        self.model.remove_instrument(instrument.id)
 
-    def update_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
+    def update_instrument(self, instrument: Instrument, position: Position | None = None) -> None:  # noqa: ARG002
         """Update an instrument's display in the tree model."""
-        if position is None:
-            position = Position.LONG
         face_value = getattr(instrument, "face_value", 0)
-        match position:
-            case Position.LONG:
-                if index := self.long_model.find_data(instrument.id, AssetColumns.ID.value):
-                    self.long_model.update_data(index, {AssetColumns.Value: face_value})
-            case Position.SHORT:
-                if index := self.short_model.find_data(instrument.id, LiabilityColumns.ID.value):
-                    self.short_model.update_data(index, {LiabilityColumns.Value: face_value})
+        self.model.update_instrument_value(instrument.id, float(face_value))
 
     def update_instrument_value(self, instrument_id: str, value: float) -> None:
         """Update the displayed value for an instrument by its ID."""
-        if index := self.long_model.find_data(instrument_id, AssetColumns.ID.value):
-            self.long_model.update_data(index, {AssetColumns.Value: value})
-        elif index := self.short_model.find_data(instrument_id, LiabilityColumns.ID.value):
-            self.short_model.update_data(index, {LiabilityColumns.Value: value})
+        self.model.update_instrument_value(instrument_id, value)
 
-    def set_id_column_visibility(self, *, visible: bool) -> None:
-        """Set the visibility of the ID column in the tree view."""
-        self.bank_book_widget.assets_tree.setColumnHidden(AssetColumns.ID.value, not visible)
-        self.bank_book_widget.liabilities_tree.setColumnHidden(LiabilityColumns.ID.value, not visible)
-
-    def on_instrument_selected(self, position: Position) -> None:
+    def on_instrument_selected(self) -> None:
         """Slot to handle selection changes."""
-        if position == Position.LONG:
-            indexes = self.bank_book_widget.assets_tree.selectedIndexes()
-            id_column = AssetColumns.ID.value
-        else:
-            indexes = self.bank_book_widget.liabilities_tree.selectedIndexes()
-            id_column = LiabilityColumns.ID.value
-        if indexes:
-            selected_index = indexes[0]
-            item = selected_index.internalPointer()
-            instrument_id = item.data(id_column)
-            if instrument := self.bank_book.get_instrument_by_id(instrument_id):  # read-only, does not modify bank book
-                self.inspector_ctrl.show_instrument_details(instrument)
+        indexes = self.tree.selectedIndexes()
+        if not indexes:
+            return
+        instrument_id = self.model.get_instrument_id(indexes[0])
+        if instrument_id and (instrument := self.bank_book.get_instrument_by_id(instrument_id)):
+            self.inspector_ctrl.show_instrument_details(instrument)
 
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
-        # When selection changed or focused changed, update inspector
-        self.bank_book_widget.assets_tree.selectionModel().selectionChanged.connect(
-            lambda _s, _d: self.on_instrument_selected(Position.LONG),
+        self.tree.selectionModel().selectionChanged.connect(
+            lambda _s, _d: self.on_instrument_selected(),
         )
-        self.bank_book_widget.liabilities_tree.selectionModel().selectionChanged.connect(
-            lambda _s, _d: self.on_instrument_selected(Position.SHORT),
-        )
-        self.bank_book_widget.assets_tree.focused.connect(lambda: self.on_instrument_selected(Position.LONG))
-        self.bank_book_widget.liabilities_tree.focused.connect(lambda: self.on_instrument_selected(Position.SHORT))
 
 
 class BankingBookController(BankBookController):
     """Controller for banking book."""
 
-    def __init__(  # noqa: PLR0913
-        self,
-        bank_book: BookView,
-        view: BRMSBankingBookWidget,
-        inspector_ctrl: InspectorController,
-        event_bus: EventBus,
-        book_type: BookType,
-        position_store: PositionStore,
-    ) -> None:
-        """Initialize the banking book controller."""
-        super().__init__(bank_book, view, inspector_ctrl, event_bus, book_type, position_store)
-        self.bank_book_widget.liabilities_tree.setColumnHidden(LiabilityColumns.Class.value, True)
-
     def _add_cash(self, cash: Cash) -> None:
-        # Check if there is already cash instrument in the tree's model
-        idx = self.long_model.find_data("Cash", column=AssetColumns.Asset)  # noqa: FIX002, TD002, TD003  # TODO: improve
-        # Not found, add it to the tree's model
-        if idx is None:
-            self.long_model.add_data(QMODELINDEX, self.instrument_to_data(cash, Position.LONG))
+        """Add or update cash instrument in the Assets node."""
+        row = self.model.find_instrument_by_name("Cash")
+        if row is None:
+            self.add_instrument(cash, Position.LONG)
             return
-        if not idx.isValid():
-            return
-        # Found existing cash record in the model
-        item = idx.internalPointer()
-        cash_id = item.data(AssetColumns.ID.value)
-        # Obtain a reference to the cash instrument
-        cash_instrument = self.bank_book.get_instrument_by_id(cash_id)
+        # Update existing cash value
+        cash_instrument = self.bank_book.get_instrument_by_id(row.instrument_id)
         if isinstance(cash_instrument, Cash):
-            self.long_model.update_data(idx, {AssetColumns.Value: cash_instrument.value})
+            self.model.update_instrument_value(row.instrument_id, float(cash_instrument.value))
 
     def _remove_cash(self, _cash: Cash) -> None:
-        idx = self.long_model.find_data("Cash", column=AssetColumns.Asset)  # noqa: FIX002, TD002, TD003  # TODO: improve
-        if idx is None:
+        """Update cash value when cash is removed."""
+        row = self.model.find_instrument_by_name("Cash")
+        if row is None:
             msg = "No cash in the asset tree model"
             raise ValueError(msg)
-        if not idx.isValid():
-            return
-        # Found existing cash record in the model
-        item = idx.internalPointer()
-        cash_id = item.data(AssetColumns.ID.value)
-        cash_instrument = self.bank_book.get_instrument_by_id(cash_id)
+        cash_instrument = self.bank_book.get_instrument_by_id(row.instrument_id)
         if isinstance(cash_instrument, Cash):
-            self.long_model.update_data(idx, {AssetColumns.Value: cash_instrument.value})
+            self.model.update_instrument_value(row.instrument_id, float(cash_instrument.value))
 
     def add_instrument(
         self,
@@ -242,108 +153,6 @@ class BankingBookController(BankBookController):
             return
         super().remove_instrument(instrument, position)
 
-    def connect_signals(self) -> None:
-        """Connect signals to their respective slots."""
-        super().connect_signals()
-        assert isinstance(self.bank_book_widget, BRMSBankingBookWidget)  # noqa: S101
-        self.bank_book_widget.btn_loan_portfolio_overview.clicked.connect(self.on_btn_loan_portfolio_overview)
-        self.bank_book_widget.btn_loan_risk_assessment.clicked.connect(self.on_btn_loan_risk_assessment)
-        self.bank_book_widget.btn_htm_portfolio_analysis.clicked.connect(self.on_btn_htm_portfolio_analysis)
-        self.bank_book_widget.btn_market_value_assessment.clicked.connect(self.on_btn_market_value_assessment)
-        self.bank_book_widget.btn_liquidity_position.clicked.connect(self.on_btn_liquidity_position)
-        self.bank_book_widget.btn_banking_book_profitability.clicked.connect(self.on_btn_banking_book_profitability)
-        self.bank_book_widget.btn_asset_liability_matching.clicked.connect(self.on_btn_asset_liability_matching)
-        self.bank_book_widget.btn_process_loan_applications.clicked.connect(self.on_btn_process_loan_applications)
-        self.bank_book_widget.btn_modify_loan_terms.clicked.connect(self.on_btn_modify_loan_terms)
-        self.bank_book_widget.btn_trade_treasury_securities.clicked.connect(self.on_btn_trade_treasury_securities)
-        self.bank_book_widget.btn_trade_corporate_securities.clicked.connect(self.on_btn_trade_corporate_securities)
-        self.bank_book_widget.btn_adjust_deposit_interest_rate.clicked.connect(self.on_btn_adjust_deposit_interest_rate)
-        self.bank_book_widget.btn_manage_debt_instruments.clicked.connect(self.on_btn_manage_debt_instruments)
-
-    def on_btn_loan_portfolio_overview(self) -> None:
-        """Handle Loan Portfolio Overview button click."""
-
-    def on_btn_loan_risk_assessment(self) -> None:
-        """Handle Loan Risk Assessment button click."""
-
-    def on_btn_htm_portfolio_analysis(self) -> None:
-        """Handle HTM Portfolio Analysis button click."""
-
-    def on_btn_market_value_assessment(self) -> None:
-        """Handle Market Value Assessment button click."""
-
-    def on_btn_liquidity_position(self) -> None:
-        """Handle Liquidity Position button click."""
-
-    def on_btn_banking_book_profitability(self) -> None:
-        """Handle Banking Book Profitability button click."""
-
-    def on_btn_asset_liability_matching(self) -> None:
-        """Handle Asset-Liability Matching button click."""
-
-    def on_btn_process_loan_applications(self) -> None:
-        """Handle Process Loan Applications button click."""
-
-    def on_btn_modify_loan_terms(self) -> None:
-        """Handle Modify Loan Terms button click."""
-
-    def on_btn_trade_treasury_securities(self) -> None:
-        """Handle Trade Treasury Securities button click."""
-
-    def on_btn_trade_corporate_securities(self) -> None:
-        """Handle Trade Corporate Securities button click."""
-
-    def on_btn_adjust_deposit_interest_rate(self) -> None:
-        """Handle Adjust Deposit Interest Rate button click."""
-
-    def on_btn_manage_debt_instruments(self) -> None:
-        """Handle Manage Debt Instruments button click."""
-
 
 class TradingBookController(BankBookController):
     """Controller for trading book."""
-
-    def __init__(  # noqa: PLR0913
-        self,
-        bank_book: BookView,
-        view: BRMSTradingBookWidget,
-        inspector_ctrl: InspectorController,
-        event_bus: EventBus,
-        book_type: BookType,
-        position_store: PositionStore,
-    ) -> None:
-        """Initialize the trading book controller."""
-        super().__init__(bank_book, view, inspector_ctrl, event_bus, book_type, position_store)
-
-    def connect_signals(self) -> None:
-        """Connect signals to their respective slots."""
-        super().connect_signals()
-        assert isinstance(self.bank_book_widget, BRMSTradingBookWidget)  # noqa: S101
-        self.bank_book_widget.btn_trading_portfolio_overview.clicked.connect(self.on_btn_trading_portfolio_overview)
-        self.bank_book_widget.btn_risk_assessment.clicked.connect(self.on_btn_risk_assessment)
-        self.bank_book_widget.btn_mark_to_market_analysis.clicked.connect(self.on_btn_mark_to_market_analysis)
-        self.bank_book_widget.btn_trading_profitability.clicked.connect(self.on_btn_trading_profitability)
-        self.bank_book_widget.btn_trade_treasury_securities.clicked.connect(self.on_btn_trade_treasury_securities)
-        self.bank_book_widget.btn_trade_corporate_securities.clicked.connect(self.on_btn_trade_corporate_securities)
-        self.bank_book_widget.btn_trade_derivatives.clicked.connect(self.on_btn_trade_derivatives)
-
-    def on_btn_trading_portfolio_overview(self) -> None:
-        """Handle Trading Portfolio Overview button click."""
-
-    def on_btn_risk_assessment(self) -> None:
-        """Handle Market Risk Assessment button click."""
-
-    def on_btn_mark_to_market_analysis(self) -> None:
-        """Handle Mark-to-Market Analysis button click."""
-
-    def on_btn_trading_profitability(self) -> None:
-        """Handle Trading Profitability button click."""
-
-    def on_btn_trade_treasury_securities(self) -> None:
-        """Handle Trade Treasury Securities button click."""
-
-    def on_btn_trade_corporate_securities(self) -> None:
-        """Handle Trade Corporate Securities button click."""
-
-    def on_btn_trade_derivatives(self) -> None:
-        """Handle Trade Derivatives button click."""

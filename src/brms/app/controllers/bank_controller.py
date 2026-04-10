@@ -12,8 +12,7 @@ from brms.core.events import InstrumentAdded, InstrumentRemoved
 
 if TYPE_CHECKING:
     from brms.app.controllers.inspector_controller import InspectorController
-    from brms.app.views.bank_book.banking_book_widget import BRMSBankingBookWidget
-    from brms.app.views.bank_book.trading_book_widget import BRMSTradingBookWidget
+    from brms.app.views.bank_book.combined_book_widget import BRMSCombinedBookWidget
     from brms.core.events import EventBus
     from brms.core.models.bank import Bank
 
@@ -25,8 +24,7 @@ class BankController(BRMSController):
         self,
         bank: Bank,
         event_bus: EventBus,
-        banking_book_view: BRMSBankingBookWidget,
-        trading_book_view: BRMSTradingBookWidget,
+        combined_book_view: BRMSCombinedBookWidget,
         inspector_ctrl: InspectorController,
     ) -> None:
         """Initialize the BankController with core services."""
@@ -34,14 +32,17 @@ class BankController(BRMSController):
         self.bank = bank
 
         self.banking_book_ctrl = BankingBookController(
-            bank.banking_book, banking_book_view, inspector_ctrl,
+            bank.banking_book, combined_book_view.banking_tree,
+            combined_book_view.banking_model, inspector_ctrl,
             event_bus, BookType.BANKING, bank.positions,
         )
         self.trading_book_ctrl = TradingBookController(
-            bank.trading_book, trading_book_view, inspector_ctrl,
+            bank.trading_book, combined_book_view.trading_tree,
+            combined_book_view.trading_model, inspector_ctrl,
             event_bus, BookType.TRADING, bank.positions,
         )
 
+        self._combined_view = combined_book_view
         event_bus.subscribe(InstrumentAdded, self._on_instrument_added)
         event_bus.subscribe(InstrumentRemoved, self._on_instrument_removed)
         self._populate_books()
@@ -67,6 +68,8 @@ class BankController(BRMSController):
                 instrument, side, initial_value=float(pos.acquisition_cost),
                 instrument_class=pos.instrument_class,
             )
+        self._combined_view.banking_tree.expandAll()
+        self._combined_view.trading_tree.expandAll()
 
     def _on_instrument_added(self, event: InstrumentAdded) -> None:
         """Handle an instrument being added to a book."""
