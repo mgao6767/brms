@@ -6,9 +6,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import InstrumentClass as CoreInstrumentClass
-from brms.core.enums import ValuationType
-from brms.core.models.instruments.base import InstrumentClass as BaseInstrumentClass
+from brms.core.enums import MeasurementBasis, ValuationType
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
@@ -16,12 +14,7 @@ if TYPE_CHECKING:
     from brms.core.models.position import Position
     from brms.core.rules.context import RuleContext
 
-_MTM_CLASSES = {
-    BaseInstrumentClass.FVTPL,
-    BaseInstrumentClass.FVOCI,
-    CoreInstrumentClass.FVTPL,
-    CoreInstrumentClass.FVOCI,
-}
+_MTM_BASES = {MeasurementBasis.FVTPL, MeasurementBasis.FVOCI}
 
 
 class MarkToMarketRule:
@@ -36,10 +29,8 @@ class MarkToMarketRule:
         """Return True if market data is available and the position is FVTPL or FVOCI."""
         if not context.has_market_data:
             return False
-        instrument_class = getattr(position, "instrument_class", None)
-        if instrument_class is None:
-            return False
-        return instrument_class in _MTM_CLASSES
+        basis = getattr(position, "measurement_basis", None)
+        return basis in _MTM_BASES
 
     def generate(
         self,
@@ -66,14 +57,8 @@ class MarkToMarketRule:
         if fair_value_change == 0:
             return []
 
-        instrument_class = getattr(position, "instrument_class", None)
-        if instrument_class in {BaseInstrumentClass.FVTPL, CoreInstrumentClass.FVTPL}:
-            class_name = "FVTPL"
-        elif instrument_class in {BaseInstrumentClass.FVOCI, CoreInstrumentClass.FVOCI}:
-            class_name = "FVOCI"
-        else:
-            class_name = ""
-
+        basis = getattr(position, "measurement_basis", None)
+        basis_name = basis.name if basis is not None else ""
         direction = "gain" if fair_value_change > 0 else "loss"
 
         return [
@@ -84,9 +69,9 @@ class MarkToMarketRule:
                 amount=fair_value_change,
                 position_id=position_id,
                 instrument_id=instrument_id,
-                description=f"Mark-to-market {direction} ({class_name})",
+                description=f"Mark-to-market {direction} ({basis_name})",
                 metadata=(
-                    ("instrument_class", class_name),
+                    ("measurement_basis", basis_name),
                     ("direction", direction),
                 ),
             ),

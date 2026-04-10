@@ -45,13 +45,13 @@ class PositionStatus(Enum):
     CLOSED = auto()
 
 
-class InstrumentClass(Enum):
-    """Classification of instruments for accounting treatment."""
+class MeasurementBasis(Enum):
+    """IFRS 9 measurement category for financial instruments."""
 
-    HTM = auto()
+    AMORTIZED_COST = auto()
     FVOCI = auto()
     FVTPL = auto()
-    LOAN_AND_MORTGAGE = auto()
+    NA = auto()  # deposits, equity, cash — not classified
 
 
 class ValuationType(Enum):

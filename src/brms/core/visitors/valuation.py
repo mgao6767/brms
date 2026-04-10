@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Union
 
 import QuantLib as ql  # noqa: N813
 
-from brms.core.models.instruments.base import BookType, InstrumentClass
-from brms.core.visitors.base import Visitor
+from brms.core.models.instruments.base import BookType, MeasurementBasis
 from brms.core.services.yield_curve_service import YieldCurveService
 from brms.core.utils import pydate_to_qldate
+from brms.core.visitors.base import Visitor
 
 if TYPE_CHECKING:
     from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond
@@ -106,18 +106,18 @@ class BankingBookValuationVisitor(ValuationVisitor):
     def visit_fixed_rate_bond(self, instrument: "FixedRateBond") -> None:
         """Value a fixed rate bond."""
         assert self.valuation_date is not None  # noqa: S101
-        match instrument.instrument_class:
-            case InstrumentClass.HTM:
+        match instrument.measurement_basis:
+            case MeasurementBasis.AMORTIZED_COST:
                 instrument.value = instrument.notional(self.valuation_date)
-            case InstrumentClass.FVOCI | InstrumentClass.FVTPL:
+            case MeasurementBasis.FVOCI | MeasurementBasis.FVTPL:
                 instrument.value = self._value_fair_value_security(instrument)
 
     @banking_book_only
     def visit_amortizing_fixed_rate_loan(self, instrument: "AmortizingFixedRateLoan") -> None:
         """Value an amortizing fixed rate loan."""
         assert self.valuation_date is not None  # noqa: S101
-        match instrument.instrument_class:
-            case InstrumentClass.HTM | InstrumentClass.LOAN_AND_MORTGAGE:
+        match instrument.measurement_basis:
+            case MeasurementBasis.AMORTIZED_COST:
                 _, _, outstanding_balance = instrument.payment_schedule()
                 if self.valuation_date < min(d for d, _ in outstanding_balance):
                     # No payments yet — the amount is the notional amount
@@ -126,7 +126,7 @@ class BankingBookValuationVisitor(ValuationVisitor):
                     # At least some payments made — use the latest outstanding amount
                     last_outstanding = next(amt for d, amt in reversed(outstanding_balance) if d <= self.valuation_date)
                     instrument.value = last_outstanding
-            case InstrumentClass.FVOCI | InstrumentClass.FVTPL:
+            case MeasurementBasis.FVOCI | MeasurementBasis.FVTPL:
                 instrument.value = self._value_fair_value_security(instrument)
 
     @banking_book_only

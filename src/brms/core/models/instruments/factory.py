@@ -4,7 +4,7 @@ import datetime
 
 import QuantLib as ql  # noqa: N813
 
-from brms.core.models.instruments.base import BookType, CreditRating, InstrumentClass, Issuer, IssuerType
+from brms.core.models.instruments.base import BookType, CreditRating, MeasurementBasis, Issuer, IssuerType
 from brms.core.models.instruments.bonds import FixedRateBond, TreasuryNote
 from brms.core.models.instruments.deposits import Deposit
 from brms.core.models.instruments.equity import CommonEquity
@@ -31,7 +31,7 @@ class InstrumentFactory:
         coupon_rate: float,
         issue_date: datetime.date,
         maturity_date: datetime.date,
-        instrument_class: InstrumentClass,
+        measurement_basis: MeasurementBasis,
         book_type: BookType = BookType.BANKING,
     ) -> TreasuryNote:
         """Create a TreasuryNote instrument."""
@@ -43,7 +43,7 @@ class InstrumentFactory:
             issue_date=issue_date_ql,
             maturity_date=maturity_date_ql,
             book_type=book_type,
-            instrument_class=instrument_class,
+            measurement_basis=measurement_basis,
             credit_rating=CreditRating.AAA,
             issuer=Issuer(
                 name="Government",
@@ -67,7 +67,7 @@ class InstrumentFactory:
         book_type: BookType = BookType.BANKING,
         credit_rating: CreditRating = CreditRating.UNRATED,
         issuer: Issuer | None = None,
-        instrument_class: InstrumentClass = InstrumentClass.LOAN_AND_MORTGAGE,
+        measurement_basis: MeasurementBasis = MeasurementBasis.AMORTIZED_COST,
     ) -> ResidentialMortgage:
         """Create a ResidentialMortgage instrument."""
         issue_date_ql = ql.Date(issue_date.day, issue_date.month, issue_date.year)
@@ -91,7 +91,7 @@ class InstrumentFactory:
             book_type=book_type,
             credit_rating=credit_rating,
             issuer=issuer,
-            instrument_class=instrument_class,
+            measurement_basis=measurement_basis,
         )
 
     @staticmethod
@@ -111,7 +111,7 @@ class InstrumentFactory:
         book_type: BookType = BookType.BANKING,
         credit_rating: CreditRating = CreditRating.UNRATED,
         issuer: Issuer | None = None,
-        instrument_class: InstrumentClass = InstrumentClass.HTM,
+        measurement_basis: MeasurementBasis = MeasurementBasis.AMORTIZED_COST,
     ) -> FixedRateBond:
         """Create a FixedRateBond instrument."""
         issue_date_ql = ql.Date(issue_date.day, issue_date.month, issue_date.year)
@@ -135,7 +135,7 @@ class InstrumentFactory:
             date_generation=date_generation,
             month_end=month_end,
             book_type=book_type,
-            instrument_class=instrument_class,
+            measurement_basis=measurement_basis,
             credit_rating=credit_rating,
             issuer=issuer,
         )

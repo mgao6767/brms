@@ -32,8 +32,8 @@ def _make_position(instrument_id: str = "bond-1", acquisition_cost: Decimal = De
     pos.id = "pos-1"
     pos.instrument_id = instrument_id
     pos.acquisition_cost = acquisition_cost
-    pos.instrument_class = MagicMock()
-    pos.instrument_class.name = "HTM"
+    pos.measurement_basis = MagicMock()
+    pos.measurement_basis.name = "AMORTIZED_COST"
     return pos
 
 

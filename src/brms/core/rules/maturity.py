@@ -36,8 +36,8 @@ class MaturityRule:
         context: RuleContext,
     ) -> list[Transaction]:
         """Generate a single maturity settlement transaction for the acquisition cost."""
-        instrument_class = getattr(position, "instrument_class", None)
-        instrument_class_name = instrument_class.name if instrument_class is not None else ""
+        measurement_basis = getattr(position, "measurement_basis", None)
+        measurement_basis_name = measurement_basis.name if measurement_basis is not None else ""
         return [
             Transaction(
                 id=str(uuid.uuid4()),
@@ -47,6 +47,6 @@ class MaturityRule:
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
                 description="Instrument matured — settlement",
-                metadata=(("instrument_class", instrument_class_name),),
+                metadata=(("measurement_basis", measurement_basis_name),),
             ),
         ]

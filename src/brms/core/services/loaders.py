@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 import pandas as pd
 
-from brms.core.enums import BookType, InstrumentClass, PositionSide
+from brms.core.enums import BookType, MeasurementBasis, PositionSide
 from brms.core.models.position import Position
 from brms.core.services.data_service import _convert_kwargs
 
@@ -131,7 +131,7 @@ class ZipLoader:
                 id=p["id"],
                 instrument_id=p["instrument_id"],
                 book_type=BookType[p["book_type"]],
-                instrument_class=InstrumentClass[p["instrument_class"]],
+                measurement_basis=MeasurementBasis[p["measurement_basis"]],
                 side=PositionSide[p["side"]],
                 acquisition_date=datetime.date.fromisoformat(p["acquisition_date"]),
                 acquisition_cost=Decimal(str(p["acquisition_cost"])),

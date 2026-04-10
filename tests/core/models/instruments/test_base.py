@@ -4,7 +4,8 @@
 
 import pytest
 
-from brms.core.models.instruments.base import BookType, Instrument, InstrumentClass
+from brms.core.enums import MeasurementBasis
+from brms.core.models.instruments.base import BookType, Instrument
 
 
 def test_book_type_enum() -> None:
@@ -13,12 +14,12 @@ def test_book_type_enum() -> None:
     assert BookType.TRADING.value == "trading"
 
 
-def test_instrument_class_enum() -> None:
-    """InstrumentClass enum exposes expected accounting classifications."""
-    assert InstrumentClass.HTM
-    assert InstrumentClass.FVOCI
-    assert InstrumentClass.FVTPL
-    assert InstrumentClass.LOAN_AND_MORTGAGE
+def test_measurement_basis_enum() -> None:
+    """MeasurementBasis enum exposes expected accounting classifications."""
+    assert MeasurementBasis.AMORTIZED_COST
+    assert MeasurementBasis.FVOCI
+    assert MeasurementBasis.FVTPL
+    assert MeasurementBasis.NA
 
 
 def test_instrument_is_abstract() -> None:

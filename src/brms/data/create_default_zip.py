@@ -44,7 +44,7 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
     positions: list[dict] = []
 
     def _add(
-        inst: dict, book_type: str, instrument_class: str, acquisition_cost: float,
+        inst: dict, book_type: str, measurement_basis: str, acquisition_cost: float,
         side: str = "LONG",
     ) -> None:
         inst_id = str(uuid.uuid4())
@@ -54,7 +54,7 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
             "id": str(uuid.uuid4()),
             "instrument_id": inst_id,
             "book_type": book_type,
-            "instrument_class": instrument_class,
+            "measurement_basis": measurement_basis,
             "side": side,
             "acquisition_date": _START_DATE,
             "acquisition_cost": acquisition_cost,
@@ -64,7 +64,7 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
     _add(
         {"type": "common_equity", "name": "Common Equity"},
         book_type="BANKING",
-        instrument_class="LOAN_AND_MORTGAGE",
+        measurement_basis="NA",
         acquisition_cost=1_000_000,
         side="SHORT",
     )
@@ -73,7 +73,7 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
     _add(
         {"type": "deposit", "name": "Deposit"},
         book_type="BANKING",
-        instrument_class="LOAN_AND_MORTGAGE",
+        measurement_basis="NA",
         acquisition_cost=6_000_000,
         side="SHORT",
     )
@@ -86,12 +86,12 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
             "coupon_rate": 0.05,
             "issue_date": "2020-01-01",
             "maturity_date": "2030-01-01",
-            "instrument_class": "HTM",
+            "measurement_basis": "AMORTIZED_COST",
             "credit_rating": "AAA",
             "issuer": _issuer_dict("Government", "SOVEREIGN", "AAA"),
         },
         book_type="BANKING",
-        instrument_class="HTM",
+        measurement_basis="AMORTIZED_COST",
         acquisition_cost=10_000.0,
     )
 
@@ -110,12 +110,12 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
                 "interest_rate": interest_rate,
                 "issue_date": issue.isoformat(),
                 "maturity": f"{maturity_years}Y",
-                "instrument_class": "Loan",
+                "measurement_basis": "AMORTIZED_COST",
                 "credit_rating": "UNRATED",
                 "issuer": _issuer_dict("Residential Mortgage Issuer", "INDIVIDUAL"),
             },
             book_type="BANKING",
-            instrument_class="LOAN_AND_MORTGAGE",
+            measurement_basis="AMORTIZED_COST",
             acquisition_cost=float(face_value),
         )
 
@@ -131,12 +131,12 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
                 "coupon_rate": coupon_rate,
                 "issue_date": "2020-01-01",
                 "maturity_date": mat.isoformat(),
-                "instrument_class": "FVOCI",
+                "measurement_basis": "FVOCI",
                 "credit_rating": "AAA",
                 "issuer": _issuer_dict("Government", "SOVEREIGN", "AAA"),
             },
             book_type="BANKING",
-            instrument_class="FVOCI",
+            measurement_basis="FVOCI",
             acquisition_cost=100_000.0,
         )
 
@@ -152,13 +152,13 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
                 "coupon_rate": coupon_rate,
                 "issue_date": "2020-01-01",
                 "maturity_date": mat.isoformat(),
-                "instrument_class": "FVTPL",
+                "measurement_basis": "FVTPL",
                 "book_type": "trading",
                 "credit_rating": "AAA",
                 "issuer": _issuer_dict("Government", "SOVEREIGN", "AAA"),
             },
             book_type="TRADING",
-            instrument_class="FVTPL",
+            measurement_basis="FVTPL",
             acquisition_cost=100_000.0,
         )
 

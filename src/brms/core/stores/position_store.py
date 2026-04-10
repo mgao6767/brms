@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from brms.core.enums import PositionStatus
 
 if TYPE_CHECKING:
-    from brms.core.enums import BookType, InstrumentClass, InstrumentType, PositionSide
+    from brms.core.enums import BookType, MeasurementBasis, InstrumentType, PositionSide
     from brms.core.models.position import Position
 
 
@@ -23,7 +23,7 @@ class PositionStore:
         self._by_side: dict[Any, set[str]] = defaultdict(set)
         self._by_status: dict[Any, set[str]] = defaultdict(set)
         self._by_instrument_type: dict[Any, set[str]] = defaultdict(set)
-        self._by_instrument_class: dict[Any, set[str]] = defaultdict(set)
+        self._by_measurement_basis: dict[Any, set[str]] = defaultdict(set)
 
     # ------------------------------------------------------------------
     # Private helpers
@@ -38,8 +38,8 @@ class PositionStore:
         self._by_status[position.status].add(pid)
         if hasattr(position, "instrument_type"):
             self._by_instrument_type[position.instrument_type].add(pid)
-        if hasattr(position, "instrument_class"):
-            self._by_instrument_class[position.instrument_class].add(pid)
+        if hasattr(position, "measurement_basis"):
+            self._by_measurement_basis[position.measurement_basis].add(pid)
 
     def _deindex(self, position: Position) -> None:
         """Remove *position* from all secondary indices."""
@@ -50,8 +50,8 @@ class PositionStore:
         self._by_status[position.status].discard(pid)
         if hasattr(position, "instrument_type"):
             self._by_instrument_type[position.instrument_type].discard(pid)
-        if hasattr(position, "instrument_class"):
-            self._by_instrument_class[position.instrument_class].discard(pid)
+        if hasattr(position, "measurement_basis"):
+            self._by_measurement_basis[position.measurement_basis].discard(pid)
 
     def _ids_to_positions(self, ids: set[str]) -> list[Position]:
         """Resolve a set of position ids to position objects."""
@@ -108,7 +108,7 @@ class PositionStore:
         side: PositionSide | None = None,
         status: PositionStatus | None = None,
         instrument_type: InstrumentType | None = None,
-        instrument_class: InstrumentClass | None = None,
+        measurement_basis: MeasurementBasis | None = None,
     ) -> list[Position]:
         """Return positions matching all non-None filter parameters."""
         result_ids: set[str] | None = None
@@ -126,8 +126,8 @@ class PositionStore:
             result_ids = intersect(self._by_status[status])
         if instrument_type is not None:
             result_ids = intersect(self._by_instrument_type[instrument_type])
-        if instrument_class is not None:
-            result_ids = intersect(self._by_instrument_class[instrument_class])
+        if measurement_basis is not None:
+            result_ids = intersect(self._by_measurement_basis[measurement_basis])
 
         if result_ids is None:
             return list(self._by_id.values())

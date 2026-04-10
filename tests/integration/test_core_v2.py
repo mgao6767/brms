@@ -7,7 +7,7 @@ from decimal import Decimal
 
 import pandas as pd
 
-from brms.core.enums import BookType, InstrumentClass, PositionSide, ValuationType
+from brms.core.enums import BookType, MeasurementBasis, PositionSide, ValuationType
 from brms.core.events import DateAdvanced, EventBus
 from brms.core.metrics.base import MetricRegistry
 from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
@@ -22,7 +22,7 @@ from brms.core.services.metrics_service import MetricsService
 from brms.core.services.rule_engine import RuleEngine
 from brms.core.services.simulation_service import SimulationService
 from brms.core.services.valuation_service import ValuationService
-from brms.core.services.valuation_strategies import AmortizedCostStrategy
+from brms.core.services.valuation_strategies import CarryingValueStrategy
 from brms.core.stores.instrument_store import InstrumentStore
 from brms.core.stores.metric_store import MetricStore
 from brms.core.stores.position_store import PositionStore
@@ -47,7 +47,7 @@ def test_full_v2_flow() -> None:
         id="pos-1",
         instrument_id="cash-1",
         book_type=BookType.BANKING,
-        instrument_class=InstrumentClass.HTM,
+        measurement_basis=MeasurementBasis.AMORTIZED_COST,
         side=PositionSide.LONG,
         acquisition_date=datetime.date(2024, 1, 1),
         acquisition_cost=Decimal("5000000"),
@@ -65,7 +65,7 @@ def test_full_v2_flow() -> None:
 
     # Services
     vs = ValuationService()
-    vs.register_strategy(InstrumentClass.HTM, AmortizedCostStrategy())
+    vs.register_strategy(MeasurementBasis.AMORTIZED_COST, CarryingValueStrategy())
     event_bus = EventBus()
     events: list[DateAdvanced] = []
     event_bus.subscribe(DateAdvanced, lambda e: events.append(e))

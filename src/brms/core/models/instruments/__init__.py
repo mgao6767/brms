@@ -6,9 +6,9 @@ from brms.core.models.instruments.base import (
     CompositeInstrument,
     CreditRating,
     Instrument,
-    InstrumentClass,
     Issuer,
     IssuerType,
+    MeasurementBasis,
 )
 from brms.core.models.instruments.registry import InstrumentRegistry
 
@@ -18,10 +18,10 @@ __all__ = [
     "CompositeInstrument",
     "CreditRating",
     "Instrument",
-    "InstrumentClass",
     "InstrumentRegistry",
     "Issuer",
     "IssuerType",
+    "MeasurementBasis",
     "default_instrument_registry",
 ]
 

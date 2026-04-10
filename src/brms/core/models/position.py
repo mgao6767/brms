@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from brms.core.enums import BookType, InstrumentClass, PositionSide, PositionStatus
+from brms.core.enums import BookType, MeasurementBasis, PositionSide, PositionStatus
 
 if TYPE_CHECKING:
     import datetime
@@ -19,7 +19,7 @@ class Position:
     id: str
     instrument_id: str
     book_type: BookType
-    instrument_class: InstrumentClass
+    measurement_basis: MeasurementBasis
     side: PositionSide
     acquisition_date: datetime.date
     acquisition_cost: Decimal

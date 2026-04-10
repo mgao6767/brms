@@ -66,8 +66,8 @@ def test_reverse_undoes_post() -> None:
     assert deposits.balance() == 0.0
 
 
-def test_mark_to_market_unknown_instrument_class_raises() -> None:
-    """MARK_TO_MARKET with an unknown instrument_class raises ValueError."""
+def test_mark_to_market_unknown_measurement_basis_raises() -> None:
+    """MARK_TO_MARKET with an unknown measurement_basis raises ValueError."""
     ledger, _cash, _deposits = _make_ledger()
     service = AccountingService()
     tx = Transaction(
@@ -76,7 +76,7 @@ def test_mark_to_market_unknown_instrument_class_raises() -> None:
         date=datetime.date(2024, 1, 1),
         amount=Decimal("500"),
     )
-    with pytest.raises(ValueError, match="Unknown instrument_class"):
+    with pytest.raises(ValueError, match="Unknown measurement_basis"):
         service.post(tx, ledger)
 
 
@@ -160,7 +160,7 @@ def test_security_purchase_htm() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 2, 1),
         amount=Decimal("50000"),
-        metadata=(("instrument_class", "HTM"),),
+        metadata=(("measurement_basis", "HTM"),),
     )
     service.post(tx, ledger)
     assert coa.investment_htm_account.balance() == 50_000.0
@@ -176,7 +176,7 @@ def test_security_purchase_fvoci() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 2, 1),
         amount=Decimal("30000"),
-        metadata=(("instrument_class", "FVOCI"),),
+        metadata=(("measurement_basis", "FVOCI"),),
     )
     service.post(tx, ledger)
     assert coa.investment_fvoci_account.balance() == 30_000.0
@@ -192,7 +192,7 @@ def test_security_purchase_fvtpl() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 2, 1),
         amount=Decimal("20000"),
-        metadata=(("instrument_class", "FVTPL"),),
+        metadata=(("measurement_basis", "FVTPL"),),
     )
     service.post(tx, ledger)
     assert coa.asset_fvtpl_account.balance() == 20_000.0
@@ -213,14 +213,14 @@ def test_security_sale_htm() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 3, 1),
         amount=Decimal("40000"),
-        metadata=(("instrument_class", "HTM"),),
+        metadata=(("measurement_basis", "HTM"),),
     )
     sale_tx = Transaction(
         id="tx-sell-1",
         type=TransactionType.SECURITY_SALE,
         date=datetime.date(2024, 3, 15),
         amount=Decimal("40000"),
-        metadata=(("instrument_class", "HTM"),),
+        metadata=(("measurement_basis", "HTM"),),
     )
     service.post(purchase_tx, ledger)
     service.post(sale_tx, ledger)
@@ -377,7 +377,7 @@ def test_mark_to_market_fvtpl_gain() -> None:
         type=TransactionType.MARK_TO_MARKET,
         date=datetime.date(2024, 7, 1),
         amount=Decimal("5000"),
-        metadata=(("instrument_class", "FVTPL"),),
+        metadata=(("measurement_basis", "FVTPL"),),
     )
     service.post(tx, ledger)
     assert coa.asset_fvtpl_account.balance() == 5_000.0
@@ -393,7 +393,7 @@ def test_mark_to_market_fvtpl_loss() -> None:
         type=TransactionType.MARK_TO_MARKET,
         date=datetime.date(2024, 7, 2),
         amount=Decimal("-2000"),
-        metadata=(("instrument_class", "FVTPL"),),
+        metadata=(("measurement_basis", "FVTPL"),),
     )
     service.post(tx, ledger)
     assert coa.asset_fvtpl_account.balance() == -2_000.0
@@ -414,7 +414,7 @@ def test_mark_to_market_fvoci_gain() -> None:
         type=TransactionType.MARK_TO_MARKET,
         date=datetime.date(2024, 7, 3),
         amount=Decimal("4000"),
-        metadata=(("instrument_class", "FVOCI"),),
+        metadata=(("measurement_basis", "FVOCI"),),
     )
     service.post(tx, ledger)
     assert coa.investment_fvoci_account.balance() == 4_000.0
@@ -430,7 +430,7 @@ def test_mark_to_market_fvoci_loss() -> None:
         type=TransactionType.MARK_TO_MARKET,
         date=datetime.date(2024, 7, 4),
         amount=Decimal("-1000"),
-        metadata=(("instrument_class", "FVOCI"),),
+        metadata=(("measurement_basis", "FVOCI"),),
     )
     service.post(tx, ledger)
     assert coa.investment_fvoci_account.balance() == -1_000.0
@@ -451,7 +451,7 @@ def test_revaluation_fvtpl() -> None:
         type=TransactionType.REVALUATION,
         date=datetime.date(2024, 8, 1),
         amount=Decimal("3000"),
-        metadata=(("instrument_class", "FVTPL"),),
+        metadata=(("measurement_basis", "FVTPL"),),
     )
     service.post(tx, ledger)
     assert coa.asset_fvtpl_account.balance() == 3_000.0
@@ -526,14 +526,14 @@ def test_maturity_settlement_htm() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 1, 1),
         amount=Decimal("100000"),
-        metadata=(("instrument_class", "HTM"),),
+        metadata=(("measurement_basis", "HTM"),),
     )
     maturity_tx = Transaction(
         id="tx-mat-2",
         type=TransactionType.MATURITY_SETTLEMENT,
         date=datetime.date(2025, 1, 1),
         amount=Decimal("100000"),
-        metadata=(("instrument_class", "HTM"),),
+        metadata=(("measurement_basis", "HTM"),),
     )
     service.post(purchase_tx, ledger)
     service.post(maturity_tx, ledger)
@@ -550,14 +550,14 @@ def test_maturity_settlement_fvoci() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 1, 1),
         amount=Decimal("70000"),
-        metadata=(("instrument_class", "FVOCI"),),
+        metadata=(("measurement_basis", "FVOCI"),),
     )
     maturity_tx = Transaction(
         id="tx-mat-4",
         type=TransactionType.MATURITY_SETTLEMENT,
         date=datetime.date(2025, 1, 1),
         amount=Decimal("70000"),
-        metadata=(("instrument_class", "FVOCI"),),
+        metadata=(("measurement_basis", "FVOCI"),),
     )
     service.post(purchase_tx, ledger)
     service.post(maturity_tx, ledger)
@@ -587,12 +587,12 @@ ROUND_TRIP_CASES = [
     ("interest", TransactionType.INTEREST_PAYMENT, Decimal("500"), ()),
     ("coupon", TransactionType.COUPON_PAYMENT, Decimal("2500"), ()),
     ("interest_exp", TransactionType.INTEREST_EXPENSE, Decimal("300"), ()),
-    ("sec_buy_htm", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("instrument_class", "HTM"),)),
-    ("sec_buy_fvoci", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("instrument_class", "FVOCI"),)),
-    ("sec_buy_fvtpl", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("instrument_class", "FVTPL"),)),
+    ("sec_buy_htm", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("measurement_basis", "HTM"),)),
+    ("sec_buy_fvoci", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("measurement_basis", "FVOCI"),)),
+    ("sec_buy_fvtpl", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("measurement_basis", "FVTPL"),)),
     ("principal", TransactionType.PRINCIPAL_PAYMENT, Decimal("5000"), ()),
     ("amortization", TransactionType.AMORTIZATION, Decimal("3000"), ()),
-    ("maturity_htm", TransactionType.MATURITY_SETTLEMENT, Decimal("100000"), (("instrument_class", "HTM"),)),
+    ("maturity_htm", TransactionType.MATURITY_SETTLEMENT, Decimal("100000"), (("measurement_basis", "HTM"),)),
 ]
 
 

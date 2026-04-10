@@ -48,7 +48,7 @@ def test_post_all_closes_position_on_maturity() -> None:
         date=datetime.date(2024, 1, 1),
         amount=Decimal("100000"),
         position_id="pos-1",
-        metadata=[("instrument_class", "HTM")],
+        metadata=[("measurement_basis", "HTM")],
     )
     service.post_all([tx], ledger, positions)
     positions.close.assert_called_with("pos-1")
@@ -65,7 +65,7 @@ def test_post_all_closes_position_on_sale() -> None:
         date=datetime.date(2024, 1, 1),
         amount=Decimal("50000"),
         position_id="pos-2",
-        metadata=[("instrument_class", "HTM")],
+        metadata=[("measurement_basis", "HTM")],
     )
     service.post_all([tx], ledger, positions)
     positions.close.assert_called_with("pos-2")

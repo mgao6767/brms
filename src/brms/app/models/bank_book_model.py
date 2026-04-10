@@ -66,19 +66,29 @@ class BankBookModel(QAbstractItemModel):
           └─ Loans & Mortgages (bold)
               └─ Loan C
         Liabilities (bold)
-          └─ ...
+          └─ Deposits
+        Equity (bold)
+          └─ Common Equity
     """
 
-    def __init__(self) -> None:
-        """Initialize with permanent Assets and Liabilities top-level nodes."""
+    def __init__(self, *, include_equity: bool = True) -> None:
+        """Initialize with permanent top-level nodes.
+
+        Args:
+            include_equity: Whether to include the Equity node (False for trading book).
+
+        """
         super().__init__()
         self._headers = HEADERS
         self._root = _Row(HEADERS)
         # Permanent top-level nodes
         self._assets = _Row(["Assets", None], bold=True)
         self._liabilities = _Row(["Liabilities", None], bold=True)
+        self._equity: _Row | None = _Row(["Equity", None], bold=True) if include_equity else None
         self._root.append(self._assets)
         self._root.append(self._liabilities)
+        if self._equity is not None:
+            self._root.append(self._equity)
 
     # ── Qt API ──────────────────────────────────────────────────────
 
@@ -157,6 +167,11 @@ class BankBookModel(QAbstractItemModel):
         """The Liabilities top-level node."""
         return self._liabilities
 
+    @property
+    def equity(self) -> _Row | None:
+        """The Equity top-level node, or None for trading book."""
+        return self._equity
+
     # ── Mutation API (used by controllers) ──────────────────────────
 
     def find_or_create_class_group(self, side_node: _Row, class_label: str) -> _Row:
@@ -183,9 +198,16 @@ class BankBookModel(QAbstractItemModel):
         group.append(_Row([name, value], instrument_id=instrument_id))
         self.endInsertRows()
 
+    @property
+    def _sides(self) -> tuple[_Row, ...]:
+        """Return all active top-level side nodes."""
+        if self._equity is not None:
+            return (self._assets, self._liabilities, self._equity)
+        return (self._assets, self._liabilities)
+
     def remove_instrument(self, instrument_id: str) -> bool:
         """Remove an instrument row by its instrument_id. Returns True if found."""
-        for side in (self._assets, self._liabilities):
+        for side in self._sides:
             for group in side.children:
                 for child in group.children:
                     if child.instrument_id == instrument_id:
@@ -211,7 +233,7 @@ class BankBookModel(QAbstractItemModel):
 
     def find_instrument_by_name(self, name: str) -> _Row | None:
         """Find an instrument row by name (used for Cash lookup)."""
-        for side in (self._assets, self._liabilities):
+        for side in self._sides:
             for group in side.children:
                 for child in group.children:
                     if child.values[COL_NAME] == name:
@@ -226,17 +248,17 @@ class BankBookModel(QAbstractItemModel):
         return node.instrument_id
 
     def clear_instruments(self) -> None:
-        """Remove all instrument children from all class groups under Assets and Liabilities."""
+        """Remove all instrument children from all top-level nodes."""
         self.beginResetModel()
-        self._assets.children.clear()
-        self._liabilities.children.clear()
+        for side in self._sides:
+            side.children.clear()
         self.endResetModel()
 
     # ── Private ─────────────────────────────────────────────────────
 
     def _find_instrument(self, instrument_id: str) -> _Row | None:
         """Find a row by instrument_id across all groups."""
-        for side in (self._assets, self._liabilities):
+        for side in self._sides:
             for group in side.children:
                 for child in group.children:
                     if child.instrument_id == instrument_id:

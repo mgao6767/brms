@@ -79,8 +79,8 @@ class FairValueStrategy:
             output.record(pos.id, context.date, ValuationType.FAIR_VALUE, val)  # type: ignore[arg-type]
 
 
-class AmortizedCostStrategy:
-    """Values positions at amortized cost (carrying/book value)."""
+class CarryingValueStrategy:
+    """Values positions at carrying value (face value or QL notional)."""
 
     def value_batch(
         self,
@@ -96,31 +96,13 @@ class AmortizedCostStrategy:
             output.record(pos.id, context.date, ValuationType.CARRYING_VALUE, val)  # type: ignore[arg-type]
 
 
-class OutstandingBalanceStrategy:
-    """Values loan positions at their outstanding balance."""
-
-    def value_batch(
-        self,
-        positions: list[Position],
-        instruments: InstrumentStore,
-        context: ValuationContext,
-        output: ValuationStore,
-    ) -> None:
-        """Record outstanding balance as carrying value."""
-        for pos in positions:
-            inst = instruments.get(pos.instrument_id)
-            val = _face_value(inst)
-            output.record(pos.id, context.date, ValuationType.CARRYING_VALUE, val)  # type: ignore[arg-type]
-
-
 def default_valuation_strategies() -> dict:
-    """Return the default InstrumentClass → ValuationStrategy mapping."""
-    from brms.core.enums import InstrumentClass
+    """Return the default MeasurementBasis → ValuationStrategy mapping."""
+    from brms.core.enums import MeasurementBasis
 
     fair_value = FairValueStrategy()
     return {
-        InstrumentClass.HTM: AmortizedCostStrategy(),
-        InstrumentClass.FVOCI: fair_value,
-        InstrumentClass.FVTPL: fair_value,
-        InstrumentClass.LOAN_AND_MORTGAGE: OutstandingBalanceStrategy(),
+        MeasurementBasis.AMORTIZED_COST: CarryingValueStrategy(),
+        MeasurementBasis.FVOCI: fair_value,
+        MeasurementBasis.FVTPL: fair_value,
     }

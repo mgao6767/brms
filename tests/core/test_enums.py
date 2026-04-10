@@ -2,8 +2,8 @@
 
 from brms.core.enums import (
     BookType,
-    InstrumentClass,
     InstrumentType,
+    MeasurementBasis,
     MetricName,
     PositionSide,
     PositionStatus,
@@ -15,7 +15,7 @@ EXPECTED_INSTRUMENT_TYPE_COUNT = 16
 EXPECTED_BOOK_TYPE_COUNT = 2
 EXPECTED_POSITION_SIDE_COUNT = 2
 EXPECTED_POSITION_STATUS_COUNT = 2
-EXPECTED_INSTRUMENT_CLASS_COUNT = 4
+EXPECTED_MEASUREMENT_BASIS_COUNT = 4
 EXPECTED_VALUATION_TYPE_COUNT = 4
 EXPECTED_TRANSACTION_TYPE_COUNT = 17
 EXPECTED_METRIC_NAME_COUNT = 11
@@ -94,18 +94,18 @@ class TestPositionStatus:
         assert len(PositionStatus) == EXPECTED_POSITION_STATUS_COUNT  # noqa: S101
 
 
-class TestInstrumentClass:
-    """Tests for InstrumentClass enum."""
+class TestMeasurementBasis:
+    """Tests for MeasurementBasis enum."""
 
-    def test_instrument_class_members(self) -> None:
-        """Test that InstrumentClass has all expected members."""
-        expected_members = {"HTM", "FVOCI", "FVTPL", "LOAN_AND_MORTGAGE"}
-        actual_members = {member.name for member in InstrumentClass}
+    def test_measurement_basis_members(self) -> None:
+        """Test that MeasurementBasis has all expected members."""
+        expected_members = {"AMORTIZED_COST", "FVOCI", "FVTPL", "NA"}
+        actual_members = {member.name for member in MeasurementBasis}
         assert actual_members == expected_members  # noqa: S101
 
-    def test_instrument_class_count(self) -> None:
-        """Test that InstrumentClass has the expected count."""
-        assert len(InstrumentClass) == EXPECTED_INSTRUMENT_CLASS_COUNT  # noqa: S101
+    def test_measurement_basis_count(self) -> None:
+        """Test that MeasurementBasis has the expected count."""
+        assert len(MeasurementBasis) == EXPECTED_MEASUREMENT_BASIS_COUNT  # noqa: S101
 
 
 class TestValuationType:

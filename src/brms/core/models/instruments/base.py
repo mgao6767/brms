@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from enum import Enum, Flag, auto
 from typing import TYPE_CHECKING
 
-from brms.core.enums import InstrumentType
+from brms.core.enums import InstrumentType, MeasurementBasis
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -28,15 +28,6 @@ class BookType(Enum):
     BANKING = "banking"
     TRADING = "trading"
 
-
-class InstrumentClass(Enum):
-    """Enumeration for the accounting classification of a financial instrument."""
-
-    HTM = "HTM"
-    FVOCI = "FVOCI"
-    FVTPL = "FVTPL"
-    LOAN_AND_MORTGAGE = "Loan"
-    NA = ""
 
 
 class BalanceSheetCategory(Enum):
@@ -223,7 +214,7 @@ class Instrument(ABC):
         credit_rating: CreditRating | None = None,
         issuer: Issuer | None = None,
         parent: Instrument | None = None,
-        instrument_class: InstrumentClass | None = None,
+        measurement_basis: MeasurementBasis | None = None,
     ) -> None:
         """Initialize a financial instrument."""
         self.id: str = str(uuid.uuid4())
@@ -232,7 +223,7 @@ class Instrument(ABC):
         self._credit_rating = credit_rating or CreditRating.UNRATED
         self._book_type = book_type or BookType.BANKING
         self._issuer = issuer or Issuer("unknown", IssuerType.UNSPECIFIED)
-        self.instrument_class = instrument_class or InstrumentClass.NA
+        self.measurement_basis = measurement_basis or MeasurementBasis.NA
         self.instrument_type: InstrumentType = InstrumentType.CASH  # overridden by subclasses
         self.ql_instrument: ql.Instrument | None = None
 

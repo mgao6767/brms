@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from brms.app.controllers.base import BRMSController
-from brms.app.views.bank_book.columns import CLASS_DISPLAY_NAMES
-from brms.core.enums import BookType
+from brms.app.views.bank_book.columns import AMORTIZED_COST_SUB_GROUPS, MEASUREMENT_BASIS_DISPLAY
+from brms.core.enums import BookType, InstrumentType, MeasurementBasis
 from brms.core.enums import PositionSide as Position
 from brms.core.events import ValuationsUpdated
 from brms.core.models.instruments.deposits import Cash
@@ -26,7 +26,7 @@ class BankBookController(BRMSController):
     """Controller for managing a single book tree (banking or trading).
 
     Each tree has two top-level nodes: Assets (row 0) and Liabilities (row 1).
-    Instruments are grouped by InstrumentClass under the appropriate node.
+    Instruments are grouped by MeasurementBasis under the appropriate node.
     """
 
     def __init__(  # noqa: PLR0913
@@ -61,21 +61,43 @@ class BankBookController(BRMSController):
             if val is not None and float(val) != 0:
                 self.model.update_instrument_value(pos.instrument_id, float(val))
 
+    def _resolve_side_node(self, instrument: Instrument, position: Position) -> object:
+        """Return the correct top-level node (Assets, Liabilities, or Equity)."""
+        inst_type = getattr(instrument, "instrument_type", None)
+        if inst_type == InstrumentType.COMMON_EQUITY:
+            return self.model.equity
+        if inst_type == InstrumentType.DEPOSIT:
+            return self.model.liabilities
+        return self.model.assets if position == Position.LONG else self.model.liabilities
+
     def add_instrument(
         self,
         instrument: Instrument,
         position: Position | None = None,
         initial_value: float | None = None,
-        instrument_class: object | None = None,
+        measurement_basis: MeasurementBasis | None = None,
     ) -> None:
         """Add an instrument under the appropriate class group node."""
         if position is None:
             position = Position.LONG
-        side_node = self.model.assets if position == Position.LONG else self.model.liabilities
-        inst_class = instrument_class or getattr(instrument, "instrument_class", None)
-        class_name = inst_class.name if inst_class is not None else "Other"
-        class_label = CLASS_DISPLAY_NAMES.get(class_name, class_name)
-        group = self.model.find_or_create_class_group(side_node, class_label)
+        side_node = self._resolve_side_node(instrument, position)
+        inst_type = getattr(instrument, "instrument_type", None)
+        basis = measurement_basis or getattr(instrument, "measurement_basis", None)
+
+        # Deposits and equity use instrument type as group label
+        if inst_type in (InstrumentType.DEPOSIT, InstrumentType.COMMON_EQUITY):
+            class_label = "Deposits" if inst_type == InstrumentType.DEPOSIT else "Common Equity"
+            group = self.model.find_or_create_class_group(side_node, class_label)
+        elif basis == MeasurementBasis.AMORTIZED_COST:
+            # 3-level: Amortized Cost → sub-group (HTM / Loans & Mortgages)
+            basis_label = MEASUREMENT_BASIS_DISPLAY[MeasurementBasis.AMORTIZED_COST]
+            basis_group = self.model.find_or_create_class_group(side_node, basis_label)
+            sub_label = AMORTIZED_COST_SUB_GROUPS.get(inst_type, "Other")
+            group = self.model.find_or_create_class_group(basis_group, sub_label)
+        else:
+            basis_label = MEASUREMENT_BASIS_DISPLAY.get(basis, str(basis)) if basis else "Other"
+            group = self.model.find_or_create_class_group(side_node, basis_label)
+
         value = initial_value if initial_value is not None else getattr(instrument, "face_value", 0)
         self.model.add_instrument(group, instrument.name, float(value), instrument.id)
         self.tree.expandAll()
@@ -140,13 +162,13 @@ class BankingBookController(BankBookController):
         instrument: Instrument,
         position: Position | None = None,
         initial_value: float | None = None,
-        instrument_class: object | None = None,
+        measurement_basis: MeasurementBasis | None = None,
     ) -> None:
         """Add an instrument to the tree model."""
         if isinstance(instrument, Cash):
             self._add_cash(instrument)
             return
-        super().add_instrument(instrument, position, initial_value=initial_value, instrument_class=instrument_class)
+        super().add_instrument(instrument, position, initial_value=initial_value, measurement_basis=measurement_basis)
 
     def remove_instrument(self, instrument: Instrument, position: Position | None = None) -> None:
         """Remove an instrument from the tree model."""

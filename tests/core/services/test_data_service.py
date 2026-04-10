@@ -67,11 +67,12 @@ def test_convert_kwargs_handles_maturity_period() -> None:
 
 def test_convert_kwargs_handles_enums() -> None:
     """_convert_kwargs converts string enum values to proper enum members."""
-    from brms.core.models.instruments.base import BookType, InstrumentClass
+    from brms.core.enums import MeasurementBasis
+    from brms.core.models.instruments.base import BookType
     from brms.core.services.data_service import _convert_kwargs
 
-    kwargs: dict[str, object] = {"instrument_class": "HTM", "book_type": "trading"}
+    kwargs: dict[str, object] = {"measurement_basis": "AMORTIZED_COST", "book_type": "trading"}
     _convert_kwargs(kwargs)
 
-    assert kwargs["instrument_class"] == InstrumentClass.HTM  # noqa: S101
+    assert kwargs["measurement_basis"] == MeasurementBasis.AMORTIZED_COST  # noqa: S101
     assert kwargs["book_type"] == BookType.TRADING  # noqa: S101

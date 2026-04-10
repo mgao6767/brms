@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Optional
 import QuantLib as ql  # noqa: N813
 
 from brms.core.enums import InstrumentType
-from brms.core.models.instruments.base import Instrument, InstrumentClass
+from brms.core.models.instruments.base import Instrument, MeasurementBasis
 from brms.core.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
 
 if TYPE_CHECKING:
@@ -41,7 +41,7 @@ class FixedRateBond(Instrument):
         credit_rating: Optional["CreditRating"] = None,
         issuer: Optional["Issuer"] = None,
         parent: Optional["Instrument"] = None,
-        instrument_class: Optional["InstrumentClass"] = None,
+        measurement_basis: Optional["MeasurementBasis"] = None,
     ) -> None:
         """Build a fixed rate bond object.
 
@@ -64,12 +64,12 @@ class FixedRateBond(Instrument):
             credit_rating (CreditRating, optional): The credit rating of the instrument.
             issuer (Issuer, optional): The issuer of the instrument.
             parent (Instrument, optional): The parent instrument.
-            instrument_class (InstrumentClass, optional): The instrument class.
+            measurement_basis (MeasurementBasis, optional): The instrument class.
 
         """
         maturity_date_str = qldate_to_string(maturity_date)
         name = f"{coupon_rate * 100:.2f}% {maturity_date_str} {self._instrument_type_label}"
-        super().__init__(name, book_type, credit_rating, issuer, parent, instrument_class=instrument_class)
+        super().__init__(name, book_type, credit_rating, issuer, parent, measurement_basis=measurement_basis)
 
         self.face_value = face_value
         self.coupon_rate = coupon_rate

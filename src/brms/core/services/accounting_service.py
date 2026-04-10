@@ -148,19 +148,20 @@ class AccountingService:
         )
         return [entry]
 
-    _INSTRUMENT_CLASS_TO_ACCOUNT: ClassVar[dict[str, str]] = {
+    _MEASUREMENT_BASIS_TO_ACCOUNT: ClassVar[dict[str, str]] = {
         "HTM": "Investment Securities at Amortized Cost",
+        "AMORTIZED_COST": "Investment Securities at Amortized Cost",
         "FVOCI": "Investment Securities at FVOCI",
         "FVTPL": "Assets at FVTPL",
     }
 
     def _resolve_investment_account(self, tx: Transaction, ledger: Ledger) -> TAccount:
-        """Return the investment account for the instrument_class in *tx* metadata."""
+        """Return the investment account for the measurement_basis in *tx* metadata."""
         meta = dict(tx.metadata)
-        instrument_class = meta.get("instrument_class", "")
-        account_name = self._INSTRUMENT_CLASS_TO_ACCOUNT.get(instrument_class)
+        measurement_basis = meta.get("measurement_basis", "")
+        account_name = self._MEASUREMENT_BASIS_TO_ACCOUNT.get(measurement_basis)
         if account_name is None:
-            msg = f"Unknown instrument_class '{instrument_class}' in metadata for tx={tx.id}"
+            msg = f"Unknown measurement_basis '{measurement_basis}' in metadata for tx={tx.id}"
             raise ValueError(msg)
         return self._lookup(ledger, account_name)
 
@@ -267,9 +268,9 @@ class AccountingService:
         A negative amount represents a loss (debit expense/contra-equity, credit asset).
         """
         meta = dict(tx.metadata)
-        instrument_class = meta.get("instrument_class", "")
+        measurement_basis = meta.get("measurement_basis", "")
         amount = float(tx.amount)
-        if instrument_class == "FVTPL":
+        if measurement_basis == "FVTPL":
             asset = self._lookup(ledger, "Assets at FVTPL")
             if amount >= 0:
                 debit_account = asset
@@ -279,7 +280,7 @@ class AccountingService:
                 debit_account = self._lookup(ledger, "Unrealized Trading Loss")
                 credit_account = asset
                 value = -amount
-        elif instrument_class == "FVOCI":
+        elif measurement_basis == "FVOCI":
             asset = self._lookup(ledger, "Investment Securities at FVOCI")
             if amount >= 0:
                 debit_account = asset
@@ -290,7 +291,7 @@ class AccountingService:
                 credit_account = asset
                 value = -amount
         else:
-            msg = f"Unknown instrument_class '{instrument_class}' for mark-to-market in tx={tx.id}"
+            msg = f"Unknown measurement_basis '{measurement_basis}' for mark-to-market in tx={tx.id}"
             raise ValueError(msg)
         entry = SimpleEntry(
             debit_account=debit_account,

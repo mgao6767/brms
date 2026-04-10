@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from brms.core.enums import BookType, InstrumentClass, InstrumentType, PositionSide, PositionStatus
+from brms.core.enums import BookType, InstrumentType, MeasurementBasis, PositionSide, PositionStatus
 from brms.core.stores.position_store import PositionStore
 
 
@@ -23,7 +23,7 @@ def _make_position(  # noqa: PLR0913
     side: PositionSide = PositionSide.LONG,
     status: PositionStatus = PositionStatus.OPEN,
     instrument_type: InstrumentType = InstrumentType.FIXED_RATE_BOND,
-    instrument_class: InstrumentClass = InstrumentClass.HTM,
+    measurement_basis: MeasurementBasis = MeasurementBasis.AMORTIZED_COST,
 ) -> MagicMock:
     pos = MagicMock()
     pos.id = position_id
@@ -32,7 +32,7 @@ def _make_position(  # noqa: PLR0913
     pos.side = side
     pos.status = status
     pos.instrument_type = instrument_type
-    pos.instrument_class = instrument_class
+    pos.measurement_basis = measurement_basis
     return pos
 
 
@@ -172,15 +172,15 @@ def test_query_by_status(store: PositionStore) -> None:
     assert closed_pos not in result  # noqa: S101
 
 
-def test_query_by_instrument_class(store: PositionStore) -> None:
-    """query(instrument_class=...) filters by accounting classification."""
-    htm = _make_position("pos-1", instrument_class=InstrumentClass.HTM)
-    fvtpl = _make_position("pos-2", instrument_class=InstrumentClass.FVTPL)
-    store.add(htm)
+def test_query_by_measurement_basis(store: PositionStore) -> None:
+    """query(measurement_basis=...) filters by accounting classification."""
+    ac = _make_position("pos-1", measurement_basis=MeasurementBasis.AMORTIZED_COST)
+    fvtpl = _make_position("pos-2", measurement_basis=MeasurementBasis.FVTPL)
+    store.add(ac)
     store.add(fvtpl)
 
-    result = store.query(instrument_class=InstrumentClass.HTM)
-    assert htm in result  # noqa: S101
+    result = store.query(measurement_basis=MeasurementBasis.AMORTIZED_COST)
+    assert ac in result  # noqa: S101
     assert fvtpl not in result  # noqa: S101
 
 

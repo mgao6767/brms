@@ -8,10 +8,10 @@ import datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from brms.core.enums import InstrumentClass, PositionStatus, ValuationType
+from brms.core.enums import MeasurementBasis, PositionStatus, ValuationType
 from brms.core.services.valuation_context import ValuationContext
 from brms.core.services.valuation_service import ValuationService
-from brms.core.services.valuation_strategies import AmortizedCostStrategy, FairValueStrategy, OutstandingBalanceStrategy
+from brms.core.services.valuation_strategies import CarryingValueStrategy, FairValueStrategy
 from brms.core.stores.valuation_store import ValuationStore
 
 DATE = datetime.date(2024, 1, 1)
@@ -164,13 +164,13 @@ def test_fair_value_strategy_handles_multiple_positions() -> None:
 
 
 # ---------------------------------------------------------------------------
-# AmortizedCostStrategy
+# CarryingValueStrategy
 # ---------------------------------------------------------------------------
 
 
-def test_amortized_cost_strategy_records_carrying_value() -> None:
-    """AmortizedCostStrategy records CARRYING_VALUE using face_value."""
-    strategy = AmortizedCostStrategy()
+def test_carrying_value_strategy_records_carrying_value() -> None:
+    """CarryingValueStrategy records CARRYING_VALUE using face_value."""
+    strategy = CarryingValueStrategy()
     store = ValuationStore()
     context = MagicMock()
     context.date = DATE
@@ -192,43 +192,15 @@ def test_amortized_cost_strategy_records_carrying_value() -> None:
 
 
 # ---------------------------------------------------------------------------
-# OutstandingBalanceStrategy
-# ---------------------------------------------------------------------------
-
-
-def test_outstanding_balance_strategy_records_carrying_value() -> None:
-    """OutstandingBalanceStrategy records CARRYING_VALUE using face_value as proxy."""
-    strategy = OutstandingBalanceStrategy()
-    store = ValuationStore()
-    context = MagicMock()
-    context.date = DATE
-
-    inst = MagicMock()
-    inst.face_value = Decimal("75000")
-
-    instruments = MagicMock()
-    instruments.get.return_value = inst
-
-    pos = MagicMock()
-    pos.id = "pos-loan"
-    pos.instrument_id = "inst-loan"
-
-    strategy.value_batch([pos], instruments, context, store)
-
-    result = store.get("pos-loan", DATE, ValuationType.CARRYING_VALUE)
-    assert result == Decimal("75000")
-
-
-# ---------------------------------------------------------------------------
 # ValuationService
 # ---------------------------------------------------------------------------
 
 
-def test_value_all_dispatches_by_instrument_class() -> None:
-    """value_all calls strategy.value_batch for the registered InstrumentClass."""
+def test_value_all_dispatches_by_measurement_basis() -> None:
+    """value_all calls strategy.value_batch for the registered MeasurementBasis."""
     service = ValuationService()
     mock_strategy = MagicMock()
-    service.register_strategy(InstrumentClass.HTM, mock_strategy)
+    service.register_strategy(MeasurementBasis.AMORTIZED_COST, mock_strategy)
 
     bank = MagicMock()
     bank.positions.query.return_value = [MagicMock()]
@@ -243,7 +215,7 @@ def test_skips_empty_batches() -> None:
     """value_all does not call strategy.value_batch when the batch is empty."""
     service = ValuationService()
     mock_strategy = MagicMock()
-    service.register_strategy(InstrumentClass.HTM, mock_strategy)
+    service.register_strategy(MeasurementBasis.AMORTIZED_COST, mock_strategy)
 
     bank = MagicMock()
     bank.positions.query.return_value = []
@@ -255,17 +227,17 @@ def test_skips_empty_batches() -> None:
 
 
 def test_register_multiple_strategies() -> None:
-    """Multiple strategies can be registered for different InstrumentClasses."""
+    """Multiple strategies can be registered for different MeasurementBasises."""
     service = ValuationService()
     strat_htm = MagicMock()
     strat_fvtpl = MagicMock()
-    service.register_strategy(InstrumentClass.HTM, strat_htm)
-    service.register_strategy(InstrumentClass.FVTPL, strat_fvtpl)
+    service.register_strategy(MeasurementBasis.AMORTIZED_COST, strat_htm)
+    service.register_strategy(MeasurementBasis.FVTPL, strat_fvtpl)
 
     bank = MagicMock()
     # HTM returns positions, FVTPL returns empty
     bank.positions.query.side_effect = lambda **kw: (
-        [MagicMock()] if kw.get("instrument_class") == InstrumentClass.HTM else []
+        [MagicMock()] if kw.get("measurement_basis") == MeasurementBasis.AMORTIZED_COST else []
     )
 
     with patch.object(service._context, "update"):  # noqa: SLF001
@@ -279,7 +251,7 @@ def test_value_all_passes_valuation_store_to_strategy() -> None:
     """value_all passes the provided valuation_store to strategy.value_batch."""
     service = ValuationService()
     mock_strategy = MagicMock()
-    service.register_strategy(InstrumentClass.FVOCI, mock_strategy)
+    service.register_strategy(MeasurementBasis.FVOCI, mock_strategy)
 
     bank = MagicMock()
     position = MagicMock()
@@ -296,11 +268,11 @@ def test_value_all_passes_valuation_store_to_strategy() -> None:
     assert call_args[3] is val_store
 
 
-def test_value_all_queries_open_positions_by_instrument_class() -> None:
-    """value_all queries positions with instrument_class and status=OPEN."""
+def test_value_all_queries_open_positions_by_measurement_basis() -> None:
+    """value_all queries positions with measurement_basis and status=OPEN."""
     service = ValuationService()
     mock_strategy = MagicMock()
-    service.register_strategy(InstrumentClass.HTM, mock_strategy)
+    service.register_strategy(MeasurementBasis.AMORTIZED_COST, mock_strategy)
 
     bank = MagicMock()
     bank.positions.query.return_value = []
@@ -309,6 +281,6 @@ def test_value_all_queries_open_positions_by_instrument_class() -> None:
         service.value_all(bank, MagicMock(), DATE, ValuationStore())
 
     bank.positions.query.assert_called_once_with(
-        instrument_class=InstrumentClass.HTM,
+        measurement_basis=MeasurementBasis.AMORTIZED_COST,
         status=PositionStatus.OPEN,
     )

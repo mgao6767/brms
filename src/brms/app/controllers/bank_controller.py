@@ -68,7 +68,7 @@ class BankController(BRMSController):
             )
             ctrl.add_instrument(
                 instrument, side, initial_value=float(pos.acquisition_cost),
-                instrument_class=pos.instrument_class,
+                measurement_basis=pos.measurement_basis,
             )
         self._combined_view.banking_tree.expandAll()
         self._combined_view.trading_tree.expandAll()

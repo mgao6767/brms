@@ -37,7 +37,7 @@ def _make_zip() -> BytesIO:
                     "id": "pos-1",
                     "instrument_id": "cash-1",
                     "book_type": "BANKING",
-                    "instrument_class": "HTM",
+                    "measurement_basis": "AMORTIZED_COST",
                     "side": "LONG",
                     "acquisition_date": "2024-01-01",
                     "acquisition_cost": 1000000,
@@ -78,14 +78,14 @@ class TestZipLoader:
         assert data.instruments[0].id == "cash-1"  # noqa: S101
 
     def test_position_enums_parsed(self) -> None:  # noqa: D102
-        from brms.core.enums import BookType, InstrumentClass, PositionSide
+        from brms.core.enums import BookType, MeasurementBasis, PositionSide
 
         loader = ZipLoader(buffer=_make_zip(), instrument_registry=_make_registry())
         data = loader.load()
         pos = data.positions[0]
 
         assert pos.book_type == BookType.BANKING  # noqa: S101
-        assert pos.instrument_class == InstrumentClass.HTM  # noqa: S101
+        assert pos.measurement_basis == MeasurementBasis.AMORTIZED_COST  # noqa: S101
         assert pos.side == PositionSide.LONG  # noqa: S101
 
     def test_dates_parsed(self) -> None:  # noqa: D102

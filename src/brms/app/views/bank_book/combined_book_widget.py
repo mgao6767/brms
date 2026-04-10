@@ -39,7 +39,7 @@ class BRMSCombinedBookWidget(QWidget):
         super().__init__(parent)
 
         self.banking_model = BankBookModel()
-        self.trading_model = BankBookModel()
+        self.trading_model = BankBookModel(include_equity=False)
 
         self.banking_tree = _make_tree(self.banking_model)
         self.trading_tree = _make_tree(self.trading_model)

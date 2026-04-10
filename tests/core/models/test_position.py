@@ -3,7 +3,7 @@
 import datetime
 from decimal import Decimal
 
-from brms.core.enums import BookType, InstrumentClass, PositionSide, PositionStatus
+from brms.core.enums import BookType, MeasurementBasis, PositionSide, PositionStatus
 from brms.core.models.position import Position
 
 
@@ -13,7 +13,7 @@ def test_position_creation() -> None:
         id="pos-001",
         instrument_id="bond-001",
         book_type=BookType.BANKING,
-        instrument_class=InstrumentClass.HTM,
+        measurement_basis=MeasurementBasis.AMORTIZED_COST,
         side=PositionSide.LONG,
         acquisition_date=datetime.date(2024, 1, 15),
         acquisition_cost=Decimal("100000.00"),
@@ -21,7 +21,7 @@ def test_position_creation() -> None:
     assert pos.id == "pos-001"  # noqa: S101
     assert pos.instrument_id == "bond-001"  # noqa: S101
     assert pos.book_type == BookType.BANKING  # noqa: S101
-    assert pos.instrument_class == InstrumentClass.HTM  # noqa: S101
+    assert pos.measurement_basis == MeasurementBasis.AMORTIZED_COST  # noqa: S101
     assert pos.side == PositionSide.LONG  # noqa: S101
     assert pos.acquisition_date == datetime.date(2024, 1, 15)  # noqa: S101
     assert pos.acquisition_cost == Decimal("100000.00")  # noqa: S101
@@ -33,7 +33,7 @@ def test_position_status_default_open() -> None:
         id="pos-002",
         instrument_id="bond-002",
         book_type=BookType.TRADING,
-        instrument_class=InstrumentClass.FVTPL,
+        measurement_basis=MeasurementBasis.FVTPL,
         side=PositionSide.SHORT,
         acquisition_date=datetime.date(2024, 2, 1),
         acquisition_cost=Decimal("50000.00"),
@@ -47,7 +47,7 @@ def test_position_status_mutable() -> None:
         id="pos-003",
         instrument_id="bond-003",
         book_type=BookType.BANKING,
-        instrument_class=InstrumentClass.FVOCI,
+        measurement_basis=MeasurementBasis.FVOCI,
         side=PositionSide.LONG,
         acquisition_date=datetime.date(2024, 3, 1),
         acquisition_cost=Decimal("75000.00"),
