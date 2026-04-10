@@ -198,8 +198,10 @@ class BalanceSheetModel(_StatementModel):
         parent_row.append(row)
 
         if is_composite:
+            # Skip contra sub-accounts here — they appear as children of their parent account
             for child in account.sub_accounts:
-                self._add_account(row, child)
+                if not child.is_contra_account:
+                    self._add_account(row, child)
 
         # Add contra accounts as children
         for contra in account.contra_accounts:
