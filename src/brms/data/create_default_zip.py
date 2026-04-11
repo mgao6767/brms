@@ -167,21 +167,90 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
 
 def create_default_zip(out_path: Path | None = None) -> Path:
     """Write the default simulation zip to *out_path* and return its path."""
+    from decimal import Decimal
+
+    import pandas as pd
+
+    from brms.core.enums import BookType, MeasurementBasis, PositionSide
+    from brms.core.models.instruments.bonds import TreasuryNote
+    from brms.core.models.instruments.deposits import Cash, Deposit
+    from brms.core.models.instruments.equity import CommonEquity
+    from brms.core.models.instruments.loans import ResidentialMortgage
+    from brms.core.models.instruments.registry import InstrumentRegistry
+    from brms.core.models.position import Position
+    from brms.core.services.data_service import _convert_kwargs
+    from brms.core.services.simulation_builder import BuildConfig, SimulationBuilder
+
     out_path = out_path or _OUT_PATH
-    instruments, pos = _build_instruments_and_positions()
+    instruments_data, positions_data = _build_instruments_and_positions()
 
-    config = {
-        "name": "Default Bank",
-        "replay_from": _START_DATE,
-        "start_date": _START_DATE,
-    }
+    # Build real instrument instances
+    registry = InstrumentRegistry()
+    registry.register("cash", Cash)
+    registry.register("deposit", Deposit)
+    registry.register("common_equity", CommonEquity)
+    registry.register("treasury_note", TreasuryNote)
+    registry.register("residential_mortgage", ResidentialMortgage)
 
+    instruments = []
+    for item in instruments_data:
+        item_copy = dict(item)
+        type_id = item_copy.pop("type")
+        instrument_id = item_copy.pop("id", None)
+        instrument_name = item_copy.pop("name", None)
+        item_copy.pop("value", None)
+        item_copy.pop("book_type", None)
+        _convert_kwargs(item_copy)
+        inst = registry.create(type_id, **item_copy)
+        if instrument_id is not None:
+            inst.id = instrument_id
+        if instrument_name is not None:
+            inst.name = instrument_name
+        instruments.append(inst)
+
+    # Build Position objects
+    positions = [
+        Position(
+            id=p["id"],
+            instrument_id=p["instrument_id"],
+            book_type=BookType[p["book_type"]],
+            measurement_basis=MeasurementBasis[p["measurement_basis"]],
+            side=PositionSide[p["side"]],
+            acquisition_date=date.fromisoformat(p["acquisition_date"]),
+            acquisition_cost=Decimal(str(p["acquisition_cost"])),
+        )
+        for p in positions_data
+    ]
+
+    # Load market data
+    yields_df = pd.read_csv(_YIELDS_CSV, index_col="date", parse_dates=True)
+
+    # Build snapshot
+    config = BuildConfig(
+        name="Default Bank",
+        start_date=date.fromisoformat(_START_DATE),
+        instruments=instruments,
+        positions=positions,
+        market_frames={"yields": yields_df},
+    )
+    snapshot = SimulationBuilder().build(config)
+
+    # Write zip
     with zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("config.json", json.dumps(config, indent=2))
-        zf.writestr("instruments.json", json.dumps(instruments, indent=2))
-        zf.writestr("positions.json", json.dumps(pos, indent=2))
+        config_dict = {
+            "name": snapshot.name,
+            "start_date": snapshot.start_date.isoformat(),
+        }
+        zf.writestr("config.json", json.dumps(config_dict, indent=2))
+        zf.writestr("instruments.json", json.dumps(instruments_data, indent=2))
+        zf.writestr("positions.json", json.dumps(positions_data, indent=2))
 
-        # Copy the treasury yields CSV as yields.csv
+        balances_dict = {
+            "snapshot_date": snapshot.start_date.isoformat(),
+            "balances": snapshot.balances,
+        }
+        zf.writestr("balances.json", json.dumps(balances_dict, indent=2))
+
         if _YIELDS_CSV.exists():
             zf.write(_YIELDS_CSV, "yields.csv")
         else:
