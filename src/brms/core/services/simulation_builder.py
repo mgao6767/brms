@@ -128,12 +128,12 @@ class SimulationBuilder:
         bank: Bank,
         accounting_service: AccountingService,
     ) -> None:
-        """Walk calendar days from earliest acquisition to start_date (exclusive)."""
+        """Walk calendar days from earliest acquisition to start_date (inclusive)."""
         positions_by_date = self._group_by_date(config)
         earliest = config.start_date if not config.positions else min(p.acquisition_date for p in config.positions)
 
         current = earliest
-        while current < config.start_date:
+        while current <= config.start_date:
             if current in positions_by_date:
                 self._add_positions(positions_by_date[current], sim, bank, accounting_service)
             sim.advance(current)
@@ -166,10 +166,18 @@ class SimulationBuilder:
 
     @staticmethod
     def _extract_balances(coa: BankChartOfAccounts) -> dict[str, float]:
-        """Return non-zero non-temporary account balances from the chart of accounts."""
+        """Return non-zero non-temporary account balances from the chart of accounts.
+
+        Excludes composite accounts (which aggregate children) and temporary accounts.
+        Only leaf accounts with non-zero balances are included.
+        """
+        from brms.core.models.accounting.accounts import CompositeTAccount
+
         balances: dict[str, float] = {}
         for account in coa.all_accounts():
             if account.is_temporary_account:
+                continue
+            if isinstance(account, CompositeTAccount):
                 continue
             bal = account.balance()
             if abs(bal) > _ZERO_THRESHOLD:

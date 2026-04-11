@@ -35,6 +35,8 @@ def test_load_default_simulation_zip() -> None:
 
     assert data.name == "Default Bank"  # noqa: S101
     assert len(data.instruments) == EXPECTED_TOTAL_INSTRUMENT_COUNT  # noqa: S101
+    assert len(data.balances) > 0  # noqa: S101
+    assert data.replay_from is None  # noqa: S101
 
 
 def test_convert_kwargs_handles_date_strings() -> None:
