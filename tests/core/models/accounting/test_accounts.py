@@ -90,5 +90,16 @@ def test_composite_propagates_through_parent_chain() -> None:
     assert grandparent.debit_value == 500  # noqa: PLR2004
 
 
+def test_opening_balance_equity_exists() -> None:
+    """BankChartOfAccounts has an Opening Balance Equity temporary account."""
+    from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
+
+    coa = BankChartOfAccounts()
+    assert hasattr(coa, "opening_balance_equity")
+    assert coa.opening_balance_equity.name == "Opening Balance Equity"
+    assert coa.opening_balance_equity.is_temporary_account is True
+    assert coa.opening_balance_equity.type.value == "Equity"
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

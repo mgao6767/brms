@@ -116,6 +116,10 @@ class BankChartOfAccounts(ChartOfAccounts):
         self.accumulated_oci_account.add_sub_account(self.unrealized_oci_gain_account)
         self.accumulated_oci_account.add_sub_account(self.unrealized_oci_loss_account)
 
+        self.opening_balance_equity = TAccount(
+            "Opening Balance Equity", AccountType.EQUITY, is_temporary_account=True,
+        )
+
         # ── Income ───────────────────────────────────────────────────
         self.interest_income_account = CompositeTAccount("Interest Income", AccountType.INCOME)
 
@@ -156,7 +160,7 @@ class BankChartOfAccounts(ChartOfAccounts):
             builder.add_liability_account(acct)
 
         # Equity
-        for acct in [self.equity_account, self.accumulated_oci_account]:
+        for acct in [self.equity_account, self.accumulated_oci_account, self.opening_balance_equity]:
             builder.add_equity_account(acct)
 
         # Income

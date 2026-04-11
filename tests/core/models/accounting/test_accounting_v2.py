@@ -572,9 +572,10 @@ class TestBankChartOfAccounts:
 
     def test_equity_accounts_populated(self) -> None:
         coa = BankChartOfAccounts()
-        assert len(coa.equities) == 2
+        assert len(coa.equities) == 3  # noqa: PLR2004
         assert coa.equity_account in coa.equities
         assert coa.accumulated_oci_account in coa.equities
+        assert coa.opening_balance_equity in coa.equities
 
     def test_income_accounts_populated(self) -> None:
         coa = BankChartOfAccounts()
