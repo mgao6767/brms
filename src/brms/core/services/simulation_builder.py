@@ -128,7 +128,12 @@ class SimulationBuilder:
         bank: Bank,
         accounting_service: AccountingService,
     ) -> None:
-        """Walk calendar days from earliest acquisition to start_date (inclusive)."""
+        """Walk calendar days from earliest acquisition to start_date.
+
+        Positions are added (with acquisition transactions) on their acquisition date,
+        up to and including start_date. The advance() loop runs only up to start_date - 1
+        (exclusive) so the first user-visible advance at start_date is not double-counted.
+        """
         positions_by_date = self._group_by_date(config)
         earliest = config.start_date if not config.positions else min(p.acquisition_date for p in config.positions)
 
@@ -136,7 +141,8 @@ class SimulationBuilder:
         while current <= config.start_date:
             if current in positions_by_date:
                 self._add_positions(positions_by_date[current], sim, bank, accounting_service)
-            sim.advance(current)
+            if current < config.start_date:
+                sim.advance(current)
             current += datetime.timedelta(days=1)
 
     @staticmethod
