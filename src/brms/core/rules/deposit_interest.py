@@ -111,7 +111,6 @@ class DepositInterestSettlementRule:
         instead of the 1st to match the accrual rule.
         """
         import calendar
-        import datetime
 
         acquisition_cost = Decimal(str(getattr(position, "acquisition_cost", "0")))
         prev = context.previous_date
@@ -119,9 +118,8 @@ class DepositInterestSettlementRule:
 
         # Number of days in previous month
         _, month_days = calendar.monthrange(prev.year, prev.month)
-        month_start = datetime.date(prev.year, prev.month, 1)
 
-        if acq_date is not None and acq_date > month_start:
+        if acq_date is not None and acq_date.year == prev.year and acq_date.month == prev.month and acq_date.day > 1:
             days = month_days - acq_date.day + 1
         else:
             days = month_days

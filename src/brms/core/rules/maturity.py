@@ -23,11 +23,11 @@ class MaturityRule:
         _position: Position,
         context: RuleContext,
     ) -> bool:
-        """Return True if the maturity date matches the current date exactly."""
+        """Return True if the instrument has matured on or before the current date."""
         maturity = getattr(instrument, "maturity_date", None)
         if maturity is None:
             return False
-        return maturity == context.date
+        return maturity <= context.date
 
     def generate(
         self,

@@ -60,6 +60,7 @@ class SimulationService:
         self.transaction_log = transaction_log
         self.event_bus = event_bus
         self._current_date: datetime.date | None = None  # type: ignore[name-defined]
+        self._start_date: datetime.date | None = None  # type: ignore[name-defined]
         self._end_date: datetime.date | None = None  # type: ignore[name-defined]
         # Derive end date from available market data
         available = self.market_data.available_dates()
@@ -71,17 +72,35 @@ class SimulationService:
         """The most recently advanced date, or None."""
         return self._current_date
 
+    @property
+    def start_date(self) -> datetime.date | None:  # type: ignore[name-defined]
+        """The configured simulation start date, or None."""
+        return self._start_date
+
+    @start_date.setter
+    def start_date(self, value: datetime.date) -> None:  # type: ignore[name-defined]
+        """Set the simulation start date."""
+        self._start_date = value
+
+    @property
+    def end_date(self) -> datetime.date | None:  # type: ignore[name-defined]
+        """The last available simulation date."""
+        return self._end_date
+
     def _resolve_date(self, date: datetime.date | None) -> datetime.date:  # type: ignore[name-defined]
         """Resolve the next simulation date, raising IndexError if past end."""
         from datetime import timedelta
 
         if date is None:
             if self._current_date is None:
-                available = self.market_data.available_dates()
-                if not available:
-                    msg = "No market data available"
-                    raise IndexError(msg)
-                date = available[0]
+                if self._start_date is not None:
+                    date = self._start_date
+                else:
+                    available = self.market_data.available_dates()
+                    if not available:
+                        msg = "No market data available"
+                        raise IndexError(msg)
+                    date = available[0]
             else:
                 date = self._current_date + timedelta(days=1)
 

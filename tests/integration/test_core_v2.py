@@ -57,7 +57,7 @@ def test_full_v2_flow() -> None:
     # Market data
     store = MarketDataStore()
     yields = pd.DataFrame(
-        {"1Y": [0.04, 0.041, 0.042]},
+        {"1 Yr": [0.04, 0.041, 0.042]},
         index=pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"]),
     )
     yields.index.name = "date"

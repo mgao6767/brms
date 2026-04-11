@@ -79,9 +79,9 @@ def test_applies_with_exact_match() -> None:
     assert rule.applies_to(inst, MagicMock(), ctx)
 
 
-def test_does_not_apply_with_window() -> None:
-    """Rule should NOT apply when maturity falls between previous and current but is not current."""
+def test_applies_when_already_matured() -> None:
+    """Rule should apply when maturity date is before the current date (catch-up)."""
     rule = MaturityRule()
     inst = _make_instrument(datetime.date(2024, 6, 15))
     ctx = _ctx(datetime.date(2024, 6, 17), previous_date=datetime.date(2024, 6, 14))
-    assert not rule.applies_to(inst, MagicMock(), ctx)
+    assert rule.applies_to(inst, MagicMock(), ctx)

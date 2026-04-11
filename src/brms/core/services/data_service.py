@@ -101,6 +101,9 @@ class DataService:
             simulation_service.advance(current)  # type: ignore[union-attr]
             current += datetime.timedelta(days=1)
 
+        # 4. Record the configured start date so the next advance(None) lands on it
+        simulation_service.start_date = data.start_date  # type: ignore[union-attr]
+
     @staticmethod
     def _post_acquisition_transactions(data: SimulationData, simulation_service: SimulationService) -> None:
         """Generate and post initial acquisition transactions for every loaded position."""

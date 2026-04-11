@@ -86,11 +86,13 @@ class PlotWidget(QWidget):
 
     def update_plot(
         self,
-        start_date: datetime.date,
-        end_date: datetime.date,
+        start_date: datetime.date | None,
+        end_date: datetime.date | None,
         dates: list[datetime.date],
         data: dict[str, list[float]],
     ) -> None:
+        if not dates or start_date is None or end_date is None:
+            return
         self.ax.set_xlim(pd.Timestamp(start_date), pd.Timestamp(end_date))
         for line_title, values in data.items():
             if line2d := self.lines.get(line_title):

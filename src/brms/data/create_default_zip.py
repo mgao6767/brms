@@ -122,7 +122,7 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
     # 5. Ten FVOCI TreasuryNotes (100k each)
     for _i in range(10):
         coupon_rate = 0.0125 * random.randint(1, 5)  # noqa: S311
-        years = random.choice([2, 3, 5, 7, 10])  # noqa: S311
+        years = random.choice([3, 5, 7, 10])  # noqa: S311
         mat = date(2020, 1, 1) + relativedelta(years=years)
         _add(
             {
@@ -143,7 +143,7 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
     # 6. Ten FVTPL TreasuryNotes (100k each, trading book)
     for _i in range(10):
         coupon_rate = 0.0125 * random.randint(1, 5)  # noqa: S311
-        years = random.choice([2, 3, 5, 7, 10])  # noqa: S311
+        years = random.choice([3, 5, 7, 10])  # noqa: S311
         mat = date(2020, 1, 1) + relativedelta(years=years)
         _add(
             {

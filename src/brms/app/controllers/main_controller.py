@@ -77,9 +77,8 @@ class MainController(BRMSController):
         eb = services.event_bus
         view = self.view
 
-        dates = services.market_data.available_dates()
-        start_date = dates[0] if dates else None
-        end_date = dates[-1] if dates else None
+        start_date = services.simulation_service.start_date
+        end_date = services.simulation_service.end_date
 
         self.dashboard_ctrl = DashboardController(
             view=view.dashboard,
