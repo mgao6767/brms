@@ -73,14 +73,11 @@ class DataService:
         self._instrument_registry = instrument_registry or InstrumentRegistry()
 
     def load_and_initialize(self, loader: Loader, simulation_service: SimulationService) -> None:
-        """Populate stores from *loader* and replay advance() to derive initial state.
+        """Populate stores from *loader* and establish initial ledger state.
 
-        Args:
-            loader: Any object implementing the ``Loader`` protocol (must have a ``load()`` method
-                returning :class:`~brms.core.services.loaders.SimulationData`).
-            simulation_service: The simulation service whose bank stores and market data will be
-                populated, and whose ``advance()`` method will be called for replay dates.
-
+        If the loaded data includes balance snapshots (new format), posts a single
+        Opening Balance journal entry. Otherwise falls back to the legacy
+        acquisition-transaction + replay approach for old zips.
         """
         data = loader.load()  # type: ignore[union-attr]
 
@@ -92,18 +89,66 @@ class DataService:
         for name, df in data.market_frames.items():
             simulation_service.market_data.add_frame(name, df)  # type: ignore[union-attr]
 
-        # 2. Post acquisition transactions to establish initial ledger balances
-        self._post_acquisition_transactions(data, simulation_service)
+        if data.balances:
+            # New path: post Opening Balance journal entry
+            self._post_opening_balances(data, simulation_service)
+        else:
+            # Legacy path: acquisition transactions + replay
+            self._post_acquisition_transactions(data, simulation_service)
+            if data.replay_from is not None:
+                current = data.replay_from
+                while current < data.start_date:
+                    simulation_service.advance(current)  # type: ignore[union-attr]
+                    current += datetime.timedelta(days=1)
 
-        # 3. Replay advance() from replay_from to start_date (calendar-day)
-        if data.replay_from is not None:
-            current = data.replay_from
-            while current < data.start_date:
-                simulation_service.advance(current)  # type: ignore[union-attr]
-                current += datetime.timedelta(days=1)
-
-        # 4. Record the configured start date so the next advance(None) lands on it
+        # Record the configured start date
         simulation_service.start_date = data.start_date  # type: ignore[union-attr]
+
+    @staticmethod
+    def _post_opening_balances(data: SimulationData, simulation_service: SimulationService) -> None:
+        """Post a compound Opening Balance journal entry from snapshot balances."""
+        from brms.core.models.accounting.accounts import AccountNormalBalance
+        from brms.core.models.accounting.journal import CompoundEntry
+
+        ledger = simulation_service.bank.ledger
+        coa = ledger.chart_of_accounts
+
+        # Build account name -> account lookup from the full chart
+        account_lookup: dict[str, object] = {}
+        for account in coa.all_accounts():
+            account_lookup[account.name] = account
+
+        obe = account_lookup.get("Opening Balance Equity")
+        if obe is None:
+            msg = "Opening Balance Equity account not found in chart of accounts"
+            raise ValueError(msg)
+
+        debit_accounts: dict = {}
+        credit_accounts: dict = {}
+
+        for account_name, balance in data.balances.items():
+            account = account_lookup.get(account_name)
+            if account is None:
+                msg = f"Account '{account_name}' not found in chart of accounts"
+                raise ValueError(msg)
+            if balance == 0:
+                continue
+
+            if account.normal_balance == AccountNormalBalance.DEBIT_NORMAL:
+                debit_accounts[account] = balance
+                credit_accounts[obe] = credit_accounts.get(obe, 0) + balance
+            else:
+                credit_accounts[account] = balance
+                debit_accounts[obe] = debit_accounts.get(obe, 0) + balance
+
+        if debit_accounts and credit_accounts:
+            entry = CompoundEntry(
+                debit_accounts=debit_accounts,
+                credit_accounts=credit_accounts,
+                date=data.start_date,
+                description="Opening Balance",
+            )
+            ledger.post(entry)
 
     @staticmethod
     def _post_acquisition_transactions(data: SimulationData, simulation_service: SimulationService) -> None:

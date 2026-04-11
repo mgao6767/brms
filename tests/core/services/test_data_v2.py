@@ -193,6 +193,7 @@ def _make_zip_with_balances() -> BytesIO:
                     "Cash and Cash Equivalents": 950000.0,
                     "Deposits": 800000.0,
                     "Shareholders' Equity": 100000.0,
+                    "Retained Earnings": 50000.0,
                 },
             }),
         )
@@ -202,6 +203,60 @@ def _make_zip_with_balances() -> BytesIO:
         )
     buf.seek(0)
     return buf
+
+
+class TestDataServiceOpeningBalance:
+    """Tests for DataService loading with balances (new format)."""
+
+    def test_posts_opening_balance_entry(self) -> None:
+        """DataService posts a CompoundEntry when balances are provided."""
+        from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
+        from brms.core.models.accounting.journal import Journal
+        from brms.core.models.accounting.ledger import Ledger
+        from brms.core.services.data_service import DataService
+
+        coa = BankChartOfAccounts()
+        ledger = Ledger(chart_of_accounts=coa, journal=Journal())
+
+        loader = ZipLoader(buffer=_make_zip_with_balances(), instrument_registry=_make_registry())
+
+        sim = MagicMock()
+        sim.bank.instruments = MagicMock()
+        sim.bank.positions = MagicMock()
+        sim.bank.ledger = ledger
+        sim.market_data = MagicMock()
+
+        ds = DataService()
+        ds.load_and_initialize(loader, sim)
+
+        # Verify balances were posted
+        assert abs(coa.cash_account.balance() - 950000.0) < 1e-6
+        assert abs(coa.customer_deposits_account.balance() - 800000.0) < 1e-6
+        assert abs(coa.equity_account.balance() - 100000.0) < 1e-6
+
+        # OBE should net to zero
+        assert abs(coa.opening_balance_equity.balance()) < 1e-6
+
+    def test_no_replay_when_balances_present(self) -> None:
+        """DataService does not call advance() when balances are in the zip."""
+        from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
+        from brms.core.models.accounting.journal import Journal
+        from brms.core.models.accounting.ledger import Ledger
+        from brms.core.services.data_service import DataService
+
+        coa = BankChartOfAccounts()
+        ledger = Ledger(chart_of_accounts=coa, journal=Journal())
+
+        loader = ZipLoader(buffer=_make_zip_with_balances(), instrument_registry=_make_registry())
+
+        sim = MagicMock()
+        sim.bank.ledger = ledger
+        sim.market_data = MagicMock()
+
+        ds = DataService()
+        ds.load_and_initialize(loader, sim)
+
+        sim.advance.assert_not_called()
 
 
 class TestZipLoaderBalances:
@@ -215,6 +270,7 @@ class TestZipLoaderBalances:
             "Cash and Cash Equivalents": 950000.0,
             "Deposits": 800000.0,
             "Shareholders' Equity": 100000.0,
+            "Retained Earnings": 50000.0,
         }
 
     def test_no_replay_from_in_new_format(self) -> None:
