@@ -15,6 +15,7 @@ Run with::
 
 from __future__ import annotations
 
+import contextlib
 import json
 import random
 import uuid
@@ -165,11 +166,52 @@ def _build_instruments_and_positions() -> tuple[list[dict], list[dict]]:
     return instruments, positions
 
 
-def create_default_zip(out_path: Path | None = None) -> Path:
-    """Write the default simulation zip to *out_path* and return its path."""
-    from decimal import Decimal
+def _compute_fair_values(instruments: list, positions_data: list[dict], yields_csv: Path) -> None:
+    """Set acquisition_cost to QuantLib NPV for FVOCI/FVTPL bond positions.
 
+    Mutates *positions_data* in place. Only FVOCI and FVTPL positions are
+    updated — HTM, mortgages, deposits, and equity keep their original cost.
+    """
+    import QuantLib as ql  # noqa: N813
+
+    from brms.core.models.market_data import MarketDataStore
+    from brms.core.services.valuation_context import ValuationContext
+
+    inst_lookup = {inst.id: inst for inst in instruments}
+
+    # Load market data for yield curve construction
     import pandas as pd
+
+    yields_df = pd.read_csv(yields_csv, index_col="date", parse_dates=True)
+    market_data = MarketDataStore()
+    market_data.add_frame("yields", yields_df)
+
+    yield_handle = ql.RelinkableYieldTermStructureHandle()
+    context = ValuationContext(yield_handle)
+
+    # Group FVOCI/FVTPL positions by acquisition date to minimise context rebuilds
+    date_groups: dict[date, list[dict]] = {}
+    for p in positions_data:
+        if p["measurement_basis"] in ("FVOCI", "FVTPL"):
+            acq = date.fromisoformat(p["acquisition_date"])
+            date_groups.setdefault(acq, []).append(p)
+
+    for acq_date, pos_dicts in date_groups.items():
+        context.update(acq_date, market_data)
+        for p in pos_dicts:
+            inst = inst_lookup[p["instrument_id"]]
+            ql_inst = getattr(inst, "ql_instrument", None)
+            if ql_inst is None:
+                continue
+            engine = ql.DiscountingBondEngine(yield_handle)
+            ql_inst.setPricingEngine(engine)
+            with contextlib.suppress(RuntimeError):
+                p["acquisition_cost"] = round(ql_inst.NPV(), 2)
+
+
+def _build_objects(instruments_data: list[dict], positions_data: list[dict]) -> tuple[list, list]:
+    """Construct Instrument and Position objects from raw dicts."""
+    from decimal import Decimal
 
     from brms.core.enums import BookType, MeasurementBasis, PositionSide
     from brms.core.models.instruments.bonds import TreasuryNote
@@ -179,12 +221,7 @@ def create_default_zip(out_path: Path | None = None) -> Path:
     from brms.core.models.instruments.registry import InstrumentRegistry
     from brms.core.models.position import Position
     from brms.core.services.data_service import _convert_kwargs
-    from brms.core.services.simulation_builder import BuildConfig, SimulationBuilder
 
-    out_path = out_path or _OUT_PATH
-    instruments_data, positions_data = _build_instruments_and_positions()
-
-    # Build real instrument instances
     registry = InstrumentRegistry()
     registry.register("cash", Cash)
     registry.register("deposit", Deposit)
@@ -208,7 +245,9 @@ def create_default_zip(out_path: Path | None = None) -> Path:
             inst.name = instrument_name
         instruments.append(inst)
 
-    # Build Position objects
+    # Compute fair-value acquisition costs for FVOCI/FVTPL bonds
+    _compute_fair_values(instruments, positions_data, _YIELDS_CSV)
+
     positions = [
         Position(
             id=p["id"],
@@ -221,6 +260,19 @@ def create_default_zip(out_path: Path | None = None) -> Path:
         )
         for p in positions_data
     ]
+
+    return instruments, positions
+
+
+def create_default_zip(out_path: Path | None = None) -> Path:
+    """Write the default simulation zip to *out_path* and return its path."""
+    import pandas as pd
+
+    from brms.core.services.simulation_builder import BuildConfig, SimulationBuilder
+
+    out_path = out_path or _OUT_PATH
+    instruments_data, positions_data = _build_instruments_and_positions()
+    instruments, positions = _build_objects(instruments_data, positions_data)
 
     # Load market data
     yields_df = pd.read_csv(_YIELDS_CSV, index_col="date", parse_dates=True)
