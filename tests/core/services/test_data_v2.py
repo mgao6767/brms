@@ -155,3 +155,77 @@ class TestDataServiceLoadAndInitialize:
             call(datetime.date(2024, 1, 4)),
         ]
         assert sim.advance.call_args_list == expected  # noqa: S101
+
+
+def _make_zip_with_balances() -> BytesIO:
+    buf = BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr(
+            "config.json",
+            json.dumps({
+                "name": "Test Bank",
+                "start_date": "2024-01-05",
+            }),
+        )
+        zf.writestr(
+            "instruments.json",
+            json.dumps([{"id": "cash-1", "type": "cash"}]),
+        )
+        zf.writestr(
+            "positions.json",
+            json.dumps([
+                {
+                    "id": "pos-1",
+                    "instrument_id": "cash-1",
+                    "book_type": "BANKING",
+                    "measurement_basis": "AMORTIZED_COST",
+                    "side": "LONG",
+                    "acquisition_date": "2024-01-01",
+                    "acquisition_cost": 1000000,
+                },
+            ]),
+        )
+        zf.writestr(
+            "balances.json",
+            json.dumps({
+                "snapshot_date": "2024-01-05",
+                "balances": {
+                    "Cash and Cash Equivalents": 950000.0,
+                    "Deposits": 800000.0,
+                    "Shareholders' Equity": 100000.0,
+                },
+            }),
+        )
+        zf.writestr(
+            "yields.csv",
+            "date,1Y,5Y\n" + "\n".join(f"2024-01-{i:02d},0.04,0.045" for i in range(1, 6)),
+        )
+    buf.seek(0)
+    return buf
+
+
+class TestZipLoaderBalances:
+    """Tests for ZipLoader with balances.json support."""
+
+    def test_loads_balances_from_zip(self) -> None:
+        loader = ZipLoader(buffer=_make_zip_with_balances(), instrument_registry=_make_registry())
+        data = loader.load()
+
+        assert data.balances == {
+            "Cash and Cash Equivalents": 950000.0,
+            "Deposits": 800000.0,
+            "Shareholders' Equity": 100000.0,
+        }
+
+    def test_no_replay_from_in_new_format(self) -> None:
+        loader = ZipLoader(buffer=_make_zip_with_balances(), instrument_registry=_make_registry())
+        data = loader.load()
+
+        assert data.replay_from is None
+
+    def test_old_zip_without_balances_still_works(self) -> None:
+        loader = ZipLoader(buffer=_make_zip(), instrument_registry=_make_registry())
+        data = loader.load()
+
+        assert data.balances == {}
+        assert data.replay_from == datetime.date(2024, 1, 1)

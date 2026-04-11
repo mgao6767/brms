@@ -27,11 +27,12 @@ class SimulationData:
     """Container for all data loaded by a loader."""
 
     name: str
-    replay_from: datetime.date
     start_date: datetime.date
     instruments: list[Instrument]
     positions: list[Position]
     market_frames: dict[str, pd.DataFrame]
+    balances: dict[str, float] = field(default_factory=dict)
+    replay_from: datetime.date | None = None
 
 
 @runtime_checkable
@@ -97,13 +98,23 @@ class ZipLoader:
         positions = self._load_positions(zf)
         market_frames = self._load_market_data(zf)
 
+        balances: dict[str, float] = {}
+        if "balances.json" in zf.namelist():
+            bal_data = json.loads(zf.read("balances.json"))
+            balances = bal_data.get("balances", {})
+
+        replay_from = None
+        if "replay_from" in cfg:
+            replay_from = datetime.date.fromisoformat(cfg["replay_from"])
+
         return SimulationData(
             name=cfg["name"],
-            replay_from=datetime.date.fromisoformat(cfg["replay_from"]),
             start_date=datetime.date.fromisoformat(cfg["start_date"]),
             instruments=instruments,
             positions=positions,
             market_frames=market_frames,
+            balances=balances,
+            replay_from=replay_from,
         )
 
     def _load_instruments(self, zf: zipfile.ZipFile) -> list[Instrument]:

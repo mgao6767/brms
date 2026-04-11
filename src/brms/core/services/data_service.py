@@ -96,10 +96,11 @@ class DataService:
         self._post_acquisition_transactions(data, simulation_service)
 
         # 3. Replay advance() from replay_from to start_date (calendar-day)
-        current = data.replay_from
-        while current < data.start_date:
-            simulation_service.advance(current)  # type: ignore[union-attr]
-            current += datetime.timedelta(days=1)
+        if data.replay_from is not None:
+            current = data.replay_from
+            while current < data.start_date:
+                simulation_service.advance(current)  # type: ignore[union-attr]
+                current += datetime.timedelta(days=1)
 
         # 4. Record the configured start date so the next advance(None) lands on it
         simulation_service.start_date = data.start_date  # type: ignore[union-attr]
