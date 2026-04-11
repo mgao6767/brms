@@ -9,7 +9,7 @@ This script builds ``default_simulation.zip`` containing:
 
 Run with::
 
-    uv run python src/brms/data/create_default_zip.py
+    uv run python src/brms/data/create_default_zip.py /path/to/data/folder
 
 """
 
@@ -18,6 +18,7 @@ from __future__ import annotations
 import contextlib
 import json
 import random
+import sys
 import uuid
 import zipfile
 from datetime import date
@@ -30,7 +31,6 @@ random.seed(42)
 
 _DATA_DIR = Path(__file__).resolve().parent
 _OUT_PATH = _DATA_DIR / "default_simulation.zip"
-_YIELDS_CSV = _DATA_DIR / "default" / "treasury_yields.csv"
 
 _START_DATE = "2022-01-03"
 
@@ -209,7 +209,7 @@ def _compute_fair_values(instruments: list, positions_data: list[dict], yields_c
                 p["acquisition_cost"] = round(ql_inst.NPV(), 2)
 
 
-def _build_objects(instruments_data: list[dict], positions_data: list[dict]) -> tuple[list, list]:
+def _build_objects(instruments_data: list[dict], positions_data: list[dict], yields_csv: Path) -> tuple[list, list]:
     """Construct Instrument and Position objects from raw dicts."""
     from decimal import Decimal
 
@@ -246,7 +246,7 @@ def _build_objects(instruments_data: list[dict], positions_data: list[dict]) -> 
         instruments.append(inst)
 
     # Compute fair-value acquisition costs for FVOCI/FVTPL bonds
-    _compute_fair_values(instruments, positions_data, _YIELDS_CSV)
+    _compute_fair_values(instruments, positions_data, yields_csv)
 
     positions = [
         Position(
@@ -264,18 +264,22 @@ def _build_objects(instruments_data: list[dict], positions_data: list[dict]) -> 
     return instruments, positions
 
 
-def create_default_zip(out_path: Path | None = None) -> Path:
-    """Write the default simulation zip to *out_path* and return its path."""
+def create_default_zip(data_folder: Path, out_path: Path | None = None) -> Path:
+    """Write the default simulation zip to *out_path* and return its path.
+
+    *data_folder* must contain ``treasury_yields.csv``.
+    """
     import pandas as pd
 
     from brms.core.services.simulation_builder import BuildConfig, SimulationBuilder
 
     out_path = out_path or _OUT_PATH
+    yields_csv = data_folder / "treasury_yields.csv"
     instruments_data, positions_data = _build_instruments_and_positions()
-    instruments, positions = _build_objects(instruments_data, positions_data)
+    instruments, positions = _build_objects(instruments_data, positions_data, yields_csv)
 
     # Load market data
-    yields_df = pd.read_csv(_YIELDS_CSV, index_col="date", parse_dates=True)
+    yields_df = pd.read_csv(yields_csv, index_col="date", parse_dates=True)
 
     # Build snapshot
     config = BuildConfig(
@@ -303,15 +307,18 @@ def create_default_zip(out_path: Path | None = None) -> Path:
         }
         zf.writestr("balances.json", json.dumps(balances_dict, indent=2))
 
-        if _YIELDS_CSV.exists():
-            zf.write(_YIELDS_CSV, "yields.csv")
+        if yields_csv.exists():
+            zf.write(yields_csv, "yields.csv")
         else:
-            msg = f"Treasury yields CSV not found at {_YIELDS_CSV}"
+            msg = f"Treasury yields CSV not found at {yields_csv}"
             raise FileNotFoundError(msg)
 
     return out_path
 
 
 if __name__ == "__main__":
-    path = create_default_zip()
+    if len(sys.argv) < 2:  # noqa: PLR2004
+        print("Usage: python create_default_zip.py <data_folder>", file=sys.stderr)  # noqa: T201
+        sys.exit(1)
+    path = create_default_zip(data_folder=Path(sys.argv[1]))
     print(f"Created {path}")  # noqa: T201

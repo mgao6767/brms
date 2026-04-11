@@ -5,6 +5,9 @@ CLAUDE.md
 # Temporary folder and files
 temp/
 
+# Simulation zip build artifacts
+src/brms/data/*.zip
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
