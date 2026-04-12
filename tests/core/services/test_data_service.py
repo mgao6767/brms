@@ -25,15 +25,15 @@ def _full_registry() -> InstrumentRegistry:
     return registry
 
 
-def test_load_default_simulation_zip() -> None:
-    """ZipLoader can load the generated default_simulation.zip with QuantLib instruments."""
+def test_load_htm_treasury_zip() -> None:
+    """ZipLoader can load htm_treasury.zip with QuantLib instruments."""
     from brms.core.services.loaders import ZipLoader
 
-    zip_path = Path(__file__).resolve().parents[3] / "src" / "brms" / "data" / "default_simulation.zip"
+    zip_path = Path(__file__).resolve().parents[3] / "src" / "brms" / "data" / "htm_treasury.zip"
     loader = ZipLoader(path=zip_path, instrument_registry=_full_registry())
     data = loader.load()
 
-    assert data.name == "Default Bank"  # noqa: S101
+    assert data.name == "HTM Treasury Bank"  # noqa: S101
     assert len(data.instruments) == EXPECTED_TOTAL_INSTRUMENT_COUNT  # noqa: S101
     assert len(data.balances) > 0  # noqa: S101
     assert data.replay_from is None  # noqa: S101

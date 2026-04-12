@@ -32,7 +32,9 @@ def _convert_kwargs(kwargs: dict[str, object]) -> dict[str, object]:
     """Convert JSON-friendly values to QuantLib types expected by instrument constructors.
 
     * Fields ending with ``_date``: ISO date string -> ``ql.Date``.
-    * Field ``maturity``: period string like ``"30Y"`` -> ``ql.Period``.
+    * Fields ``maturity``, ``frequency``: period string like ``"30Y"`` or ``"1M"``.
+      ``maturity`` becomes ``ql.Period``; ``frequency`` becomes a QL ``Frequency``
+      int (e.g. ``ql.Monthly``) via ``.frequency()``.
     * Field ``measurement_basis``: string -> ``MeasurementBasis`` enum.
     * Field ``book_type``: string -> ``BookType`` enum.
     * Field ``credit_rating``: string -> ``CreditRating`` enum.
@@ -43,10 +45,11 @@ def _convert_kwargs(kwargs: dict[str, object]) -> dict[str, object]:
             d = datetime.date.fromisoformat(value)
             kwargs[key] = ql.Date(d.day, d.month, d.year)
 
-        elif key == "maturity" and isinstance(value, str):
+        elif key in {"maturity", "frequency"} and isinstance(value, str):
             m = _PERIOD_RE.match(value)
             if m:
-                kwargs[key] = ql.Period(int(m.group(1)), _PERIOD_UNIT_MAP[m.group(2).upper()])
+                period = ql.Period(int(m.group(1)), _PERIOD_UNIT_MAP[m.group(2).upper()])
+                kwargs[key] = period.frequency() if key == "frequency" else period
 
         elif key == "measurement_basis" and isinstance(value, str):
             kwargs[key] = MeasurementBasis[value]
