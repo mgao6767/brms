@@ -168,8 +168,12 @@ def test_fair_value_strategy_handles_multiple_positions() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_carrying_value_strategy_records_carrying_value() -> None:
-    """CarryingValueStrategy records CARRYING_VALUE using face_value."""
+def test_carrying_value_strategy_records_clean_acquisition_cost() -> None:
+    """CarryingValueStrategy records CARRYING_VALUE using clean acquisition cost.
+
+    For instruments without QuantLib (no ql_instrument), this equals
+    pos.acquisition_cost unchanged.
+    """
     strategy = CarryingValueStrategy()
     store = ValuationStore()
     context = MagicMock()
@@ -177,6 +181,7 @@ def test_carrying_value_strategy_records_carrying_value() -> None:
 
     inst = MagicMock()
     inst.face_value = Decimal("950")
+    inst.ql_instrument = None  # no QL → clean cost = acquisition_cost
 
     instruments = MagicMock()
     instruments.get.return_value = inst
@@ -184,6 +189,7 @@ def test_carrying_value_strategy_records_carrying_value() -> None:
     pos = MagicMock()
     pos.id = "pos-ac"
     pos.instrument_id = "inst-ac"
+    pos.acquisition_cost = Decimal("950")
 
     strategy.value_batch([pos], instruments, context, store)
 

@@ -55,7 +55,15 @@ class BankController(BRMSController):
         self.trading_book_ctrl.reset()
 
     def _populate_books(self) -> None:
-        """Populate the tree widgets with all existing instruments in the bank."""
+        """Populate the tree widgets with all existing instruments in the bank.
+
+        Uses :func:`clean_acquisition_cost` for the initial tree value so it
+        matches the Balance Sheet (which is driven by the ledger).  For bonds
+        purchased between coupon dates, acquisition_cost is the dirty price
+        but the Investment account holds only the clean price.
+        """
+        from brms.core.services.valuation_strategies import clean_acquisition_cost
+
         for pos in self.bank.positions.open_positions():
             try:
                 instrument = self.bank.instruments.get(pos.instrument_id)
@@ -66,8 +74,9 @@ class BankController(BRMSController):
                 self.banking_book_ctrl if pos.book_type == BookType.BANKING
                 else self.trading_book_ctrl
             )
+            initial_value = float(clean_acquisition_cost(pos, instrument))
             ctrl.add_instrument(
-                instrument, side, initial_value=float(pos.acquisition_cost),
+                instrument, side, initial_value=initial_value,
                 measurement_basis=pos.measurement_basis,
             )
         self._combined_view.banking_tree.expandAll()
