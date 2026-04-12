@@ -116,6 +116,10 @@ class DepositInterestSettlementRule:
         prev = context.previous_date
         acq_date = getattr(position, "acquisition_date", None)
 
+        # Skip if the deposit didn't exist during the previous month
+        if acq_date is not None and acq_date > prev:
+            return []
+
         # Number of days in previous month
         _, month_days = calendar.monthrange(prev.year, prev.month)
 

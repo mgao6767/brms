@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar
 
 from brms.core.enums import TransactionType
-from brms.core.models.accounting.journal import SimpleEntry
+from brms.core.models.accounting.journal import CompoundEntry, SimpleEntry
 
 if TYPE_CHECKING:
     from brms.core.models.accounting.accounts import TAccount
@@ -166,17 +166,41 @@ class AccountingService:
         return self._lookup(ledger, account_name)
 
     def _security_purchase(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
-        """SECURITY_PURCHASE: debit Investment account, credit Cash."""
+        """SECURITY_PURCHASE: debit Investment account, credit Cash.
+
+        When ``accrued_interest`` metadata is present (bond bought between
+        coupon dates), the dirty price is split::
+
+            Dr  Investment Account              (clean price)
+            Dr  Accrued Interest Receivable     (accrued interest purchased)
+            Cr  Cash                            (dirty price = clean + accrued)
+
+        This keeps the Receivable in sync with QuantLib's ``accruedAmount``
+        so that coupon settlement clears the correct amount.
+        """
+        meta = dict(tx.metadata)
+        accrued_str = meta.get("accrued_interest")
+
         cash = self._lookup(ledger, "Cash and Cash Equivalents")
         investment = self._resolve_investment_account(tx, ledger)
-        entry = SimpleEntry(
+
+        if accrued_str is not None:
+            accrued = float(accrued_str)
+            receivable = self._lookup(ledger, "Accrued Interest Receivable")
+            return [CompoundEntry(
+                debit_accounts={investment: float(tx.amount) - accrued, receivable: accrued},
+                credit_accounts={cash: float(tx.amount)},
+                date=tx.date,
+                description=f"Security purchase with accrued interest (tx={tx.id})",
+            )]
+
+        return [SimpleEntry(
             debit_account=investment,
             credit_account=cash,
             value=float(tx.amount),
             date=tx.date,
             description=f"Security purchase (tx={tx.id})",
-        )
-        return [entry]
+        )]
 
     def _security_sale(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
         """SECURITY_SALE: debit Cash, credit Investment account."""
@@ -407,10 +431,7 @@ class AccountingService:
             coupon_amount = float(tx.amount)
 
             accrued_str = meta.get("accrued_portion")
-            if accrued_str is not None:
-                accrued_portion = float(accrued_str)
-            else:
-                accrued_portion = coupon_amount  # no catch-up
+            accrued_portion = float(accrued_str) if accrued_str is not None else coupon_amount
 
             catch_up = coupon_amount - accrued_portion
 

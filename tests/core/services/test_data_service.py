@@ -10,8 +10,8 @@ from brms.core.models.instruments.equity import CommonEquity
 from brms.core.models.instruments.loans import ResidentialMortgage
 from brms.core.models.instruments.registry import InstrumentRegistry
 
-# Total instruments in the zip: 18 banking + 10 trading = 28
-EXPECTED_TOTAL_INSTRUMENT_COUNT = 28
+# One instrument per type: equity, deposit, HTM, mortgage, FVOCI, FVTPL
+EXPECTED_TOTAL_INSTRUMENT_COUNT = 6
 
 
 def _full_registry() -> InstrumentRegistry:

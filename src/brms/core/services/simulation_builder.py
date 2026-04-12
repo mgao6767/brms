@@ -137,12 +137,17 @@ class SimulationBuilder:
         positions_by_date = self._group_by_date(config)
         earliest = config.start_date if not config.positions else min(p.acquisition_date for p in config.positions)
 
+        has_prior_advance = False
         current = earliest
         while current <= config.start_date:
             if current in positions_by_date:
-                self._add_positions(positions_by_date[current], sim, bank, accounting_service)
+                self._add_positions(
+                    positions_by_date[current], sim, bank, accounting_service,
+                    has_prior_advance=has_prior_advance,
+                )
             if current < config.start_date:
                 sim.advance(current)
+                has_prior_advance = True
             current += datetime.timedelta(days=1)
 
     @staticmethod
@@ -161,12 +166,14 @@ class SimulationBuilder:
         sim: SimulationService,
         bank: Bank,
         accounting_service: AccountingService,
+        *,
+        has_prior_advance: bool,
     ) -> None:
         """Add positions to the bank and post their acquisition transactions."""
         for inst, pos in entries:
             bank.instruments.add(inst)
             bank.positions.add(pos)
-            txns = self._make_acquisition_transactions(inst, pos)
+            txns = self._make_acquisition_transactions(inst, pos, has_prior_advance=has_prior_advance)
             accounting_service.post_all(txns, bank.ledger, bank.positions)
             sim.transaction_log.record_batch(txns)
 
@@ -190,9 +197,16 @@ class SimulationBuilder:
                 balances[account.name] = bal
         return balances
 
-    @staticmethod
-    def _make_acquisition_transactions(inst: Instrument, pos: Position) -> list[Transaction]:
-        """Generate the acquisition transaction for a single position."""
+    def _make_acquisition_transactions(
+        self, inst: Instrument, pos: Position, *, has_prior_advance: bool,
+    ) -> list[Transaction]:
+        """Generate the acquisition transaction for a single position.
+
+        For bond purchases, includes ``accrued_interest`` metadata so the
+        accounting service can split the entry into a clean-price investment
+        debit and an Accrued Interest Receivable debit.  See
+        :meth:`_compute_accrued_interest_at_acquisition` for details.
+        """
         inst_type = getattr(inst, "instrument_type", None)
         basis = pos.measurement_basis
 
@@ -216,6 +230,12 @@ class SimulationBuilder:
                 class_name = "FVTPL"
             metadata = (("measurement_basis", class_name),)
 
+            accrued = self._compute_accrued_interest_at_acquisition(
+                inst, pos, has_prior_advance=has_prior_advance,
+            )
+            if accrued > 0:
+                metadata = (*metadata, ("accrued_interest", str(accrued)))
+
         desc = tx_type.name.replace("_", " ").title()
 
         return [
@@ -230,3 +250,57 @@ class SimulationBuilder:
                 metadata=metadata,
             ),
         ]
+
+    @staticmethod
+    def _compute_accrued_interest_at_acquisition(
+        inst: Instrument, pos: Position, *, has_prior_advance: bool,
+    ) -> Decimal:
+        """Return pre-acquisition accrued interest to book at purchase.
+
+        When a bond is bought between coupon dates, the buyer pays the seller
+        for accrued interest since the last coupon (the "dirty price" includes
+        this).  We split this out so the Accrued Interest Receivable account
+        stays in sync with QuantLib's ``accruedAmount`` from day one.
+
+        We use ``accruedAmount(acquisition_date - 1 day)`` because:
+
+        * On the acquisition date, ``_add_positions`` posts the acquisition
+          transaction **before** ``sim.advance()`` runs.
+        * ``advance()`` then runs the ``InterestIncomeAccrualRule``, which
+          computes: ``accruedAmount(today) - accruedAmount(previous_date)``.
+        * ``previous_date`` equals the last advance date = acquisition_date - 1
+          (since advance runs every calendar day).
+        * So after both the acquisition entry and the first accrual, the
+          Receivable balance equals:
+          ``accruedAmount(acq-1) + [accruedAmount(acq) - accruedAmount(acq-1)]``
+          = ``accruedAmount(acq)``, which is exactly what QuantLib tracks.
+
+        **Edge case — no prior advance (bond is the earliest position):**
+
+        When no ``advance()`` has run before the bond is added, the accrual
+        rule sees ``previous_date = None`` and falls back to ``ai_prev = 0``.
+        That means the first accrual posts the full ``accruedAmount(today)``
+        — effectively booking all pre-acquisition accrual in one go.  If we
+        *also* booked accrued interest at acquisition, the Receivable would
+        be double-counted.  So we return 0 in this case and let the accrual
+        rule handle it.
+        """
+        if not has_prior_advance:
+            return Decimal("0")
+
+        ql_inst = getattr(inst, "ql_instrument", None)
+        if ql_inst is None or not hasattr(ql_inst, "accruedAmount"):
+            return Decimal("0")
+
+        from brms.core.utils import pydate_to_qldate
+
+        face_value = getattr(inst, "face_value", None)
+        scale = Decimal(str(face_value)) / Decimal("100") if face_value else Decimal("1")
+
+        day_before = pos.acquisition_date - datetime.timedelta(days=1)
+        try:
+            raw = ql_inst.accruedAmount(pydate_to_qldate(day_before))
+        except RuntimeError:
+            return Decimal("0")
+
+        return (Decimal(str(raw)) * scale).quantize(Decimal("0.01"))

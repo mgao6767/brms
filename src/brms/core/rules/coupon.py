@@ -38,6 +38,9 @@ class CouponPaymentRule:
         schedule = getattr(instrument, "payment_schedule", None)
         if callable(schedule):
             result = schedule()
+            # Bonds return a flat list of (date, amount) pairs.
+            # Loans return a 3-element tuple (interest, principal, outstanding)
+            # — coupon settlement is bond-only, so skip the loan case.
             if isinstance(result, list):
                 return any(d == context.date for d, _amount in result)
         coupon_dates = getattr(instrument, "coupon_dates", [])
@@ -55,6 +58,7 @@ class CouponPaymentRule:
         schedule = getattr(instrument, "payment_schedule", None)
         if callable(schedule):
             result = schedule()
+            # Only bonds (flat list of pairs) — not loans (3-element tuple).
             if isinstance(result, list):
                 for d, amount in result:
                     if d == context.date:
