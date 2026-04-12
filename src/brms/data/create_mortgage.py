@@ -48,7 +48,6 @@ INSTRUMENTS = [
         "interest_rate": 0.05,
         "issue_date": "2020-06-01",
         "maturity": "30Y",
-        "frequency": "1M",
         "measurement_basis": "AMORTIZED_COST",
         "credit_rating": "UNRATED",
         "issuer": _ISSUER_INDIVIDUAL,

@@ -151,10 +151,19 @@ class AmortizingFixedRateLoan(Instrument):
 
 
 class Mortgage(AmortizingFixedRateLoan):
-    """Base class for mortgages with a fixed interest rate."""
+    """Base class for mortgages with a fixed interest rate.
+
+    Defaults to monthly payments (``ql.Monthly``), overriding the base
+    class semi-annual default.
+    """
 
     _instrument_type_label = "Mortgage"
     _instrument_type_enum = InstrumentType.MORTGAGE
+    _default_frequency = ql.Monthly
+
+    def __init__(self, *, frequency: int = ql.Monthly, **kwargs: object) -> None:  # type: ignore[assignment]
+        """Initialize a mortgage with monthly payment frequency by default."""
+        super().__init__(frequency=frequency, **kwargs)  # type: ignore[arg-type]
 
 
 class ResidentialMortgage(Mortgage):
