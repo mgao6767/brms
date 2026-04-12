@@ -27,15 +27,19 @@ class Cash(Instrument):
 class Deposit(Instrument):
     """A class to represent customer deposit."""
 
-    def __init__(self, *, name: str = "Deposit") -> None:
-        """Initialize a deposit with an optional name.
+    def __init__(self, *, name: str = "Deposit", interest_rate: float | None = None) -> None:
+        """Initialize a deposit with an optional name and interest rate.
 
         Args:
-            name (str): The name of the deposit. Defaults to "Deposit".
+            name: The name of the deposit. Defaults to "Deposit".
+            interest_rate: Annual interest rate (e.g. 0.02 for 2%).
+                When set, the deposit interest rules use this rate instead
+                of their default.  Use 0.0 for a non-interest-bearing deposit.
 
         """
         super().__init__(name=name)
         self.instrument_type = InstrumentType.DEPOSIT
+        self.interest_rate = interest_rate
 
     def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""

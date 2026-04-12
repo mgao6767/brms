@@ -31,6 +31,13 @@ class DepositInterestAccrualRule:
         """Initialise the rule with the given annual interest rate."""
         self._annual_rate = annual_rate
 
+    def _rate_for(self, instrument: Instrument) -> Decimal:
+        """Return the instrument's interest rate, falling back to the rule default."""
+        inst_rate = getattr(instrument, "interest_rate", None)
+        if inst_rate is not None:
+            return Decimal(str(inst_rate))
+        return self._annual_rate
+
     def applies_to(
         self,
         instrument: Instrument,
@@ -43,7 +50,7 @@ class DepositInterestAccrualRule:
 
     def generate(
         self,
-        _instrument: Instrument,
+        instrument: Instrument,
         position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
@@ -53,7 +60,10 @@ class DepositInterestAccrualRule:
         is always exactly ``cost * rate / 365``.
         """
         acquisition_cost = Decimal(str(getattr(position, "acquisition_cost", "0")))
-        amount = acquisition_cost * self._annual_rate / _DAYS_PER_YEAR
+        rate = self._rate_for(instrument)
+        if rate == 0:
+            return []
+        amount = acquisition_cost * rate / _DAYS_PER_YEAR
 
         if amount == 0:
             return []
@@ -84,6 +94,13 @@ class DepositInterestSettlementRule:
         """Initialise the rule with the given annual interest rate."""
         self._annual_rate = annual_rate
 
+    def _rate_for(self, instrument: Instrument) -> Decimal:
+        """Return the instrument's interest rate, falling back to the rule default."""
+        inst_rate = getattr(instrument, "interest_rate", None)
+        if inst_rate is not None:
+            return Decimal(str(inst_rate))
+        return self._annual_rate
+
     def applies_to(
         self,
         instrument: Instrument,
@@ -100,7 +117,7 @@ class DepositInterestSettlementRule:
 
     def generate(
         self,
-        _instrument: Instrument,
+        instrument: Instrument,
         position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
@@ -111,6 +128,10 @@ class DepositInterestSettlementRule:
         instead of the 1st to match the accrual rule.
         """
         import calendar
+
+        rate = self._rate_for(instrument)
+        if rate == 0:
+            return []
 
         acquisition_cost = Decimal(str(getattr(position, "acquisition_cost", "0")))
         prev = context.previous_date
@@ -130,7 +151,7 @@ class DepositInterestSettlementRule:
 
         if days <= 0:
             return []
-        amount = acquisition_cost * self._annual_rate * days / _DAYS_PER_YEAR
+        amount = acquisition_cost * rate * days / _DAYS_PER_YEAR
         if amount == 0:
             return []
         return [
