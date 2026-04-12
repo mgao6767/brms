@@ -11,6 +11,8 @@ from brms.core.enums import PositionSide as Position
 from brms.core.events import InstrumentAdded, InstrumentRemoved
 
 if TYPE_CHECKING:
+    from decimal import Decimal
+
     from brms.app.controllers.inspector_controller import InspectorController
     from brms.app.views.bank_book.combined_book_widget import BRMSCombinedBookWidget
     from brms.core.events import EventBus
@@ -26,10 +28,13 @@ class BankController(BRMSController):
         event_bus: EventBus,
         combined_book_view: BRMSCombinedBookWidget,
         inspector_ctrl: InspectorController,
+        *,
+        initial_valuations: dict[str, Decimal] | None = None,
     ) -> None:
         """Initialize the BankController with core services."""
         super().__init__()
         self.bank = bank
+        self._initial_valuations = initial_valuations or {}
 
         self.banking_book_ctrl = BankingBookController(
             bank.banking_book, combined_book_view.banking_tree,
@@ -57,13 +62,10 @@ class BankController(BRMSController):
     def _populate_books(self) -> None:
         """Populate the tree widgets with all existing instruments in the bank.
 
-        Uses :func:`clean_acquisition_cost` for the initial tree value so it
-        matches the Balance Sheet (which is driven by the ledger).  For bonds
-        purchased between coupon dates, acquisition_cost is the dirty price
-        but the Investment account holds only the clean price.
+        Uses ``initial_valuations`` (seeded from the ValuationStore) for the
+        initial tree value so it matches the Balance Sheet.  Falls back to
+        ``acquisition_cost`` when no valuation is available.
         """
-        from brms.core.services.valuation_strategies import clean_acquisition_cost
-
         for pos in self.bank.positions.open_positions():
             try:
                 instrument = self.bank.instruments.get(pos.instrument_id)
@@ -74,7 +76,8 @@ class BankController(BRMSController):
                 self.banking_book_ctrl if pos.book_type == BookType.BANKING
                 else self.trading_book_ctrl
             )
-            initial_value = float(clean_acquisition_cost(pos, instrument))
+            val = self._initial_valuations.get(pos.id)
+            initial_value = float(val) if val is not None else float(pos.acquisition_cost)
             ctrl.add_instrument(
                 instrument, side, initial_value=initial_value,
                 measurement_basis=pos.measurement_basis,

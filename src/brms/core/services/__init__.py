@@ -113,6 +113,12 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
         loader = ZipLoader(path=simulation_zip, instrument_registry=instrument_registry)
         data_service.load_and_initialize(loader, simulation_service)
 
+    # Seed the valuation store so initial tree values match the BS
+    if simulation_service.start_date is not None:
+        import contextlib
+        with contextlib.suppress(Exception):
+            valuation_service.value_all(bank, market_data, simulation_service.start_date, valuation_store)
+
     return CoreServices(
         event_bus=event_bus,
         simulation_service=simulation_service,

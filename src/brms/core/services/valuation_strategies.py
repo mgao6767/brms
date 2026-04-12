@@ -6,7 +6,7 @@ import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from brms.core.enums import ValuationType
+from brms.core.enums import InstrumentType, ValuationType
 
 if TYPE_CHECKING:
     from brms.core.models.instruments.base import Instrument
@@ -121,12 +121,22 @@ class FairValueStrategy:
 
 
 class CarryingValueStrategy:
-    """Values positions at carrying value (clean acquisition cost).
+    """Values positions at carrying value (amortized cost).
 
-    For amortized-cost instruments the carrying value equals the clean
-    acquisition price — the amount actually debited to the Investment
-    account at initial recognition.  See :func:`clean_acquisition_cost`.
+    * **Amortizing loans** — ``acquisition_cost`` minus cumulative scheduled
+      principal payments between ``acquisition_date`` and the current date.
+      Matches the Loans and Advances ledger (debited at acquisition, credited
+      on each AMORTIZATION transaction).
+    * **Bonds / other** — clean acquisition cost (see :func:`clean_acquisition_cost`).
     """
+
+    AMORTIZING_TYPES: frozenset[InstrumentType] = frozenset({
+        InstrumentType.RESIDENTIAL_MORTGAGE,
+        InstrumentType.COMMERCIAL_MORTGAGE,
+        InstrumentType.MORTGAGE,
+        InstrumentType.AMORTIZING_FIXED_RATE_LOAN,
+        InstrumentType.PERSONAL_LOAN,
+    })
 
     def value_batch(
         self,
@@ -135,11 +145,47 @@ class CarryingValueStrategy:
         context: ValuationContext,
         output: ValuationStore,
     ) -> None:
-        """Record carrying value using the clean acquisition cost."""
+        """Record carrying value for each position."""
         for pos in positions:
             inst = instruments.get(pos.instrument_id)
-            val = clean_acquisition_cost(pos, inst)
+            inst_type = getattr(inst, "instrument_type", None)
+
+            if inst_type in self.AMORTIZING_TYPES:
+                val = self._loan_carrying_value(pos, inst, context.date)
+            else:
+                val = clean_acquisition_cost(pos, inst)
+
             output.record(pos.id, context.date, ValuationType.CARRYING_VALUE, val)  # type: ignore[arg-type]
+
+    @staticmethod
+    def _loan_carrying_value(
+        pos: Position, inst: Instrument, current_date: datetime.date,
+    ) -> Decimal:
+        """Return carrying value of an amortizing loan at *current_date*.
+
+        The ledger books the loan at ``acquisition_cost`` and credits it on
+        each principal repayment.  The carrying value equals::
+
+            acquisition_cost - sum(principal payments from acquisition to date)
+
+        Derived from ``payment_schedule()`` to stay independent of ledger state.
+        """
+        cost = Decimal(str(pos.acquisition_cost))
+        schedule = getattr(inst, "payment_schedule", None)
+        if not callable(schedule):
+            return cost
+
+        result = schedule()
+        if not (isinstance(result, tuple) and len(result) == 3):  # noqa: PLR2004
+            return cost
+        _interest_pmt, principal_pmt, _outstanding = result
+
+        cumulative = Decimal("0")
+        for d, amount in principal_pmt:
+            if pos.acquisition_date < d <= current_date:
+                cumulative += Decimal(str(amount))
+
+        return cost - cumulative
 
 
 def default_valuation_strategies() -> dict:

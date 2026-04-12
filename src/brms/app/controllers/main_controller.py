@@ -102,11 +102,22 @@ class MainController(BRMSController):
             reporting_service=services.reporting_service,
             ledger=services.bank.ledger,
         )
+        # Build initial valuations from the seeded ValuationStore
+        from brms.core.enums import ValuationType
+
+        initial_valuations: dict = {}
+        if start_date is not None:
+            initial_valuations = {
+                **services.valuation_store.snapshot(start_date, ValuationType.CARRYING_VALUE),
+                **services.valuation_store.snapshot(start_date, ValuationType.FAIR_VALUE),
+            }
+
         self.bank_ctrl = BankController(
             bank=services.bank,
             event_bus=eb,
             combined_book_view=view.combined_book_widget,
             inspector_ctrl=self.inspector_ctrl,
+            initial_valuations=initial_valuations,
         )
         self.yield_curve_ctrl = YieldCurveController(
             view=view.yield_curve_widget,
