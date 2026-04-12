@@ -18,6 +18,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
+from brms.core.enums import PositionSide
 from brms.core.models.transaction import Transaction, TransactionType
 from brms.core.rules.interest_accrual import scaled_accrued_amount
 from brms.core.utils import pydate_to_qldate
@@ -41,11 +42,13 @@ class LoanInterestSettlementRule:
         position: Position,
         context: RuleContext,
     ) -> bool:
-        """Return True if an interest payment date matches the current date.
+        """Return True for LONG positions on a scheduled interest payment date.
 
-        Skips payment dates on or before the acquisition date — on the day
-        the loan enters the bank there is no accrued interest to settle.
+        Income-side settlement: Dr Cash / Cr AIR / Cr Interest Income.
+        Skips dates on or before acquisition (no AIR to settle yet).
         """
+        if getattr(position, "side", None) != PositionSide.LONG:
+            return False
         if context.date <= position.acquisition_date:
             return False
         schedule = getattr(instrument, "payment_schedule", None)

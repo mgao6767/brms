@@ -16,6 +16,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
+from brms.core.enums import PositionSide
 from brms.core.models.transaction import Transaction, TransactionType
 from brms.core.rules.interest_accrual import scaled_accrued_amount
 from brms.core.utils import pydate_to_qldate
@@ -32,10 +33,17 @@ class CouponPaymentRule:
     def applies_to(
         self,
         instrument: Instrument,
-        _position: Position,
+        position: Position,
         context: RuleContext,
     ) -> bool:
-        """Return True if a coupon date matches the current date exactly."""
+        """Return True for LONG positions on a coupon date.
+
+        Coupon settlement is income-side: Dr Cash / Cr AIR / Cr Interest
+        Income.  SHORT positions (bond issuance) would require an expense-side
+        rule, which is not implemented here.
+        """
+        if getattr(position, "side", None) != PositionSide.LONG:
+            return False
         schedule = getattr(instrument, "payment_schedule", None)
         if callable(schedule):
             result = schedule()

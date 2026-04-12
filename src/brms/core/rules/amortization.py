@@ -6,6 +6,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
+from brms.core.enums import PositionSide
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
@@ -23,12 +24,13 @@ class AmortizationRule:
         position: Position,
         context: RuleContext,
     ) -> bool:
-        """Return True if a principal payment date matches the current date.
+        """Return True for LONG positions on a principal payment date.
 
-        Skips dates on or before the acquisition date — on the day the loan
-        enters the bank, scheduled payments from the pre-acquisition period
-        should not fire.
+        LONG: bank receives principal (Dr Cash / Cr Loans).
+        Skips dates on or before acquisition (pre-acquisition payments).
         """
+        if getattr(position, "side", None) != PositionSide.LONG:
+            return False
         if context.date <= position.acquisition_date:
             return False
         schedule = getattr(instrument, "payment_schedule", None)

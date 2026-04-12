@@ -38,11 +38,14 @@ def _make_position(
     instrument_id: str = "loan-1",
     acquisition_date: datetime.date = datetime.date(2024, 1, 1),
 ) -> MagicMock:
-    """Return a mock position."""
+    """Return a mock LONG position."""
+    from brms.core.enums import PositionSide
+
     pos = MagicMock()
     pos.id = "pos-1"
     pos.instrument_id = instrument_id
     pos.acquisition_date = acquisition_date
+    pos.side = PositionSide.LONG
     return pos
 
 
