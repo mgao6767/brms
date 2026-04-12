@@ -42,15 +42,23 @@ class AccountingRule(Protocol):
 
 
 class RuleEngine:
-    """Applies registered accounting rules across all open positions of a bank."""
+    """Applies accounting rules declared by each instrument to open positions.
 
-    def __init__(self, rules: Iterable[AccountingRule] = ()) -> None:
-        """Initialise the rule engine, optionally with initial rules."""
-        self._rules: list[AccountingRule] = list(rules)
+    Rules are keyed by their class.  Each instrument declares which rule
+    classes apply to it via ``instrument.applicable_rules`` (a frozenset of
+    rule classes).  The engine only runs rules that the instrument opts into.
+    """
+
+    def __init__(self, rules: dict[type, AccountingRule] | Iterable[AccountingRule] = ()) -> None:
+        """Initialise the rule engine with a class-keyed dict or legacy iterable."""
+        if isinstance(rules, dict):
+            self._rules: dict[type, AccountingRule] = dict(rules)
+        else:
+            self._rules = {type(r): r for r in rules}
 
     def register(self, rule: AccountingRule) -> None:
         """Register an accounting rule with the engine."""
-        self._rules.append(rule)
+        self._rules[type(rule)] = rule
 
     def apply(
         self,
@@ -62,19 +70,19 @@ class RuleEngine:
         *,
         has_market_data: bool = True,
     ) -> list[Transaction]:
-        """Apply all rules to every open position and return aggregated transactions.
+        """Apply instrument-declared rules to every open position.
 
-        For each open position the engine resolves the associated instrument via
-        ``bank.instruments.get(position.instrument_id)``, then iterates registered
-        rules.  Rules whose ``applies_to`` returns ``True`` are asked to
-        ``generate`` transactions, which are collected and returned as a flat list.
+        For each open position the engine reads ``instrument.applicable_rules``
+        to determine which rules to evaluate.  Only rules whose ``applies_to``
+        returns ``True`` produce transactions.
         """
         context = RuleContext(date, previous_date, market_state, valuation_store, has_market_data=has_market_data)
         transactions: list[Transaction] = []
         for position in bank.positions.open_positions():  # type: ignore[union-attr]
             instrument = bank.instruments.get(position.instrument_id)  # type: ignore[union-attr]
-            for rule in self._rules:
-                if rule.applies_to(instrument, position, context):
+            for rule_class in getattr(instrument, "applicable_rules", frozenset()):
+                rule = self._rules.get(rule_class)
+                if rule is not None and rule.applies_to(instrument, position, context):
                     transactions.extend(
                         rule.generate(instrument, position, context),
                     )

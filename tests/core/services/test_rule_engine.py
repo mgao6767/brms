@@ -58,6 +58,13 @@ class NeverRule:
         return []
 
 
+def _mock_instrument(*rule_classes: type) -> MagicMock:
+    """Create a mock instrument that declares the given rule classes."""
+    inst = MagicMock()
+    inst.applicable_rules = frozenset(rule_classes)
+    return inst
+
+
 def test_apply_returns_transactions() -> None:
     """RuleEngine collects transactions from rules that apply."""
     engine = RuleEngine()
@@ -69,7 +76,7 @@ def test_apply_returns_transactions() -> None:
     pos.id = "p1"
     pos.instrument_id = "i1"
     bank.positions.open_positions.return_value = [pos]
-    bank.instruments.get.return_value = MagicMock()
+    bank.instruments.get.return_value = _mock_instrument(AlwaysRule, NeverRule)
 
     txs = engine.apply(bank, MagicMock(), MagicMock(), datetime.date(2024, 1, 1))
     assert len(txs) == 1
@@ -110,7 +117,7 @@ def test_multiple_positions_accumulate_transactions() -> None:
     pos2.id = "p2"
     pos2.instrument_id = "i2"
     bank.positions.open_positions.return_value = [pos1, pos2]
-    bank.instruments.get.return_value = MagicMock()
+    bank.instruments.get.return_value = _mock_instrument(AlwaysRule)
 
     txs = engine.apply(bank, MagicMock(), MagicMock(), datetime.date(2024, 1, 1))
     assert len(txs) == EXPECTED_TWO
@@ -126,7 +133,7 @@ def test_instrument_fetched_by_position_instrument_id() -> None:
     pos.id = "p1"
     pos.instrument_id = "bond-42"
     bank.positions.open_positions.return_value = [pos]
-    bank.instruments.get.return_value = MagicMock()
+    bank.instruments.get.return_value = _mock_instrument(NeverRule)
 
     engine.apply(bank, MagicMock(), MagicMock(), datetime.date(2024, 6, 1))
     bank.instruments.get.assert_called_once_with("bond-42")

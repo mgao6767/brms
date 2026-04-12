@@ -58,15 +58,12 @@ def clean_acquisition_cost(position: Position, instrument: Instrument) -> Decima
     if ql_inst is None or not hasattr(ql_inst, "accruedAmount"):
         return Decimal(str(position.acquisition_cost))
 
+    from brms.core.rules.interest_accrual import scaled_accrued_amount
     from brms.core.utils import pydate_to_qldate
-
-    face_value = getattr(instrument, "face_value", None)
-    scale = Decimal(str(face_value)) / Decimal("100") if face_value else Decimal("1")
 
     day_before = position.acquisition_date - datetime.timedelta(days=1)
     try:
-        raw = ql_inst.accruedAmount(pydate_to_qldate(day_before))
-        accrued = (Decimal(str(raw)) * scale).quantize(Decimal("0.01"))
+        accrued = scaled_accrued_amount(ql_inst, pydate_to_qldate(day_before)).quantize(Decimal("0.01"))
     except RuntimeError:
         return Decimal(str(position.acquisition_cost))
 

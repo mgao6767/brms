@@ -181,8 +181,10 @@ class SimulationBuilder:
     def _extract_balances(coa: BankChartOfAccounts) -> dict[str, float]:
         """Return non-zero non-temporary account balances from the chart of accounts.
 
-        Excludes composite accounts (which aggregate children) and temporary accounts.
-        Only leaf accounts with non-zero balances are included.
+        Excludes temporary accounts and aggregation-only composite accounts
+        (those with sub-accounts that aggregate children).  Composites with
+        **no** sub-accounts function as leaf posting accounts (e.g. Interest
+        Income) and are included.
         """
         from brms.core.models.accounting.accounts import CompositeTAccount
 
@@ -190,7 +192,7 @@ class SimulationBuilder:
         for account in coa.all_accounts():
             if account.is_temporary_account:
                 continue
-            if isinstance(account, CompositeTAccount):
+            if isinstance(account, CompositeTAccount) and list(account.sub_accounts):
                 continue
             bal = account.balance()
             if abs(bal) > _ZERO_THRESHOLD:
@@ -292,15 +294,11 @@ class SimulationBuilder:
         if ql_inst is None or not hasattr(ql_inst, "accruedAmount"):
             return Decimal("0")
 
+        from brms.core.rules.interest_accrual import scaled_accrued_amount
         from brms.core.utils import pydate_to_qldate
-
-        face_value = getattr(inst, "face_value", None)
-        scale = Decimal(str(face_value)) / Decimal("100") if face_value else Decimal("1")
 
         day_before = pos.acquisition_date - datetime.timedelta(days=1)
         try:
-            raw = ql_inst.accruedAmount(pydate_to_qldate(day_before))
+            return scaled_accrued_amount(ql_inst, pydate_to_qldate(day_before)).quantize(Decimal("0.01"))
         except RuntimeError:
             return Decimal("0")
-
-        return (Decimal(str(raw)) * scale).quantize(Decimal("0.01"))

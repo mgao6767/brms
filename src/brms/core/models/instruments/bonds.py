@@ -10,6 +10,10 @@ import QuantLib as ql  # noqa: N813
 
 from brms.core.enums import InstrumentType
 from brms.core.models.instruments.base import Instrument, MeasurementBasis
+from brms.core.rules.coupon import CouponPaymentRule
+from brms.core.rules.interest_accrual import InterestIncomeAccrualRule
+from brms.core.rules.mark_to_market import MarkToMarketRule
+from brms.core.rules.maturity import MaturityRule
 from brms.core.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
 
 if TYPE_CHECKING:
@@ -20,6 +24,7 @@ if TYPE_CHECKING:
 class FixedRateBond(Instrument):
     """A class representing a fixed rate bond."""
 
+    applicable_rules = frozenset({InterestIncomeAccrualRule, CouponPaymentRule, MaturityRule, MarkToMarketRule})
     _instrument_type_label = "Fixed Rate Bond"
     _instrument_type_enum = InstrumentType.FIXED_RATE_BOND
 

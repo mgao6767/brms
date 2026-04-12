@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from brms.core.enums import InstrumentType
 from brms.core.models.instruments.base import Instrument
+from brms.core.rules.deposit_interest import DepositInterestAccrualRule, DepositInterestSettlementRule
 
 if TYPE_CHECKING:
     from brms.core.visitors.base import Visitor
@@ -26,6 +27,8 @@ class Cash(Instrument):
 
 class Deposit(Instrument):
     """A class to represent customer deposit."""
+
+    applicable_rules = frozenset({DepositInterestAccrualRule, DepositInterestSettlementRule})
 
     def __init__(self, *, name: str = "Deposit", interest_rate: float | None = None) -> None:
         """Initialize a deposit with an optional name and interest rate.

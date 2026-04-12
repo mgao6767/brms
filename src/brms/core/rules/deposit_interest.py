@@ -6,7 +6,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import InstrumentType, TransactionType
+from brms.core.enums import TransactionType
 from brms.core.models.transaction import Transaction
 
 if TYPE_CHECKING:
@@ -40,13 +40,12 @@ class DepositInterestAccrualRule:
 
     def applies_to(
         self,
-        instrument: Instrument,
+        _instrument: Instrument,
         _position: Position,
         _context: RuleContext,
     ) -> bool:
-        """Return True if the instrument is a deposit."""
-        instrument_type = getattr(instrument, "instrument_type", None)
-        return instrument_type == InstrumentType.DEPOSIT
+        """Return True unconditionally — runs every simulation day."""
+        return True
 
     def generate(
         self,
@@ -103,14 +102,11 @@ class DepositInterestSettlementRule:
 
     def applies_to(
         self,
-        instrument: Instrument,
+        _instrument: Instrument,
         _position: Position,
         context: RuleContext,
     ) -> bool:
-        """Return True on the 1st of each month for deposit instruments."""
-        instrument_type = getattr(instrument, "instrument_type", None)
-        if instrument_type != InstrumentType.DEPOSIT:
-            return False
+        """Return True on the 1st of each month (timing check only)."""
         if context.previous_date is None:
             return False
         return context.date.day == 1

@@ -31,6 +31,19 @@ if TYPE_CHECKING:
 _DAYS_PER_YEAR = Decimal("365")
 
 
+def scaled_accrued_amount(ql_inst: ql.Bond, ql_date: ql.Date) -> Decimal:
+    """Return the absolute accrued interest at *ql_date* in currency.
+
+    QL's ``accruedAmount(d)`` returns per-100 of the **current notional** at
+    *d*.  For fixed-notional bonds the current notional equals face value; for
+    amortizing instruments it declines at each payment date.  In both cases,
+    scaling by ``notional(d) / 100`` gives the correct dollar amount.
+    """
+    raw = Decimal(str(ql_inst.accruedAmount(ql_date)))
+    notional = Decimal(str(ql_inst.notional(ql_date)))
+    return raw * notional / Decimal("100")
+
+
 class InterestIncomeAccrualRule:
     """Accrue interest income for LONG positions on coupon/interest-bearing instruments.
 
@@ -40,18 +53,12 @@ class InterestIncomeAccrualRule:
 
     def applies_to(
         self,
-        instrument: Instrument,
+        _instrument: Instrument,
         position: Position,
         _context: RuleContext,
     ) -> bool:
-        """Return True if the instrument has an interest rate and position is LONG."""
-        side = getattr(position, "side", None)
-        if side != PositionSide.LONG:
-            return False
-        return (
-            getattr(instrument, "coupon_rate", None) is not None
-            or getattr(instrument, "interest_rate", None) is not None
-        )
+        """Return True for LONG positions (runs every day)."""
+        return getattr(position, "side", None) == PositionSide.LONG
 
     def generate(
         self,
@@ -78,26 +85,27 @@ class InterestIncomeAccrualRule:
     ) -> list[Transaction]:
         """Compute accrual from the change in QL accruedAmount.
 
-        accruedAmount returns per-100 face value, so we scale by face/100.
+        ``accruedAmount(d)`` returns per-100 of face for fixed-notional bonds,
+        but per-100 of **current notional** for amortizing instruments.  We
+        scale each observation by ``notional(d) / 100`` when the instrument has
+        a date-varying notional, or ``face_value / 100`` otherwise.
 
-        When a coupon date is crossed, accruedAmount resets to 0 and the change
-        goes negative.  In that case we record only accruedAmount(today) — the
-        new period's accrual (often 0 on the coupon date itself).  The catch-up
-        between total accrued and coupon amount is handled at settlement.
+        When a coupon/payment date is crossed, accruedAmount resets to 0 and
+        the change goes negative.  In that case we record only
+        ``accruedAmount(today)`` — the new period's accrual.  The catch-up
+        between total accrued and coupon/interest amount is handled at
+        settlement.
         """
-        face_value = getattr(instrument, "face_value", None)
-        scale = Decimal(str(face_value)) / Decimal("100") if face_value else Decimal("1")
-
         ql_today = pydate_to_qldate(context.date)
         try:
-            ai_today = Decimal(str(ql_inst.accruedAmount(ql_today))) * scale
+            ai_today = scaled_accrued_amount(ql_inst, ql_today)
         except Exception:  # noqa: BLE001
             return self._generate_fallback(instrument, position, context)
 
         if context.previous_date is not None:
             ql_prev = pydate_to_qldate(context.previous_date)
             try:
-                ai_prev = Decimal(str(ql_inst.accruedAmount(ql_prev))) * scale
+                ai_prev = scaled_accrued_amount(ql_inst, ql_prev)
             except Exception:  # noqa: BLE001
                 ai_prev = Decimal("0")
         else:

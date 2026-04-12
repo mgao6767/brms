@@ -34,11 +34,15 @@ def _make_instrument(
     return inst
 
 
-def _make_position(instrument_id: str = "loan-1") -> MagicMock:
+def _make_position(
+    instrument_id: str = "loan-1",
+    acquisition_date: datetime.date = datetime.date(2024, 1, 1),
+) -> MagicMock:
     """Return a mock position."""
     pos = MagicMock()
     pos.id = "pos-1"
     pos.instrument_id = instrument_id
+    pos.acquisition_date = acquisition_date
     return pos
 
 
@@ -46,21 +50,21 @@ def test_applies_on_payment_date() -> None:
     """Rule should apply when the date is in the instrument's payment_dates list."""
     rule = AmortizationRule()
     inst = _make_instrument([datetime.date(2024, 6, 15), datetime.date(2024, 12, 15)])
-    assert rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 15)))
+    assert rule.applies_to(inst, _make_position(), _ctx(datetime.date(2024, 6, 15)))
 
 
 def test_does_not_apply_on_non_payment_date() -> None:
     """Rule should not apply when the date is not in payment_dates."""
     rule = AmortizationRule()
     inst = _make_instrument([datetime.date(2024, 6, 15)])
-    assert not rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 14)))
+    assert not rule.applies_to(inst, _make_position(), _ctx(datetime.date(2024, 6, 14)))
 
 
 def test_does_not_apply_if_no_payment_dates_attr() -> None:
     """Rule should not apply when the instrument has no payment_dates attribute."""
     rule = AmortizationRule()
     inst = MagicMock(spec=[])
-    assert not rule.applies_to(inst, MagicMock(), _ctx(datetime.date(2024, 6, 15)))
+    assert not rule.applies_to(inst, _make_position(), _ctx(datetime.date(2024, 6, 15)))
 
 
 def test_generates_amortization_transaction() -> None:
@@ -82,7 +86,7 @@ def test_applies_with_exact_match() -> None:
     rule = AmortizationRule()
     inst = _make_instrument([datetime.date(2024, 6, 15)])
     ctx = _ctx(datetime.date(2024, 6, 15), previous_date=datetime.date(2024, 6, 14))
-    assert rule.applies_to(inst, MagicMock(), ctx)
+    assert rule.applies_to(inst, _make_position(), ctx)
 
 
 def test_does_not_apply_with_window() -> None:
@@ -90,4 +94,4 @@ def test_does_not_apply_with_window() -> None:
     rule = AmortizationRule()
     inst = _make_instrument([datetime.date(2024, 6, 15)])
     ctx = _ctx(datetime.date(2024, 6, 17), previous_date=datetime.date(2024, 6, 14))
-    assert not rule.applies_to(inst, MagicMock(), ctx)
+    assert not rule.applies_to(inst, _make_position(), ctx)

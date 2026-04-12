@@ -205,7 +205,14 @@ class Issuer:
 
 
 class Instrument(ABC):
-    """Abstract base class for financial instruments."""
+    """Abstract base class for financial instruments.
+
+    Subclasses declare ``applicable_rules`` — a frozenset of rule classes
+    that the :class:`RuleEngine` should evaluate for positions holding this
+    instrument.  The default is an empty set (no rules apply).
+    """
+
+    applicable_rules: frozenset[type] = frozenset()
 
     def __init__(  # noqa: PLR0913
         self,

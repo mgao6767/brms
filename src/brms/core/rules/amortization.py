@@ -20,19 +20,20 @@ class AmortizationRule:
     def applies_to(
         self,
         instrument: Instrument,
-        _position: Position,
+        position: Position,
         context: RuleContext,
     ) -> bool:
-        """Return True if a payment date matches the current date exactly.
+        """Return True if a principal payment date matches the current date.
 
-        Supports instruments with a ``payment_schedule()`` method returning a tuple of
-        three lists (interest, principal, outstanding), as well as instruments with a
-        plain ``payment_dates`` attribute.
+        Skips dates on or before the acquisition date — on the day the loan
+        enters the bank, scheduled payments from the pre-acquisition period
+        should not fire.
         """
+        if context.date <= position.acquisition_date:
+            return False
         schedule = getattr(instrument, "payment_schedule", None)
         if callable(schedule):
             result = schedule()
-            # Loans return (interest_pmt, principal_pmt, outstanding) tuple of 3 lists
             if isinstance(result, tuple) and len(result) == 3:  # noqa: PLR2004
                 _interest_pmt, principal_pmt, _outstanding = result
                 return any(d == context.date for d, _amount in principal_pmt)

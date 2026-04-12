@@ -17,6 +17,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from brms.core.models.transaction import Transaction, TransactionType
+from brms.core.rules.interest_accrual import scaled_accrued_amount
 from brms.core.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
@@ -38,9 +39,6 @@ class CouponPaymentRule:
         schedule = getattr(instrument, "payment_schedule", None)
         if callable(schedule):
             result = schedule()
-            # Bonds return a flat list of (date, amount) pairs.
-            # Loans return a 3-element tuple (interest, principal, outstanding)
-            # — coupon settlement is bond-only, so skip the loan case.
             if isinstance(result, list):
                 return any(d == context.date for d, _amount in result)
         coupon_dates = getattr(instrument, "coupon_dates", [])
@@ -58,7 +56,6 @@ class CouponPaymentRule:
         schedule = getattr(instrument, "payment_schedule", None)
         if callable(schedule):
             result = schedule()
-            # Only bonds (flat list of pairs) — not loans (3-element tuple).
             if isinstance(result, list):
                 for d, amount in result:
                     if d == context.date:
@@ -98,21 +95,19 @@ class CouponPaymentRule:
         account — the amount to clear at settlement.  The difference between
         the coupon amount and this value is the catch-up.
 
+        Uses :func:`scaled_accrued_amount` for correct notional scaling.
         Returns None if QL accrued amount is unavailable.
         """
         ql_inst = getattr(instrument, "ql_instrument", None)
         if ql_inst is None or not hasattr(ql_inst, "accruedAmount"):
             return None
 
-        face_value = getattr(instrument, "face_value", None)
-        scale = Decimal(str(face_value)) / Decimal("100") if face_value else Decimal("1")
-
         # Use previous_date because the accrual rule for today hasn't posted yet
         # (rules run before posting), so the receivable = accruedAmount(previous_date)
         if context.previous_date is not None:
             ql_prev = pydate_to_qldate(context.previous_date)
             try:
-                return Decimal(str(ql_inst.accruedAmount(ql_prev))) * scale
+                return scaled_accrued_amount(ql_inst, ql_prev)
             except Exception:  # noqa: BLE001
                 return None
         return None
