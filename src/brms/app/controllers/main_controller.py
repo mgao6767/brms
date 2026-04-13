@@ -70,6 +70,7 @@ class MainController(BRMSController):
         # Clear stale data via existing controllers (skip on first load)
         if hasattr(self, "transaction_history_ctrl"):
             self.transaction_history_ctrl.reset()
+            self.statement_ctrl.reset()
             self.bank_ctrl.reset()
             self.yield_curve_ctrl.reset()
 
