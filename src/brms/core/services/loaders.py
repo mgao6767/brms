@@ -32,7 +32,6 @@ class SimulationData:
     positions: list[Position]
     market_frames: dict[str, pd.DataFrame]
     balances: dict[str, float] = field(default_factory=dict)
-    replay_from: datetime.date | None = None
 
 
 @runtime_checkable
@@ -103,10 +102,6 @@ class ZipLoader:
             bal_data = json.loads(zf.read("balances.json"))
             balances = bal_data.get("balances", {})
 
-        replay_from = None
-        if "replay_from" in cfg:
-            replay_from = datetime.date.fromisoformat(cfg["replay_from"])
-
         return SimulationData(
             name=cfg["name"],
             start_date=datetime.date.fromisoformat(cfg["start_date"]),
@@ -114,7 +109,6 @@ class ZipLoader:
             positions=positions,
             market_frames=market_frames,
             balances=balances,
-            replay_from=replay_from,
         )
 
     def _load_instruments(self, zf: zipfile.ZipFile) -> list[Instrument]:
