@@ -111,6 +111,11 @@ class TransactionHistoryController(BRMSController):
         self.view.reset_filters()
         self.view.set_filter_indicator(active=False)
 
+    def filter_by_instrument(self, instrument_id: str) -> None:
+        """Set the instrument filter and trigger search."""
+        self.view.instrument_filter.setText(instrument_id)
+        self._on_search()
+
     def _on_selection_changed(self) -> None:
         """Look up the selected transaction and show its details in the inspector."""
         indexes = self.view.transaction_tree.selectedIndexes()

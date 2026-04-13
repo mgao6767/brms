@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import QPoint, Qt
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QMenu
+
 from brms.app.controllers.base import BRMSController
 from brms.app.views.bank_book.columns import AMORTIZED_COST_SUB_GROUPS, MEASUREMENT_BASIS_DISPLAY
 from brms.core.enums import BookType, InstrumentType, MeasurementBasis
 from brms.core.enums import PositionSide as Position
-from brms.core.events import ValuationsUpdated
+from brms.core.events import ShowTransactionsRequested, ValuationsUpdated
 from brms.core.models.instruments.deposits import Cash
 
 if TYPE_CHECKING:
@@ -44,6 +48,7 @@ class BankBookController(BRMSController):
         self.tree = tree
         self.model = model
         self.inspector_ctrl = inspector_ctrl
+        self._event_bus = event_bus
         self._book_type = book_type
         self._position_store = position_store
         event_bus.subscribe(ValuationsUpdated, self._on_valuations_updated)
@@ -124,13 +129,32 @@ class BankBookController(BRMSController):
         if instrument_id and (instrument := self.bank_book.get_instrument_by_id(instrument_id)):
             self.inspector_ctrl.show_instrument_details(instrument)
 
+    def _on_context_menu(self, pos: QPoint) -> None:
+        """Show context menu for the bank book tree."""
+        index = self.tree.indexAt(pos)
+        if not index.isValid():
+            return
+        instrument_id = self.model.get_instrument_id(index)
+        if not instrument_id:
+            return
+        menu = QMenu(self.tree)
+        action = QAction("Show Related Transactions", menu)
+        action.triggered.connect(
+            lambda: self._event_bus.emit(ShowTransactionsRequested(instrument_id=instrument_id)),
+        )
+        menu.addAction(action)
+        menu.exec(self.tree.viewport().mapToGlobal(pos))
+
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
         self.tree.selectionModel().selectionChanged.connect(self._on_selection_changed)
+        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._on_context_menu)
 
     def disconnect_signals(self) -> None:
         """Disconnect signals to prevent stale references on reload."""
         self.tree.selectionModel().selectionChanged.disconnect(self._on_selection_changed)
+        self.tree.customContextMenuRequested.disconnect(self._on_context_menu)
 
 
 class BankingBookController(BankBookController):

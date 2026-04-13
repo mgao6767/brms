@@ -16,6 +16,7 @@ from brms.app.controllers.inspector_controller import InspectorController
 from brms.app.controllers.statement_controller import StatementController
 from brms.app.controllers.transaction_history_controller import TransactionHistoryController
 from brms.app.controllers.yield_curve_controller import YieldCurveController
+from brms.core.events import ShowTransactionsRequested
 from brms.core.services import build_core_services
 
 if TYPE_CHECKING:
@@ -129,6 +130,9 @@ class MainController(BRMSController):
             market_data=services.market_data,
         )
 
+        # Subscribe to events
+        eb.subscribe(ShowTransactionsRequested, self._on_show_transactions_requested)
+
         # Populate views from current state
         self.statement_ctrl.refresh()
         self.transaction_history_ctrl.load_initial()
@@ -149,6 +153,12 @@ class MainController(BRMSController):
             return
         services = build_core_services(simulation_zip=Path(file_path))
         self.load_simulation(services)
+
+    def _on_show_transactions_requested(self, event: ShowTransactionsRequested) -> None:
+        """Switch to Transaction History tab and filter by instrument."""
+        tx_tab_index = self.view.tab_widget.indexOf(self.view.transaction_history_widget)
+        self.view.tab_widget.setCurrentIndex(tx_tab_index)
+        self.transaction_history_ctrl.filter_by_instrument(event.instrument_id)
 
     def _on_tab_changed(self, index: int) -> None:
         """Flush deferred updates when a tab becomes visible."""

@@ -116,3 +116,10 @@ class StatementsChanged:
     """Event emitted after accounting entries change (statements need re-render)."""
 
     date: datetime.date
+
+
+@dataclass(frozen=True)
+class ShowTransactionsRequested:
+    """Event emitted when the user requests to view transactions for an instrument."""
+
+    instrument_id: str
