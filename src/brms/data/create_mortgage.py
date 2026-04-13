@@ -6,11 +6,12 @@ Simulation start date: **2022-01-04**.
     ────────────────────    ───────────────  ─────────  ──────────   ─────  ───────
     Common Equity           NA               1,000,000  2021-01-04   SHORT  BANKING
     Customer Deposit (0%)   NA               6,000,000  2021-06-01   SHORT  BANKING
-    30Y Mortgage 5%         AMORTIZED_COST     400,000  2021-09-01   LONG   BANKING
+    30Y Mortgage 5%         AMORTIZED_COST  (outstand)  2021-09-01   LONG   BANKING
 
 Mortgage: issued 2020-06-01, 30Y term, 5% fixed, monthly payments,
 matures 2050-06-01.  Deposit carries 0% interest.  Mortgage acquisition
-cost equals face value (originated at par).
+cost is the QL outstanding balance at acquisition date (the mortgage has
+already amortized for 15 months since issuance).
 
 Run::
 
@@ -80,9 +81,35 @@ POSITIONS = [
         "measurement_basis": "AMORTIZED_COST",
         "side": "LONG",
         "acquisition_date": "2021-09-01",
-        "acquisition_cost": 400_000.0,
+        "acquisition_cost": 400_000.0,  # replaced by QL outstanding below
     },
 ]
+
+
+_LOAN_INSTRUMENT_ID = "mortgage-30y"
+
+
+def _set_loan_acquisition_costs(instruments: list, positions_data: list[dict]) -> None:
+    """Replace acquisition_cost with QL outstanding balance at acquisition date.
+
+    When a mortgage is acquired after issuance, the outstanding principal is
+    less than face value.  The acquisition cost should reflect what the bank
+    actually paid — the outstanding balance, not the original face.
+    """
+    import QuantLib as ql  # noqa: N813
+
+    from brms.core.utils import pydate_to_qldate
+
+    inst_lookup = {inst.id: inst for inst in instruments}
+    for p in positions_data:
+        inst = inst_lookup.get(p["instrument_id"])
+        if inst is None:
+            continue
+        ql_inst = getattr(inst, "ql_instrument", None)
+        if ql_inst is None or not isinstance(ql_inst, ql.AmortizingFixedRateBond):
+            continue
+        acq_date = date.fromisoformat(p["acquisition_date"])
+        p["acquisition_cost"] = round(ql_inst.notional(pydate_to_qldate(acq_date)), 2)
 
 
 def _build_objects(
@@ -119,6 +146,11 @@ def _build_objects(
         if instrument_name is not None:
             inst.name = instrument_name
         instruments.append(inst)
+
+    # Set loan acquisition costs to QL outstanding balance at acquisition date.
+    # A mortgage acquired after issuance has already amortized — the bank pays
+    # the outstanding principal, not the original face value.
+    _set_loan_acquisition_costs(instruments, positions_data)
 
     positions = [
         Position(
