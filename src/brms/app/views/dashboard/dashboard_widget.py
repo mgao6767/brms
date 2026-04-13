@@ -228,9 +228,10 @@ class PlotWidget(QWidget):
         self.ax.grid(visible=True, linestyle="--", alpha=0.4)
         self.ax.tick_params(axis="both", which="major", labelsize=7)
         # Limit date ticks and use concise format
-        from matplotlib.dates import AutoDateLocator, ConciseDateFormatter
+        from matplotlib.dates import DAILY, AutoDateLocator, ConciseDateFormatter
 
-        locator = AutoDateLocator(minticks=3, maxticks=5)
+        locator = AutoDateLocator(minticks=2, maxticks=6)
+        locator.intervald[DAILY] = [1, 2, 3, 5, 7, 14]
         self.ax.xaxis.set_major_locator(locator)
         self.ax.xaxis.set_major_formatter(ConciseDateFormatter(locator))
         self.formatter = _value_formatter([1_000_000]) if not use_ratio_formatter else _ratio_formatter()
