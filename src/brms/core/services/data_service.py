@@ -95,6 +95,7 @@ class DataService:
         if data.balances:
             # New path: post Opening Balance journal entry
             self._post_opening_balances(data, simulation_service)
+            simulation_service.initialize_from_snapshot(data.start_date)  # type: ignore[union-attr]
         else:
             # Legacy path: acquisition transactions + replay
             self._post_acquisition_transactions(data, simulation_service)
@@ -103,9 +104,7 @@ class DataService:
                 while current < data.start_date:
                     simulation_service.advance(current)  # type: ignore[union-attr]
                     current += datetime.timedelta(days=1)
-
-        # Record the configured start date
-        simulation_service.start_date = data.start_date  # type: ignore[union-attr]
+            simulation_service.start_date = data.start_date  # type: ignore[union-attr]
 
     @staticmethod
     def _post_opening_balances(data: SimulationData, simulation_service: SimulationService) -> None:

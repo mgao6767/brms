@@ -82,6 +82,19 @@ class SimulationService:
         """Set the simulation start date."""
         self._start_date = value
 
+    def initialize_from_snapshot(self, start_date: datetime.date) -> None:
+        """Set the simulation state after loading a snapshot with opening balances.
+
+        The snapshot represents ledger state as of ``start_date - 1``.  Setting
+        ``_current_date`` to that date ensures the first ``advance()`` sees a
+        proper ``previous_date`` — accrual rules then compute the correct
+        one-day delta instead of reposting from the last coupon/payment reset.
+        """
+        from datetime import timedelta
+
+        self._start_date = start_date
+        self._current_date = start_date - timedelta(days=1)
+
     @property
     def end_date(self) -> datetime.date | None:  # type: ignore[name-defined]
         """The last available simulation date."""
