@@ -20,6 +20,8 @@ from brms.app.utils import pydate_to_qdate
 from brms.app.views.bank_book.delegates import CurrencyDelegate
 from brms.app.views.widgets.tree_widget import QMODELINDEX, BRMSTreeWidget
 
+CONTROL_PANEL_WIDTH = 220
+
 
 class BRMSTransactionHistoryWidget(QWidget):
     def __init__(self, parent=None):
@@ -32,13 +34,6 @@ class BRMSTransactionHistoryWidget(QWidget):
         self._transaction_timer.setInterval(200)
         self._transaction_timer.timeout.connect(self.flush_transactions)
         self._transaction_timer.start()
-        # Create a group box for journal entry
-        self.journal_group = QGroupBox("Journal Entry")
-        journal_layout = QVBoxLayout()
-        self.journal_display = QLabel("")
-        self.journal_display.setTextFormat(Qt.TextFormat.RichText)
-        journal_layout.addWidget(self.journal_display)
-        self.journal_group.setLayout(journal_layout)
         # Create a control panel
         self.ctrl_group = QGroupBox("Filter")
         group_layout = QVBoxLayout()
@@ -83,16 +78,12 @@ class BRMSTransactionHistoryWidget(QWidget):
         # Convenient access
         self.transactions_tree_model = self.transaction_tree.tree_model
 
-        # Arrange in a splitter
-        left_widget = QSplitter()
-        left_widget.setOrientation(Qt.Orientation.Vertical)
-        left_widget.addWidget(self.journal_group)
-        left_widget.addWidget(self.ctrl_group)
-        left_widget.setStretchFactor(0, 0)
-        left_widget.setStretchFactor(1, 2)
+        # Arrange in a splitter with fixed-width left panel
+        self.ctrl_group.setFixedWidth(CONTROL_PANEL_WIDTH)
         splitter = QSplitter()
-        splitter.addWidget(left_widget)
+        splitter.addWidget(self.ctrl_group)
         splitter.addWidget(self.transaction_tree)
+        splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
 
         # Main layout

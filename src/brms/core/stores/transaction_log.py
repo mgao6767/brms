@@ -15,6 +15,7 @@ class TransactionLog:
     def __init__(self) -> None:
         """Initialize an empty transaction log with secondary indices."""
         self._log: list[Any] = []
+        self._by_id: dict[str, Any] = {}
         self._by_instrument: dict[str, list[int]] = defaultdict(list)
         self._by_position: dict[str, list[int]] = defaultdict(list)
         self._by_date: dict[datetime.date, list[int]] = defaultdict(list)
@@ -24,6 +25,7 @@ class TransactionLog:
         """Append *transaction* to the log and update all indices."""
         idx = len(self._log)
         self._log.append(transaction)
+        self._by_id[transaction.id] = transaction
         if transaction.instrument_id is not None:
             self._by_instrument[transaction.instrument_id].append(idx)
         if transaction.position_id is not None:
@@ -39,6 +41,10 @@ class TransactionLog:
         """Append multiple transactions to the log in order."""
         for tx in transactions:
             self._append(tx)
+
+    def get(self, tx_id: str) -> Any:  # noqa: ANN401
+        """Return the transaction with *tx_id*; raise KeyError if absent."""
+        return self._by_id[tx_id]
 
     def _resolve(self, indices: list[int]) -> list[Any]:
         return [self._log[i] for i in indices]

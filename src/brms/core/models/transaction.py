@@ -11,6 +11,8 @@ if TYPE_CHECKING:
     import datetime
     from decimal import Decimal
 
+    from brms.core.visitors.inspection import TransactionInspectionVisitor
+
 
 __all__ = ["Transaction", "TransactionType"]
 
@@ -27,3 +29,7 @@ class Transaction:
     position_id: str | None = None
     instrument_id: str | None = None
     metadata: tuple[tuple[str, Any], ...] = ()
+
+    def accept(self, visitor: TransactionInspectionVisitor) -> None:
+        """Accept a transaction inspection visitor."""
+        visitor.visit_transaction(self)

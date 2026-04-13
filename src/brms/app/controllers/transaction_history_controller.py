@@ -13,9 +13,9 @@ from brms.core.events import DateAdvanced, TransactionsRecorded
 if TYPE_CHECKING:
     import datetime
 
+    from brms.app.controllers.inspector_controller import InspectorController
     from brms.app.views.transaction_history.transaction_history_widget import BRMSTransactionHistoryWidget
     from brms.core.events import EventBus
-    from brms.core.models.accounting.journal import Journal
     from brms.core.models.transaction import Transaction
     from brms.core.stores.transaction_log import TransactionLog
 
@@ -28,7 +28,7 @@ class TransactionHistoryController(BRMSController):
         view: BRMSTransactionHistoryWidget,
         event_bus: EventBus,
         transaction_log: TransactionLog,
-        journal: Journal,
+        inspector_ctrl: InspectorController,
         start_date: datetime.date | None = None,
         end_date: datetime.date | None = None,
     ) -> None:
@@ -36,7 +36,7 @@ class TransactionHistoryController(BRMSController):
         super().__init__()
         self.view = view
         self._transaction_log = transaction_log
-        self._journal = journal
+        self._inspector_ctrl = inspector_ctrl
         self._pushed_tx_ids: set[str] = set()
         self._tx_count = 0
         self._locale = QLocale()
@@ -112,7 +112,7 @@ class TransactionHistoryController(BRMSController):
         self.view.set_filter_indicator(active=False)
 
     def _on_selection_changed(self) -> None:
-        """Look up journal entries for the selected transaction and display them."""
+        """Look up the selected transaction and show its details in the inspector."""
         indexes = self.view.transaction_tree.selectedIndexes()
         if not indexes:
             return
@@ -120,40 +120,11 @@ class TransactionHistoryController(BRMSController):
         tx_id = item.data(6)  # hidden column stores transaction id
         if not tx_id:
             return
-        html = self._journal_html_for_tx(tx_id)
-        self.view.journal_display.setText(html)
-
-    def _journal_html_for_tx(self, tx_id: str) -> str:
-        """Build HTML table showing journal entries associated with a transaction."""
-        marker = f"tx={tx_id}"
-        entries = [e for e in self._journal.entries if marker in e.description]
-        if not entries:
-            return "<i>No journal entry found</i>"
-
-        parts: list[str] = []
-        for entry in entries:
-            rows = ""
-            for acct, amt in entry.debit_account_value_pairs():
-                rows += (
-                    f"<tr><td style='padding:2px 8px'>Dr</td>"
-                    f"<td>{acct.name}</td>"
-                    f"<td align='right'>{amt:,.2f}</td></tr>"
-                )
-            for acct, amt in entry.credit_account_value_pairs():
-                rows += (
-                    f"<tr><td style='padding:2px 8px'>Cr</td>"
-                    f"<td>&nbsp;&nbsp;{acct.name}</td>"
-                    f"<td align='right'>{amt:,.2f}</td></tr>"
-                )
-            date_str = str(entry.date) if entry.date else ""
-            # Strip the internal "(tx=...)" marker from the display description
-            desc = entry.description.split(" (tx=")[0] if " (tx=" in entry.description else entry.description
-            parts.append(
-                f"<b>{desc}</b><br>"
-                f"<span style='color:gray'>{date_str}</span>"
-                f"<table style='margin-top:4px'>{rows}</table>",
-            )
-        return "<br>".join(parts)
+        try:
+            tx = self._transaction_log.get(tx_id)
+        except KeyError:
+            return
+        self._inspector_ctrl.show_transaction_details(tx)
 
     def _format_transaction(self, transaction: Transaction) -> dict:
         type_label = transaction.type.name.replace("_", " ").title()

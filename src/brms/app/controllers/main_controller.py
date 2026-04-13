@@ -88,11 +88,15 @@ class MainController(BRMSController):
             start_date=start_date,
             end_date=end_date,
         )
+        self.inspector_ctrl.bind_services(
+            bank=services.bank,
+            journal=services.bank.ledger.journal,
+        )
         self.transaction_history_ctrl = TransactionHistoryController(
             view=view.transaction_history_widget,
             event_bus=eb,
             transaction_log=services.transaction_log,
-            journal=services.bank.ledger.journal,
+            inspector_ctrl=self.inspector_ctrl,
             start_date=start_date,
             end_date=end_date,
         )
