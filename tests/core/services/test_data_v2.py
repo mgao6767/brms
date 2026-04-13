@@ -197,7 +197,9 @@ class TestDataServiceLoadAndInitialize:
         ds = DataService()
         ds.load_and_initialize(loader, sim)
 
-        sim.initialize_from_snapshot.assert_called_once_with(datetime.date(2024, 1, 5))
+        sim.initialize_from_snapshot.assert_called_once_with(
+            datetime.date(2024, 1, 5), end_date=datetime.date(2024, 1, 5),
+        )
 
     def test_no_advance_called(self) -> None:
         """DataService does not call advance() — snapshot provides ledger state."""

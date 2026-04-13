@@ -82,7 +82,11 @@ class SimulationService:
         """Set the simulation start date."""
         self._start_date = value
 
-    def initialize_from_snapshot(self, start_date: datetime.date) -> None:
+    def initialize_from_snapshot(
+        self,
+        start_date: datetime.date,
+        end_date: datetime.date | None = None,
+    ) -> None:
         """Set the simulation state after loading a snapshot with opening balances.
 
         The snapshot represents ledger state as of ``start_date - 1``.  Setting
@@ -94,6 +98,8 @@ class SimulationService:
 
         self._start_date = start_date
         self._current_date = start_date - timedelta(days=1)
+        if end_date is not None:
+            self._end_date = end_date
 
     @property
     def end_date(self) -> datetime.date | None:  # type: ignore[name-defined]

@@ -202,13 +202,14 @@ class SimulationStrip(QFrame):
 class PlotWidget(QWidget):
     """Matplotlib-based time-series plot widget."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         title: str,
         line_titles: list[str],
         line_colors: list[str],
         *,
         use_ratio_formatter: bool = False,
+        hidden_by_default: set[str] | None = None,
         parent: QWidget | None = None,
     ) -> None:
         """Initialize with title, line names, and colors."""
@@ -219,11 +220,19 @@ class PlotWidget(QWidget):
         self.end_date: datetime.date = datetime.date.today()
         self.dates: list[datetime.date] = []
         self.use_ratio_formatter = use_ratio_formatter
-        self.canvas = FigureCanvas(Figure(figsize=(5, 3), facecolor=self.styler.plot_background_color))
-        self.ax = self.canvas.figure.add_subplot()
-        self.ax.set_title(title, fontsize=10, fontweight="bold", loc="left", pad=8)
+        fig = Figure(figsize=(5, 3), facecolor=self.styler.plot_background_color)
+        fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.18)
+        self.canvas = FigureCanvas(fig)
+        self.ax = fig.add_subplot()
+        self.ax.set_title(title, fontsize=10, fontweight="bold", loc="left", pad=6)
         self.ax.grid(visible=True, linestyle="--", alpha=0.4)
-        self.ax.tick_params(axis="both", which="major", labelsize=9)
+        self.ax.tick_params(axis="both", which="major", labelsize=7)
+        # Limit date ticks and use concise format
+        from matplotlib.dates import AutoDateLocator, ConciseDateFormatter
+
+        locator = AutoDateLocator(minticks=3, maxticks=5)
+        self.ax.xaxis.set_major_locator(locator)
+        self.ax.xaxis.set_major_formatter(ConciseDateFormatter(locator))
         self.formatter = _value_formatter([1_000_000]) if not use_ratio_formatter else _ratio_formatter()
         self.ax.yaxis.set_major_formatter(self.formatter)
         self.lines: dict[str, Line2D] = {}
@@ -235,9 +244,10 @@ class PlotWidget(QWidget):
         layout.addWidget(self.canvas)
         self.styler.style_changed.connect(self.update_plot_style)
         # Legend toggle state
-        self._hidden_lines: set[str] = set()
+        self._hidden_lines: set[str] = set(hidden_by_default) if hidden_by_default else set()
         self._line_data: dict[str, tuple] = {}  # title -> (xdata, ydata) last known
         self._legend_artist_to_title: dict = {}
+        self._annotations: list = []
         self.canvas.mpl_connect("pick_event", self._on_legend_pick)
 
     def _on_legend_pick(self, event: object) -> None:
@@ -277,14 +287,27 @@ class PlotWidget(QWidget):
     def update_plot(
         self,
         start_date: datetime.date | None,
-        end_date: datetime.date | None,
+        end_date: datetime.date | None,  # noqa: ARG002
         dates: list[datetime.date],
         data: dict[str, list[float]],
     ) -> None:
         """Update line data and redraw the plot."""
-        if not dates or start_date is None or end_date is None:
+        if start_date is None:
             return
-        self.ax.set_xlim(pd.Timestamp(start_date), pd.Timestamp(end_date))
+        # Expanding x-axis: always starts at start_date, grows with data + 10% margin
+        if dates:
+            last = dates[-1]
+            span = (last - start_date).days
+            margin_days = max(30, int(span * 0.25))
+            self.ax.set_xlim(pd.Timestamp(start_date), pd.Timestamp(last + datetime.timedelta(days=margin_days)))
+        else:
+            self.ax.set_xlim(
+                pd.Timestamp(start_date),
+                pd.Timestamp(start_date + relativedelta(months=1)),
+            )
+            self.canvas.draw_idle()
+            return
+        # Set line data
         for line_title, values in data.items():
             if line2d := self.lines.get(line_title):
                 self._line_data[line_title] = (dates, values)
@@ -295,15 +318,47 @@ class PlotWidget(QWidget):
                     line2d.set_data(dates, values)
                     line2d.set_visible(True)
         self.ax.relim()
-        self.ax.autoscale_view()
+        self.ax.autoscale_view(scalex=False)  # only rescale Y, keep rolling X window
         # Update formatter based on visible data
         if not self.use_ratio_formatter:
             visible_vals = [v for t, vs in data.items() if t not in self._hidden_lines for v in vs]
             self.formatter = _value_formatter(visible_vals) if visible_vals else self.formatter
         self.ax.yaxis.set_major_formatter(self.formatter)
-        if dates:
-            self._rebuild_legend()
+        self._rebuild_legend()
+        self._update_annotations(dates)
         self.canvas.draw_idle()
+
+    def _update_annotations(self, dates: list[datetime.date]) -> None:
+        """Add value annotations at the right end of each visible line."""
+        for ann in self._annotations:
+            ann.remove()
+        self._annotations.clear()
+        if not dates:
+            return
+        last_date = dates[-1]
+        for title, line in self.lines.items():
+            if title in self._hidden_lines or not line.get_visible():
+                continue
+            ydata = line.get_ydata()
+            if len(ydata) == 0:
+                continue
+            last_val = ydata[-1]
+            if self.use_ratio_formatter:
+                label = f"{last_val * 100:.2f}%"
+            else:
+                label = _format_value(last_val, FormatType.CURRENCY)
+            ann = self.ax.annotate(
+                label,
+                xy=(last_date, last_val),
+                xytext=(5, 0),
+                textcoords="offset points",
+                fontsize=7,
+                color=line.get_color(),
+                va="center",
+                ha="left",
+                fontweight="bold",
+            )
+            self._annotations.append(ann)
 
     def _rebuild_legend(self) -> None:
         """Rebuild the legend with pick support and correct alpha state."""
@@ -312,7 +367,11 @@ class PlotWidget(QWidget):
         data_lines = list(self.lines.values())
         titles = list(self.lines.keys())
         for legend_line, legend_text, _data_line, title in zip(
-            legend.get_lines(), legend.get_texts(), data_lines, titles, strict=False,
+            legend.get_lines(),
+            legend.get_texts(),
+            data_lines,
+            titles,
+            strict=False,
         ):
             legend_line.set_linewidth(3)
             legend_line.set_picker(8)
@@ -402,11 +461,12 @@ class BRMSDashboard(QWidget):
     def _build_chart_grid(self) -> QGridLayout:
         """Create the 2x2 chart grid."""
         grid = QGridLayout()
-        grid.setSpacing(10)
+        grid.setSpacing(4)
 
         self.balance_sheet_plot = PlotWidget(
             title="Balance Sheet",
             line_titles=["Total Assets", "Total Liabilities", "Total Equity"],
+            hidden_by_default={"Total Liabilities", "Total Equity"},
             line_colors=["#3b82f6", "#ef4444", "#10b981"],
         )
         self.capital_ratio_plot = PlotWidget(

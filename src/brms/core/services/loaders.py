@@ -28,6 +28,7 @@ class SimulationData:
 
     name: str
     start_date: datetime.date
+    end_date: datetime.date
     instruments: list[Instrument]
     positions: list[Position]
     market_frames: dict[str, pd.DataFrame]
@@ -102,9 +103,18 @@ class ZipLoader:
             bal_data = json.loads(zf.read("balances.json"))
             balances = bal_data.get("balances", {})
 
+        start_date = datetime.date.fromisoformat(cfg["start_date"])
+        # end_date from config; fall back to last market data date
+        if "end_date" in cfg:
+            end_date = datetime.date.fromisoformat(cfg["end_date"])
+        else:
+            all_dates = sorted({d for df in market_frames.values() for d in df.index})
+            end_date = all_dates[-1].date() if all_dates else start_date
+
         return SimulationData(
             name=cfg["name"],
-            start_date=datetime.date.fromisoformat(cfg["start_date"]),
+            start_date=start_date,
+            end_date=end_date,
             instruments=instruments,
             positions=positions,
             market_frames=market_frames,

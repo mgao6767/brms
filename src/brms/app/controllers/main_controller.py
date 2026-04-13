@@ -81,11 +81,6 @@ class MainController(BRMSController):
 
         start_date = services.simulation_service.start_date
         end_date = services.simulation_service.end_date
-        # end_date may be None if market data was loaded after SimulationService construction
-        if end_date is None:
-            available = services.market_data.available_dates()
-            if available:
-                end_date = available[-1]
 
         self.dashboard_ctrl = DashboardController(
             view=view.dashboard,

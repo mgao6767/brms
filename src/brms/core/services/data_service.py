@@ -89,7 +89,7 @@ class DataService:
             simulation_service.market_data.add_frame(name, df)  # type: ignore[union-attr]
 
         self._post_opening_balances(data, simulation_service)
-        simulation_service.initialize_from_snapshot(data.start_date)  # type: ignore[union-attr]
+        simulation_service.initialize_from_snapshot(data.start_date, end_date=data.end_date)  # type: ignore[union-attr]
 
     @staticmethod
     def _post_opening_balances(data: SimulationData, simulation_service: SimulationService) -> None:
