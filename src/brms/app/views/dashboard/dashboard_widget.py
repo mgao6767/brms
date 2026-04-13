@@ -234,6 +234,39 @@ class PlotWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.canvas)
         self.styler.style_changed.connect(self.update_plot_style)
+        # Legend toggle state
+        self._hidden_lines: set[str] = set()
+        self._line_data: dict[str, tuple] = {}  # title -> (xdata, ydata) last known
+        self._legend_artist_to_title: dict = {}
+        self.canvas.mpl_connect("pick_event", self._on_legend_pick)
+
+    def _on_legend_pick(self, event: object) -> None:
+        """Toggle visibility of a data line when its legend entry is clicked."""
+        artist = event.artist  # type: ignore[attr-defined]
+        title = self._legend_artist_to_title.get(id(artist))
+        if title is None:
+            return
+        if title in self._hidden_lines:
+            self._hidden_lines.discard(title)
+        else:
+            self._hidden_lines.add(title)
+        self._apply_visibility()
+        self.canvas.draw()
+
+    def _apply_visibility(self) -> None:
+        """Update line visibility from _hidden_lines, rescale, and rebuild legend."""
+        for title, line in self.lines.items():
+            if title in self._hidden_lines:
+                line.set_data([], [])
+                line.set_visible(False)
+            elif title in self._line_data:
+                line.set_data(*self._line_data[title])
+                line.set_visible(True)
+            else:
+                line.set_visible(True)
+        self.ax.relim()
+        self.ax.autoscale_view()
+        self._rebuild_legend()
 
     def update_plot_style(self) -> None:
         """Update figure background when the app style changes."""
@@ -254,15 +287,41 @@ class PlotWidget(QWidget):
         self.ax.set_xlim(pd.Timestamp(start_date), pd.Timestamp(end_date))
         for line_title, values in data.items():
             if line2d := self.lines.get(line_title):
-                line2d.set_data(dates, values)
-                if not self.use_ratio_formatter:
-                    self.formatter = _value_formatter(values)
-            self.ax.relim()
-            self.ax.autoscale_view()
+                self._line_data[line_title] = (dates, values)
+                if line_title in self._hidden_lines:
+                    line2d.set_data([], [])
+                    line2d.set_visible(False)
+                else:
+                    line2d.set_data(dates, values)
+                    line2d.set_visible(True)
+        self.ax.relim()
+        self.ax.autoscale_view()
+        # Update formatter based on visible data
+        if not self.use_ratio_formatter:
+            visible_vals = [v for t, vs in data.items() if t not in self._hidden_lines for v in vs]
+            self.formatter = _value_formatter(visible_vals) if visible_vals else self.formatter
         self.ax.yaxis.set_major_formatter(self.formatter)
         if dates:
-            self.ax.legend(fontsize=8, loc="lower right")
+            self._rebuild_legend()
         self.canvas.draw_idle()
+
+    def _rebuild_legend(self) -> None:
+        """Rebuild the legend with pick support and correct alpha state."""
+        legend = self.ax.legend(fontsize=9, loc="lower right", framealpha=0.9)
+        self._legend_artist_to_title.clear()
+        data_lines = list(self.lines.values())
+        titles = list(self.lines.keys())
+        for legend_line, legend_text, _data_line, title in zip(
+            legend.get_lines(), legend.get_texts(), data_lines, titles, strict=False,
+        ):
+            legend_line.set_linewidth(3)
+            legend_line.set_picker(8)
+            legend_text.set_picker(8)
+            self._legend_artist_to_title[id(legend_line)] = title
+            self._legend_artist_to_title[id(legend_text)] = title
+            alpha = 0.3 if title in self._hidden_lines else 1.0
+            legend_line.set_alpha(alpha)
+            legend_text.set_alpha(alpha)
 
 
 # ---------------------------------------------------------------------------
