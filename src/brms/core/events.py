@@ -119,6 +119,16 @@ class StatementsChanged:
 
 
 @dataclass(frozen=True)
+class FinancialsUpdated:
+    """Event emitted after financial statements have been computed for a date."""
+
+    date: datetime.date
+    total_assets: float
+    total_liabilities: float
+    total_equity: float
+
+
+@dataclass(frozen=True)
 class ShowTransactionsRequested:
     """Event emitted when the user requests to view transactions for an instrument."""
 

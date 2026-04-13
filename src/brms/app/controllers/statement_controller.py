@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QFileDialog
 
 from brms.app.controllers.base import BRMSController
 from brms.app.reporting import HTMLStatementRenderer
-from brms.core.events import StatementsChanged
+from brms.core.events import FinancialsUpdated, StatementsChanged
 
 if TYPE_CHECKING:
     import datetime
@@ -37,6 +37,7 @@ class StatementController(BRMSController):
         self._reporting = reporting_service
         self._ledger = ledger
         self._renderer = HTMLStatementRenderer()
+        self._event_bus = event_bus
         self._dirty = False
         self._last_date: datetime.date | None = None
         event_bus.subscribe(StatementsChanged, self._on_statements_changed)
@@ -86,6 +87,16 @@ class StatementController(BRMSController):
         self.view.trial_balance_tab.tree.expandAll()
         self.view.income_statement_tab.tree.expandAll()
         self.view.balance_sheet_tab.tree.expandAll()
+
+        # Emit financials event with closed BS totals
+        if date is not None:
+            bs_data = self._reporting.balance_sheet(self._ledger, date=date)
+            self._event_bus.emit(FinancialsUpdated(
+                date=date,
+                total_assets=bs_data["total_assets"],
+                total_liabilities=bs_data["total_liabilities"],
+                total_equity=bs_data["total_equity"],
+            ))
 
     def _on_export(self, statement_type: str) -> None:
         """Export a statement as HTML via file dialog."""
