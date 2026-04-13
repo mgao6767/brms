@@ -277,6 +277,9 @@ class PlotWidget(QWidget):
         self.ax.relim()
         self.ax.autoscale_view()
         self._rebuild_legend()
+        # Re-draw annotations for visible lines
+        dates = next((d for d, _ in self._line_data.values()), [])
+        self._update_annotations(dates)
 
     def update_plot_style(self) -> None:
         """Update figure background when the app style changes."""
