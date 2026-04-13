@@ -1268,6 +1268,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#brms.core.models.instruments.deposits.Deposit(interest_rate)" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;interest_rate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brms.core.models.instruments.deposits.Deposit.book_type" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;book_type
@@ -1558,6 +1567,8 @@
       
         
       
+        
+      
     
     
       
@@ -1606,6 +1617,8 @@
       
         
           
+        
+      
         
       
         
@@ -1832,8 +1845,6 @@
       
         
       
-        
-      
     
     
       
@@ -2017,6 +2028,15 @@
   <a href="#brms.core.models.instruments.deposits.Deposit(name)" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;name
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.models.instruments.deposits.Deposit(interest_rate)" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;interest_rate
     </span>
   </a>
   
@@ -2401,7 +2421,11 @@
 
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">Deposit</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" href="#brms.core.models.instruments.deposits.Deposit(name)">name</a></span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="s1">&#39;Deposit&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">Deposit</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" href="#brms.core.models.instruments.deposits.Deposit(name)">name</a></span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="s2">&quot;Deposit&quot;</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" href="#brms.core.models.instruments.deposits.Deposit(interest_rate)">interest_rate</a></span><span class="p">:</span> <span class="n">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2423,6 +2447,18 @@
           –
           <div class="doc-md-description">
             <p>The name of the deposit. Defaults to "Deposit".</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+<h3 id="brms.core.models.instruments.deposits.Deposit(interest_rate)" class="doc doc-heading doc-heading-parameter">              <b><code>interest_rate</code></b>
+</h3>              (<code>float | None</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Annual interest rate (e.g. 0.02 for 2%).
+When set, the deposit interest rules use this rate instead
+of their default.  Use 0.0 for a non-interest-bearing deposit.</p>
           </div>
         </li>
     </ul>

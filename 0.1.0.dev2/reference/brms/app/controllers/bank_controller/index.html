@@ -1046,6 +1046,10 @@
       
         
       
+        
+      
+        
+      
     
     
       
@@ -1296,8 +1300,6 @@
       
         
       
-        
-      
     
     
       
@@ -1499,9 +1501,10 @@
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">BankController</span><span class="p">(</span>
     <span class="n">bank</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.bank.Bank" href="../../../core/models/bank/#brms.core.models.bank.Bank">Bank</a></span><span class="p">,</span>
     <span class="n">event_bus</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.events.EventBus" href="../../../core/events/#brms.core.events.EventBus">EventBus</a></span><span class="p">,</span>
-    <span class="n">banking_book_view</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.banking_book_widget.BRMSBankingBookWidget" href="../../views/bank_book/banking_book_widget/#brms.app.views.bank_book.banking_book_widget.BRMSBankingBookWidget">BRMSBankingBookWidget</a></span><span class="p">,</span>
-    <span class="n">trading_book_view</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.trading_book_widget.BRMSTradingBookWidget" href="../../views/bank_book/trading_book_widget/#brms.app.views.bank_book.trading_book_widget.BRMSTradingBookWidget">BRMSTradingBookWidget</a></span><span class="p">,</span>
+    <span class="n">combined_book_view</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.combined_book_widget.BRMSCombinedBookWidget" href="../../views/bank_book/combined_book_widget/#brms.app.views.bank_book.combined_book_widget.BRMSCombinedBookWidget">BRMSCombinedBookWidget</a></span><span class="p">,</span>
     <span class="n">inspector_ctrl</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.app.controllers.inspector_controller.InspectorController" href="../inspector_controller/#brms.app.controllers.inspector_controller.InspectorController">InspectorController</a></span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">initial_valuations</span><span class="p">:</span> <span class="n">dict</span><span class="p">[</span><span class="n">str</span><span class="p">,</span> <span class="n"><span title="decimal.Decimal">Decimal</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
 
@@ -1526,7 +1529,7 @@
             <b><code><a class="autorefs autorefs-internal" title="brms.app.controllers.bank_controller.BankController.reset" href="#brms.app.controllers.bank_controller.BankController.reset">reset</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Clear all data from both book tree widgets.</p>
+              <p>Disconnect signals and clear all data from both book trees.</p>
             </div>
           </li>
     </ul>
@@ -1559,7 +1562,7 @@
 
     <div class="doc doc-contents ">
 
-        <p>Clear all data from both book tree widgets.</p>
+        <p>Disconnect signals and clear all data from both book trees.</p>
 
     </div>
 

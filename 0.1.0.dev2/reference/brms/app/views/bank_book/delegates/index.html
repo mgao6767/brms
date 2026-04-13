@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/bank_book/delegates/">
       
       
-        <link rel="prev" href="../columns/">
+        <link rel="prev" href="../combined_book_widget/">
       
       
-        <link rel="next" href="../trading_book_widget/">
+        <link rel="next" href="../../calculators/">
       
       
       <link rel="icon" href="../../../../../../icon.png">
@@ -766,6 +766,10 @@
       
         
       
+        
+      
+        
+      
     
     
       
@@ -951,10 +955,6 @@
       
         
       
-        
-      
-        
-      
     
     
       
@@ -1006,55 +1006,33 @@
   
   
     <li class="md-nav__item">
-      <a href="../bank_book_widget/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> bank_book_widget
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../banking_book_widget/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> banking_book_widget
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../columns/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> columns
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../combined_book_widget/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> combined_book_widget
     
   </span>
   
@@ -1120,17 +1098,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.CurrencyDelegate" class="md-nav__link">
+  <a href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CurrencyDelegate
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;BookCurrencyDelegate
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" CurrencyDelegate">
+    <nav class="md-nav" aria-label=" BookCurrencyDelegate">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.CurrencyDelegate.displayText" class="md-nav__link">
+  <a href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate.displayText" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;displayText
     </span>
@@ -1139,7 +1117,16 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.CurrencyDelegate.paint" class="md-nav__link">
+  <a href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate.initStyleOption" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;initStyleOption
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate.paint" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;paint
     </span>
@@ -1153,43 +1140,19 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.CustomHeader" class="md-nav__link">
+  <a href="#brms.app.views.bank_book.delegates.BookNameDelegate" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CustomHeader
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;BookNameDelegate
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" CustomHeader">
+    <nav class="md-nav" aria-label=" BookNameDelegate">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.CustomHeader.paintSection" class="md-nav__link">
+  <a href="#brms.app.views.bank_book.delegates.BookNameDelegate.paint" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;paintSection
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.InstrumentIDDelegate" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;InstrumentIDDelegate
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label=" InstrumentIDDelegate">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.InstrumentIDDelegate.displayText" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;displayText
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;paint
     </span>
   </a>
   
@@ -1204,28 +1167,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../trading_book_widget/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> trading_book_widget
-    
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -1504,6 +1445,8 @@
       
         
           
+        
+      
         
       
         
@@ -1828,8 +1771,6 @@
       
         
       
-        
-      
     
     
       
@@ -1931,17 +1872,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.CurrencyDelegate" class="md-nav__link">
+  <a href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CurrencyDelegate
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;BookCurrencyDelegate
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" CurrencyDelegate">
+    <nav class="md-nav" aria-label=" BookCurrencyDelegate">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.CurrencyDelegate.displayText" class="md-nav__link">
+  <a href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate.displayText" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;displayText
     </span>
@@ -1950,7 +1891,16 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.CurrencyDelegate.paint" class="md-nav__link">
+  <a href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate.initStyleOption" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;initStyleOption
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate.paint" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;paint
     </span>
@@ -1964,43 +1914,19 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.CustomHeader" class="md-nav__link">
+  <a href="#brms.app.views.bank_book.delegates.BookNameDelegate" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CustomHeader
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;BookNameDelegate
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" CustomHeader">
+    <nav class="md-nav" aria-label=" BookNameDelegate">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.CustomHeader.paintSection" class="md-nav__link">
+  <a href="#brms.app.views.bank_book.delegates.BookNameDelegate.paint" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;paintSection
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.InstrumentIDDelegate" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;InstrumentIDDelegate
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label=" InstrumentIDDelegate">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#brms.app.views.bank_book.delegates.InstrumentIDDelegate.displayText" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;displayText
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;paint
     </span>
   </a>
   
@@ -2042,7 +1968,7 @@
 
     <div class="doc doc-contents first">
 
-        <p>Delegates and custom header for bank book views.</p>
+        <p>Delegates for bank book tree views.</p>
 
 
 
@@ -2053,24 +1979,17 @@
 <p><span class="doc-section-title">Classes:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.CurrencyDelegate" href="#brms.app.views.bank_book.delegates.CurrencyDelegate">CurrencyDelegate</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.BookCurrencyDelegate" href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate">BookCurrencyDelegate</a></code></b>
           –
           <div class="doc-md-description">
-            
+            <p>Right-aligned currency column with bold for headers and color for value changes.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.CustomHeader" href="#brms.app.views.bank_book.delegates.CustomHeader">CustomHeader</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.BookNameDelegate" href="#brms.app.views.bank_book.delegates.BookNameDelegate">BookNameDelegate</a></code></b>
           –
           <div class="doc-md-description">
-            
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.InstrumentIDDelegate" href="#brms.app.views.bank_book.delegates.InstrumentIDDelegate">InstrumentIDDelegate</a></code></b>
-          –
-          <div class="doc-md-description">
-            
+            <p>Left-aligned name column, bold for group/header rows.</p>
           </div>
         </li>
     </ul>
@@ -2094,8 +2013,8 @@
 
 
 
-<h2 id="brms.app.views.bank_book.delegates.CurrencyDelegate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">CurrencyDelegate</span>
+<h2 id="brms.app.views.bank_book.delegates.BookCurrencyDelegate" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">BookCurrencyDelegate</span>
 
 
 </h2>
@@ -2105,6 +2024,8 @@
             <p class="doc doc-class-bases">
               Bases: <code><span title="PySide6.QtWidgets.QStyledItemDelegate">QStyledItemDelegate</span></code></p>
 
+
+        <p>Right-aligned currency column with bold for headers and color for value changes.</p>
 
 
 
@@ -2117,17 +2038,24 @@
 <p><span class="doc-section-title">Methods:</span></p>
     <ul>
           <li class="doc-section-item field-body">
-            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.CurrencyDelegate.displayText" href="#brms.app.views.bank_book.delegates.CurrencyDelegate.displayText">displayText</a></code></b>
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.BookCurrencyDelegate.displayText" href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate.displayText">displayText</a></code></b>
             –
             <div class="doc-md-description">
               <p>Format numbers as currency.</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
-            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.CurrencyDelegate.paint" href="#brms.app.views.bank_book.delegates.CurrencyDelegate.paint">paint</a></code></b>
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.BookCurrencyDelegate.initStyleOption" href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate.initStyleOption">initStyleOption</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Customize text color for a specific column.</p>
+              <p>Right-align values.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.BookCurrencyDelegate.paint" href="#brms.app.views.bank_book.delegates.BookCurrencyDelegate.paint">paint</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Paint with bold for header rows, green/red for value changes.</p>
             </div>
           </li>
     </ul>
@@ -2150,12 +2078,12 @@
 <div class="doc doc-object doc-function">
 
 
-<h3 id="brms.app.views.bank_book.delegates.CurrencyDelegate.displayText" class="doc doc-heading">
+<h3 id="brms.app.views.bank_book.delegates.BookCurrencyDelegate.displayText" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">displayText</span>
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">displayText</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">locale</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">displayText</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">object</span><span class="p">,</span> <span class="n">locale</span><span class="p">:</span> <span class="n"><span title="PySide6.QtCore.QLocale">QLocale</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">str</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2169,95 +2097,42 @@
 <div class="doc doc-object doc-function">
 
 
-<h3 id="brms.app.views.bank_book.delegates.CurrencyDelegate.paint" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">paint</span>
+<h3 id="brms.app.views.bank_book.delegates.BookCurrencyDelegate.initStyleOption" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">initStyleOption</span>
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">paint</span><span class="p">(</span><span class="n">painter</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">initStyleOption</span><span class="p">(</span>
+    <span class="n">option</span><span class="p">:</span> <span class="n"><span title="PySide6.QtWidgets.QStyleOptionViewItem">QStyleOptionViewItem</span></span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n"><span title="PySide6.QtCore.QModelIndex">QModelIndex</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Customize text color for a specific column.</p>
+        <p>Right-align values.</p>
 
     </div>
 
 </div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h2 id="brms.app.views.bank_book.delegates.CustomHeader" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">CustomHeader</span>
-
-
-</h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">CustomHeader</span><span class="p">(</span><span class="n">orientation</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><span title="PySide6.QtWidgets.QHeaderView">QHeaderView</span></code></p>
-
-
-
-
-
-
-
-
-
-
-<p><span class="doc-section-title">Methods:</span></p>
-    <ul>
-          <li class="doc-section-item field-body">
-            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.CustomHeader.paintSection" href="#brms.app.views.bank_book.delegates.CustomHeader.paintSection">paintSection</a></code></b>
-            –
-            <div class="doc-md-description">
-              <p>Preserve default styling but right-align the last column header text.</p>
-            </div>
-          </li>
-    </ul>
-
-
-
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
 
 <div class="doc doc-object doc-function">
 
 
-<h3 id="brms.app.views.bank_book.delegates.CustomHeader.paintSection" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">paintSection</span>
+<h3 id="brms.app.views.bank_book.delegates.BookCurrencyDelegate.paint" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">paint</span>
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">paintSection</span><span class="p">(</span><span class="n">painter</span><span class="p">,</span> <span class="n">rect</span><span class="p">,</span> <span class="n">logicalIndex</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">paint</span><span class="p">(</span>
+    <span class="n">painter</span><span class="p">:</span> <span class="n"><span title="PySide6.QtGui.QPainter">QPainter</span></span><span class="p">,</span>
+    <span class="n">option</span><span class="p">:</span> <span class="n"><span title="PySide6.QtWidgets.QStyleOptionViewItem">QStyleOptionViewItem</span></span><span class="p">,</span>
+    <span class="n">index</span><span class="p">:</span> <span class="n"><span title="PySide6.QtCore.QModelIndex">QModelIndex</span></span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Preserve default styling but right-align the last column header text.</p>
+        <p>Paint with bold for header rows, green/red for value changes.</p>
 
     </div>
 
@@ -2275,8 +2150,8 @@
 
 
 
-<h2 id="brms.app.views.bank_book.delegates.InstrumentIDDelegate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">InstrumentIDDelegate</span>
+<h2 id="brms.app.views.bank_book.delegates.BookNameDelegate" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">BookNameDelegate</span>
 
 
 </h2>
@@ -2287,6 +2162,8 @@
               Bases: <code><span title="PySide6.QtWidgets.QStyledItemDelegate">QStyledItemDelegate</span></code></p>
 
 
+        <p>Left-aligned name column, bold for group/header rows.</p>
+
 
 
 
@@ -2298,10 +2175,10 @@
 <p><span class="doc-section-title">Methods:</span></p>
     <ul>
           <li class="doc-section-item field-body">
-            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.InstrumentIDDelegate.displayText" href="#brms.app.views.bank_book.delegates.InstrumentIDDelegate.displayText">displayText</a></code></b>
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.bank_book.delegates.BookNameDelegate.paint" href="#brms.app.views.bank_book.delegates.BookNameDelegate.paint">paint</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Format UUID as str.</p>
+              <p>Paint with bold for header rows.</p>
             </div>
           </li>
     </ul>
@@ -2324,17 +2201,21 @@
 <div class="doc doc-object doc-function">
 
 
-<h3 id="brms.app.views.bank_book.delegates.InstrumentIDDelegate.displayText" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">displayText</span>
+<h3 id="brms.app.views.bank_book.delegates.BookNameDelegate.paint" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">paint</span>
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">displayText</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">locale</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">paint</span><span class="p">(</span>
+    <span class="n">painter</span><span class="p">:</span> <span class="n"><span title="PySide6.QtGui.QPainter">QPainter</span></span><span class="p">,</span>
+    <span class="n">option</span><span class="p">:</span> <span class="n"><span title="PySide6.QtWidgets.QStyleOptionViewItem">QStyleOptionViewItem</span></span><span class="p">,</span>
+    <span class="n">index</span><span class="p">:</span> <span class="n"><span title="PySide6.QtCore.QModelIndex">QModelIndex</span></span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Format UUID as str.</p>
+        <p>Paint with bold for header rows.</p>
 
     </div>
 
@@ -2396,7 +2277,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../columns/" class="md-footer__link md-footer__link--prev" aria-label="Previous: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; columns">
+          <a href="../combined_book_widget/" class="md-footer__link md-footer__link--prev" aria-label="Previous: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; combined_book_widget">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2406,20 +2287,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> columns
+                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> combined_book_widget
               </div>
             </div>
           </a>
         
         
           
-          <a href="../trading_book_widget/" class="md-footer__link md-footer__link--next" aria-label="Next: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; trading_book_widget">
+          <a href="../../calculators/" class="md-footer__link md-footer__link--next" aria-label="Next: brms.app.views.calculators">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> trading_book_widget
+                brms.app.views.calculators
               </div>
             </div>
             <div class="md-footer__button md-icon">

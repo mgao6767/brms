@@ -18,7 +18,7 @@
         <link rel="prev" href="../interest/">
       
       
-        <link rel="next" href="../mark_to_market/">
+        <link rel="next" href="../loan_interest_settlement/">
       
       
       <link rel="icon" href="../../../../../icon.png">
@@ -948,6 +948,8 @@
       
         
       
+        
+      
     
     
       
@@ -1211,10 +1213,41 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#brms.core.rules.interest_accrual.scaled_accrued_amount" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;scaled_accrued_amount
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../loan_interest_settlement/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> loan_interest_settlement
+    
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -1283,6 +1316,8 @@
       
         
           
+        
+      
         
       
         
@@ -1509,8 +1544,6 @@
       
         
       
-        
-      
     
     
       
@@ -1644,6 +1677,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#brms.core.rules.interest_accrual.scaled_accrued_amount" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;scaled_accrued_amount
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1704,6 +1746,18 @@ is handled as a "catch-up" at settlement by the CouponPaymentRule.</p>
 
 
 
+<p><span class="doc-section-title">Functions:</span></p>
+    <ul>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.core.rules.interest_accrual.scaled_accrued_amount" href="#brms.core.rules.interest_accrual.scaled_accrued_amount">scaled_accrued_amount</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Return the absolute accrued interest at <em>ql_date</em> in currency.</p>
+            </div>
+          </li>
+    </ul>
+
+
 
 
 
@@ -1748,7 +1802,7 @@ Accounting: Dr Accrued Interest Receivable / Cr Interest Income.</p>
             <b><code><a class="autorefs autorefs-internal" title="brms.core.rules.interest_accrual.InterestIncomeAccrualRule.applies_to" href="#brms.core.rules.interest_accrual.InterestIncomeAccrualRule.applies_to">applies_to</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Return True if the instrument has an interest rate and position is LONG.</p>
+              <p>Return True for LONG positions (runs every day).</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
@@ -1784,7 +1838,7 @@ Accounting: Dr Accrued Interest Receivable / Cr Interest Income.</p>
 
 </h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">applies_to</span><span class="p">(</span>
-    <span class="n">instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
+    <span class="n">_instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
     <span class="n">position</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.position.Position" href="../../models/position/#brms.core.models.position.Position">Position</a></span><span class="p">,</span>
     <span class="n">_context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.rules.context.RuleContext" href="../context/#brms.core.rules.context.RuleContext">RuleContext</a></span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">bool</span>
@@ -1792,7 +1846,7 @@ Accounting: Dr Accrued Interest Receivable / Cr Interest Income.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Return True if the instrument has an interest rate and position is LONG.</p>
+        <p>Return True for LONG positions (runs every day).</p>
 
     </div>
 
@@ -1829,6 +1883,31 @@ Accounting: Dr Accrued Interest Receivable / Cr Interest Income.</p>
 
 </div>
 
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="brms.core.rules.interest_accrual.scaled_accrued_amount" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">scaled_accrued_amount</span>
+
+
+</h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">scaled_accrued_amount</span><span class="p">(</span>
+    <span class="n">ql_inst</span><span class="p">:</span> <span class="n"><span title="QuantLib.Bond">Bond</span></span><span class="p">,</span> <span class="n">ql_date</span><span class="p">:</span> <span class="n"><span title="QuantLib.Date">Date</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="decimal.Decimal">Decimal</span></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the absolute accrued interest at <em>ql_date</em> in currency.</p>
+<p>QL's <code>accruedAmount(d)</code> returns per-100 of the <strong>current notional</strong> at
+<em>d</em>.  For fixed-notional bonds the current notional equals face value; for
+amortizing instruments it declines at each payment date.  In both cases,
+scaling by <code>notional(d) / 100</code> gives the correct dollar amount.</p>
+
+    </div>
+
+</div>
 
 
 
@@ -1894,13 +1973,13 @@ Accounting: Dr Accrued Interest Receivable / Cr Interest Income.</p>
         
         
           
-          <a href="../mark_to_market/" class="md-footer__link md-footer__link--next" aria-label="Next: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; mark_to_market">
+          <a href="../loan_interest_settlement/" class="md-footer__link md-footer__link--next" aria-label="Next: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; loan_interest_settlement">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> mark_to_market
+                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> loan_interest_settlement
               </div>
             </div>
             <div class="md-footer__button md-icon">

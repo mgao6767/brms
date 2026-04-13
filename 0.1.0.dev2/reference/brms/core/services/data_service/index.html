@@ -946,6 +946,8 @@
       
         
       
+        
+      
     
     
       
@@ -996,6 +998,8 @@
       
         
           
+        
+      
         
       
         
@@ -1159,30 +1163,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" load_and_initialize">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#brms.core.services.data_service.DataService.load_and_initialize(loader)" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;loader
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#brms.core.services.data_service.DataService.load_and_initialize(simulation_service)" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;simulation_service
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
         
       </ul>
@@ -1299,6 +1279,28 @@
   
   <span class="md-ellipsis">
     <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> rule_engine
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../simulation_builder/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> simulation_builder
     
   </span>
   
@@ -1590,8 +1592,6 @@
       
         
       
-        
-      
     
     
       
@@ -1709,30 +1709,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" load_and_initialize">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#brms.core.services.data_service.DataService.load_and_initialize(loader)" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;loader
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#brms.core.services.data_service.DataService.load_and_initialize(simulation_service)" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;simulation_service
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
         
       </ul>
@@ -1838,7 +1814,7 @@
             <b><code><a class="autorefs autorefs-internal" title="brms.core.services.data_service.DataService.load_and_initialize" href="#brms.core.services.data_service.DataService.load_and_initialize">load_and_initialize</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Populate stores from <em>loader</em> and replay advance() to derive initial state.</p>
+              <p>Populate stores from <em>loader</em> and post opening balances.</p>
             </div>
           </li>
     </ul>
@@ -1867,36 +1843,16 @@
 
 </h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">load_and_initialize</span><span class="p">(</span>
-    <span class="n"><a class="autorefs autorefs-internal" href="#brms.core.services.data_service.DataService.load_and_initialize(loader)">loader</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.loaders.Loader" href="../loaders/#brms.core.services.loaders.Loader">Loader</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" href="#brms.core.services.data_service.DataService.load_and_initialize(simulation_service)">simulation_service</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.simulation_service.SimulationService" href="../simulation_service/#brms.core.services.simulation_service.SimulationService">SimulationService</a></span>
+    <span class="n">loader</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.loaders.Loader" href="../loaders/#brms.core.services.loaders.Loader">Loader</a></span><span class="p">,</span> <span class="n">simulation_service</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.simulation_service.SimulationService" href="../simulation_service/#brms.core.services.simulation_service.SimulationService">SimulationService</a></span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Populate stores from <em>loader</em> and replay advance() to derive initial state.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <ul>
-        <li class="doc-section-item field-body">
-<h4 id="brms.core.services.data_service.DataService.load_and_initialize(loader)" class="doc doc-heading doc-heading-parameter">              <b><code>loader</code></b>
-</h4>              (<code><a class="autorefs autorefs-internal" title="brms.core.services.loaders.Loader" href="../loaders/#brms.core.services.loaders.Loader">Loader</a></code>)
-          –
-          <div class="doc-md-description">
-            <p>Any object implementing the <code>Loader</code> protocol (must have a <code>load()</code> method
-returning :class:<code>~brms.core.services.loaders.SimulationData</code>).</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-<h4 id="brms.core.services.data_service.DataService.load_and_initialize(simulation_service)" class="doc doc-heading doc-heading-parameter">              <b><code>simulation_service</code></b>
-</h4>              (<code><a class="autorefs autorefs-internal" title="brms.core.services.simulation_service.SimulationService" href="../simulation_service/#brms.core.services.simulation_service.SimulationService">SimulationService</a></code>)
-          –
-          <div class="doc-md-description">
-            <p>The simulation service whose bank stores and market data will be
-populated, and whose <code>advance()</code> method will be called for replay dates.</p>
-          </div>
-        </li>
-    </ul>
+        <p>Populate stores from <em>loader</em> and post opening balances.</p>
+<p>The loaded zip must include <code>balances.json</code> with pre-computed ledger
+balances (produced by :class:<code>SimulationBuilder</code>).  A single Opening
+Balance journal entry is posted to establish the ledger state.</p>
 
     </div>
 

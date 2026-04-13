@@ -948,6 +948,8 @@
       
         
       
+        
+      
     
     
       
@@ -1153,6 +1155,28 @@
   
   
     <li class="md-nav__item">
+      <a href="loan_interest_settlement/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> loan_interest_settlement
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="mark_to_market/" class="md-nav__link">
         
   
@@ -1209,6 +1233,8 @@
       
         
           
+        
+      
         
       
         
@@ -1435,8 +1461,6 @@
       
         
       
-        
-      
     
     
       
@@ -1635,6 +1659,13 @@
           </div>
         </li>
         <li class="doc-section-item field-body">
+          <b><code><a class="autorefs autorefs-internal" title="brms.core.rules.loan_interest_settlement" href="loan_interest_settlement/#brms.core.rules.loan_interest_settlement">loan_interest_settlement</a></code></b>
+          –
+          <div class="doc-md-description">
+            <p>LoanInterestSettlementRule: settles interest on amortizing loan payment dates.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
           <b><code><a class="autorefs autorefs-internal" title="brms.core.rules.mark_to_market" href="mark_to_market/#brms.core.rules.mark_to_market">mark_to_market</a></code></b>
           –
           <div class="doc-md-description">
@@ -1661,7 +1692,7 @@
             <b><code><a class="autorefs autorefs-internal" title="brms.core.rules.default_rules" href="#brms.core.rules.default_rules">default_rules</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Return a tuple of all default accounting rule instances.</p>
+              <p>Return a class-keyed dict of all default accounting rule instances.</p>
             </div>
           </li>
     </ul>
@@ -1688,12 +1719,15 @@
 
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">default_rules</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">tuple</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">default_rules</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">dict</span><span class="p">[</span><span class="n">type</span><span class="p">,</span> <span class="n">object</span><span class="p">]</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Return a tuple of all default accounting rule instances.</p>
+        <p>Return a class-keyed dict of all default accounting rule instances.</p>
+<p>The RuleEngine uses this dict to look up rule instances by class.
+Instruments declare which rule classes apply to them via
+<code>applicable_rules</code>.</p>
 
     </div>
 

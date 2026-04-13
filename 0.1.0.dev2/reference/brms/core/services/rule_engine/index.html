@@ -18,7 +18,7 @@
         <link rel="prev" href="../risk_service/">
       
       
-        <link rel="next" href="../simulation_service/">
+        <link rel="next" href="../simulation_builder/">
       
       
       <link rel="icon" href="../../../../../icon.png">
@@ -946,6 +946,8 @@
       
         
       
+        
+      
     
     
       
@@ -996,6 +998,8 @@
       
         
           
+        
+      
         
       
         
@@ -1334,6 +1338,28 @@
   
   
     <li class="md-nav__item">
+      <a href="../simulation_builder/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> simulation_builder
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../simulation_service/" class="md-nav__link">
         
   
@@ -1608,8 +1634,6 @@
       
         
       
-        
-      
     
     
       
@@ -1828,7 +1852,7 @@
           <b><code><a class="autorefs autorefs-internal" title="brms.core.services.rule_engine.RuleEngine" href="#brms.core.services.rule_engine.RuleEngine">RuleEngine</a></code></b>
           –
           <div class="doc-md-description">
-            <p>Applies registered accounting rules across all open positions of a bank.</p>
+            <p>Applies accounting rules declared by each instrument to open positions.</p>
           </div>
         </li>
     </ul>
@@ -1970,13 +1994,19 @@
 
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">RuleEngine</span><span class="p">(</span><span class="n">rules</span><span class="p">:</span> <span class="n"><span title="collections.abc.Iterable">Iterable</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.rule_engine.AccountingRule" href="#brms.core.services.rule_engine.AccountingRule">AccountingRule</a></span><span class="p">]</span> <span class="o">=</span> <span class="p">())</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">RuleEngine</span><span class="p">(</span>
+    <span class="n">rules</span><span class="p">:</span> <span class="n">dict</span><span class="p">[</span><span class="n">type</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.rule_engine.AccountingRule" href="#brms.core.services.rule_engine.AccountingRule">AccountingRule</a></span><span class="p">]</span>
+    <span class="o">|</span> <span class="n"><span title="collections.abc.Iterable">Iterable</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.rule_engine.AccountingRule" href="#brms.core.services.rule_engine.AccountingRule">AccountingRule</a></span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+<span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
 
-        <p>Applies registered accounting rules across all open positions of a bank.</p>
+        <p>Applies accounting rules declared by each instrument to open positions.</p>
+<p>Rules are keyed by their class.  Each instrument declares which rule
+classes apply to it via <code>instrument.applicable_rules</code> (a frozenset of
+rule classes).  The engine only runs rules that the instrument opts into.</p>
 
 
 
@@ -1992,7 +2022,7 @@
             <b><code><a class="autorefs autorefs-internal" title="brms.core.services.rule_engine.RuleEngine.apply" href="#brms.core.services.rule_engine.RuleEngine.apply">apply</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Apply all rules to every open position and return aggregated transactions.</p>
+              <p>Apply instrument-declared rules to every open position.</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
@@ -2040,11 +2070,10 @@
 
     <div class="doc doc-contents ">
 
-        <p>Apply all rules to every open position and return aggregated transactions.</p>
-<p>For each open position the engine resolves the associated instrument via
-<code>bank.instruments.get(position.instrument_id)</code>, then iterates registered
-rules.  Rules whose <code>applies_to</code> returns <code>True</code> are asked to
-<code>generate</code> transactions, which are collected and returned as a flat list.</p>
+        <p>Apply instrument-declared rules to every open position.</p>
+<p>For each open position the engine reads <code>instrument.applicable_rules</code>
+to determine which rules to evaluate.  Only rules whose <code>applies_to</code>
+returns <code>True</code> produce transactions.</p>
 
     </div>
 
@@ -2142,13 +2171,13 @@ rules.  Rules whose <code>applies_to</code> returns <code>True</code> are asked 
         
         
           
-          <a href="../simulation_service/" class="md-footer__link md-footer__link--next" aria-label="Next: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; simulation_service">
+          <a href="../simulation_builder/" class="md-footer__link md-footer__link--next" aria-label="Next: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; simulation_builder">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> simulation_service
+                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> simulation_builder
               </div>
             </div>
             <div class="md-footer__button md-icon">

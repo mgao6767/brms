@@ -1343,15 +1343,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#brms.core.models.instruments.base.InstrumentClass" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;InstrumentClass
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#brms.core.models.instruments.base.Issuer" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Issuer
@@ -1747,6 +1738,8 @@
       
         
       
+        
+      
     
     
       
@@ -1795,6 +1788,8 @@
       
         
           
+        
+      
         
       
         
@@ -2015,8 +2010,6 @@
       
         
           
-        
-      
         
       
         
@@ -2331,15 +2324,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#brms.core.models.instruments.base.InstrumentClass" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;InstrumentClass
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#brms.core.models.instruments.base.Issuer" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Issuer
@@ -2533,13 +2517,6 @@
           –
           <div class="doc-md-description">
             <p>Abstract base class for financial instruments.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.InstrumentClass" href="#brms.core.models.instruments.base.InstrumentClass">InstrumentClass</a></code></b>
-          –
-          <div class="doc-md-description">
-            <p>Enumeration for the accounting classification of a financial instrument.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -3091,7 +3068,7 @@ It can be used to represent a collection of assets, liabilities, or equities for
     <span class="n">credit_rating</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.CreditRating" href="#brms.core.models.instruments.base.CreditRating">CreditRating</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">issuer</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Issuer" href="#brms.core.models.instruments.base.Issuer">Issuer</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">parent</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="#brms.core.models.instruments.base.Instrument">Instrument</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">instrument_class</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.InstrumentClass" href="#brms.core.models.instruments.base.InstrumentClass">InstrumentClass</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">measurement_basis</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.enums.MeasurementBasis" href="../../../enums/#brms.core.enums.MeasurementBasis">MeasurementBasis</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
 
@@ -3101,6 +3078,9 @@ It can be used to represent a collection of assets, liabilities, or equities for
 
 
         <p>Abstract base class for financial instruments.</p>
+<p>Subclasses declare <code>applicable_rules</code> — a frozenset of rule classes
+that the :class:<code>RuleEngine</code> should evaluate for positions holding this
+instrument.  The default is an empty set (no rules apply).</p>
 
 
 
@@ -3317,54 +3297,6 @@ It can be used to represent a collection of assets, liabilities, or equities for
     </div>
 
 </div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h2 id="brms.core.models.instruments.base.InstrumentClass" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">InstrumentClass</span>
-
-
-</h2>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><span title="enum.Enum">Enum</span></code></p>
-
-
-        <p>Enumeration for the accounting classification of a financial instrument.</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
 
 
 

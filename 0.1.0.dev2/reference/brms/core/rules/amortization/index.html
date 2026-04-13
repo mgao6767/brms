@@ -948,6 +948,8 @@
       
         
       
+        
+      
     
     
       
@@ -1227,6 +1229,28 @@
   
   
     <li class="md-nav__item">
+      <a href="../loan_interest_settlement/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> loan_interest_settlement
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../mark_to_market/" class="md-nav__link">
         
   
@@ -1283,6 +1307,8 @@
       
         
           
+        
+      
         
       
         
@@ -1503,8 +1529,6 @@
       
         
           
-        
-      
         
       
         
@@ -1739,7 +1763,7 @@
             <b><code><a class="autorefs autorefs-internal" title="brms.core.rules.amortization.AmortizationRule.applies_to" href="#brms.core.rules.amortization.AmortizationRule.applies_to">applies_to</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Return True if a payment date matches the current date exactly.</p>
+              <p>Return True for LONG positions on a principal payment date.</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
@@ -1776,17 +1800,16 @@
 </h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">applies_to</span><span class="p">(</span>
     <span class="n">instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
-    <span class="n">_position</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.position.Position" href="../../models/position/#brms.core.models.position.Position">Position</a></span><span class="p">,</span>
+    <span class="n">position</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.position.Position" href="../../models/position/#brms.core.models.position.Position">Position</a></span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.rules.context.RuleContext" href="../context/#brms.core.rules.context.RuleContext">RuleContext</a></span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">bool</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Return True if a payment date matches the current date exactly.</p>
-<p>Supports instruments with a <code>payment_schedule()</code> method returning a tuple of
-three lists (interest, principal, outstanding), as well as instruments with a
-plain <code>payment_dates</code> attribute.</p>
+        <p>Return True for LONG positions on a principal payment date.</p>
+<p>LONG: bank receives principal (Dr Cash / Cr Loans).
+Skips dates on or before acquisition (pre-acquisition payments).</p>
 
     </div>
 

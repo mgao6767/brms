@@ -946,6 +946,8 @@
       
         
       
+        
+      
     
     
       
@@ -996,6 +998,8 @@
       
         
           
+        
+      
         
       
         
@@ -1210,6 +1214,28 @@
   
   <span class="md-ellipsis">
     <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> rule_engine
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../simulation_builder/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> simulation_builder
     
   </span>
   
@@ -1575,8 +1601,6 @@
       
         
       
-        
-      
     
     
       
@@ -1741,7 +1765,7 @@
 
     <div class="doc doc-contents first">
 
-        <p>ValuationService: strategy-based valuation dispatching by InstrumentClass.</p>
+        <p>ValuationService: strategy-based valuation dispatching by MeasurementBasis.</p>
 
 
 
@@ -1755,7 +1779,7 @@
           <b><code><a class="autorefs autorefs-internal" title="brms.core.services.valuation_service.ValuationService" href="#brms.core.services.valuation_service.ValuationService">ValuationService</a></code></b>
           –
           <div class="doc-md-description">
-            <p>Strategy-based valuation service (V2) dispatching by InstrumentClass.</p>
+            <p>Strategy-based valuation service dispatching by MeasurementBasis.</p>
           </div>
         </li>
     </ul>
@@ -1785,7 +1809,7 @@
 
 </h2>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">ValuationService</span><span class="p">(</span>
-    <span class="n">strategies</span><span class="p">:</span> <span class="n">dict</span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="brms.core.enums.InstrumentClass" href="../../enums/#brms.core.enums.InstrumentClass">InstrumentClass</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.valuation_strategies.ValuationStrategy" href="../valuation_strategies/#brms.core.services.valuation_strategies.ValuationStrategy">ValuationStrategy</a></span><span class="p">]</span>
+    <span class="n">strategies</span><span class="p">:</span> <span class="n">dict</span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="brms.core.enums.MeasurementBasis" href="../../enums/#brms.core.enums.MeasurementBasis">MeasurementBasis</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.valuation_strategies.ValuationStrategy" href="../valuation_strategies/#brms.core.services.valuation_strategies.ValuationStrategy">ValuationStrategy</a></span><span class="p">]</span>
     <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -1793,7 +1817,7 @@
     <div class="doc doc-contents ">
 
 
-        <p>Strategy-based valuation service (V2) dispatching by InstrumentClass.</p>
+        <p>Strategy-based valuation service dispatching by MeasurementBasis.</p>
 <p>A single :class:<code>ValuationContext</code> is shared across all strategies to avoid
 rebuilding the term structure multiple times per date.</p>
 
@@ -1811,14 +1835,14 @@ rebuilding the term structure multiple times per date.</p>
             <b><code><a class="autorefs autorefs-internal" title="brms.core.services.valuation_service.ValuationService.register_strategy" href="#brms.core.services.valuation_service.ValuationService.register_strategy">register_strategy</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Register <em>strategy</em> for positions of <em>instrument_class</em>.</p>
+              <p>Register <em>strategy</em> for positions of <em>measurement_basis</em>.</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
             <b><code><a class="autorefs autorefs-internal" title="brms.core.services.valuation_service.ValuationService.value_all" href="#brms.core.services.valuation_service.ValuationService.value_all">value_all</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Value all open positions in <em>bank</em>, grouped by InstrumentClass.</p>
+              <p>Value all open positions in <em>bank</em>, grouped by MeasurementBasis.</p>
             </div>
           </li>
     </ul>
@@ -1847,14 +1871,14 @@ rebuilding the term structure multiple times per date.</p>
 
 </h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">register_strategy</span><span class="p">(</span>
-    <span class="n">instrument_class</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.enums.InstrumentClass" href="../../enums/#brms.core.enums.InstrumentClass">InstrumentClass</a></span><span class="p">,</span>
+    <span class="n">measurement_basis</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.enums.MeasurementBasis" href="../../enums/#brms.core.enums.MeasurementBasis">MeasurementBasis</a></span><span class="p">,</span>
     <span class="n">strategy</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.valuation_strategies.ValuationStrategy" href="../valuation_strategies/#brms.core.services.valuation_strategies.ValuationStrategy">ValuationStrategy</a></span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Register <em>strategy</em> for positions of <em>instrument_class</em>.</p>
+        <p>Register <em>strategy</em> for positions of <em>measurement_basis</em>.</p>
 
     </div>
 
@@ -1878,9 +1902,9 @@ rebuilding the term structure multiple times per date.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Value all open positions in <em>bank</em>, grouped by InstrumentClass.</p>
+        <p>Value all open positions in <em>bank</em>, grouped by MeasurementBasis.</p>
 <p>Updates the shared context once for <em>date</em>, then delegates to each registered
-strategy for its corresponding InstrumentClass, skipping empty batches.</p>
+strategy for its corresponding MeasurementBasis, skipping empty batches.</p>
 
     </div>
 

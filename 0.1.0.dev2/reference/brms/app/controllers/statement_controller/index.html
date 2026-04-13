@@ -974,6 +974,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#brms.app.controllers.statement_controller.StatementController.reset" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;reset
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1051,6 +1060,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -1305,8 +1318,6 @@
       
         
       
-        
-      
     
     
       
@@ -1435,6 +1446,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#brms.app.controllers.statement_controller.StatementController.reset" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;reset
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1485,7 +1505,7 @@
           <b><code><a class="autorefs autorefs-internal" title="brms.app.controllers.statement_controller.StatementController" href="#brms.app.controllers.statement_controller.StatementController">StatementController</a></code></b>
           –
           <div class="doc-md-description">
-            <p>Subscribes to StatementsChanged, renders HTML statements.</p>
+            <p>Subscribes to StatementsChanged, populates statement tree models.</p>
           </div>
         </li>
     </ul>
@@ -1515,7 +1535,7 @@
 
 </h2>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">StatementController</span><span class="p">(</span>
-    <span class="n">view</span><span class="p">:</span> <span class="n"><span title="brms.app.views.statement_viewer.statement_viewer_widget.BRMSStatementViewer">BRMSStatementViewer</span></span><span class="p">,</span>
+    <span class="n">view</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.app.views.statement_viewer.statement_viewer_widget.BRMSStatementViewer" href="../../views/statement_viewer/statement_viewer_widget/#brms.app.views.statement_viewer.statement_viewer_widget.BRMSStatementViewer">BRMSStatementViewer</a></span><span class="p">,</span>
     <span class="n">event_bus</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.events.EventBus" href="../../../core/events/#brms.core.events.EventBus">EventBus</a></span><span class="p">,</span>
     <span class="n">reporting_service</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.reporting_service.ReportingService" href="../../../core/services/reporting_service/#brms.core.services.reporting_service.ReportingService">ReportingService</a></span><span class="p">,</span>
     <span class="n">ledger</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.accounting.ledger.Ledger" href="../../../core/models/accounting/ledger/#brms.core.models.accounting.ledger.Ledger">Ledger</a></span><span class="p">,</span>
@@ -1527,7 +1547,7 @@
               Bases: <code><a class="autorefs autorefs-internal" title="brms.app.controllers.base.BRMSController" href="../base/#brms.app.controllers.base.BRMSController">BRMSController</a></code></p>
 
 
-        <p>Subscribes to StatementsChanged, renders HTML statements.</p>
+        <p>Subscribes to StatementsChanged, populates statement tree models.</p>
 
 
 
@@ -1551,6 +1571,13 @@
             –
             <div class="doc-md-description">
               <p>Manually trigger a statement refresh.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.controllers.statement_controller.StatementController.reset" href="#brms.app.controllers.statement_controller.StatementController.reset">reset</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Clear all statement models and disconnect signals.</p>
             </div>
           </li>
     </ul>
@@ -1597,12 +1624,31 @@
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">refresh</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n">object</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">refresh</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Manually trigger a statement refresh.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.controllers.statement_controller.StatementController.reset" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">reset</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">reset</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Clear all statement models and disconnect signals.</p>
 
     </div>
 

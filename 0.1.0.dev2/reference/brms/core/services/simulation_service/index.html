@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/simulation_service/">
       
       
-        <link rel="prev" href="../rule_engine/">
+        <link rel="prev" href="../simulation_builder/">
       
       
         <link rel="next" href="../valuation_context/">
@@ -946,6 +946,8 @@
       
         
       
+        
+      
     
     
       
@@ -996,6 +998,8 @@
       
         
           
+        
+      
         
       
         
@@ -1224,6 +1228,28 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../simulation_builder/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> simulation_builder
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1294,9 +1320,36 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#brms.core.services.simulation_service.SimulationService.end_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;end_date
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.services.simulation_service.SimulationService.start_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;start_date
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brms.core.services.simulation_service.SimulationService.advance" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;advance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.services.simulation_service.SimulationService.initialize_from_snapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;initialize_from_snapshot
     </span>
   </a>
   
@@ -1575,8 +1628,6 @@
       
         
       
-        
-      
     
     
       
@@ -1697,9 +1748,36 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#brms.core.services.simulation_service.SimulationService.end_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;end_date
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.services.simulation_service.SimulationService.start_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;start_date
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brms.core.services.simulation_service.SimulationService.advance" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;advance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.services.simulation_service.SimulationService.initialize_from_snapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;initialize_from_snapshot
     </span>
   </a>
   
@@ -1823,6 +1901,13 @@ valuation, rule application, accounting, metrics, and emitting
               <p>Advance the simulation by one calendar day (or to an explicit <em>date</em>).</p>
             </div>
           </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.core.services.simulation_service.SimulationService.initialize_from_snapshot" href="#brms.core.services.simulation_service.SimulationService.initialize_from_snapshot">initialize_from_snapshot</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Set the simulation state after loading a snapshot with opening balances.</p>
+            </div>
+          </li>
     </ul>
 
 
@@ -1836,6 +1921,22 @@ valuation, rule application, accounting, metrics, and emitting
           –
           <div class="doc-md-description">
             <p>The most recently advanced date, or None.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><a class="autorefs autorefs-internal" title="brms.core.services.simulation_service.SimulationService.end_date" href="#brms.core.services.simulation_service.SimulationService.end_date">end_date</a></code></b>
+              (<code><span title="datetime.date">date</span> | None</code>)
+          –
+          <div class="doc-md-description">
+            <p>The last available simulation date.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><a class="autorefs autorefs-internal" title="brms.core.services.simulation_service.SimulationService.start_date" href="#brms.core.services.simulation_service.SimulationService.start_date">start_date</a></code></b>
+              (<code><span title="datetime.date">date</span> | None</code>)
+          –
+          <div class="doc-md-description">
+            <p>The configured simulation start date, or None.</p>
           </div>
         </li>
     </ul>
@@ -1874,6 +1975,53 @@ valuation, rule application, accounting, metrics, and emitting
 
 </div>
 
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="brms.core.services.simulation_service.SimulationService.end_date" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">end_date</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">end_date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The last available simulation date.</p>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="brms.core.services.simulation_service.SimulationService.start_date" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">start_date</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+      <small class="doc doc-label doc-label-writable"><code>writable</code></small>
+  </span>
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">start_date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The configured simulation start date, or None.</p>
+    </div>
+
+</div>
+
 
 
 <div class="doc doc-object doc-function">
@@ -1899,6 +2047,29 @@ valuation, rule application, accounting, metrics, and emitting
 6. Record the transaction batch in the transaction log.
 7. Compute metrics (only on market-data days).
 8. Emit granular events and :class:<code>DateAdvanced</code>.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.core.services.simulation_service.SimulationService.initialize_from_snapshot" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">initialize_from_snapshot</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">initialize_from_snapshot</span><span class="p">(</span><span class="n">start_date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Set the simulation state after loading a snapshot with opening balances.</p>
+<p>The snapshot represents ledger state as of <code>start_date - 1</code>.  Setting
+<code>_current_date</code> to that date ensures the first <code>advance()</code> sees a
+proper <code>previous_date</code> — accrual rules then compute the correct
+one-day delta instead of reposting from the last coupon/payment reset.</p>
 
     </div>
 
@@ -1960,7 +2131,7 @@ valuation, rule application, accounting, metrics, and emitting
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../rule_engine/" class="md-footer__link md-footer__link--prev" aria-label="Previous: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; rule_engine">
+          <a href="../simulation_builder/" class="md-footer__link md-footer__link--prev" aria-label="Previous: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; simulation_builder">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1970,7 +2141,7 @@ valuation, rule application, accounting, metrics, and emitting
                 Previous
               </span>
               <div class="md-ellipsis">
-                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> rule_engine
+                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> simulation_builder
               </div>
             </div>
           </a>

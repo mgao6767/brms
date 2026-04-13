@@ -1471,6 +1471,8 @@
       
         
       
+        
+      
     
     
       
@@ -1519,6 +1521,8 @@
       
         
           
+        
+      
         
       
         
@@ -1739,8 +1743,6 @@
       
         
           
-        
-      
         
       
         
@@ -2124,7 +2126,7 @@
     <span class="n">book_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.BookType" href="../base/#brms.core.models.instruments.base.BookType">BookType</a></span> <span class="o">=</span> <span class="n"><span title="brms.core.models.instruments.base.BookType.BANKING">BANKING</span></span><span class="p">,</span>
     <span class="n">credit_rating</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.CreditRating" href="../base/#brms.core.models.instruments.base.CreditRating">CreditRating</a></span> <span class="o">=</span> <span class="n"><span title="brms.core.models.instruments.base.CreditRating.UNRATED">UNRATED</span></span><span class="p">,</span>
     <span class="n">issuer</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Issuer" href="../base/#brms.core.models.instruments.base.Issuer">Issuer</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">instrument_class</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.InstrumentClass" href="../base/#brms.core.models.instruments.base.InstrumentClass">InstrumentClass</a></span> <span class="o">=</span> <span class="n"><span title="brms.core.models.instruments.base.InstrumentClass.HTM">HTM</span></span><span class="p">,</span>
+    <span class="n">measurement_basis</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.MeasurementBasis" href="../../../enums/#brms.core.enums.MeasurementBasis">MeasurementBasis</a></span> <span class="o">=</span> <span class="n"><span title="brms.core.models.instruments.base.MeasurementBasis.AMORTIZED_COST">AMORTIZED_COST</span></span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.bonds.FixedRateBond" href="../bonds/#brms.core.models.instruments.bonds.FixedRateBond">FixedRateBond</a></span>
 </code></pre></div>
 
@@ -2162,7 +2164,7 @@
     <span class="n">book_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.BookType" href="../base/#brms.core.models.instruments.base.BookType">BookType</a></span> <span class="o">=</span> <span class="n"><span title="brms.core.models.instruments.base.BookType.BANKING">BANKING</span></span><span class="p">,</span>
     <span class="n">credit_rating</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.CreditRating" href="../base/#brms.core.models.instruments.base.CreditRating">CreditRating</a></span> <span class="o">=</span> <span class="n"><span title="brms.core.models.instruments.base.CreditRating.UNRATED">UNRATED</span></span><span class="p">,</span>
     <span class="n">issuer</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Issuer" href="../base/#brms.core.models.instruments.base.Issuer">Issuer</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">instrument_class</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.InstrumentClass" href="../base/#brms.core.models.instruments.base.InstrumentClass">InstrumentClass</a></span> <span class="o">=</span> <span class="n"><span title="brms.core.models.instruments.base.InstrumentClass.LOAN_AND_MORTGAGE">LOAN_AND_MORTGAGE</span></span><span class="p">,</span>
+    <span class="n">measurement_basis</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.MeasurementBasis" href="../../../enums/#brms.core.enums.MeasurementBasis">MeasurementBasis</a></span> <span class="o">=</span> <span class="n"><span title="brms.core.models.instruments.base.MeasurementBasis.AMORTIZED_COST">AMORTIZED_COST</span></span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.loans.ResidentialMortgage" href="../loans/#brms.core.models.instruments.loans.ResidentialMortgage">ResidentialMortgage</a></span>
 </code></pre></div>
 
@@ -2192,7 +2194,7 @@
     <span class="n">coupon_rate</span><span class="p">:</span> <span class="n">float</span><span class="p">,</span>
     <span class="n">issue_date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span><span class="p">,</span>
     <span class="n">maturity_date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span><span class="p">,</span>
-    <span class="n">instrument_class</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.InstrumentClass" href="../base/#brms.core.models.instruments.base.InstrumentClass">InstrumentClass</a></span><span class="p">,</span>
+    <span class="n">measurement_basis</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.MeasurementBasis" href="../../../enums/#brms.core.enums.MeasurementBasis">MeasurementBasis</a></span><span class="p">,</span>
     <span class="n">book_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.BookType" href="../base/#brms.core.models.instruments.base.BookType">BookType</a></span> <span class="o">=</span> <span class="n"><span title="brms.core.models.instruments.base.BookType.BANKING">BANKING</span></span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.bonds.TreasuryNote" href="../bonds/#brms.core.models.instruments.bonds.TreasuryNote">TreasuryNote</a></span>
 </code></pre></div>

@@ -948,6 +948,8 @@
       
         
       
+        
+      
     
     
       
@@ -1260,6 +1262,28 @@
   
   
     <li class="md-nav__item">
+      <a href="../loan_interest_settlement/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> loan_interest_settlement
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../mark_to_market/" class="md-nav__link">
         
   
@@ -1316,6 +1340,8 @@
       
         
           
+        
+      
         
       
         
@@ -1536,8 +1562,6 @@
       
         
           
-        
-      
         
       
         
@@ -1819,7 +1843,7 @@ accounting service books:  Dr Interest Expense / Cr Interest Payable.</p>
             <b><code><a class="autorefs autorefs-internal" title="brms.core.rules.deposit_interest.DepositInterestAccrualRule.applies_to" href="#brms.core.rules.deposit_interest.DepositInterestAccrualRule.applies_to">applies_to</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Return True if the instrument is a deposit.</p>
+              <p>Return True unconditionally — runs every simulation day.</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
@@ -1855,7 +1879,7 @@ accounting service books:  Dr Interest Expense / Cr Interest Payable.</p>
 
 </h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">applies_to</span><span class="p">(</span>
-    <span class="n">instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
+    <span class="n">_instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
     <span class="n">_position</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.position.Position" href="../../models/position/#brms.core.models.position.Position">Position</a></span><span class="p">,</span>
     <span class="n">_context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.rules.context.RuleContext" href="../context/#brms.core.rules.context.RuleContext">RuleContext</a></span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">bool</span>
@@ -1863,7 +1887,7 @@ accounting service books:  Dr Interest Expense / Cr Interest Payable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Return True if the instrument is a deposit.</p>
+        <p>Return True unconditionally — runs every simulation day.</p>
 
     </div>
 
@@ -1878,7 +1902,7 @@ accounting service books:  Dr Interest Expense / Cr Interest Payable.</p>
 
 </h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">generate</span><span class="p">(</span>
-    <span class="n">_instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
+    <span class="n">instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
     <span class="n">position</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.position.Position" href="../../models/position/#brms.core.models.position.Position">Position</a></span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.rules.context.RuleContext" href="../context/#brms.core.rules.context.RuleContext">RuleContext</a></span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">list</span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.transaction.Transaction" href="../../models/transaction/#brms.core.models.transaction.Transaction">Transaction</a></span><span class="p">]</span>
@@ -1939,7 +1963,7 @@ books:  Dr Interest Payable / Cr Cash.</p>
             <b><code><a class="autorefs autorefs-internal" title="brms.core.rules.deposit_interest.DepositInterestSettlementRule.applies_to" href="#brms.core.rules.deposit_interest.DepositInterestSettlementRule.applies_to">applies_to</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Return True on the 1st of each month for deposit instruments.</p>
+              <p>Return True on the 1st of each month (timing check only).</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
@@ -1975,7 +1999,7 @@ books:  Dr Interest Payable / Cr Cash.</p>
 
 </h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">applies_to</span><span class="p">(</span>
-    <span class="n">instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
+    <span class="n">_instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
     <span class="n">_position</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.position.Position" href="../../models/position/#brms.core.models.position.Position">Position</a></span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.rules.context.RuleContext" href="../context/#brms.core.rules.context.RuleContext">RuleContext</a></span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">bool</span>
@@ -1983,7 +2007,7 @@ books:  Dr Interest Payable / Cr Cash.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Return True on the 1st of each month for deposit instruments.</p>
+        <p>Return True on the 1st of each month (timing check only).</p>
 
     </div>
 
@@ -1998,7 +2022,7 @@ books:  Dr Interest Payable / Cr Cash.</p>
 
 </h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">generate</span><span class="p">(</span>
-    <span class="n">_instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
+    <span class="n">instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
     <span class="n">position</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.position.Position" href="../../models/position/#brms.core.models.position.Position">Position</a></span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.rules.context.RuleContext" href="../context/#brms.core.rules.context.RuleContext">RuleContext</a></span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">list</span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.transaction.Transaction" href="../../models/transaction/#brms.core.models.transaction.Transaction">Transaction</a></span><span class="p">]</span>
