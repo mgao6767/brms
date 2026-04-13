@@ -1,4 +1,9 @@
+"""Dashboard view — KPI cards, grouped detail cards, simulation strip, and chart grid."""
+
+from __future__ import annotations
+
 import datetime
+from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -6,15 +11,14 @@ from dateutil.relativedelta import relativedelta
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
-from PySide6.QtCore import QDate, QLocale, Qt
+from PySide6.QtCore import QLocale, Qt
 from PySide6.QtWidgets import (
-    QFormLayout,
     QFrame,
-    QGroupBox,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QProgressBar,
-    QSplitter,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -22,13 +26,25 @@ from PySide6.QtWidgets import (
 from brms.app.utils import pydate_to_qdate
 from brms.app.views.styler import BRMSStyler
 
-_locale = QLocale()
-
 if TYPE_CHECKING:
     from matplotlib.lines import Line2D
 
+_locale = QLocale()
 
-def value_formatter(values: list[float]) -> FuncFormatter:
+
+class FormatType(Enum):
+    """Format types for KPI values."""
+
+    CURRENCY = auto()
+    PERCENTAGE = auto()
+
+
+# ---------------------------------------------------------------------------
+# Formatters (shared by PlotWidget)
+# ---------------------------------------------------------------------------
+
+
+def _value_formatter(values: list[float]) -> FuncFormatter:
     """Return a FuncFormatter for formatting dollar values."""
     max_value = max(values, default=0)
     if max_value >= 1_000_000:
@@ -38,12 +54,154 @@ def value_formatter(values: list[float]) -> FuncFormatter:
     return FuncFormatter(lambda x, _: _locale.toCurrencyString(x))
 
 
-def ratio_formatter() -> FuncFormatter:
+def _ratio_formatter() -> FuncFormatter:
     """Return a FuncFormatter for formatting ratios as percentages."""
     return FuncFormatter(lambda x, _: f"{x * 100:.2f}%")
 
 
+def _format_value(value: float | None, fmt: FormatType) -> str:
+    """Format a metric value for display."""
+    if value is None:
+        return "\u2014"
+    if fmt == FormatType.CURRENCY:
+        return _locale.toCurrencyString(value)
+    return f"{value * 100:.2f}%"
+
+
+# ---------------------------------------------------------------------------
+# KPIGroupCard
+# ---------------------------------------------------------------------------
+
+
+class KPIGroupCard(QFrame):
+    """A card containing a header and a 2-column grid of labelled metric values."""
+
+    def __init__(self, title: str, parent: QWidget | None = None) -> None:
+        """Initialize with a group title."""
+        super().__init__(parent)
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(10, 6, 10, 6)
+        outer.setSpacing(4)
+
+        header = QLabel(title.upper())
+        header.setStyleSheet(
+            "font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: gray;"
+            "border-bottom: 1px solid palette(mid); padding-bottom: 6px;",
+        )
+        header.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
+        outer.addWidget(header)
+
+        self._grid = QGridLayout()
+        self._grid.setSpacing(8)
+        outer.addLayout(self._grid, 1)
+
+        self._metrics: dict[str, tuple[QLabel, FormatType]] = {}
+        self._row = 0
+        self._col = 0
+
+    def add_metric(self, key: str, label: str, format_type: FormatType) -> None:
+        """Add a metric to the grid. Returns nothing — use set_value(key, val) to update."""
+        title_lbl = QLabel(label)
+        title_lbl.setStyleSheet("font-size: 12px; color: gray;")
+        value_lbl = QLabel("\u2014")
+        value_lbl.setStyleSheet("font-size: 13px; font-weight: 600;")
+
+        cell = QVBoxLayout()
+        cell.setSpacing(0)
+        cell.addWidget(title_lbl)
+        cell.addWidget(value_lbl)
+        self._grid.addLayout(cell, self._row, self._col)
+
+        self._metrics[key] = (value_lbl, format_type)
+        self._grid.setRowStretch(self._row, 1)
+        self._col += 1
+        if self._col >= 2:  # noqa: PLR2004
+            self._col = 0
+            self._row += 1
+
+    def set_value(self, key: str, value: float | None) -> None:
+        """Update a metric value by key."""
+        if entry := self._metrics.get(key):
+            label, fmt = entry
+            label.setText(_format_value(value, fmt))
+
+
+# ---------------------------------------------------------------------------
+# SimulationStrip
+# ---------------------------------------------------------------------------
+
+
+class SimulationStrip(QFrame):
+    """Compact horizontal bar showing simulation date, period, and progress."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize the simulation info strip."""
+        super().__init__(parent)
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.setMaximumHeight(40)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 4, 12, 4)
+        layout.setSpacing(12)
+
+        # Date
+        date_title = QLabel("DATE")
+        date_title.setStyleSheet("font-size: 9px; font-weight: 600; color: gray; letter-spacing: 0.5px;")
+        self._date_label = QLabel("\u2014")
+        self._date_label.setStyleSheet("font-size: 12px; font-weight: 600;")
+        layout.addWidget(date_title)
+        layout.addWidget(self._date_label)
+
+        # Separator
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.VLine)
+        sep.setFixedWidth(1)
+        layout.addWidget(sep)
+
+        # Period
+        period_title = QLabel("PERIOD")
+        period_title.setStyleSheet("font-size: 9px; font-weight: 600; color: gray; letter-spacing: 0.5px;")
+        self._period_label = QLabel("\u2014")
+        self._period_label.setStyleSheet("font-size: 10px;")
+        layout.addWidget(period_title)
+        layout.addWidget(self._period_label)
+
+        # Progress
+        layout.addStretch()
+        self._progress_bar = QProgressBar()
+        self._progress_bar.setValue(0)
+        self._progress_bar.setFixedHeight(12)
+        self._progress_bar.setMinimumWidth(120)
+        self._progress_bar.setTextVisible(True)
+        self._progress_bar.setFormat("%p%")
+        layout.addWidget(self._progress_bar, 1)
+
+    def set_date(self, date: datetime.date) -> None:
+        """Update the current simulation date."""
+        self._date_label.setText(pydate_to_qdate(date).toString(Qt.DateFormat.ISODate))
+
+    def set_period(self, start: datetime.date, end: datetime.date) -> None:
+        """Update the simulation period display."""
+        s = pydate_to_qdate(start).toString(Qt.DateFormat.ISODate)
+        e = pydate_to_qdate(end).toString(Qt.DateFormat.ISODate)
+        self._period_label.setText(f"{s}  \u2192  {e}")
+
+    def set_progress(self, percent: int) -> None:
+        """Update the progress bar value."""
+        self._progress_bar.setValue(percent)
+
+
+# ---------------------------------------------------------------------------
+# PlotWidget (reused from original, cleaned up)
+# ---------------------------------------------------------------------------
+
+
 class PlotWidget(QWidget):
+    """Matplotlib-based time-series plot widget."""
+
     def __init__(
         self,
         title: str,
@@ -51,9 +209,11 @@ class PlotWidget(QWidget):
         line_colors: list[str],
         *,
         use_ratio_formatter: bool = False,
-        parent=None,
+        parent: QWidget | None = None,
     ) -> None:
+        """Initialize with title, line names, and colors."""
         super().__init__(parent)
+        self.setMinimumHeight(200)
         self.styler = BRMSStyler.instance()
         self.start_date: datetime.date = datetime.date.today() - relativedelta(years=1)
         self.end_date: datetime.date = datetime.date.today()
@@ -61,28 +221,25 @@ class PlotWidget(QWidget):
         self.use_ratio_formatter = use_ratio_formatter
         self.canvas = FigureCanvas(Figure(figsize=(5, 3), facecolor=self.styler.plot_background_color))
         self.ax = self.canvas.figure.add_subplot()
-        self.ax.set_title(title)
-        self.ax.grid(visible=True, linestyle="--", alpha=0.7)
-        self.ax.tick_params(axis="both", which="major", labelsize=10)
-        self.formatter = value_formatter([1_000_000]) if not use_ratio_formatter else ratio_formatter()
+        self.ax.set_title(title, fontsize=10, fontweight="bold", loc="left", pad=8)
+        self.ax.grid(visible=True, linestyle="--", alpha=0.4)
+        self.ax.tick_params(axis="both", which="major", labelsize=9)
+        self.formatter = _value_formatter([1_000_000]) if not use_ratio_formatter else _ratio_formatter()
         self.ax.yaxis.set_major_formatter(self.formatter)
         self.lines: dict[str, Line2D] = {}
         for i, line_title in enumerate(line_titles):
-            (line2d,) = self.ax.plot([], [], color=line_colors[i], label=line_title)
+            (line2d,) = self.ax.plot([], [], color=line_colors[i], label=line_title, linewidth=1.5)
             self.lines[line_title] = line2d
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.canvas)
-        # Signals
         self.styler.style_changed.connect(self.update_plot_style)
 
     def update_plot_style(self) -> None:
-        """Update an existing Matplotlib figure when the style changes."""
-        if self.styler.use_custom_style:
-            self.canvas.figure.patch.set_facecolor(self.styler.plot_background_color)  # Update figure background
-        else:
-            self.canvas.figure.patch.set_facecolor("white")  # Default background
-        self.canvas.figure.canvas.draw_idle()  # Redraw canvas
+        """Update figure background when the app style changes."""
+        bg = self.styler.plot_background_color if self.styler.use_custom_style else "white"
+        self.canvas.figure.patch.set_facecolor(bg)
+        self.canvas.figure.canvas.draw_idle()
 
     def update_plot(
         self,
@@ -91,6 +248,7 @@ class PlotWidget(QWidget):
         dates: list[datetime.date],
         data: dict[str, list[float]],
     ) -> None:
+        """Update line data and redraw the plot."""
         if not dates or start_date is None or end_date is None:
             return
         self.ax.set_xlim(pd.Timestamp(start_date), pd.Timestamp(end_date))
@@ -98,209 +256,121 @@ class PlotWidget(QWidget):
             if line2d := self.lines.get(line_title):
                 line2d.set_data(dates, values)
                 if not self.use_ratio_formatter:
-                    self.formatter = value_formatter(values)
-            # Recalculate limits and autoscale view
+                    self.formatter = _value_formatter(values)
             self.ax.relim()
             self.ax.autoscale_view()
         self.ax.yaxis.set_major_formatter(self.formatter)
         if dates:
-            self.ax.legend(fontsize=9, loc="lower right")
+            self.ax.legend(fontsize=8, loc="lower right")
         self.canvas.draw_idle()
 
 
+# ---------------------------------------------------------------------------
+# BRMSDashboard (main widget)
+# ---------------------------------------------------------------------------
+
+
 class BRMSDashboard(QWidget):
-    def __init__(self, parent: QWidget | None = None):
+    """Card-based dashboard with KPIs, grouped details, and chart grid."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize the dashboard layout."""
         super().__init__(parent)
 
-        # Simulation statistics panel
-        self.stats_group = QGroupBox("General")
-        stats_layout = QFormLayout()
-        stats_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(8, 8, 8, 8)
+        main_layout.setSpacing(6)
 
-        # Simulation
-        simulation_label = QLabel("Simulation")
-        font = simulation_label.font()
-        font.setBold(True)
-        simulation_label.setFont(font)
-        stats_layout.addRow(simulation_label)
-        self.simulation_date_label = QLabel("Current Date:")
-        self.simulation_date_value = QLabel(QDate.currentDate().toString(Qt.DateFormat.ISODate))
-        stats_layout.addRow(self.simulation_date_label, self.simulation_date_value)
-        self.simulation_speed_label = QLabel("Simulation Speed:")
-        self.simulation_speed_value = QLabel("1x")
-        stats_layout.addRow(self.simulation_speed_label, self.simulation_speed_value)
-        self.simulation_start_date_label = QLabel("Simulation Start Date:")
-        self.simulation_start_date_value = QLabel(QDate.currentDate().toString(Qt.DateFormat.ISODate))
-        stats_layout.addRow(self.simulation_start_date_label, self.simulation_start_date_value)
-        self.simulation_end_date_label = QLabel("Simulation End Date:")
-        self.simulation_end_date_value = QLabel(QDate.currentDate().toString(Qt.DateFormat.ISODate))
-        stats_layout.addRow(self.simulation_end_date_label, self.simulation_end_date_value)
-        self.simulation_progress_label = QLabel("Simulation Progress:")
-        self.simulation_progress_value = QProgressBar()
-        self.simulation_progress_value.setValue(0)
-        stats_layout.addRow(self.simulation_progress_label, self.simulation_progress_value)
+        # Top: simulation strip spanning full width
+        self.sim_strip = SimulationStrip()
+        main_layout.addWidget(self.sim_strip)
 
-        # Bank
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.NoFrame)
-        stats_layout.addRow(separator)
-        bank_label = QLabel("Bank")
-        font = bank_label.font()
-        font.setBold(True)
-        bank_label.setFont(font)
-        stats_layout.addRow(bank_label)
-        self.total_assets_label = QLabel("Total Assets:")
-        self.total_assets_value = QLabel("0")
-        stats_layout.addRow(self.total_assets_label, self.total_assets_value)
-        self.total_liabilities_label = QLabel("Total Liabilities:")
-        self.total_liabilities_value = QLabel("0")
-        stats_layout.addRow(self.total_liabilities_label, self.total_liabilities_value)
-        self.total_equity_label = QLabel("Total Equity:")
-        self.total_equity_value = QLabel("0")
-        stats_layout.addRow(self.total_equity_label, self.total_equity_value)
+        # Bottom: left cards + right charts
+        body = QHBoxLayout()
+        body.setSpacing(6)
 
-        # Capital Adequacy
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.NoFrame)
-        stats_layout.addRow(separator)
-        capital_ratio_label = QLabel("Capital Adequacy")
-        font = capital_ratio_label.font()
-        font.setBold(True)
-        capital_ratio_label.setFont(font)
-        stats_layout.addRow(capital_ratio_label)
-        self.cet1_label = QLabel("CET1:")
-        self.cet1_value = QLabel("0")
-        stats_layout.addRow(self.cet1_label, self.cet1_value)
-        self.cet1_ratio_label = QLabel("CET1 Ratio:")
-        self.cet1_ratio_value = QLabel("0%")
-        stats_layout.addRow(self.cet1_ratio_label, self.cet1_ratio_value)
-        self.tier1_capital_ratio_label = QLabel("Tier 1 Capital Ratio:")
-        self.tier1_capital_ratio_value = QLabel("0%")
-        stats_layout.addRow(self.tier1_capital_ratio_label, self.tier1_capital_ratio_value)
-        self.total_capital_ratio_label = QLabel("Total Capital Ratio:")
-        self.total_capital_ratio_value = QLabel("0%")
-        stats_layout.addRow(self.total_capital_ratio_label, self.total_capital_ratio_value)
+        # Left panel: KPI cards + group cards
+        left = QWidget()
+        left.setFixedWidth(260)
+        left_layout = QVBoxLayout(left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(4)
+        self._build_kpi_column(left_layout)
+        self._build_group_column(left_layout)
 
-        # Liquidity ratios
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.NoFrame)
-        stats_layout.addRow(separator)
-        liquidity_label = QLabel("Liquidity Ratios")
-        font = liquidity_label.font()
-        font.setBold(True)
-        liquidity_label.setFont(font)
-        stats_layout.addRow(liquidity_label)
-        self.nsfr_label = QLabel("NSFR:")
-        self.nsfr_value = QLabel("0%")
-        stats_layout.addRow(self.nsfr_label, self.nsfr_value)
-        self.lcr_label = QLabel("LCR:")
-        self.lcr_value = QLabel("0%")
-        stats_layout.addRow(self.lcr_label, self.lcr_value)
+        # Right panel: 2x2 chart grid
+        right = QWidget()
+        right_layout = QVBoxLayout(right)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
+        right_layout.addLayout(self._build_chart_grid())
 
-        # Set layout of statistics
-        self.stats_group.setLayout(stats_layout)
+        body.addWidget(left)
+        body.addWidget(right, 1)
+        main_layout.addLayout(body, 1)
 
-        # Plot display area
-        self.plot_splitter = QSplitter()
-        self.plot_splitter.setOrientation(Qt.Orientation.Vertical)
-        self.assets_liabilities_plot = PlotWidget(
-            title="Total Assets and Liabilities",
-            line_titles=["Total Assets", "Total Liabilities"],
-            line_colors=["blue", "red"],
-            use_ratio_formatter=False,
-        )
-        self.equity_plot = PlotWidget(
-            title="Total Shareholders' Equity",
-            line_titles=["Total Equity"],
-            line_colors=["blue"],
-            use_ratio_formatter=False,
+    def _build_kpi_column(self, layout: QVBoxLayout) -> None:
+        """Add the Balance Sheet group card to the given layout."""
+        self.balance_sheet_group = KPIGroupCard("Balance Sheet")
+        self.balance_sheet_group.add_metric("total_assets", "Total Assets", FormatType.CURRENCY)
+        self.balance_sheet_group.add_metric("total_liabilities", "Total Liabilities", FormatType.CURRENCY)
+        self.balance_sheet_group.add_metric("total_equity", "Total Equity", FormatType.CURRENCY)
+        layout.addWidget(self.balance_sheet_group)
+
+    def _build_group_column(self, layout: QVBoxLayout) -> None:
+        """Add grouped detail cards vertically to the given layout."""
+        self.capital_group = KPIGroupCard("Capital Adequacy")
+        self.capital_group.add_metric("cet1_capital", "CET1 Capital", FormatType.CURRENCY)
+        self.capital_group.add_metric("cet1_ratio", "CET1 Ratio", FormatType.PERCENTAGE)
+        self.capital_group.add_metric("tier1_ratio", "Tier 1 Ratio", FormatType.PERCENTAGE)
+        self.capital_group.add_metric("total_capital_ratio", "Total Capital Ratio", FormatType.PERCENTAGE)
+
+        self.liquidity_group = KPIGroupCard("Liquidity & Risk")
+        self.liquidity_group.add_metric("nsfr", "NSFR", FormatType.PERCENTAGE)
+        self.liquidity_group.add_metric("lcr", "LCR", FormatType.PERCENTAGE)
+        self.liquidity_group.add_metric("credit_rwa", "Credit RWA", FormatType.CURRENCY)
+        self.liquidity_group.add_metric("op_rwa", "Op. RWA", FormatType.CURRENCY)
+
+        self.profit_group = KPIGroupCard("Profitability")
+        self.profit_group.add_metric("nim", "NIM", FormatType.PERCENTAGE)
+        self.profit_group.add_metric("roa", "ROA", FormatType.PERCENTAGE)
+        self.profit_group.add_metric("roe", "ROE", FormatType.PERCENTAGE)
+        self.profit_group.add_metric("leverage_ratio", "Leverage Ratio", FormatType.PERCENTAGE)
+
+        for grp in (self.capital_group, self.liquidity_group, self.profit_group):
+            layout.addWidget(grp)
+
+    def _build_chart_grid(self) -> QGridLayout:
+        """Create the 2x2 chart grid."""
+        grid = QGridLayout()
+        grid.setSpacing(10)
+
+        self.balance_sheet_plot = PlotWidget(
+            title="Balance Sheet",
+            line_titles=["Total Assets", "Total Liabilities", "Total Equity"],
+            line_colors=["#3b82f6", "#ef4444", "#10b981"],
         )
         self.capital_ratio_plot = PlotWidget(
-            title="Capital Ratio",
+            title="Capital Ratios",
             line_titles=["CET1 Ratio"],
-            line_colors=["blue"],
+            line_colors=["#3b82f6"],
             use_ratio_formatter=True,
         )
-        self.plot_splitter.addWidget(self.assets_liabilities_plot)
-        self.plot_splitter.addWidget(self.equity_plot)
-        self.plot_splitter.addWidget(self.capital_ratio_plot)
-
-        # Main layout as QSplitter
-        main_splitter = QSplitter()
-        main_splitter.setOrientation(Qt.Orientation.Horizontal)
-        main_splitter.addWidget(self.stats_group)
-        main_splitter.addWidget(self.plot_splitter)
-        # Set relative sizes of statistics panel and display area
-        main_splitter.setStretchFactor(1, 5)
-
-        main_layout = QHBoxLayout()
-        main_layout.addWidget(main_splitter)
-        self.setLayout(main_layout)
-
-    def update_simulation_date(self, date: datetime.date) -> None:
-        """Update the current simulation date."""
-        qdate = pydate_to_qdate(date)
-        self.simulation_date_value.setText(qdate.toString(Qt.DateFormat.ISODate))
-
-    def update_simulation_start_date(self, start_date: datetime.date) -> None:
-        """Update the simulation start date."""
-        qdate = pydate_to_qdate(start_date)
-        self.simulation_start_date_value.setText(qdate.toString(Qt.DateFormat.ISODate))
-
-    def update_simulation_end_date(self, end_date: datetime.date) -> None:
-        """Update the simulation end date."""
-        qdate = pydate_to_qdate(end_date)
-        self.simulation_end_date_value.setText(qdate.toString(Qt.DateFormat.ISODate))
-
-    def update_simulation_speed(self, speed: str) -> None:
-        """Update the simulation speed."""
-        self.simulation_speed_value.setText(speed)
-
-    def update_simulation_progress(self, progress: int) -> None:
-        """Update the simulation progress."""
-        self.simulation_progress_value.setValue(progress)
-
-    def update_bank_financials(self, data: dict) -> None:
-        """Update the bank's financials from balance-sheet data dict.
-
-        Parameters
-        ----------
-        data:
-            Dict with keys ``total_assets``, ``total_liabilities``, ``total_equity``,
-            and optional ``cet1``, ``cet1_ratio``, ``tier1_capital_ratio``,
-            ``total_capital_ratio``, ``nsfr``, ``lcr``.
-
-        """
-        total_assets = data.get("total_assets", 0.0)
-        total_liabilities = data.get("total_liabilities", 0.0)
-        total_equity = data.get("total_equity", 0.0)
-        cet1 = data.get("cet1", 0.0)
-        cet1_ratio = data.get("cet1_ratio", 0.0)
-        tier1_capital_ratio = data.get("tier1_capital_ratio", 0.0)
-        total_capital_ratio = data.get("total_capital_ratio", 0.0)
-        nsfr = data.get("nsfr", 0.0)
-        lcr = data.get("lcr", 0.0)
-
-        self.total_assets_value.setText(_locale.toCurrencyString(total_assets))
-        self.total_liabilities_value.setText(_locale.toCurrencyString(total_liabilities))
-        self.total_equity_value.setText(_locale.toCurrencyString(total_equity))
-        self.cet1_value.setText(_locale.toCurrencyString(cet1))
-        self.cet1_ratio_value.setText(f"{cet1_ratio * 100:.2f}%")
-        self.tier1_capital_ratio_value.setText(f"{tier1_capital_ratio * 100:.2f}%")
-        self.total_capital_ratio_value.setText(f"{total_capital_ratio * 100:.2f}%")
-        self.nsfr_value.setText(f"{nsfr * 100:.2f}%")
-        self.lcr_value.setText(f"{lcr * 100:.2f}%")
-
-    def update_assets_liabilities_plot(self, start, end, dates, asset_values, liability_values) -> None:
-        """Update the assets plot with new data."""
-        self.assets_liabilities_plot.update_plot(
-            start, end, dates, {"Total Assets": asset_values, "Total Liabilities": liability_values},
+        self.liquidity_plot = PlotWidget(
+            title="Liquidity Ratios",
+            line_titles=["NSFR", "LCR"],
+            line_colors=["#0ea5e9", "#14b8a6"],
+            use_ratio_formatter=True,
+        )
+        self.profitability_plot = PlotWidget(
+            title="Profitability",
+            line_titles=["NIM", "ROA", "ROE"],
+            line_colors=["#f59e0b", "#10b981", "#ef4444"],
+            use_ratio_formatter=True,
         )
 
-    def update_equity_plot(self, start, end, dates, equity_values) -> None:
-        """Update the equity plot with new data."""
-        self.equity_plot.update_plot(start, end, dates, {"Total Equity": equity_values})
-
-    def update_capital_ratio_plot(self, start, end, dates, values) -> None:
-        """Update the equity plot with new data."""
-        self.capital_ratio_plot.update_plot(start, end, dates, {"CET1 Ratio": values})
+        grid.addWidget(self.balance_sheet_plot, 0, 0)
+        grid.addWidget(self.capital_ratio_plot, 0, 1)
+        grid.addWidget(self.liquidity_plot, 1, 0)
+        grid.addWidget(self.profitability_plot, 1, 1)
+        return grid

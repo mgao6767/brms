@@ -300,10 +300,10 @@ class MainWindow(QMainWindow):
         event.accept()
 
     def showEvent(self, event: object) -> None:  # noqa: N802
-        """Equalize the central splitter after the window geometry is resolved."""
+        """Set the central splitter to 2/3 top, 1/3 bottom after geometry is resolved."""
         super().showEvent(event)
-        half = self.central_splitter.height() // 2
-        self.central_splitter.setSizes([half, half])
+        h = self.central_splitter.height()
+        self.central_splitter.setSizes([h * 2 // 3, h // 3])
 
     def on_exit(self) -> None:
         """Handle the exit action.

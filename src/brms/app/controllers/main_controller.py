@@ -214,7 +214,6 @@ class MainController(BRMSController):
         new_speed = 0.5 if current_speed == 0.1 else min(5.0, current_speed + 0.5)  # noqa: PLR2004
         self.simulation_interval = int(self.simulation_base_interval / new_speed)
         self.simulation_timer.setInterval(self.simulation_interval)
-        self.dashboard_ctrl.update_speed(f"{new_speed:.1f}x")
 
     def on_speed_down_action(self) -> None:
         """Decrease the simulation speed by 0.5x."""
@@ -223,4 +222,3 @@ class MainController(BRMSController):
         new_speed = max(0.1, current_speed - 0.5)
         self.simulation_interval = int(self.simulation_base_interval / new_speed)
         self.simulation_timer.setInterval(self.simulation_interval)
-        self.dashboard_ctrl.update_speed(f"{new_speed:.1f}x")

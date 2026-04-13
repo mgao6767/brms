@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from brms.app.controllers.base import BRMSController
+from brms.core.enums import MetricName
 from brms.core.events import DateAdvanced, MetricsComputed, StatementsChanged
 
 if TYPE_CHECKING:
@@ -35,11 +36,29 @@ class DashboardController(BRMSController):
         self._ledger = ledger
         self._start_date = start_date
         self._end_date = end_date
+
+        # Plot data series — keyed by line title
         self._dates: list[datetime.date] = []
-        self._asset_values: list[float] = []
-        self._liability_values: list[float] = []
-        self._equity_values: list[float] = []
-        self._cet1_ratio_values: list[float] = []
+        self._series: dict[str, list[float]] = {
+            "Total Assets": [],
+            "Total Liabilities": [],
+            "Total Equity": [],
+            "CET1 Ratio": [],
+            "NSFR": [],
+            "LCR": [],
+            "NIM": [],
+            "ROA": [],
+            "ROE": [],
+        }
+
+        # Map MetricName → (line title for series, KPI card attribute on view)
+        self._metric_to_line: dict[MetricName, str] = {
+            MetricName.TOTAL_ASSETS: "Total Assets",
+            MetricName.TOTAL_LIABILITIES: "Total Liabilities",
+            MetricName.TOTAL_EQUITY: "Total Equity",
+            MetricName.CET1_RATIO: "CET1 Ratio",
+        }
+
         self._plots_dirty = False
         self._financials_dirty = False
         self._last_financials_date: datetime.date | None = None
@@ -50,12 +69,11 @@ class DashboardController(BRMSController):
 
     def init(self) -> None:
         """Initialize the dashboard view with starting state."""
-        self.view.update_simulation_progress(0)
+        self.view.sim_strip.set_progress(0)
         if self._start_date:
-            self.view.update_simulation_date(self._start_date)
-            self.view.update_simulation_start_date(self._start_date)
-        if self._end_date:
-            self.view.update_simulation_end_date(self._end_date)
+            self.view.sim_strip.set_date(self._start_date)
+        if self._start_date and self._end_date:
+            self.view.sim_strip.set_period(self._start_date, self._end_date)
         self._refresh_plots()
 
     def on_visible(self) -> None:
@@ -67,26 +85,38 @@ class DashboardController(BRMSController):
             self._update_financials(self._last_financials_date)
             self._financials_dirty = False
 
-    def update_speed(self, speed_label: str) -> None:
-        """Update the speed label on the dashboard."""
-        self.view.update_simulation_speed(speed_label)
-
     def _on_date_advanced(self, event: DateAdvanced) -> None:
         date = event.date
-        self.view.update_simulation_date(date)
+        self.view.sim_strip.set_date(date)
         if self._start_date and self._end_date and self._end_date > self._start_date:
             progress = (date - self._start_date) / (self._end_date - self._start_date) * 100
-            self.view.update_simulation_progress(int(progress))
+            self.view.sim_strip.set_progress(int(progress))
 
     def _on_metrics_computed(self, event: MetricsComputed) -> None:
-        from brms.core.enums import MetricName
-
         m = event.metrics
         self._dates.append(event.date)
-        self._asset_values.append(m.get(MetricName.TOTAL_ASSETS, 0.0))
-        self._liability_values.append(m.get(MetricName.TOTAL_LIABILITIES, 0.0))
-        self._equity_values.append(m.get(MetricName.TOTAL_EQUITY, 0.0))
-        self._cet1_ratio_values.append(m.get(MetricName.CET1_RATIO, 0.0))
+
+        # Append to series
+        self._series["Total Assets"].append(m.get(MetricName.TOTAL_ASSETS, 0.0))
+        self._series["Total Liabilities"].append(m.get(MetricName.TOTAL_LIABILITIES, 0.0))
+        self._series["Total Equity"].append(m.get(MetricName.TOTAL_EQUITY, 0.0))
+        self._series["CET1 Ratio"].append(m.get(MetricName.CET1_RATIO, 0.0))
+
+        # Update balance sheet group card
+        self.view.balance_sheet_group.set_value("total_assets", m.get(MetricName.TOTAL_ASSETS))
+        self.view.balance_sheet_group.set_value("total_liabilities", m.get(MetricName.TOTAL_LIABILITIES))
+        self.view.balance_sheet_group.set_value("total_equity", m.get(MetricName.TOTAL_EQUITY))
+
+        # Update group card metrics from MetricsComputed
+        self.view.capital_group.set_value("cet1_capital", m.get(MetricName.CET1_CAPITAL))
+        self.view.capital_group.set_value("cet1_ratio", m.get(MetricName.CET1_RATIO))
+        self.view.liquidity_group.set_value("credit_rwa", m.get(MetricName.CREDIT_RWA))
+        self.view.liquidity_group.set_value("op_rwa", m.get(MetricName.OPERATIONAL_RWA))
+        self.view.profit_group.set_value("nim", m.get(MetricName.NET_INTEREST_MARGIN))
+        self.view.profit_group.set_value("roa", m.get(MetricName.ROA))
+        self.view.profit_group.set_value("roe", m.get(MetricName.ROE))
+        self.view.profit_group.set_value("leverage_ratio", m.get(MetricName.LEVERAGE_RATIO))
+
         if self.view.isVisible():
             self._refresh_plots()
         else:
@@ -101,31 +131,39 @@ class DashboardController(BRMSController):
 
     def _update_financials(self, date: datetime.date) -> None:
         bs_data = self._reporting.balance_sheet(self._ledger, date=date)
-        bs_data.setdefault("cet1", 0.0)
-        bs_data.setdefault("cet1_ratio", 0.0)
-        bs_data.setdefault("tier1_capital_ratio", 0.0)
-        bs_data.setdefault("total_capital_ratio", 0.0)
-        bs_data.setdefault("nsfr", 0.0)
-        bs_data.setdefault("lcr", 0.0)
-        self.view.update_bank_financials(bs_data)
+
+        # Update group card metrics that come from balance sheet
+        self.view.capital_group.set_value("tier1_ratio", bs_data.get("tier1_capital_ratio"))
+        self.view.capital_group.set_value("total_capital_ratio", bs_data.get("total_capital_ratio"))
+        self.view.liquidity_group.set_value("nsfr", bs_data.get("nsfr"))
+        self.view.liquidity_group.set_value("lcr", bs_data.get("lcr"))
 
     def _refresh_plots(self) -> None:
-        self.view.update_assets_liabilities_plot(
-            self._start_date,
-            self._end_date,
-            self._dates,
-            self._asset_values,
-            self._liability_values,
-        )
-        self.view.update_equity_plot(
-            self._start_date,
-            self._end_date,
-            self._dates,
-            self._equity_values,
-        )
-        self.view.update_capital_ratio_plot(
-            self._start_date,
-            self._end_date,
-            self._dates,
-            self._cet1_ratio_values,
-        )
+        s, e, d = self._start_date, self._end_date, self._dates
+
+        # Balance sheet (3 lines in one chart)
+        self.view.balance_sheet_plot.update_plot(s, e, d, {
+            "Total Assets": self._series["Total Assets"],
+            "Total Liabilities": self._series["Total Liabilities"],
+            "Total Equity": self._series["Total Equity"],
+        })
+
+        # Capital ratios
+        self.view.capital_ratio_plot.update_plot(s, e, d, {
+            "CET1 Ratio": self._series["CET1 Ratio"],
+        })
+
+        # Liquidity (series may be empty until wired)
+        if self._series["NSFR"] or self._series["LCR"]:
+            self.view.liquidity_plot.update_plot(s, e, d, {
+                "NSFR": self._series["NSFR"],
+                "LCR": self._series["LCR"],
+            })
+
+        # Profitability (series may be empty until wired)
+        if self._series["NIM"] or self._series["ROA"] or self._series["ROE"]:
+            self.view.profitability_plot.update_plot(s, e, d, {
+                "NIM": self._series["NIM"],
+                "ROA": self._series["ROA"],
+                "ROE": self._series["ROE"],
+            })
