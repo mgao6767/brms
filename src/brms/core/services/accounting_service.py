@@ -100,6 +100,8 @@ class AccountingService:
                 return self._amortization(transaction, ledger)
             case TransactionType.MATURITY_SETTLEMENT:
                 return self._maturity_settlement(transaction, ledger)
+            case TransactionType.OPENING_BALANCE:
+                return []  # informational — ledger already updated by compound entry
             case _:
                 msg = f"No accounting rule defined for TransactionType.{transaction.type.name}"
                 raise NotImplementedError(msg)

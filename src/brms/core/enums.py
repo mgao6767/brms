@@ -83,6 +83,7 @@ class TransactionType(Enum):
     REVALUATION = auto()
     INTEREST_ACCRUAL = auto()
     INTEREST_SETTLEMENT = auto()
+    OPENING_BALANCE = auto()
 
 
 class MetricName(Enum):

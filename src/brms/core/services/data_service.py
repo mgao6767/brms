@@ -93,12 +93,22 @@ class DataService:
 
     @staticmethod
     def _post_opening_balances(data: SimulationData, simulation_service: SimulationService) -> None:
-        """Post a compound Opening Balance journal entry from snapshot balances."""
+        """Post a compound Opening Balance journal entry from snapshot balances.
+
+        Also records synthetic OPENING_BALANCE transactions in the transaction
+        log so the transaction history widget can display the starting balances.
+        """
+        import uuid
+        from decimal import Decimal
+
+        from brms.core.enums import TransactionType
         from brms.core.models.accounting.accounts import AccountNormalBalance
         from brms.core.models.accounting.journal import CompoundEntry
+        from brms.core.models.transaction import Transaction
 
         ledger = simulation_service.bank.ledger
         coa = ledger.chart_of_accounts
+        snapshot_date = data.start_date - datetime.timedelta(days=1)
 
         # Build account name -> account lookup from the full chart
         account_lookup: dict[str, object] = {}
@@ -112,6 +122,7 @@ class DataService:
 
         debit_accounts: dict = {}
         credit_accounts: dict = {}
+        opening_transactions: list[Transaction] = []
 
         for account_name, balance in data.balances.items():
             account = account_lookup.get(account_name)
@@ -128,6 +139,16 @@ class DataService:
                 credit_accounts[account] = balance
                 debit_accounts[obe] = debit_accounts.get(obe, 0) + balance
 
+            opening_transactions.append(
+                Transaction(
+                    id=str(uuid.uuid4()),
+                    type=TransactionType.OPENING_BALANCE,
+                    date=snapshot_date,
+                    amount=Decimal(str(balance)),
+                    description=f"Opening balance: {account_name}",
+                ),
+            )
+
         if debit_accounts and credit_accounts:
             entry = CompoundEntry(
                 debit_accounts=debit_accounts,
@@ -136,4 +157,7 @@ class DataService:
                 description="Opening Balance",
             )
             ledger.post(entry)
+
+        if opening_transactions:
+            simulation_service.transaction_log.record_batch(opening_transactions)
 
