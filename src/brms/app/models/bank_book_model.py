@@ -207,17 +207,16 @@ class BankBookModel(QAbstractItemModel):
 
     def remove_instrument(self, instrument_id: str) -> bool:
         """Remove an instrument row by its instrument_id. Returns True if found."""
-        for side in self._sides:
-            for group in side.children:
-                for child in group.children:
-                    if child.instrument_id == instrument_id:
-                        parent_index = self._index_for_node(group)
-                        row = child.row_index()
-                        self.beginRemoveRows(parent_index, row, row)
-                        group.remove(child)
-                        self.endRemoveRows()
-                        return True
-        return False
+        node = self._find_instrument(instrument_id)
+        if node is None or node.parent is None:
+            return False
+        parent = node.parent
+        parent_index = self._index_for_node(parent)
+        row = node.row_index()
+        self.beginRemoveRows(parent_index, row, row)
+        parent.remove(node)
+        self.endRemoveRows()
+        return True
 
     def update_instrument_value(self, instrument_id: str, value: float) -> bool:
         """Update the value column for an instrument. Returns True if found."""
@@ -233,11 +232,19 @@ class BankBookModel(QAbstractItemModel):
 
     def find_instrument_by_name(self, name: str) -> _Row | None:
         """Find an instrument row by name (used for Cash lookup)."""
+        def _search(node: _Row) -> _Row | None:
+            if node.values[COL_NAME] == name and node.instrument_id is not None:
+                return node
+            for child in node.children:
+                found = _search(child)
+                if found is not None:
+                    return found
+            return None
+
         for side in self._sides:
-            for group in side.children:
-                for child in group.children:
-                    if child.values[COL_NAME] == name:
-                        return child
+            found = _search(side)
+            if found is not None:
+                return found
         return None
 
     def get_instrument_id(self, index: QModelIndex) -> str | None:
@@ -257,12 +264,24 @@ class BankBookModel(QAbstractItemModel):
     # ── Private ─────────────────────────────────────────────────────
 
     def _find_instrument(self, instrument_id: str) -> _Row | None:
-        """Find a row by instrument_id across all groups."""
+        """Find a row by instrument_id, recursing through all nesting levels.
+
+        The tree may have 2 or 3 levels of grouping (e.g. Amortized Cost
+        instruments have an extra sub-group level).
+        """
+        def _search(node: _Row) -> _Row | None:
+            if node.instrument_id == instrument_id:
+                return node
+            for child in node.children:
+                found = _search(child)
+                if found is not None:
+                    return found
+            return None
+
         for side in self._sides:
-            for group in side.children:
-                for child in group.children:
-                    if child.instrument_id == instrument_id:
-                        return child
+            found = _search(side)
+            if found is not None:
+                return found
         return None
 
     def _index_for_node(self, node: _Row) -> QModelIndex:
