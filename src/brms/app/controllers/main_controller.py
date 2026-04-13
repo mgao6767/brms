@@ -143,6 +143,8 @@ class MainController(BRMSController):
 
         # Advance first day so dashboard metrics and plots are populated
         self.on_advance()
+        # Flush deferred updates — window may not be visible yet on first load
+        self.dashboard_ctrl.on_visible()
 
     def on_open_action(self) -> None:
         """Open a simulation zip file and reload."""
