@@ -913,9 +913,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#brms.app.controllers.inspector_controller.InspectorController.format_instrument_details_for_inspector_tree_view" class="md-nav__link">
+  <a href="#brms.app.controllers.inspector_controller.InspectorController.bind_services" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;format_instrument_details_for_inspector_tree_view
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;bind_services
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.controllers.inspector_controller.InspectorController.connect_signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;connect_signals
     </span>
   </a>
   
@@ -925,6 +934,15 @@
   <a href="#brms.app.controllers.inspector_controller.InspectorController.show_instrument_details" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;show_instrument_details
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.controllers.inspector_controller.InspectorController.show_transaction_details" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;show_transaction_details
     </span>
   </a>
   
@@ -1420,9 +1438,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#brms.app.controllers.inspector_controller.InspectorController.format_instrument_details_for_inspector_tree_view" class="md-nav__link">
+  <a href="#brms.app.controllers.inspector_controller.InspectorController.bind_services" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;format_instrument_details_for_inspector_tree_view
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;bind_services
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.controllers.inspector_controller.InspectorController.connect_signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;connect_signals
     </span>
   </a>
   
@@ -1432,6 +1459,15 @@
   <a href="#brms.app.controllers.inspector_controller.InspectorController.show_instrument_details" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;show_instrument_details
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.controllers.inspector_controller.InspectorController.show_transaction_details" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;show_transaction_details
     </span>
   </a>
   
@@ -1473,6 +1509,8 @@
 
     <div class="doc doc-contents first">
 
+        <p>Controller for the inspector dock — shows details for instruments and transactions.</p>
+
 
 
 
@@ -1485,7 +1523,7 @@
           <b><code><a class="autorefs autorefs-internal" title="brms.app.controllers.inspector_controller.InspectorController" href="#brms.app.controllers.inspector_controller.InspectorController">InspectorController</a></code></b>
           –
           <div class="doc-md-description">
-            
+            <p>Controls the inspector dock, showing details for instruments and transactions.</p>
           </div>
         </li>
     </ul>
@@ -1522,6 +1560,8 @@
               Bases: <code><a class="autorefs autorefs-internal" title="brms.app.controllers.base.BRMSController" href="../base/#brms.app.controllers.base.BRMSController">BRMSController</a></code></p>
 
 
+        <p>Controls the inspector dock, showing details for instruments and transactions.</p>
+
 
 
 
@@ -1533,10 +1573,17 @@
 <p><span class="doc-section-title">Methods:</span></p>
     <ul>
           <li class="doc-section-item field-body">
-            <b><code><a class="autorefs autorefs-internal" title="brms.app.controllers.inspector_controller.InspectorController.format_instrument_details_for_inspector_tree_view" href="#brms.app.controllers.inspector_controller.InspectorController.format_instrument_details_for_inspector_tree_view">format_instrument_details_for_inspector_tree_view</a></code></b>
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.controllers.inspector_controller.InspectorController.bind_services" href="#brms.app.controllers.inspector_controller.InspectorController.bind_services">bind_services</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Convert a dictionary to a list of dictionaries with keys 0 and 1.</p>
+              <p>Bind core services needed for transaction inspection.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.controllers.inspector_controller.InspectorController.connect_signals" href="#brms.app.controllers.inspector_controller.InspectorController.connect_signals">connect_signals</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Connect signals (no-op for inspector).</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
@@ -1544,6 +1591,13 @@
             –
             <div class="doc-md-description">
               <p>Show the details of the given instrument in the inspector view.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.controllers.inspector_controller.InspectorController.show_transaction_details" href="#brms.app.controllers.inspector_controller.InspectorController.show_transaction_details">show_transaction_details</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Show comprehensive transaction details in the inspector view.</p>
             </div>
           </li>
     </ul>
@@ -1566,24 +1620,36 @@
 <div class="doc doc-object doc-function">
 
 
-<h3 id="brms.app.controllers.inspector_controller.InspectorController.format_instrument_details_for_inspector_tree_view" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">format_instrument_details_for_inspector_tree_view</span>
+<h3 id="brms.app.controllers.inspector_controller.InspectorController.bind_services" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">bind_services</span>
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">format_instrument_details_for_inspector_tree_view</span><span class="p">(</span>
-    <span class="n">data</span><span class="p">:</span> <span class="n">dict</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">list</span><span class="p">[</span><span class="n">dict</span><span class="p">]</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">bind_services</span><span class="p">(</span><span class="n">bank</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.bank.Bank" href="../../../core/models/bank/#brms.core.models.bank.Bank">Bank</a></span><span class="p">,</span> <span class="n">journal</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.accounting.journal.Journal" href="../../../core/models/accounting/journal/#brms.core.models.accounting.journal.Journal">Journal</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Convert a dictionary to a list of dictionaries with keys 0 and 1.</p>
-<p>Example usage:
-data = {"Property1": "Value1", "Property2": "Value2"}
-Output: [{0: 'Property1', 1: 'Value1'}, {0: 'Property2', 1: 'Value2'}]</p>
-<p>data = {"Property1": "Value1", "PropertyGroup": {"Sub-property": "Sub-value"}}
-Output: [{0: 'Property1', 1: 'Value1'}, {0: 'PropertyGroup', 1: '', '_children': [{0: 'Sub-property', 1: 'Sub-value'}]}]</p>
+        <p>Bind core services needed for transaction inspection.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.controllers.inspector_controller.InspectorController.connect_signals" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">connect_signals</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">connect_signals</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Connect signals (no-op for inspector).</p>
 
     </div>
 
@@ -1603,6 +1669,25 @@ Output: [{0: 'Property1', 1: 'Value1'}, {0: 'PropertyGroup', 1: '', '_children':
     <div class="doc doc-contents ">
 
         <p>Show the details of the given instrument in the inspector view.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.controllers.inspector_controller.InspectorController.show_transaction_details" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">show_transaction_details</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">show_transaction_details</span><span class="p">(</span><span class="n">transaction</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.transaction.Transaction" href="../../../core/models/transaction/#brms.core.models.transaction.Transaction">Transaction</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Show comprehensive transaction details in the inspector view.</p>
 
     </div>
 

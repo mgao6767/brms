@@ -979,6 +979,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#brms.app.controllers.transaction_history_controller.TransactionHistoryController.filter_by_instrument" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;filter_by_instrument
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brms.app.controllers.transaction_history_controller.TransactionHistoryController.load_initial" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;load_initial
@@ -1420,6 +1429,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#brms.app.controllers.transaction_history_controller.TransactionHistoryController.filter_by_instrument" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;filter_by_instrument
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brms.app.controllers.transaction_history_controller.TransactionHistoryController.load_initial" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;load_initial
@@ -1520,7 +1538,7 @@
     <span class="n">view</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.app.views.transaction_history.transaction_history_widget.BRMSTransactionHistoryWidget" href="../../views/transaction_history/transaction_history_widget/#brms.app.views.transaction_history.transaction_history_widget.BRMSTransactionHistoryWidget">BRMSTransactionHistoryWidget</a></span><span class="p">,</span>
     <span class="n">event_bus</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.events.EventBus" href="../../../core/events/#brms.core.events.EventBus">EventBus</a></span><span class="p">,</span>
     <span class="n">transaction_log</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.stores.transaction_log.TransactionLog" href="../../../core/stores/transaction_log/#brms.core.stores.transaction_log.TransactionLog">TransactionLog</a></span><span class="p">,</span>
-    <span class="n">journal</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.accounting.journal.Journal" href="../../../core/models/accounting/journal/#brms.core.models.accounting.journal.Journal">Journal</a></span><span class="p">,</span>
+    <span class="n">inspector_ctrl</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.app.controllers.inspector_controller.InspectorController" href="../inspector_controller/#brms.app.controllers.inspector_controller.InspectorController">InspectorController</a></span><span class="p">,</span>
     <span class="n">start_date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">end_date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span>
@@ -1543,6 +1561,13 @@
 
 <p><span class="doc-section-title">Methods:</span></p>
     <ul>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.controllers.transaction_history_controller.TransactionHistoryController.filter_by_instrument" href="#brms.app.controllers.transaction_history_controller.TransactionHistoryController.filter_by_instrument">filter_by_instrument</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Set the instrument filter and trigger search.</p>
+            </div>
+          </li>
           <li class="doc-section-item field-body">
             <b><code><a class="autorefs autorefs-internal" title="brms.app.controllers.transaction_history_controller.TransactionHistoryController.load_initial" href="#brms.app.controllers.transaction_history_controller.TransactionHistoryController.load_initial">load_initial</a></code></b>
             –
@@ -1573,6 +1598,25 @@
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.controllers.transaction_history_controller.TransactionHistoryController.filter_by_instrument" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">filter_by_instrument</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">filter_by_instrument</span><span class="p">(</span><span class="n">instrument_id</span><span class="p">:</span> <span class="n">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Set the instrument filter and trigger search.</p>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-function">
 
