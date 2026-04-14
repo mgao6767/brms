@@ -64,6 +64,8 @@ class StatementController(BRMSController):
 
     def _on_statements_changed(self, event: StatementsChanged) -> None:
         self._last_date = event.date
+        # Always emit FinancialsUpdated so the dashboard stays current
+        self._emit_financials(event.date)
         if self.view.isVisible():
             self._render(event.date)
         else:
@@ -88,7 +90,8 @@ class StatementController(BRMSController):
         self.view.income_statement_tab.tree.expandAll()
         self.view.balance_sheet_tab.tree.expandAll()
 
-        # Emit financials event with closed BS totals
+    def _emit_financials(self, date: datetime.date | None) -> None:
+        """Emit FinancialsUpdated with closed BS totals (independent of view visibility)."""
         if date is not None:
             bs_data = self._reporting.balance_sheet(self._ledger, date=date)
             self._event_bus.emit(FinancialsUpdated(
