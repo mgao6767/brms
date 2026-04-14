@@ -33,6 +33,7 @@ class SimulationData:
     positions: list[Position]
     market_frames: dict[str, pd.DataFrame]
     balances: dict[str, float] = field(default_factory=dict)
+    valuations: dict[str, dict[str, float]] = field(default_factory=dict)
 
 
 @runtime_checkable
@@ -99,9 +100,11 @@ class ZipLoader:
         market_frames = self._load_market_data(zf)
 
         balances: dict[str, float] = {}
+        valuations: dict[str, dict[str, float]] = {}
         if "balances.json" in zf.namelist():
             bal_data = json.loads(zf.read("balances.json"))
             balances = bal_data.get("balances", {})
+            valuations = bal_data.get("valuations", {})
 
         start_date = datetime.date.fromisoformat(cfg["start_date"])
         # end_date from config; fall back to last market data date
@@ -119,6 +122,7 @@ class ZipLoader:
             positions=positions,
             market_frames=market_frames,
             balances=balances,
+            valuations=valuations,
         )
 
     def _load_instruments(self, zf: zipfile.ZipFile) -> list[Instrument]:

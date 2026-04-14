@@ -229,6 +229,7 @@ def create_default_zip(data_folder: Path, out_path: Path | None = None) -> Path:
                 {
                     "snapshot_date": snapshot.start_date.isoformat(),
                     "balances": snapshot.balances,
+                    "valuations": snapshot.valuations,
                 },
                 indent=2,
             ),

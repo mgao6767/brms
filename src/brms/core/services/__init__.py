@@ -116,6 +116,7 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     # Seed the valuation store so initial tree values match the BS
     if simulation_service.start_date is not None:
         import contextlib
+
         with contextlib.suppress(Exception):
             valuation_service.value_all(bank, market_data, simulation_service.start_date, valuation_store)
 

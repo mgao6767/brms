@@ -89,6 +89,7 @@ class DataService:
             simulation_service.market_data.add_frame(name, df)  # type: ignore[union-attr]
 
         self._post_opening_balances(data, simulation_service)
+        self._seed_valuations(data, simulation_service)
         simulation_service.initialize_from_snapshot(data.start_date, end_date=data.end_date)  # type: ignore[union-attr]
 
     @staticmethod
@@ -160,4 +161,26 @@ class DataService:
 
         if opening_transactions:
             simulation_service.transaction_log.record_batch(opening_transactions)
+
+    @staticmethod
+    def _seed_valuations(data: SimulationData, simulation_service: SimulationService) -> None:
+        """Seed the valuation store with per-position valuations from the snapshot.
+
+        Valuations are recorded at ``start_date - 1`` (the snapshot date) so that
+        the first advance computes the correct MTM delta against the replay state.
+        """
+        if not data.valuations:
+            return
+
+        from decimal import Decimal
+
+        from brms.core.enums import ValuationType
+
+        snapshot_date = data.start_date - datetime.timedelta(days=1)
+        vs = simulation_service.valuation_store
+        for pos_id, vals in data.valuations.items():
+            if "fair_value" in vals:
+                vs.record(pos_id, snapshot_date, ValuationType.FAIR_VALUE, Decimal(str(vals["fair_value"])))
+            if "carrying_value" in vals:
+                vs.record(pos_id, snapshot_date, ValuationType.CARRYING_VALUE, Decimal(str(vals["carrying_value"])))
 

@@ -52,6 +52,7 @@ class SimulationSnapshot:
     instruments: list[Instrument]
     positions: list[Position]
     balances: dict[str, float]
+    valuations: dict[str, dict[str, float]] = field(default_factory=dict)
     market_frames: dict[str, pd.DataFrame] = field(default_factory=dict)
 
 
@@ -63,12 +64,14 @@ class SimulationBuilder:
         coa, sim, bank, accounting_service = self._create_engine(config)
         self._replay(config, sim, bank, accounting_service)
         balances = self._extract_balances(coa)
+        valuations = self._extract_valuations(sim, bank, config.start_date)
         return SimulationSnapshot(
             name=config.name,
             start_date=config.start_date,
             instruments=config.instruments,
             positions=config.positions,
             balances=balances,
+            valuations=valuations,
             market_frames=config.market_frames,
         )
 
@@ -176,6 +179,39 @@ class SimulationBuilder:
             txns = self._make_acquisition_transactions(inst, pos, has_prior_advance=has_prior_advance)
             accounting_service.post_all(txns, bank.ledger, bank.positions)
             sim.transaction_log.record_batch(txns)
+
+    @staticmethod
+    def _extract_valuations(
+        sim: SimulationService, bank: Bank, start_date: datetime.date,
+    ) -> dict[str, dict[str, float]]:
+        """Extract per-position valuations at the snapshot date (start_date - 1).
+
+        Returns {position_id: {"fair_value": X, "carrying_value": Y}} for each
+        open position that has a valuation recorded during replay.
+        """
+        from brms.core.enums import ValuationType
+
+        snapshot_date = start_date - datetime.timedelta(days=1)
+        result: dict[str, dict[str, float]] = {}
+        for pos in bank.positions.open_positions():
+            entry: dict[str, float] = {}
+            fv = sim.valuation_store.get(pos.id, snapshot_date, ValuationType.FAIR_VALUE)
+            if fv is not None:
+                entry["fair_value"] = float(fv)
+            cv = sim.valuation_store.get(pos.id, snapshot_date, ValuationType.CARRYING_VALUE)
+            if cv is not None:
+                entry["carrying_value"] = float(cv)
+            # Fall back to most recent value if snapshot_date has no data
+            if not entry:
+                fv = sim.valuation_store.get_previous(pos.id, start_date, ValuationType.FAIR_VALUE)
+                if fv is not None:
+                    entry["fair_value"] = float(fv)
+                cv = sim.valuation_store.get_previous(pos.id, start_date, ValuationType.CARRYING_VALUE)
+                if cv is not None:
+                    entry["carrying_value"] = float(cv)
+            if entry:
+                result[pos.id] = entry
+        return result
 
     @staticmethod
     def _extract_balances(coa: BankChartOfAccounts) -> dict[str, float]:
