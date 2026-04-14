@@ -76,11 +76,14 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.transaction_tree.setColumnHidden(6, True)  # journal entry
 
         # Sort proxy for column-header sorting
+        # Default: insertion order (Tx# ascending). Dynamic sort disabled for performance —
+        # new rows append without re-sorting. User can click a header to re-sort.
         self.sort_proxy = QSortFilterProxyModel(self)
         self.sort_proxy.setSourceModel(self.transaction_tree.tree_model)
+        self.sort_proxy.setDynamicSortFilter(False)
         self.transaction_tree.setModel(self.sort_proxy)
         self.transaction_tree.setSortingEnabled(True)
-        self.transaction_tree.sortByColumn(0, Qt.SortOrder.AscendingOrder)
+        self.sort_proxy.sort(0, Qt.SortOrder.AscendingOrder)
 
         # Convenient access — source model for data mutation
         self.transactions_tree_model = self.transaction_tree.tree_model
