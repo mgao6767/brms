@@ -2,6 +2,9 @@
 .claude/
 CLAUDE.md
 
+# Worktrees
+.worktrees/
+
 # Temporary folder and files
 temp/
 
