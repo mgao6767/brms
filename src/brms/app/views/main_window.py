@@ -122,6 +122,12 @@ class MainWindow(QMainWindow):
         self.save_action = QAction("Save", self)
         self.exit_action = QAction(qta.icon("mdi6.exit-run"), "Exit", self)
         self.exit_action.setShortcut("Ctrl+Q")
+        # Edit
+        self.copy_value_action = QAction("Copy Value", self)
+        self.copy_value_action.setShortcut("Ctrl+C")
+        self.copy_row_action = QAction("Copy Row", self)
+        self.copy_row_action.setShortcut("Ctrl+Shift+C")
+        self.copy_details_action = QAction("Copy All Details", self)
         # Simulation
         self.next_action = QAction(qta.icon("mdi6.skip-next"), "Next", self)
         self.start_action = QAction(qta.icon("mdi6.play"), "Start", self)
@@ -188,6 +194,10 @@ class MainWindow(QMainWindow):
         file_menu.addAction(self.save_action)
         file_menu.addSeparator()
         file_menu.addAction(self.exit_action)
+        # Edit menu
+        edit_menu.addAction(self.copy_value_action)
+        edit_menu.addAction(self.copy_row_action)
+        edit_menu.addAction(self.copy_details_action)
         # View menu
         view_menu.addAction(self.fushion_style_action)
         view_menu.addAction(self.mq_style_action)

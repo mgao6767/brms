@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QApplication, QFileDialog, QTreeView
 
+from brms.app import clipboard
 from brms.app.controllers.bank_controller import BankController
 from brms.app.controllers.base import BRMSController
 from brms.app.controllers.dashboard_controller import DashboardController
@@ -36,6 +37,7 @@ class MainController(BRMSController):
 
         # Sub-controllers (created once, rebound on load)
         self.inspector_ctrl = InspectorController(inspector_widget=view.inspector_widget)
+        self.inspector_ctrl.connect_signals()
         self.dashboard_ctrl: DashboardController
         self.transaction_history_ctrl: TransactionHistoryController
         self.statement_ctrl: StatementController
@@ -60,6 +62,9 @@ class MainController(BRMSController):
         self.view.stop_action.triggered.connect(self.on_stop_action)
         self.view.speed_combo.currentTextChanged.connect(self._on_speed_changed)
         self.view.open_action.triggered.connect(self.on_open_action)
+        self.view.copy_value_action.triggered.connect(self._on_copy_value)
+        self.view.copy_row_action.triggered.connect(self._on_copy_row)
+        self.view.copy_details_action.triggered.connect(self._on_copy_details)
         self.view.exit_signal.connect(self.on_exit)
         self.view.tab_widget.currentChanged.connect(self._on_tab_changed)
         self.view.dock_statement_viewer.visibilityChanged.connect(self._on_statement_dock_visible)
@@ -214,3 +219,24 @@ class MainController(BRMSController):
         multiplier = float(text.rstrip("x"))
         self.simulation_interval = int(self.simulation_base_interval / multiplier)
         self.simulation_timer.setInterval(self.simulation_interval)
+
+    def _focused_tree(self) -> QTreeView | None:
+        """Return the currently focused QTreeView, or None."""
+        widget = QApplication.focusWidget()
+        if isinstance(widget, QTreeView):
+            return widget
+        return None
+
+    def _on_copy_value(self) -> None:
+        """Copy the selected cell's value from the focused tree."""
+        if tree := self._focused_tree():
+            clipboard.copy_tree_value(tree)
+
+    def _on_copy_row(self) -> None:
+        """Copy the selected row from the focused tree."""
+        if tree := self._focused_tree():
+            clipboard.copy_tree_row(tree)
+
+    def _on_copy_details(self) -> None:
+        """Copy inspector details to clipboard."""
+        self.inspector_ctrl.copy_details()

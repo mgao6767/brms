@@ -42,6 +42,12 @@ class StatementController(BRMSController):
         self._last_date: datetime.date | None = None
         event_bus.subscribe(StatementsChanged, self._on_statements_changed)
         self.view.export_requested.connect(self._on_export)
+        # Add copy context menus to all statement trees
+        from brms.app.clipboard import add_copy_context_menu
+
+        add_copy_context_menu(self.view.trial_balance_tab.tree)
+        add_copy_context_menu(self.view.income_statement_tab.tree)
+        add_copy_context_menu(self.view.balance_sheet_tab.tree)
 
     def reset(self) -> None:
         """Clear all statement models and disconnect signals."""

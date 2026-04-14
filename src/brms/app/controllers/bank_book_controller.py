@@ -137,12 +137,21 @@ class BankBookController(BRMSController):
         instrument_id = self.model.get_instrument_id(index)
         if not instrument_id:
             return
+        from brms.app.clipboard import copy_tree_row, copy_tree_value
+
         menu = QMenu(self.tree)
         action = QAction("Show Related Transactions", menu)
         action.triggered.connect(
             lambda: self._event_bus.emit(ShowTransactionsRequested(instrument_id=instrument_id)),
         )
         menu.addAction(action)
+        menu.addSeparator()
+        copy_val = QAction("Copy Value", menu)
+        copy_val.triggered.connect(lambda: copy_tree_value(self.tree))
+        menu.addAction(copy_val)
+        copy_row_action = QAction("Copy Row", menu)
+        copy_row_action.triggered.connect(lambda: copy_tree_row(self.tree))
+        menu.addAction(copy_row_action)
         menu.exec(self.tree.viewport().mapToGlobal(pos))
 
     def connect_signals(self) -> None:

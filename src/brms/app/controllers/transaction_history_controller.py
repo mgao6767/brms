@@ -57,6 +57,8 @@ class TransactionHistoryController(BRMSController):
         event_bus.subscribe(TransactionsRecorded, self._on_transactions_recorded)
         event_bus.subscribe(DateAdvanced, self._on_date_advanced)
         self.view.transaction_tree.selectionModel().selectionChanged.connect(self._on_selection_changed)
+        self.view.transaction_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.view.transaction_tree.customContextMenuRequested.connect(self._on_context_menu)
         self.view.search_button.clicked.connect(self._on_search)
         self.view.reset_button.clicked.connect(self._on_reset)
         # Re-apply filter after flush adds rows to the model
@@ -115,6 +117,29 @@ class TransactionHistoryController(BRMSController):
         """Set the instrument filter and trigger search."""
         self.view.instrument_filter.setText(instrument_id)
         self._on_search()
+
+    def _on_context_menu(self, pos: object) -> None:
+        """Show context menu for transaction history."""
+        from PySide6.QtGui import QAction
+        from PySide6.QtWidgets import QMenu
+
+        from brms.app.clipboard import copy_tree_row, copy_tree_value
+
+        tree = self.view.transaction_tree
+        index = tree.indexAt(pos)  # type: ignore[arg-type]
+        if not index.isValid():
+            return
+        menu = QMenu(tree)
+        copy_val = QAction("Copy Value", menu)
+        copy_val.triggered.connect(lambda: copy_tree_value(tree))
+        menu.addAction(copy_val)
+        copy_row_action = QAction("Copy Row", menu)
+        copy_row_action.triggered.connect(lambda: copy_tree_row(tree))
+        menu.addAction(copy_row_action)
+        copy_details = QAction("Copy All Details", menu)
+        copy_details.triggered.connect(self._inspector_ctrl.copy_details)
+        menu.addAction(copy_details)
+        menu.exec(tree.viewport().mapToGlobal(pos))  # type: ignore[arg-type]
 
     def _on_selection_changed(self) -> None:
         """Look up the selected transaction and show its details in the inspector."""
