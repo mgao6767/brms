@@ -615,6 +615,8 @@
       
         
       
+        
+      
     
     
       
@@ -1634,6 +1636,10 @@
       
         
       
+        
+      
+        
+      
     
     
       
@@ -1832,6 +1838,13 @@
     <div class="doc doc-contents first">
 
         <p>Position-aware RuleEngine: applies accounting rules to open positions.</p>
+<p>Rules are executed in a defined priority order to ensure logical consistency:</p>
+<ol>
+<li><strong>Accruals</strong> — recognize earned/owed amounts (no cash movement)</li>
+<li><strong>Mark-to-market</strong> — revalue positions to fair value</li>
+<li><strong>Cash flows</strong> — coupon payments, interest settlements, amortization</li>
+<li><strong>Maturity</strong> — settle and close positions (must be last)</li>
+</ol>
 
 
 
@@ -2007,6 +2020,8 @@
 <p>Rules are keyed by their class.  Each instrument declares which rule
 classes apply to it via <code>instrument.applicable_rules</code> (a frozenset of
 rule classes).  The engine only runs rules that the instrument opts into.</p>
+<p>Rules are executed in priority order (accruals → mark-to-market →
+cash flows → maturity) to ensure logical consistency.</p>
 
 
 
@@ -2073,7 +2088,8 @@ rule classes).  The engine only runs rules that the instrument opts into.</p>
         <p>Apply instrument-declared rules to every open position.</p>
 <p>For each open position the engine reads <code>instrument.applicable_rules</code>
 to determine which rules to evaluate.  Only rules whose <code>applies_to</code>
-returns <code>True</code> produce transactions.</p>
+returns <code>True</code> produce transactions.  Rules are sorted by priority
+so that accruals run before mark-to-market, cash flows, and maturity.</p>
 
     </div>
 

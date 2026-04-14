@@ -2,578 +2,590 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/basel_3/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/basel_3/capital/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/basel_3/lcr/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/basel_3/lev/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/basel_3/nsfr/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/basel_3/rbc/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/basel_3/rwa/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/basel_3/rwa/credit_risk/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/basel_3/rwa/market_risk/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/basel_3/rwa/operational_risk/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/SUMMARY/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/main/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/application/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
+    </url>
+    <url>
+         <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/clipboard/</loc>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/reporting/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/utils/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/controllers/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/controllers/bank_book_controller/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/controllers/bank_controller/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/controllers/base/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/controllers/dashboard_controller/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/controllers/inspector_controller/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/controllers/main_controller/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/controllers/statement_controller/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/controllers/transaction_history_controller/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/controllers/yield_curve_controller/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/models/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/models/bank_book_model/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/models/statement_models/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/models/yield_curve_model/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/debug_panel/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/main_window/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/styler/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/bank_book/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/bank_book/columns/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/bank_book/combined_book_widget/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/bank_book/delegates/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/calculators/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/calculators/bond_calculator/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/calculators/mortgage_calculator/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/dashboard/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/dashboard/dashboard_widget/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/inspector/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/inspector/inspector_widget/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/rwa_credit_risk/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/rwa_credit_risk/rwa_credit_risk_widget/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/statement_viewer/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/statement_viewer/delegates/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/statement_viewer/statement_viewer_widget/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/transaction_history/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/transaction_history/transaction_history_widget/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/widgets/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/widgets/dock_widget/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/widgets/tree_widget/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/yield_curve/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/app/views/yield_curve/yield_curve_widget/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/enums/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/events/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/exceptions/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/utils/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/base/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/capital/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/base/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/central_counterparties_default_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/counterparty_risk_default_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/fall_back_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/internal_assessment_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/internal_ratings_based_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/look_through_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/mandate_based_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/rwa/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/secrutisation_internal_ratings_based_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/securitisation_external_ratings_based_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/securitisation_standardised_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/standardised_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/credit_risk/unsettled_transactions_failed_trades_default_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/operational_risk/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/operational_risk/rwa/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/risk/operational_risk/standardised_approach/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/bank/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/market_data/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/position/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/transaction/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/accounting/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/accounting/accounts/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/accounting/bank_accounts/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/accounting/chart_of_accounts/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/accounting/journal/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/accounting/ledger/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/instruments/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/instruments/base/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/instruments/bonds/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/instruments/deposits/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/instruments/equity/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/instruments/factory/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/instruments/loans/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/instruments/other/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/instruments/registry/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/amortization/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/base/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/context/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/coupon/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/deposit_interest/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/interest/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/interest_accrual/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/loan_interest_settlement/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/mark_to_market/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/maturity/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/accounting_service/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/data_service/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/loaders/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/metrics_service/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/reporting_service/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/risk_service/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/rule_engine/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/simulation_builder/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/simulation_service/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/valuation_context/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/valuation_service/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/valuation_strategies/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/services/yield_curve_service/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/stores/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/stores/instrument_store/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/stores/metric_store/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/stores/position_store/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/stores/transaction_log/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/stores/valuation_store/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/visitors/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/visitors/base/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/visitors/inspection/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/core/visitors/valuation/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/data/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
+    </url>
+    <url>
+         <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/data/create_diversified_bank/</loc>
+         <lastmod>2026-04-14</lastmod>
+    </url>
+    <url>
+         <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/data/create_fvtpl_bond/</loc>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/data/create_htm_treasury/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
     <url>
          <loc>https://bankrisk.org/0.1.0.dev2/reference/brms/data/create_mortgage/</loc>
-         <lastmod>2026-04-13</lastmod>
+         <lastmod>2026-04-14</lastmod>
     </url>
 </urlset>
