@@ -134,7 +134,7 @@ class PlotWidget(QWidget):
         self.styler = BRMSStyler.instance()
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
-        self.canvas = FigureCanvas(Figure(figsize=(5, 3), constrained_layout=True))
+        self.canvas = FigureCanvas(Figure(figsize=(5, 3), constrained_layout=False))
         self.layout.addWidget(self.canvas)
         self.ax = self.canvas.figure.add_subplot()
         self.ax.set_title("Yield Curve", fontsize=9)
