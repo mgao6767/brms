@@ -58,8 +58,7 @@ class MainController(BRMSController):
         self.view.start_action.triggered.connect(self.on_start_action)
         self.view.pause_action.triggered.connect(self.on_pause_action)
         self.view.stop_action.triggered.connect(self.on_stop_action)
-        self.view.speed_up_action.triggered.connect(self.on_speed_up_action)
-        self.view.speed_down_action.triggered.connect(self.on_speed_down_action)
+        self.view.speed_combo.currentTextChanged.connect(self._on_speed_changed)
         self.view.open_action.triggered.connect(self.on_open_action)
         self.view.exit_signal.connect(self.on_exit)
         self.view.tab_widget.currentChanged.connect(self._on_tab_changed)
@@ -210,18 +209,8 @@ class MainController(BRMSController):
         self.view.stop_action.setDisabled(True)
         self.simulation_timer.stop()
 
-    def on_speed_up_action(self) -> None:
-        """Increase the simulation speed by 0.5x."""
-        current_speed = self.simulation_base_interval / self.simulation_timer.interval()
-        current_speed = round(current_speed, 1)
-        new_speed = 0.5 if current_speed == 0.1 else min(5.0, current_speed + 0.5)  # noqa: PLR2004
-        self.simulation_interval = int(self.simulation_base_interval / new_speed)
-        self.simulation_timer.setInterval(self.simulation_interval)
-
-    def on_speed_down_action(self) -> None:
-        """Decrease the simulation speed by 0.5x."""
-        current_speed = self.simulation_base_interval / self.simulation_timer.interval()
-        current_speed = round(current_speed, 1)
-        new_speed = max(0.1, current_speed - 0.5)
-        self.simulation_interval = int(self.simulation_base_interval / new_speed)
+    def _on_speed_changed(self, text: str) -> None:
+        """Handle speed dropdown change (e.g. '2x' → 2.0)."""
+        multiplier = float(text.rstrip("x"))
+        self.simulation_interval = int(self.simulation_base_interval / multiplier)
         self.simulation_timer.setInterval(self.simulation_interval)

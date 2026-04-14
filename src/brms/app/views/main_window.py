@@ -5,6 +5,8 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
+    QLabel,
     QMainWindow,
     QMenuBar,
     QSizePolicy,
@@ -63,8 +65,7 @@ class MainWindow(QMainWindow):
         self.next_action: QAction
         self.start_action: QAction
         self.pause_action: QAction
-        self.speed_up_action: QAction
-        self.speed_down_action: QAction
+        self.speed_combo: QComboBox
         self.stop_action: QAction
         self.fushion_style_action: QAction
         self.mq_style_action: QAction
@@ -128,8 +129,9 @@ class MainWindow(QMainWindow):
         self.stop_action = QAction(qta.icon("mdi6.stop"), "Stop", self)
         self.pause_action.setEnabled(False)
         self.stop_action.setEnabled(False)
-        self.speed_up_action = QAction(qta.icon("mdi6.plus"), "Speed Up", self)
-        self.speed_down_action = QAction(qta.icon("mdi6.minus"), "Speed Down", self)
+        self.speed_combo = QComboBox(self)
+        self.speed_combo.addItems(["1x", "2x", "3x", "4x", "5x"])
+        self.speed_combo.setCurrentText("1x")
         # View
         self.fushion_style_action = QAction("Fushion Theme", self)
         self.mq_style_action = QAction("MQ Theme", self)
@@ -164,8 +166,9 @@ class MainWindow(QMainWindow):
         toolbar.addAction(self.next_action)
         toolbar.addAction(self.start_action)
         toolbar.addAction(self.pause_action)
-        toolbar.addAction(self.speed_up_action)
-        toolbar.addAction(self.speed_down_action)
+        toolbar.addSeparator()
+        toolbar.addWidget(QLabel("  Speed: "))
+        toolbar.addWidget(self.speed_combo)
 
     def create_menubar(self) -> None:
         """Create the menubar for the main window."""
@@ -197,9 +200,6 @@ class MainWindow(QMainWindow):
         simulation_menu.addAction(self.next_action)
         simulation_menu.addAction(self.start_action)
         simulation_menu.addAction(self.pause_action)
-        simulation_menu.addSeparator()
-        simulation_menu.addAction(self.speed_up_action)
-        simulation_menu.addAction(self.speed_down_action)
         # Calculator menu
         calculator_menu.addAction(self.bond_calculator_action)
         calculator_menu.addAction(self.mortgage_calculator_action)
