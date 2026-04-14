@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QLocale
-
 from brms.app.controllers.base import BRMSController
 from brms.core.enums import TransactionType
 from brms.core.events import DateAdvanced, TransactionsRecorded
@@ -39,7 +37,6 @@ class TransactionHistoryController(BRMSController):
         self._inspector_ctrl = inspector_ctrl
         self._pushed_tx_ids: set[str] = set()
         self._tx_count = 0
-        self._locale = QLocale()
         self._filter_active = False
 
         # Populate type filter — sorted alphabetically
@@ -121,7 +118,10 @@ class TransactionHistoryController(BRMSController):
         indexes = self.view.transaction_tree.selectedIndexes()
         if not indexes:
             return
-        item = indexes[0].internalPointer()
+        # Map proxy index to source model index to access TreeItem
+        proxy_index = indexes[0]
+        source_index = self.view.sort_proxy.mapToSource(proxy_index)
+        item = source_index.internalPointer()
         tx_id = item.data(6)  # hidden column stores transaction id
         if not tx_id:
             return
@@ -139,7 +139,7 @@ class TransactionHistoryController(BRMSController):
             1: str(transaction.date),
             2: type_label,
             3: transaction.instrument_id or "",
-            4: self._locale.toCurrencyString(float(transaction.amount)),
+            4: float(transaction.amount),
             5: description,
             6: transaction.id,
         }

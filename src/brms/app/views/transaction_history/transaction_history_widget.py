@@ -1,6 +1,6 @@
 import datetime
 
-from PySide6.QtCore import QDate, Qt, QTimer
+from PySide6.QtCore import QDate, QSortFilterProxyModel, Qt, QTimer
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
@@ -75,7 +75,14 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.transaction_tree.setItemDelegateForColumn(4, CurrencyDelegate(self.transaction_tree))  # value column
         self.transaction_tree.setColumnHidden(6, True)  # journal entry
 
-        # Convenient access
+        # Sort proxy for column-header sorting
+        self.sort_proxy = QSortFilterProxyModel(self)
+        self.sort_proxy.setSourceModel(self.transaction_tree.tree_model)
+        self.transaction_tree.setModel(self.sort_proxy)
+        self.transaction_tree.setSortingEnabled(True)
+        self.transaction_tree.sortByColumn(0, Qt.SortOrder.AscendingOrder)
+
+        # Convenient access — source model for data mutation
         self.transactions_tree_model = self.transaction_tree.tree_model
 
         # Arrange in a splitter with fixed-width left panel
@@ -111,27 +118,27 @@ class BRMSTransactionHistoryWidget(QWidget):
         end_date = self.end_date_filter.date().toPython()
         tx_type = self.type_filter.currentText()
         instrument_query = self.instrument_filter.text().strip().lower()
-        model = self.transactions_tree_model
-        for row in range(model.rowCount()):
-            idx_date = model.index(row, 1, QMODELINDEX)  # date
-            idx_tx_type = model.index(row, 2, QMODELINDEX)  # transaction type
-            idx_instrument = model.index(row, 3, QMODELINDEX)  # instrument id
+        proxy = self.sort_proxy
+        for row in range(proxy.rowCount()):
+            idx_date = proxy.index(row, 1)
+            idx_tx_type = proxy.index(row, 2)
+            idx_instrument = proxy.index(row, 3)
             if not (idx_date.isValid() and idx_tx_type.isValid()):
                 continue
-            date_text = model.data(idx_date, Qt.ItemDataRole.DisplayRole)
-            tx_type_text = model.data(idx_tx_type, Qt.ItemDataRole.DisplayRole)
+            date_text = proxy.data(idx_date, Qt.ItemDataRole.DisplayRole)
+            tx_type_text = proxy.data(idx_tx_type, Qt.ItemDataRole.DisplayRole)
             date = datetime.datetime.strptime(date_text, "%Y-%m-%d").date()
             date_ok = start_date <= date <= end_date
             type_ok = tx_type == "All" or tx_type_text == tx_type
             if instrument_query:
-                inst_text = str(model.data(idx_instrument, Qt.ItemDataRole.DisplayRole) or "").lower()
+                inst_text = str(proxy.data(idx_instrument, Qt.ItemDataRole.DisplayRole) or "").lower()
                 inst_ok = instrument_query in inst_text
             else:
                 inst_ok = True
             self.transaction_tree.setRowHidden(row, QMODELINDEX, not (date_ok and type_ok and inst_ok))
 
     def reset_filters(self) -> None:
-        for row in range(self.transactions_tree_model.rowCount()):
+        for row in range(self.sort_proxy.rowCount()):
             self.transaction_tree.setRowHidden(row, QMODELINDEX, False)
 
     def set_start_date(self, date: QDate | datetime.date) -> None:
