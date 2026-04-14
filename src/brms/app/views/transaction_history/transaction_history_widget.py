@@ -83,7 +83,7 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.sort_proxy.setDynamicSortFilter(False)
         self.transaction_tree.setModel(self.sort_proxy)
         self.transaction_tree.setSortingEnabled(True)
-        self.sort_proxy.sort(0, Qt.SortOrder.AscendingOrder)
+        self.sort_proxy.sort(-1, Qt.SortOrder.AscendingOrder)
 
         # Convenient access — source model for data mutation
         self.transactions_tree_model = self.transaction_tree.tree_model

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import Qt
+
 from brms.app.controllers.base import BRMSController
 from brms.core.enums import TransactionType
 from brms.core.events import DateAdvanced, TransactionsRecorded
@@ -106,6 +108,7 @@ class TransactionHistoryController(BRMSController):
         """Handle reset button — clear filter and hide indicator."""
         self._filter_active = False
         self.view.reset_filters()
+        self.view.sort_proxy.sort(-1, Qt.SortOrder.AscendingOrder)
         self.view.set_filter_indicator(active=False)
 
     def filter_by_instrument(self, instrument_id: str) -> None:
