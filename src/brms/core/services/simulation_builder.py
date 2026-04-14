@@ -64,7 +64,7 @@ class SimulationBuilder:
         coa, sim, bank, accounting_service = self._create_engine(config)
         self._replay(config, sim, bank, accounting_service)
         balances = self._extract_balances(coa)
-        valuations = self._extract_valuations(sim, bank, config.start_date)
+        valuations = self._extract_valuations(sim, bank, accounting_service, config.start_date)
         return SimulationSnapshot(
             name=config.name,
             start_date=config.start_date,
@@ -182,12 +182,15 @@ class SimulationBuilder:
 
     @staticmethod
     def _extract_valuations(
-        sim: SimulationService, bank: Bank, start_date: datetime.date,
+        sim: SimulationService,
+        bank: Bank,
+        accounting_service: AccountingService,
+        start_date: datetime.date,
     ) -> dict[str, dict[str, float]]:
         """Extract per-position valuations at the snapshot date (start_date - 1).
 
-        Returns {position_id: {"fair_value": X, "carrying_value": Y}} for each
-        open position that has a valuation recorded during replay.
+        Returns {position_id: {"fair_value": X, "carrying_value": Y,
+        "unrealized_gain": G, "unrealized_loss": L}} for each open position.
         """
         from brms.core.enums import ValuationType
 
@@ -202,13 +205,21 @@ class SimulationBuilder:
             if cv is not None:
                 entry["carrying_value"] = float(cv)
             # Fall back to most recent value if snapshot_date has no data
-            if not entry:
+            if "fair_value" not in entry:
                 fv = sim.valuation_store.get_previous(pos.id, start_date, ValuationType.FAIR_VALUE)
                 if fv is not None:
                     entry["fair_value"] = float(fv)
+            if "carrying_value" not in entry:
                 cv = sim.valuation_store.get_previous(pos.id, start_date, ValuationType.CARRYING_VALUE)
                 if cv is not None:
                     entry["carrying_value"] = float(cv)
+            # Per-position gross unrealized gain/loss from MTM tracking
+            ug = accounting_service._unrealized_gain.get(pos.id, 0.0)  # noqa: SLF001
+            ul = accounting_service._unrealized_loss.get(pos.id, 0.0)  # noqa: SLF001
+            if ug > 0:
+                entry["unrealized_gain"] = ug
+            if ul > 0:
+                entry["unrealized_loss"] = ul
             if entry:
                 result[pos.id] = entry
         return result

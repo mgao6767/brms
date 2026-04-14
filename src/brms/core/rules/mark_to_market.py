@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
@@ -22,15 +23,21 @@ class MarkToMarketRule:
 
     def applies_to(
         self,
-        _instrument: Instrument,
+        instrument: Instrument,
         position: Position,
         context: RuleContext,
     ) -> bool:
-        """Return True if market data is available and the position is FVTPL or FVOCI."""
+        """Return True if market data is available and the position is FVTPL or FVOCI.
+
+        Skips instruments that have matured — the maturity rule handles settlement.
+        """
         if not context.has_market_data:
             return False
         basis = getattr(position, "measurement_basis", None)
-        return basis in _MTM_BASES
+        if basis not in _MTM_BASES:
+            return False
+        maturity_date = getattr(instrument, "maturity_date", None)
+        return not isinstance(maturity_date, datetime.date) or maturity_date > context.date
 
     def generate(
         self,

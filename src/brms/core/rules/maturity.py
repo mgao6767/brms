@@ -31,22 +31,28 @@ class MaturityRule:
 
     def generate(
         self,
-        _instrument: Instrument,
+        instrument: Instrument,
         position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
-        """Generate a single maturity settlement transaction for the acquisition cost."""
+        """Generate a single maturity settlement transaction for the face value."""
         measurement_basis = getattr(position, "measurement_basis", None)
         measurement_basis_name = measurement_basis.name if measurement_basis is not None else ""
+        # At maturity, the bond pays back face value, not acquisition cost
+        face_value = getattr(instrument, "face_value", None)
+        amount = Decimal(str(face_value)) if face_value is not None else position.acquisition_cost
         return [
             Transaction(
                 id=str(uuid.uuid4()),
                 type=TransactionType.MATURITY_SETTLEMENT,
                 date=context.date,
-                amount=Decimal(str(getattr(position, "acquisition_cost", "0"))),
+                amount=amount,
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
                 description="Instrument matured — settlement",
-                metadata=(("measurement_basis", measurement_basis_name),),
+                metadata=(
+                    ("measurement_basis", measurement_basis_name),
+                    ("acquisition_cost", str(position.acquisition_cost)),
+                ),
             ),
         ]
