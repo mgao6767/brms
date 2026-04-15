@@ -14,6 +14,7 @@ from brms.app.controllers.bank_controller import BankController
 from brms.app.controllers.base import BRMSController
 from brms.app.controllers.dashboard_controller import DashboardController
 from brms.app.controllers.inspector_controller import InspectorController
+from brms.app.controllers.interest_rate_risk_controller import InterestRateRiskController
 from brms.app.controllers.statement_controller import StatementController
 from brms.app.controllers.transaction_history_controller import TransactionHistoryController
 from brms.app.controllers.yield_curve_controller import YieldCurveController
@@ -43,6 +44,7 @@ class MainController(BRMSController):
         self.statement_ctrl: StatementController
         self.bank_ctrl: BankController
         self.yield_curve_ctrl: YieldCurveController
+        self.interest_rate_risk_ctrl: InterestRateRiskController
 
         # Simulation timer
         self.simulation_base_interval = 500
@@ -135,6 +137,12 @@ class MainController(BRMSController):
             event_bus=eb,
             market_data=services.market_data,
         )
+        self.interest_rate_risk_ctrl = InterestRateRiskController(
+            view=view.interest_rate_risk_widget,
+            event_bus=eb,
+            bank=services.bank,
+            valuation_store=services.valuation_store,
+        )
 
         # Subscribe to events
         eb.subscribe(ShowTransactionsRequested, self._on_show_transactions_requested)
@@ -144,6 +152,7 @@ class MainController(BRMSController):
         self.transaction_history_ctrl.load_initial()
         self.dashboard_ctrl.init()
         self.yield_curve_ctrl.init()
+        self.interest_rate_risk_ctrl.init(start_date)
 
         # Advance first day so dashboard metrics and plots are populated
         self.on_advance()
@@ -172,6 +181,8 @@ class MainController(BRMSController):
         """Flush deferred updates when a tab becomes visible."""
         if self.view.tab_widget.widget(index) is self.view.dashboard:
             self.dashboard_ctrl.on_visible()
+        if self.view.tab_widget.widget(index) is self.view.interest_rate_risk_widget:
+            self.interest_rate_risk_ctrl.on_visible()
 
     def _on_statement_dock_visible(self, visible: bool) -> None:  # noqa: FBT001
         """Flush deferred statement render when dock becomes visible."""

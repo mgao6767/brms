@@ -22,6 +22,7 @@ from brms.app.views.bank_book import BRMSCombinedBookWidget
 from brms.app.views.calculators import BRMSBondCalculatorWidget, BRMSMortgageCalculatorWidget
 from brms.app.views.dashboard import BRMSDashboard
 from brms.app.views.inspector import BRMSInspectorWidget
+from brms.app.views.interest_rate_risk import BRMSInterestRateRiskWidget
 from brms.app.views.rwa_credit_risk import BRMSRWACreditRiskWidget
 from brms.app.views.statement_viewer import BRMSStatementViewer
 from brms.app.views.styler import BRMSStyler
@@ -55,6 +56,7 @@ class MainWindow(QMainWindow):
         self.mortgage_calculator_widget: BRMSMortgageCalculatorWidget | None = None
         self.transaction_history_widget: BRMSTransactionHistoryWidget
         self.rwa_credit_risk_widget: BRMSRWACreditRiskWidget
+        self.interest_rate_risk_widget: BRMSInterestRateRiskWidget
         self.init_ui()
         self.connect_signals()
         # Actions
@@ -231,10 +233,12 @@ class MainWindow(QMainWindow):
         self.combined_book_widget = BRMSCombinedBookWidget()
         self.transaction_history_widget = BRMSTransactionHistoryWidget()
         self.rwa_credit_risk_widget = BRMSRWACreditRiskWidget()
+        self.interest_rate_risk_widget = BRMSInterestRateRiskWidget()
         self.tab_widget.addTab(self.dashboard, "Dashboard")
         self.tab_widget.addTab(self.combined_book_widget, "Bank Book")
         self.tab_widget.addTab(self.transaction_history_widget, "Transaction History")
         self.tab_widget.addTab(self.rwa_credit_risk_widget, "RWA Credit Risk")
+        self.tab_widget.addTab(self.interest_rate_risk_widget, "Interest Rate Risk")
         # Economic indicators at the bottom
         self.econ_indicator_tabs = QTabWidget(self)
         self.econ_indicator_tabs.addTab(self.yield_curve_widget, "Yield Curve")
