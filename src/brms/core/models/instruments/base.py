@@ -10,11 +10,12 @@ from typing import TYPE_CHECKING
 from brms.core.enums import InstrumentType, MeasurementBasis
 
 if TYPE_CHECKING:
+    import datetime
     from collections.abc import Iterator
 
-    from brms.core.visitors.base import Visitor
-
     import QuantLib as ql  # noqa: N813
+
+    from brms.core.visitors.base import Visitor
 
 
 class BookType(Enum):
@@ -222,6 +223,7 @@ class Instrument(ABC):
         issuer: Issuer | None = None,
         parent: Instrument | None = None,
         measurement_basis: MeasurementBasis | None = None,
+        repricing_frequency: ql.Period | None = None,
     ) -> None:
         """Initialize a financial instrument."""
         self.id: str = str(uuid.uuid4())
@@ -233,6 +235,7 @@ class Instrument(ABC):
         self.measurement_basis = measurement_basis or MeasurementBasis.NA
         self.instrument_type: InstrumentType = InstrumentType.CASH  # overridden by subclasses
         self.ql_instrument: ql.Instrument | None = None
+        self.repricing_frequency: ql.Period | None = repricing_frequency
 
     @property
     def parent(self) -> Instrument | None:
@@ -273,6 +276,20 @@ class Instrument(ABC):
     def is_composite(self) -> bool:
         """Check if the instrument is composite."""
         return False
+
+    def repricing_date(self, as_of: datetime.date) -> datetime.date | None:
+        """Return the next repricing date for variable-rate instruments.
+
+        Returns None for fixed-rate instruments (repricing_frequency is None).
+        """
+        if self.repricing_frequency is None:
+            return None
+        from brms.core.utils import pydate_to_qldate, qldate_to_pydate
+
+        ql_date = pydate_to_qldate(as_of)
+        ql_period = self.repricing_frequency
+        next_date = ql_date + ql_period
+        return qldate_to_pydate(next_date)
 
     @abstractmethod
     def accept(self, visitor: Visitor) -> None:
