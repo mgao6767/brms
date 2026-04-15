@@ -45,3 +45,9 @@ def test_assign_25_years() -> None:
 def test_assign_negative_returns_overnight() -> None:
     """Negative remaining years (past maturity) → overnight bucket."""
     assert assign_bucket(-0.5) == 0
+
+
+def test_assign_exact_boundary_between_buckets() -> None:
+    """Exact boundary values are assigned consistently (no gaps)."""
+    # Overnight upper bound → should go to overnight, not fall through
+    assert assign_bucket(1 / 365.25) == 0

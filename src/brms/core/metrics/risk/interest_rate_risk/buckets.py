@@ -11,8 +11,8 @@ class TimeBucket(NamedTuple):
     """A single IRRBB repricing time bucket."""
 
     label: str
-    lower: float  # years, inclusive
-    upper: float  # years, exclusive (inf for last bucket)
+    lower: float  # years
+    upper: float  # years (inf for last bucket)
     midpoint: float  # years
 
 
@@ -44,15 +44,15 @@ def assign_bucket(remaining_years: float) -> int:
 
     Buckets use half-open intervals (lower, upper] so that boundary values such as
     exactly 8.0 years fall into the 7Y-8Y bucket rather than 8Y-9Y.  The overnight
-    bucket (index 0) is a special case: it captures zero and any value below its upper
-    bound (i.e. [0, upper)).
+    bucket (index 0) is a special case: it captures zero and any value up to and
+    including its upper bound (i.e. [0, upper]).
 
     Negative or zero values are assigned to the overnight bucket (index 0).
     """
     if remaining_years <= 0:
         return 0
-    # Overnight bucket: [0, upper)
-    if remaining_years < IRRBB_BUCKETS[0].upper:
+    # Overnight bucket: [0, upper]
+    if remaining_years <= IRRBB_BUCKETS[0].upper:
         return 0
     # Remaining buckets: (lower, upper]
     for i in range(1, len(IRRBB_BUCKETS)):
