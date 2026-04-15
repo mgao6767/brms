@@ -134,10 +134,12 @@ class PlotWidget(QWidget):
         self.styler = BRMSStyler.instance()
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
-        self.canvas = FigureCanvas(Figure(figsize=(5, 3), constrained_layout=False))
+        self.canvas = FigureCanvas(
+            Figure(figsize=(5, 3), facecolor=self.styler.plot_background_color, constrained_layout=False),
+        )
         self.layout.addWidget(self.canvas)
         self.ax = self.canvas.figure.add_subplot()
-        self.ax.set_title("Yield Curve", fontsize=9)
+        self.ax.set_title("Yield Curve", fontsize=10, fontweight="bold", loc="left")
         # Checkboxes
         checkbox_layout = QHBoxLayout()
         checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -163,7 +165,7 @@ class PlotWidget(QWidget):
 
     def clear_plot(self):
         self.ax.clear()
-        self.ax.set_title("Yield Curve", fontsize=9)
+        self.ax.set_title("Yield Curve", fontsize=10, fontweight="bold", loc="left")
         self.canvas.draw()
 
     def update_plot(self, maturities, yields, maturities_z, zero_rates, title, rescale_y, show_grid):
@@ -176,9 +178,9 @@ class PlotWidget(QWidget):
             self.ax.set_ybound(0, np.max(yields) * 1.1)
         else:
             self.ax.set_ybound(0.0, 10.0)
-        self.ax.set_title(title, fontsize=11)
+        self.ax.set_title(title, fontsize=10, fontweight="bold", loc="left")
         if show_grid:
-            self.ax.grid(True, linestyle="--", alpha=0.7)
+            self.ax.grid(visible=True, linestyle="--", alpha=0.4)
         self.ax.tick_params(axis="both", which="major", labelsize=10)
         self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.2f}"))
         self.ax.legend(fontsize=9, loc="lower right")
