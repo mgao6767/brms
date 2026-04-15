@@ -36,7 +36,7 @@ _THOUSANDS = 1_000
 class MaturityGapWidget(QWidget):
     """Maturity gap table and bar chart for IRRBB."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:  # noqa: PLR0915
         """Initialize the maturity gap widget."""
         super().__init__(parent)
         self.styler = BRMSStyler.instance()
@@ -102,6 +102,9 @@ class MaturityGapWidget(QWidget):
         layout.addWidget(self._toolbar)
         layout.addWidget(self._splitter)
 
+        self._last_result: MaturityGapResult | None = None
+        self._chart_dirty = False
+
         # Default to table-only view
         self._set_table_view()
 
@@ -118,6 +121,7 @@ class MaturityGapWidget(QWidget):
         self._table_action.setChecked(False)
         self._all_view_action.setChecked(False)
         self._splitter.setSizes([0, 1])
+        self._flush_chart()
 
     def _set_both_view(self) -> None:
         """Show table and plot side by side."""
@@ -126,6 +130,13 @@ class MaturityGapWidget(QWidget):
         self._table_action.setChecked(False)
         total_size = 1000
         self._splitter.setSizes([total_size // 2, total_size - total_size // 2])
+        self._flush_chart()
+
+    def _flush_chart(self) -> None:
+        """Redraw chart if data changed while it was hidden."""
+        if self._chart_dirty and self._last_result is not None:
+            self._update_chart(self._last_result)
+            self._chart_dirty = False
 
     def _export_plot(self) -> None:
         """Save the bar chart to a file."""
@@ -143,10 +154,19 @@ class MaturityGapWidget(QWidget):
         self._canvas.figure.patch.set_facecolor(bg)
         self._canvas.draw_idle()
 
+    def _chart_visible(self) -> bool:
+        """Return True if the chart panel has non-zero size."""
+        sizes = self._splitter.sizes()
+        return len(sizes) > 1 and sizes[1] > 0
+
     def update(self, result: MaturityGapResult) -> None:
         """Refresh table and chart from a MaturityGapResult."""
+        self._last_result = result
         self._update_table(result)
-        self._update_chart(result)
+        if self._chart_visible():
+            self._update_chart(result)
+        else:
+            self._chart_dirty = True
 
     def _update_table(self, result: MaturityGapResult) -> None:
         """Populate the table model from result."""
