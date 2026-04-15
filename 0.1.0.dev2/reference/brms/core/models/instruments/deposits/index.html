@@ -1245,6 +1245,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#brms.core.models.instruments.deposits.Cash.repricing_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;repricing_date
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1327,6 +1336,15 @@
   <a href="#brms.core.models.instruments.deposits.Deposit.is_composite" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;is_composite
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.models.instruments.deposits.Deposit.repricing_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;repricing_date
     </span>
   </a>
   
@@ -2015,6 +2033,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#brms.core.models.instruments.deposits.Cash.repricing_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;repricing_date
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2097,6 +2124,15 @@
   <a href="#brms.core.models.instruments.deposits.Deposit.is_composite" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;is_composite
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.models.instruments.deposits.Deposit.repricing_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;repricing_date
     </span>
   </a>
   
@@ -2220,6 +2256,13 @@
             –
             <div class="doc-md-description">
               <p>Check if the instrument is composite.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.core.models.instruments.deposits.Cash.repricing_date" href="#brms.core.models.instruments.deposits.Cash.repricing_date">repricing_date</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Return the next repricing date for variable-rate instruments.</p>
             </div>
           </li>
     </ul>
@@ -2410,6 +2453,26 @@
 
 </div>
 
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.core.models.instruments.deposits.Cash.repricing_date" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">repricing_date</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">repricing_date</span><span class="p">(</span><span class="n">as_of</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the next repricing date for variable-rate instruments.</p>
+<p>Returns None for fixed-rate instruments (repricing_frequency is None).</p>
+
+    </div>
+
+</div>
+
 
 
   </div>
@@ -2491,6 +2554,13 @@ of their default.  Use 0.0 for a non-interest-bearing deposit.</p>
             –
             <div class="doc-md-description">
               <p>Check if the instrument is composite.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.core.models.instruments.deposits.Deposit.repricing_date" href="#brms.core.models.instruments.deposits.Deposit.repricing_date">repricing_date</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Return the next repricing date for variable-rate instruments.</p>
             </div>
           </li>
     </ul>
@@ -2676,6 +2746,26 @@ of their default.  Use 0.0 for a non-interest-bearing deposit.</p>
     <div class="doc doc-contents ">
 
         <p>Check if the instrument is composite.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.core.models.instruments.deposits.Deposit.repricing_date" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">repricing_date</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">repricing_date</span><span class="p">(</span><span class="n">as_of</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the next repricing date for variable-rate instruments.</p>
+<p>Returns None for fixed-rate instruments (repricing_frequency is None).</p>
 
     </div>
 

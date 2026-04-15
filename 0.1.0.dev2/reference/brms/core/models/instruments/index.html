@@ -1854,6 +1854,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#brms.core.models.instruments.CompositeInstrument.repricing_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;repricing_date
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1951,6 +1960,15 @@
   <a href="#brms.core.models.instruments.Instrument.is_composite" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;is_composite
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.models.instruments.Instrument.repricing_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;repricing_date
     </span>
   </a>
   
@@ -2538,6 +2556,13 @@ It can be used to represent a collection of assets, liabilities, or equities for
               <p>Remove an instrument from the composite.</p>
             </div>
           </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.core.models.instruments.CompositeInstrument.repricing_date" href="#brms.core.models.instruments.CompositeInstrument.repricing_date">repricing_date</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Return the next repricing date for variable-rate instruments.</p>
+            </div>
+          </li>
     </ul>
 
 
@@ -2764,6 +2789,26 @@ It can be used to represent a collection of assets, liabilities, or equities for
 
 </div>
 
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.core.models.instruments.CompositeInstrument.repricing_date" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">repricing_date</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">repricing_date</span><span class="p">(</span><span class="n">as_of</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the next repricing date for variable-rate instruments.</p>
+<p>Returns None for fixed-rate instruments (repricing_frequency is None).</p>
+
+    </div>
+
+</div>
+
 
 
   </div>
@@ -2893,6 +2938,7 @@ It can be used to represent a collection of assets, liabilities, or equities for
     <span class="n">issuer</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Issuer" href="base/#brms.core.models.instruments.base.Issuer">Issuer</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">parent</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="base/#brms.core.models.instruments.base.Instrument">Instrument</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">measurement_basis</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.enums.MeasurementBasis" href="../../enums/#brms.core.enums.MeasurementBasis">MeasurementBasis</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">repricing_frequency</span><span class="p">:</span> <span class="n"><span title="QuantLib.Period">Period</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
 
@@ -2928,6 +2974,13 @@ instrument.  The default is an empty set (no rules apply).</p>
             –
             <div class="doc-md-description">
               <p>Check if the instrument is composite.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.core.models.instruments.Instrument.repricing_date" href="#brms.core.models.instruments.Instrument.repricing_date">repricing_date</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Return the next repricing date for variable-rate instruments.</p>
             </div>
           </li>
     </ul>
@@ -3117,6 +3170,26 @@ instrument.  The default is an empty set (no rules apply).</p>
     <div class="doc doc-contents ">
 
         <p>Check if the instrument is composite.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.core.models.instruments.Instrument.repricing_date" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">repricing_date</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">repricing_date</span><span class="p">(</span><span class="n">as_of</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the next repricing date for variable-rate instruments.</p>
+<p>Returns None for fixed-rate instruments (repricing_frequency is None).</p>
 
     </div>
 
