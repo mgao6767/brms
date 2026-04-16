@@ -1443,6 +1443,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#brms.app.views.styler.BRMSStyler.apply_style" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;apply_style
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brms.app.views.styler.BRMSStyler.get_stylesheet" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_stylesheet
@@ -1455,6 +1464,42 @@
   <a href="#brms.app.views.styler.BRMSStyler.instance" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;instance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.styler.BRMSStyler.set_tick_colors" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;set_tick_colors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.styler.BRMSStyler.style_axes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;style_axes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.styler.BRMSStyler.style_figure" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;style_figure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.styler.BRMSStyler.style_legend" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;style_legend
     </span>
   </a>
   
@@ -1537,6 +1582,8 @@
       
         
           
+        
+      
         
       
         
@@ -1850,6 +1897,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#brms.app.views.styler.BRMSStyler.apply_style" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;apply_style
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brms.app.views.styler.BRMSStyler.get_stylesheet" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_stylesheet
@@ -1862,6 +1918,42 @@
   <a href="#brms.app.views.styler.BRMSStyler.instance" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;instance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.styler.BRMSStyler.set_tick_colors" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;set_tick_colors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.styler.BRMSStyler.style_axes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;style_axes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.styler.BRMSStyler.style_figure" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;style_figure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.styler.BRMSStyler.style_legend" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;style_legend
     </span>
   </a>
   
@@ -1903,6 +1995,8 @@
 
     <div class="doc doc-contents first">
 
+        <p>Application-wide dark theme using BRMS design tokens.</p>
+
 
 
 
@@ -1915,7 +2009,7 @@
           <b><code><a class="autorefs autorefs-internal" title="brms.app.views.styler.BRMSStyler" href="#brms.app.views.styler.BRMSStyler">BRMSStyler</a></code></b>
           –
           <div class="doc-md-description">
-            <p>Singleton class to manage application-wide styles dynamically.</p>
+            <p>Singleton that manages the application-wide dark theme.</p>
           </div>
         </li>
     </ul>
@@ -1952,7 +2046,7 @@
               Bases: <code><span title="PySide6.QtCore.QObject">QObject</span></code></p>
 
 
-        <p>Singleton class to manage application-wide styles dynamically.</p>
+        <p>Singleton that manages the application-wide dark theme.</p>
 
 
 
@@ -1965,10 +2059,17 @@
 <p><span class="doc-section-title">Methods:</span></p>
     <ul>
           <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.styler.BRMSStyler.apply_style" href="#brms.app.views.styler.BRMSStyler.apply_style">apply_style</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Apply the dark theme to the application.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
             <b><code><a class="autorefs autorefs-internal" title="brms.app.views.styler.BRMSStyler.get_stylesheet" href="#brms.app.views.styler.BRMSStyler.get_stylesheet">get_stylesheet</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Return the global stylesheet when custom style is active.</p>
+              <p>Return the global dark-theme stylesheet.</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
@@ -1976,6 +2077,34 @@
             –
             <div class="doc-md-description">
               <p>Retrieve the singleton instance.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.styler.BRMSStyler.set_tick_colors" href="#brms.app.views.styler.BRMSStyler.set_tick_colors">set_tick_colors</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Toggle green/red value-change coloring across statements, bank book, and dashboard.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.styler.BRMSStyler.style_axes" href="#brms.app.views.styler.BRMSStyler.style_axes">style_axes</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Apply dark theme to a matplotlib Axes (call at init and on style_changed).</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.styler.BRMSStyler.style_figure" href="#brms.app.views.styler.BRMSStyler.style_figure">style_figure</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Apply dark theme to a matplotlib Figure.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.styler.BRMSStyler.style_legend" href="#brms.app.views.styler.BRMSStyler.style_legend">style_legend</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Create a dark-themed legend on the given axes. Returns the Legend object.</p>
             </div>
           </li>
     </ul>
@@ -1998,17 +2127,36 @@
 <div class="doc doc-object doc-function">
 
 
+<h3 id="brms.app.views.styler.BRMSStyler.apply_style" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">apply_style</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">apply_style</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Apply the dark theme to the application.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="brms.app.views.styler.BRMSStyler.get_stylesheet" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">get_stylesheet</span>
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">get_stylesheet</span><span class="p">()</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">get_stylesheet</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">str</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Return the global stylesheet when custom style is active.</p>
+        <p>Return the global dark-theme stylesheet.</p>
 
     </div>
 
@@ -2026,12 +2174,90 @@
   </span>
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">instance</span><span class="p">()</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">instance</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.app.views.styler.BRMSStyler" href="#brms.app.views.styler.BRMSStyler">BRMSStyler</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Retrieve the singleton instance.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.views.styler.BRMSStyler.set_tick_colors" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">set_tick_colors</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">set_tick_colors</span><span class="p">(</span><span class="n">enabled</span><span class="p">:</span> <span class="n">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Toggle green/red value-change coloring across statements, bank book, and dashboard.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.views.styler.BRMSStyler.style_axes" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">style_axes</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">style_axes</span><span class="p">(</span>
+    <span class="n">ax</span><span class="p">:</span> <span class="n"><span title="matplotlib.axes.Axes">Axes</span></span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">show_grid</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Apply dark theme to a matplotlib Axes (call at init and on style_changed).</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.views.styler.BRMSStyler.style_figure" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">style_figure</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">style_figure</span><span class="p">(</span><span class="n">fig</span><span class="p">:</span> <span class="n"><span title="matplotlib.figure.Figure">Figure</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Apply dark theme to a matplotlib Figure.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.views.styler.BRMSStyler.style_legend" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">style_legend</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">style_legend</span><span class="p">(</span><span class="n">ax</span><span class="p">:</span> <span class="n"><span title="matplotlib.axes.Axes">Axes</span></span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">object</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Create a dark-themed legend on the given axes. Returns the Legend object.</p>
 
     </div>
 

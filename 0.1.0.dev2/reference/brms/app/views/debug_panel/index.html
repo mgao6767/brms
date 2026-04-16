@@ -1140,6 +1140,18 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> debug_panel
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -1150,6 +1162,58 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#brms.app.views.debug_panel.DebugPanel" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DebugPanel
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" DebugPanel">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.debug_panel.DebugPanel.refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;refresh
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.debug_panel.DebugPanel.showEvent" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;showEvent
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1479,6 +1543,8 @@
       
         
       
+        
+      
     
     
       
@@ -1769,6 +1835,47 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#brms.app.views.debug_panel.DebugPanel" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DebugPanel
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" DebugPanel">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.debug_panel.DebugPanel.refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;refresh
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.debug_panel.DebugPanel.showEvent" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;showEvent
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1798,10 +1905,24 @@
 
     <div class="doc doc-contents first">
 
+        <p>Debug panel — visible only when BRMS_DEBUG=true.</p>
 
 
 
 
+
+
+
+<p><span class="doc-section-title">Classes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><a class="autorefs autorefs-internal" title="brms.app.views.debug_panel.DebugPanel" href="#brms.app.views.debug_panel.DebugPanel">DebugPanel</a></code></b>
+          –
+          <div class="doc-md-description">
+            <p>Floating panel with dev shortcuts, including a simulation-zip picker.</p>
+          </div>
+        </li>
+    </ul>
 
 
 
@@ -1817,6 +1938,112 @@
 
 
 
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="brms.app.views.debug_panel.DebugPanel" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">DebugPanel</span>
+
+
+</h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">DebugPanel</span><span class="p">(</span><span class="n">parent</span><span class="p">:</span> <span class="n"><span title="PySide6.QtWidgets.QWidget">QWidget</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="PySide6.QtWidgets.QWidget">QWidget</span></code></p>
+
+
+        <p>Floating panel with dev shortcuts, including a simulation-zip picker.</p>
+
+
+
+
+
+
+
+
+
+<p><span class="doc-section-title">Methods:</span></p>
+    <ul>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.debug_panel.DebugPanel.refresh" href="#brms.app.views.debug_panel.DebugPanel.refresh">refresh</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Rescan the data folder and repopulate the simulation list.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.debug_panel.DebugPanel.showEvent" href="#brms.app.views.debug_panel.DebugPanel.showEvent">showEvent</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Refresh the list every time the panel is shown.</p>
+            </div>
+          </li>
+    </ul>
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.views.debug_panel.DebugPanel.refresh" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">refresh</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">refresh</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Rescan the data folder and repopulate the simulation list.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.views.debug_panel.DebugPanel.showEvent" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">showEvent</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">showEvent</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n"><span title="PySide6.QtGui.QShowEvent">QShowEvent</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Refresh the list every time the panel is shown.</p>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 
