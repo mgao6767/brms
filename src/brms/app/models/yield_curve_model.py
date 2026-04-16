@@ -49,6 +49,9 @@ class YieldCurve(QAbstractTableModel):
             self._maturities = []
         self.endResetModel()
 
+    def maturity_labels(self) -> list[str]:
+        return list(self._maturities)
+
     def rowCount(self, parent=QModelIndex()):
         return len(self._reference_dates)
 
@@ -66,7 +69,7 @@ class YieldCurve(QAbstractTableModel):
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
-                return self._maturities[section]
+                return self._maturities[section].replace(" Mo", " M").replace(" Yr", " Y")
             if orientation == Qt.Vertical:
                 return self._reference_dates[section].strftime("%Y-%m-%d")
         return None

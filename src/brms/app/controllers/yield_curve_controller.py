@@ -91,8 +91,8 @@ class YieldCurveController(BRMSController):
         date_str = model.headerData(row, Qt.Vertical)
         reference_date = datetime.datetime.strptime(date_str, "%Y-%m-%d")
 
-        # Retrieve the maturities from the horizontal header
-        maturity_labels = np.array([model.headerData(col, Qt.Horizontal) for col in range(model.columnCount())])
+        # Retrieve the raw maturity labels (headerData is display-transformed)
+        maturity_labels = np.array(model.maturity_labels())
 
         # Retrieve the yields for the selected row
         yields = np.array([model.index(row, col).data() for col in range(model.columnCount())])
