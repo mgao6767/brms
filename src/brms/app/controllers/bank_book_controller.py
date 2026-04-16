@@ -131,7 +131,11 @@ class BankBookController(BRMSController):
             return
         instrument_id = self.model.get_instrument_id(indexes[0])
         if instrument_id and (instrument := self.bank_book.get_instrument_by_id(instrument_id)):
-            self.inspector_ctrl.show_instrument_details(instrument)
+            positions = [
+                p for p in self._position_store.by_instrument(instrument_id)
+                if p.book_type == self._book_type
+            ]
+            self.inspector_ctrl.show_instrument_details(instrument, positions)
 
     def _on_context_menu(self, pos: QPoint) -> None:
         """Show context menu for the bank book tree."""

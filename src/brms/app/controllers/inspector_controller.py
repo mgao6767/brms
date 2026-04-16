@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from brms.core.models.accounting.journal import Journal
     from brms.core.models.bank import Bank
     from brms.core.models.instruments.base import Instrument
+    from brms.core.models.position import Position
     from brms.core.models.transaction import Transaction
 
 
@@ -32,12 +33,44 @@ class InspectorController(BRMSController):
         """Bind core services needed for transaction inspection."""
         self._tx_inspector = TransactionInspectionVisitor(bank, journal)
 
-    def show_instrument_details(self, instrument: Instrument) -> None:
-        """Show the details of the given instrument in the inspector view."""
+    def show_instrument_details(
+        self, instrument: Instrument, positions: list[Position] | None = None,
+    ) -> None:
+        """Show the details of the given instrument in the inspector view.
+
+        When ``positions`` is provided, the view renders nested ``Instrument``
+        and ``Position`` (or ``Positions`` for multiple) sections, mirroring
+        the layout used by transaction details.
+        """
         instrument.accept(self._instrument_inspector)
-        self._last_details = self._instrument_inspector.get_result()
+        instrument_details = self._instrument_inspector.get_result()
+        if positions is None:
+            self._last_details = instrument_details
+        else:
+            result: dict[str, Any] = {"Instrument": instrument_details}
+            if len(positions) == 1:
+                result["Position"] = self._position_details(positions[0])
+            elif len(positions) > 1:
+                result["Positions"] = {
+                    f"Position {i + 1}": self._position_details(p)
+                    for i, p in enumerate(positions)
+                }
+            self._last_details = result
         data = self._format_for_tree(self._last_details)
         self.view.populate_data(data)
+
+    @staticmethod
+    def _position_details(position: Position) -> dict[str, Any]:
+        """Format a Position into the inspector's detail dict layout."""
+        return {
+            "ID": position.id,
+            "Book Type": position.book_type.value,
+            "Measurement Basis": position.measurement_basis.name,
+            "Side": position.side.name,
+            "Acquisition Date": str(position.acquisition_date),
+            "Acquisition Cost": f"{position.acquisition_cost:,.2f}",
+            "Status": position.status.name,
+        }
 
     def show_transaction_details(self, transaction: Transaction) -> None:
         """Show comprehensive transaction details in the inspector view."""
