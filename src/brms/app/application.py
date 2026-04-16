@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QApplication
 
 from brms import DEBUG_MODE
 from brms.app.controllers.main_controller import MainController
+from brms.app.fonts import load_bundled_fonts
 from brms.app.views.main_window import MainWindow
 from brms.core.services import CoreServices
 from brms.resources import icons  # noqa: F401
@@ -28,9 +29,10 @@ class App(QApplication):
 
         self.setWindowIcon(QIcon(":/icons/icon.png"))
 
-        font = self.font()
+        load_bundled_fonts()
+
+        font = QFont("IBM Plex Sans", 9)
         font.setStyleHint(QFont.StyleHint.SansSerif)
-        font.setPointSize(8)
         self.setFont(font)
 
         qta.set_defaults(color="#A8B3C2")

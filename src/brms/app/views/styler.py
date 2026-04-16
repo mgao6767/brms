@@ -117,7 +117,12 @@ class BRMSStyler(QObject):
         QWidget {{
             background-color: {self.background};
             color: {self.text_primary};
+            font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
             font-size: 12px;
+        }}
+
+        QPlainTextEdit, QTextEdit[role="code"], QLabel[role="mono"] {{
+            font-family: "IBM Plex Mono", Menlo, Courier, monospace;
         }}
 
         QLabel {{

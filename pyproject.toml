@@ -47,7 +47,11 @@ build-backend = "hatchling.build"
 packages = ["src/brms"]
 
 [tool.hatch.build]
-include = ["src/brms/data/default/*.csv"]
+include = [
+  "src/brms/data/default/*.csv",
+  "src/brms/resources/fonts/*.ttf",
+  "src/brms/resources/fonts/OFL.txt",
+]
 
 [tool.ruff]
 line-length = 120
