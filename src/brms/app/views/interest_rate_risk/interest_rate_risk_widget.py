@@ -8,7 +8,7 @@ import numpy as np
 import qtawesome as qta
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PySide6.QtCore import QLocale, Qt
+from PySide6.QtCore import QLocale, Qt, QTimer
 from PySide6.QtGui import QAction, QFont, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -51,7 +51,6 @@ class MaturityGapWidget(QWidget):
         self._table_action = QAction(qta.icon("mdi6.table-of-contents"), "Show Table", self)
         self._figure_action = QAction(qta.icon("mdi6.chart-bell-curve-cumulative"), "Show Plot", self)
         self._all_view_action = QAction(qta.icon("mdi.chart-multiple"), "Show Both", self)
-        self._save_action = QAction(qta.icon("mdi6.export"), "Export Plot", self)
         self._pop_out_action = QAction(qta.icon("mdi6.open-in-new"), "Pop Out Plot", self)
 
         self._table_action.setCheckable(True)
@@ -61,13 +60,24 @@ class MaturityGapWidget(QWidget):
         self._toolbar.addAction(self._table_action)
         self._toolbar.addAction(self._figure_action)
         self._toolbar.addAction(self._all_view_action)
-        self._toolbar.addAction(self._save_action)
         self._toolbar.addAction(self._pop_out_action)
 
         self._table_action.triggered.connect(self._set_table_view)
         self._figure_action.triggered.connect(self._set_figure_view)
         self._all_view_action.triggered.connect(self._set_both_view)
+
+        # Chart's own control panel (travels with the plot when popped out)
+        self._chart_toolbar = QToolBar()
+        self._chart_toolbar.setMovable(False)
+        self._chart_toolbar.setFloatable(False)
+        self._chart_toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        _left_pad = QWidget()
+        _left_pad.setFixedWidth(6)
+        self._chart_toolbar.addWidget(_left_pad)
+        self._save_action = QAction(qta.icon("mdi6.export"), "Export", self)
         self._save_action.triggered.connect(self._export_plot)
+        self._chart_toolbar.addAction(self._save_action)
+        self._chart_toolbar.setVisible(False)  # only shown when popped out
 
         # Table model
         self._model = QStandardItemModel()
@@ -87,6 +97,8 @@ class MaturityGapWidget(QWidget):
         self._ax = fig.add_subplot()
         self.styler.style_axes(self._ax, title="Maturity Gap by Time Bucket")
         self.styler.style_changed.connect(self._update_style)
+        # Flush any pending chart update once the canvas is actually sized
+        self._canvas.mpl_connect("resize_event", self._on_canvas_resize)
 
         # Splitter
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -94,12 +106,15 @@ class MaturityGapWidget(QWidget):
         self._chart_widget = QWidget()
         chart_layout = QVBoxLayout(self._chart_widget)
         chart_layout.setContentsMargins(0, 0, 0, 0)
+        chart_layout.setSpacing(0)
+        chart_layout.addWidget(self._chart_toolbar)
         chart_layout.addWidget(self._canvas)
         self._splitter.addWidget(self._chart_widget)
 
         # Pop-out
         self._popout = PopOutManager(self._chart_widget, self._splitter, title="Maturity Gap — Plot")
         self._pop_out_action.triggered.connect(self._popout.toggle)
+        self._popout.popped_out.connect(self._chart_toolbar.setVisible)
 
         # Layout
         layout = QVBoxLayout(self)
@@ -127,7 +142,8 @@ class MaturityGapWidget(QWidget):
         self._table_action.setChecked(False)
         self._all_view_action.setChecked(False)
         self._splitter.setSizes([0, 1])
-        self._flush_chart()
+        # Defer so the splitter has time to resize the canvas before draw()
+        QTimer.singleShot(0, self._flush_chart)
 
     def _set_both_view(self) -> None:
         """Show table and plot side by side."""
@@ -136,19 +152,38 @@ class MaturityGapWidget(QWidget):
         self._table_action.setChecked(False)
         total_size = 1000
         self._splitter.setSizes([total_size // 2, total_size - total_size // 2])
-        self._flush_chart()
+        QTimer.singleShot(0, self._flush_chart)
 
     def _flush_chart(self) -> None:
-        """Redraw chart if data changed while it was hidden."""
+        """Redraw chart if data is pending and canvas is actually sized."""
+        if not (self._chart_dirty and self._last_result is not None):
+            return
+        if self._canvas.width() <= 0 or self._canvas.height() <= 0:
+            # Canvas not yet laid out — drawing now triggers LinAlgError.
+            # Stay dirty; _on_canvas_resize will retry once Qt sizes us.
+            return
+        self._update_chart(self._last_result)
+        self._chart_dirty = False
+
+    def _on_canvas_resize(self, _event: object) -> None:
+        """Retry pending flush once matplotlib reports a non-zero canvas size."""
         if self._chart_dirty and self._last_result is not None:
-            self._update_chart(self._last_result)
-            self._chart_dirty = False
+            QTimer.singleShot(0, self._flush_chart)
+
+    def showEvent(self, event: object) -> None:  # noqa: N802
+        """Flush any dirty chart data once the widget actually becomes visible."""
+        super().showEvent(event)
+        if self._chart_dirty and self._last_result is not None:
+            QTimer.singleShot(0, self._flush_chart)
 
     def _export_plot(self) -> None:
         """Save the bar chart to a file."""
+        plot_title = self._ax.get_title() or "Maturity Gap by Time Bucket"
+        default_name = f"BRMS - {plot_title}.png"
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             caption="Save Plot",
+            dir=default_name,
             filter="PNG Files (*.png);;All Files (*)",
         )
         if file_path:
@@ -161,9 +196,8 @@ class MaturityGapWidget(QWidget):
         self._canvas.draw_idle()
 
     def _chart_visible(self) -> bool:
-        """Return True if the chart panel has non-zero size."""
-        sizes = self._splitter.sizes()
-        return len(sizes) > 1 and sizes[1] > 0
+        """Return True if the chart panel is currently visible (embedded or popped out)."""
+        return self._chart_widget.isVisible() and self._chart_widget.width() > 0
 
     def update(self, result: MaturityGapResult) -> None:
         """Refresh table and chart from a MaturityGapResult."""

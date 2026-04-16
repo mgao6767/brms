@@ -8,8 +8,8 @@ from PySide6.QtGui import QAction, QCloseEvent, QShowEvent
 from PySide6.QtWidgets import (
     QCheckBox,
     QFileDialog,
-    QHBoxLayout,
     QHeaderView,
+    QSizePolicy,
     QSplitter,
     QStyledItemDelegate,
     QTableView,
@@ -53,7 +53,6 @@ class BRMSYieldCurveWidget(QWidget):
         self.toolbar.setFloatable(False)
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
-        self.save_action = QAction(qta.icon("mdi6.export"), "Export Plot", self)
         self.table_action = QAction(qta.icon("mdi6.table-of-contents"), "Show Table", self)
         self.figure_action = QAction(qta.icon("mdi6.chart-bell-curve-cumulative"), "Show Plot", self)
         self.all_view_action = QAction(qta.icon("mdi.chart-multiple"), "Show Both", self)
@@ -66,7 +65,6 @@ class BRMSYieldCurveWidget(QWidget):
         self.toolbar.addAction(self.table_action)
         self.toolbar.addAction(self.figure_action)
         self.toolbar.addAction(self.all_view_action)
-        self.toolbar.addAction(self.save_action)
         self.toolbar.addAction(self.pop_out_action)
 
         self.table_view = QTableView()
@@ -94,10 +92,10 @@ class BRMSYieldCurveWidget(QWidget):
         self.all_view_action.triggered.connect(self.set_default_view)
         self.table_action.triggered.connect(self.set_table_view)
         self.figure_action.triggered.connect(self.set_figure_view)
-        self.save_action.triggered.connect(self.plot_widget.export_plot)
 
         self._popout = PopOutManager(self.plot_widget, self.splitter, title="Yield Curve — Plot")
         self.pop_out_action.triggered.connect(self._popout.toggle)
+        self._popout.popped_out.connect(self.plot_widget.control_toolbar.setVisible)
 
         self.set_default_view()
 
@@ -140,26 +138,40 @@ class PlotWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.styler = BRMSStyler.instance()
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
+        # Control toolbar on top (travels with the plot when popped out)
+        self.control_toolbar = QToolBar(self)
+        self.control_toolbar.setMovable(False)
+        self.control_toolbar.setFloatable(False)
+        self.control_toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.control_toolbar.setContentsMargins(8, 2, 8, 2)
+        _left_pad = QWidget()
+        _left_pad.setFixedWidth(6)
+        self.control_toolbar.addWidget(_left_pad)
+        self.rescale_checkbox = QCheckBox("Rescale Y-Axis")
+        self.rescale_checkbox.setChecked(False)
+        self.control_toolbar.addWidget(self.rescale_checkbox)
+        self.control_toolbar.addSeparator()
+        self.grid_checkbox = QCheckBox("Show Grid Lines")
+        self.grid_checkbox.setChecked(True)
+        self.control_toolbar.addWidget(self.grid_checkbox)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.control_toolbar.addWidget(spacer)
+        self.export_action = QAction(qta.icon("mdi6.export"), "Export", self)
+        self.export_action.triggered.connect(self.export_plot)
+        self.control_toolbar.addAction(self.export_action)
+        self.control_toolbar.setVisible(False)  # only shown when popped out
+        root_layout.addWidget(self.control_toolbar)
+        # Canvas
         self.canvas = FigureCanvas(
             Figure(figsize=(5, 3), facecolor=self.styler.plot_background_color, constrained_layout=False),
         )
-        self.layout.addWidget(self.canvas)
+        root_layout.addWidget(self.canvas)
         self.ax = self.canvas.figure.add_subplot()
         self.styler.style_axes(self.ax, title="Yield Curve")
-        # Checkboxes
-        checkbox_layout = QHBoxLayout()
-        checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        # Add checkbox for controlling y-axis rescaling
-        self.rescale_checkbox = QCheckBox("Rescale Y-Axis", self)
-        self.rescale_checkbox.setChecked(False)  # Default to fixed Y-axis
-        checkbox_layout.addWidget(self.rescale_checkbox)
-        # Add checkbox for controlling grid lines
-        self.grid_checkbox = QCheckBox("Show Grid Lines", self)
-        self.grid_checkbox.setChecked(True)  # Default to showing grid lines
-        checkbox_layout.addWidget(self.grid_checkbox)
-        self.layout.addLayout(checkbox_layout)
         # Signals
         self.styler.style_changed.connect(self.update_plot_style)
 
@@ -190,14 +202,13 @@ class PlotWidget(QWidget):
         self.canvas.draw()
 
     def export_plot(self):
-        options = QFileDialog.Options()
-        plot_title = self.ax.get_title()
+        plot_title = self.ax.get_title() or "Yield Curve"
+        default_name = f"BRMS - {plot_title}.png"
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             caption="Save Plot",
-            dir=f"BRMS - {plot_title}",
+            dir=default_name,
             filter="PNG Files (*.png);;All Files (*)",
-            options=options,
         )
         if file_path:
             self.canvas.figure.savefig(file_path)
