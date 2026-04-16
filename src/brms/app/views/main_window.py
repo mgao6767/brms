@@ -174,8 +174,8 @@ class MainWindow(QMainWindow):
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
         # Add actions to the toolbar
-        toolbar.addAction(self.run_action)
         toolbar.addAction(self.step_action)
+        toolbar.addAction(self.run_action)
         # Fix button widths so Run↔Pause label swap doesn't shift adjacent controls
         for action in (self.run_action, self.step_action):
             if (btn := toolbar.widgetForAction(action)) is not None:
@@ -214,8 +214,8 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.transaction_history_action)
         view_menu.addAction(self.restore_views_action)
         # Simulation menu
-        simulation_menu.addAction(self.run_action)
         simulation_menu.addAction(self.step_action)
+        simulation_menu.addAction(self.run_action)
         simulation_menu.addAction(self.stop_action)
         # Calculator menu
         calculator_menu.addAction(self.bond_calculator_action)
