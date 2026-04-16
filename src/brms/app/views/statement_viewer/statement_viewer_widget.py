@@ -22,6 +22,7 @@ from brms.app.views.statement_viewer.delegates import (
     StatementAccountDelegate,
     StatementCurrencyDelegate,
 )
+from brms.app.views.styler import BRMSStyler
 
 
 class _StatementTab(QWidget):
@@ -100,3 +101,10 @@ class BRMSStatementViewer(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._tabs)
+
+        BRMSStyler.instance().tick_colors_changed.connect(self._refresh_tick_colors)
+
+    def _refresh_tick_colors(self, _enabled: bool) -> None:  # noqa: FBT001
+        """Repaint all three statement trees when the tick-color toggle flips."""
+        for tab in (self.trial_balance_tab, self.income_statement_tab, self.balance_sheet_tab):
+            tab.tree.viewport().update()

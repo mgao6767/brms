@@ -42,14 +42,15 @@ class BookCurrencyDelegate(QStyledItemDelegate):
         if index.data(BoldRole):
             option.font.setWeight(QFont.Weight.Bold)
         else:
-            current = index.data(Qt.ItemDataRole.DisplayRole)
-            old = index.data(OldValueRole)
-            if isinstance(current, int | float) and isinstance(old, int | float):
-                styler = BRMSStyler.instance()
-                if current > old:
-                    option.palette.setColor(QPalette.ColorRole.Text, QColor(styler.support_success))
-                elif current < old:
-                    option.palette.setColor(QPalette.ColorRole.Text, QColor(styler.support_error))
+            styler = BRMSStyler.instance()
+            if styler.show_tick_colors:
+                current = index.data(Qt.ItemDataRole.DisplayRole)
+                old = index.data(OldValueRole)
+                if isinstance(current, int | float) and isinstance(old, int | float):
+                    if current > old:
+                        option.palette.setColor(QPalette.ColorRole.Text, QColor(styler.support_success))
+                    elif current < old:
+                        option.palette.setColor(QPalette.ColorRole.Text, QColor(styler.support_error))
         super().paint(painter, option, index)
 
 

@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QLocale, QModelIndex, Qt
-from PySide6.QtGui import QFont, QPainter
+from PySide6.QtGui import QColor, QFont, QPainter, QPalette
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem
 
-from brms.app.models.statement_models import BoldRole
+from brms.app.models.statement_models import BoldRole, OldValueRole
+from brms.app.views.styler import BRMSStyler
 
 LOCALE = QLocale.system()
 
 
 class StatementCurrencyDelegate(QStyledItemDelegate):
-    """Right-aligned currency formatting with red for negative values."""
+    """Right-aligned currency formatting with red for negative values and green/red for changes."""
 
     def initStyleOption(self, option: QStyleOptionViewItem, index: QModelIndex) -> None:  # noqa: N802
         """Set right-aligned display for currency columns."""
@@ -28,10 +29,19 @@ class StatementCurrencyDelegate(QStyledItemDelegate):
         return str(value) if value is not None else ""
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
-        """Paint with bold for header rows."""
-        bold = index.data(BoldRole)
-        if bold:
+        """Paint with bold for header rows, green/red for value changes."""
+        if index.data(BoldRole):
             option.font.setWeight(QFont.Weight.Bold)
+        else:
+            styler = BRMSStyler.instance()
+            if styler.show_tick_colors:
+                current = index.data(Qt.ItemDataRole.DisplayRole)
+                old = index.data(OldValueRole)
+                if isinstance(current, int | float) and isinstance(old, int | float):
+                    if current > old:
+                        option.palette.setColor(QPalette.ColorRole.Text, QColor(styler.support_success))
+                    elif current < old:
+                        option.palette.setColor(QPalette.ColorRole.Text, QColor(styler.support_error))
         super().paint(painter, option, index)
 
 

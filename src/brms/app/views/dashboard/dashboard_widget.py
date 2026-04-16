@@ -100,8 +100,12 @@ class KPIGroupCard(QFrame):
         outer.addLayout(self._grid, 1)
 
         self._metrics: dict[str, tuple[QLabel, FormatType]] = {}
+        self._values: dict[str, float | None] = {}
+        self._old_values: dict[str, float | None] = {}
         self._row = 0
         self._col = 0
+
+        self.styler.tick_colors_changed.connect(self._refresh_colors)
 
     def add_metric(self, key: str, label: str, format_type: FormatType) -> None:
         """Add a metric to the grid. Returns nothing — use set_value(key, val) to update."""
@@ -117,6 +121,8 @@ class KPIGroupCard(QFrame):
         self._grid.addLayout(cell, self._row, self._col)
 
         self._metrics[key] = (value_lbl, format_type)
+        self._values[key] = None
+        self._old_values[key] = None
         self._grid.setRowStretch(self._row, 1)
         self._col += 1
         if self._col >= 2:  # noqa: PLR2004
@@ -127,7 +133,32 @@ class KPIGroupCard(QFrame):
         """Update a metric value by key."""
         if entry := self._metrics.get(key):
             label, fmt = entry
+            self._old_values[key] = self._values.get(key)
+            self._values[key] = value
             label.setText(_format_value(value, fmt))
+            self._apply_color(key)
+
+    def _apply_color(self, key: str) -> None:
+        """Apply green/red/default color to a metric's value label."""
+        label, _ = self._metrics[key]
+        current = self._values.get(key)
+        old = self._old_values.get(key)
+        color = ""
+        if (
+            self.styler.show_tick_colors
+            and isinstance(current, int | float)
+            and isinstance(old, int | float)
+        ):
+            if current > old:
+                color = f"color: {self.styler.support_success};"
+            elif current < old:
+                color = f"color: {self.styler.support_error};"
+        label.setStyleSheet(f"font-size: 12px; font-weight: 600; {color}")
+
+    def _refresh_colors(self, _enabled: bool) -> None:  # noqa: FBT001
+        """Re-apply colors for all metrics when the change-indicator toggle flips."""
+        for key in self._metrics:
+            self._apply_color(key)
 
 
 # ---------------------------------------------------------------------------

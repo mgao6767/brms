@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 
 from brms.app.models.bank_book_model import BankBookModel
 from brms.app.views.bank_book.delegates import BookCurrencyDelegate, BookNameDelegate
+from brms.app.views.styler import BRMSStyler
 
 
 def _make_tree(model: BankBookModel) -> QTreeView:
@@ -68,3 +69,10 @@ class BRMSCombinedBookWidget(QWidget):
 
         main_layout = QHBoxLayout(self)
         main_layout.addWidget(splitter)
+
+        BRMSStyler.instance().tick_colors_changed.connect(self._refresh_tick_colors)
+
+    def _refresh_tick_colors(self, _enabled: bool) -> None:  # noqa: FBT001
+        """Repaint both trees when the tick-color toggle flips."""
+        self.banking_tree.viewport().update()
+        self.trading_tree.viewport().update()

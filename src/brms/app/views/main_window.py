@@ -69,6 +69,7 @@ class MainWindow(QMainWindow):
         self.pause_action: QAction
         self.speed_combo: QComboBox
         self.stop_action: QAction
+        self.tick_colors_action: QAction
         self.dashboard_action: QAction
         self.bank_book_action: QAction
         self.transaction_history_action: QAction
@@ -138,6 +139,13 @@ class MainWindow(QMainWindow):
         self.speed_combo = QComboBox(self)
         self.speed_combo.addItems(["1x", "2x", "3x", "4x", "5x"])
         self.speed_combo.setCurrentText("1x")
+        # Tick colors toggle
+        self.tick_colors_action = QAction(
+            qta.icon("mdi6.palette"), "Tick Colors", self,
+        )
+        self.tick_colors_action.setCheckable(True)
+        self.tick_colors_action.setChecked(True)
+        self.tick_colors_action.setToolTip("Show green/red colors for value changes")
         # View
         self.dashboard_action = QAction("Show Dashboard", self)
         self.dashboard_action.setShortcut("Ctrl+1")
@@ -171,6 +179,8 @@ class MainWindow(QMainWindow):
         toolbar.addSeparator()
         toolbar.addWidget(QLabel("  Speed: "))
         toolbar.addWidget(self.speed_combo)
+        toolbar.addSeparator()
+        toolbar.addAction(self.tick_colors_action)
 
     def create_menubar(self) -> None:
         """Create the menubar for the main window."""
@@ -267,6 +277,7 @@ class MainWindow(QMainWindow):
         """Connect signals to their respective slots."""
         self.exit_action.triggered.connect(self.on_exit)
         self.restore_views_action.triggered.connect(self.on_restore_views)
+        self.tick_colors_action.toggled.connect(self.styler.set_tick_colors)
         self.about_action.triggered.connect(self.on_about_action)
         self.homepage_action.triggered.connect(self.on_homepage_action)
         self.github_action.triggered.connect(self.on_github_action)

@@ -16,6 +16,7 @@ class BRMSStyler(QObject):
     """Singleton that manages the application-wide dark theme."""
 
     style_changed = Signal()
+    tick_colors_changed = Signal(bool)
     _instance = None
 
     def __init__(self) -> None:
@@ -25,6 +26,7 @@ class BRMSStyler(QObject):
         super().__init__()
         BRMSStyler._instance = self
         self.use_custom_style = True
+        self.show_tick_colors = True
 
         # --- Surfaces ---
         self.background = "#0B0F14"
@@ -74,6 +76,12 @@ class BRMSStyler(QObject):
         if cls._instance is None:
             cls._instance = BRMSStyler()
         return cls._instance
+
+    def set_tick_colors(self, enabled: bool) -> None:  # noqa: FBT001
+        """Toggle green/red value-change coloring across statements, bank book, and dashboard."""
+        if self.show_tick_colors != enabled:
+            self.show_tick_colors = enabled
+            self.tick_colors_changed.emit(enabled)
 
     def style_figure(self, fig: Figure) -> None:
         """Apply dark theme to a matplotlib Figure."""

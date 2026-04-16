@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 # Qt.UserRole signals "this row should be bold" (section headers, totals)
 BoldRole = Qt.ItemDataRole.UserRole
+# Previous numeric value per column — used by delegates for green/red change coloring
+OldValueRole = Qt.ItemDataRole.UserRole + 1
 
 _INVALID = QModelIndex()
 
@@ -20,12 +22,13 @@ _INVALID = QModelIndex()
 class _Row:
     """Internal node for statement tree models."""
 
-    __slots__ = ("bold", "children", "parent", "values")
+    __slots__ = ("bold", "children", "old_values", "parent", "values")
 
     def __init__(
         self, values: list[Any], *, bold: bool = False, parent: _Row | None = None,
     ) -> None:
         self.values = values
+        self.old_values: list[float | None] = [None] * len(values)
         self.bold = bold
         self.parent = parent
         self.children: list[_Row] = []
@@ -76,7 +79,7 @@ class _StatementModel(QAbstractItemModel):
             return _INVALID
         return self.createIndex(par.row_index(), 0, par)
 
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:  # noqa: ANN401
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:  # noqa: ANN401, PLR0911
         """Return data for the given index and role."""
         if not index.isValid():
             return None
@@ -88,6 +91,11 @@ class _StatementModel(QAbstractItemModel):
             return None
         if role == BoldRole:
             return True if node.bold else None
+        if role == OldValueRole:
+            col = index.column()
+            if 0 <= col < len(node.old_values):
+                return node.old_values[col]
+            return None
         return None
 
     def headerData(  # noqa: N802
@@ -118,6 +126,38 @@ class _StatementModel(QAbstractItemModel):
         self._root.children.clear()
         self.endResetModel()
 
+    def _snapshot_values(self) -> dict[str, list[float | None]]:
+        """Capture {account_name: [numeric_values_per_col]} from the current tree."""
+        snapshot: dict[str, list[float | None]] = {}
+
+        def walk(node: _Row) -> None:
+            name = node.values[0] if node.values else None
+            if isinstance(name, str):
+                snapshot[name] = [v if isinstance(v, int | float) else None for v in node.values]
+            for child in node.children:
+                walk(child)
+
+        for top in self._root.children:
+            walk(top)
+        return snapshot
+
+    def _apply_snapshot(self, snapshot: dict[str, list[float | None]]) -> None:
+        """Assign old_values on every row whose first-column name matches a snapshot key."""
+
+        def walk(node: _Row) -> None:
+            name = node.values[0] if node.values else None
+            if isinstance(name, str) and name in snapshot:
+                prev = snapshot[name]
+                # Pad/truncate to current row width
+                node.old_values = [
+                    prev[i] if i < len(prev) else None for i in range(len(node.values))
+                ]
+            for child in node.children:
+                walk(child)
+
+        for top in self._root.children:
+            walk(top)
+
 
 class TrialBalanceModel(_StatementModel):
     """Flat table: Account | Debit | Credit, with a bold totals row."""
@@ -128,6 +168,7 @@ class TrialBalanceModel(_StatementModel):
 
     def update(self, data: list[dict[str, Any]]) -> None:
         """Populate from ReportingService.trial_balance() output."""
+        snapshot = self._snapshot_values()
         self.beginResetModel()
         self._root.children.clear()
 
@@ -143,6 +184,7 @@ class TrialBalanceModel(_StatementModel):
             total_credit += credit
 
         self._root.append(_Row(["Total", total_debit, total_credit], bold=True))
+        self._apply_snapshot(snapshot)
         self.endResetModel()
 
 
@@ -161,6 +203,7 @@ class BalanceSheetModel(_StatementModel):
 
     def update(self, chart: ChartOfAccounts) -> None:
         """Populate from a (closed) ChartOfAccounts, walking the account tree."""
+        snapshot = self._snapshot_values()
         self.beginResetModel()
         self._root.children.clear()
 
@@ -180,6 +223,7 @@ class BalanceSheetModel(_StatementModel):
                     section_total += re_bal
             section.append(_Row([total_label, section_total], bold=True))
 
+        self._apply_snapshot(snapshot)
         self.endResetModel()
 
     def _add_account(self, parent_row: _Row, account: TAccount) -> float:
@@ -221,6 +265,7 @@ class IncomeStatementModel(_StatementModel):
 
     def update(self, chart: ChartOfAccounts) -> None:
         """Populate from an unclosed ChartOfAccounts."""
+        snapshot = self._snapshot_values()
         self.beginResetModel()
         self._root.children.clear()
 
@@ -247,6 +292,7 @@ class IncomeStatementModel(_StatementModel):
         # Net Income
         self._root.append(_Row(["Net Income", total_income - total_expenses], bold=True))
 
+        self._apply_snapshot(snapshot)
         self.endResetModel()
 
     def _add_account(self, parent_row: _Row, account: TAccount, *, negate: bool = False) -> float:
