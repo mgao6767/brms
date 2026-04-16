@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from brms.app.views.styler import BRMSStyler
+from brms.app.views.widgets.popout import PopOutManager
 
 if TYPE_CHECKING:
     from brms.core.metrics.risk.interest_rate_risk.maturity_gap import MaturityGapResult
@@ -51,6 +52,7 @@ class MaturityGapWidget(QWidget):
         self._figure_action = QAction(qta.icon("mdi6.chart-bell-curve-cumulative"), "Show Plot", self)
         self._all_view_action = QAction(qta.icon("mdi.chart-multiple"), "Show Both", self)
         self._save_action = QAction(qta.icon("mdi6.export"), "Export Plot", self)
+        self._pop_out_action = QAction(qta.icon("mdi6.open-in-new"), "Pop Out Plot", self)
 
         self._table_action.setCheckable(True)
         self._figure_action.setCheckable(True)
@@ -60,6 +62,7 @@ class MaturityGapWidget(QWidget):
         self._toolbar.addAction(self._figure_action)
         self._toolbar.addAction(self._all_view_action)
         self._toolbar.addAction(self._save_action)
+        self._toolbar.addAction(self._pop_out_action)
 
         self._table_action.triggered.connect(self._set_table_view)
         self._figure_action.triggered.connect(self._set_figure_view)
@@ -88,11 +91,15 @@ class MaturityGapWidget(QWidget):
         # Splitter
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
         self._splitter.addWidget(self._tree)
-        chart_widget = QWidget()
-        chart_layout = QVBoxLayout(chart_widget)
+        self._chart_widget = QWidget()
+        chart_layout = QVBoxLayout(self._chart_widget)
         chart_layout.setContentsMargins(0, 0, 0, 0)
         chart_layout.addWidget(self._canvas)
-        self._splitter.addWidget(chart_widget)
+        self._splitter.addWidget(self._chart_widget)
+
+        # Pop-out
+        self._popout = PopOutManager(self._chart_widget, self._splitter, title="Maturity Gap — Plot")
+        self._pop_out_action.triggered.connect(self._popout.toggle)
 
         # Layout
         layout = QVBoxLayout(self)

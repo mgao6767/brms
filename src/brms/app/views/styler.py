@@ -292,6 +292,8 @@ class BRMSStyler(QObject):
         QTreeView::item:selected, QTableView::item:selected {{
             background-color: {self.layer_selected};
             color: {self.text_primary};
+        }}
+        QTreeView::item:focus, QTableView::item:focus {{
             border-left: 3px solid {self.interactive};
         }}
         QTreeView::item:hover, QTableView::item:hover {{

@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
 from brms.app.utils import qdate_to_qldate
 from brms.app.views.calculators.bond_calculator import BaseCalculatorWidget, BRMSDoubleSpinBox
 from brms.app.views.styler import BRMSStyler
+from brms.app.views.widgets.popout import PopOutManager
 from brms.core.models.instruments.factory import InstrumentFactory
 from brms.core.utils import qldate_to_pydate
 
@@ -461,6 +462,7 @@ class PaymentsWidget(QWidget):
         self.table_action = QAction(qta.icon("mdi6.table-of-contents"), "Show Table", self)
         self.figure_action = QAction(qta.icon("mdi6.chart-bell-curve-cumulative"), "Show Plot", self)
         self.all_view_action = QAction(qta.icon("mdi.chart-multiple"), "Show Both", self)
+        self.pop_out_action = QAction(qta.icon("mdi6.open-in-new"), "Pop Out Plot", self)
 
         self.table_action.setCheckable(True)
         self.figure_action.setCheckable(True)
@@ -470,6 +472,7 @@ class PaymentsWidget(QWidget):
         self.toolbar.addAction(self.figure_action)
         self.toolbar.addAction(self.all_view_action)
         self.toolbar.addAction(self.save_action)
+        self.toolbar.addAction(self.pop_out_action)
 
         self.table_widget = QTableWidget()
         self.table_widget.setAlternatingRowColors(True)
@@ -506,6 +509,9 @@ class PaymentsWidget(QWidget):
         self.table_action.triggered.connect(self.set_table_view)
         self.figure_action.triggered.connect(self.set_figure_view)
         self.save_action.triggered.connect(self.plot_widget.export_plot)
+
+        self._popout = PopOutManager(self.plot_widget, self.splitter, title="Mortgage Payments — Plot")
+        self.pop_out_action.triggered.connect(self._popout.toggle)
 
         self.set_figure_view()
 

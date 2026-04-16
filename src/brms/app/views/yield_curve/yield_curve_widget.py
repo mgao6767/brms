@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from brms.app.views.styler import BRMSStyler
+from brms.app.views.widgets.popout import PopOutManager
 
 
 class RightAlignHeaderView(QHeaderView):
@@ -56,6 +57,7 @@ class BRMSYieldCurveWidget(QWidget):
         self.table_action = QAction(qta.icon("mdi6.table-of-contents"), "Show Table", self)
         self.figure_action = QAction(qta.icon("mdi6.chart-bell-curve-cumulative"), "Show Plot", self)
         self.all_view_action = QAction(qta.icon("mdi.chart-multiple"), "Show Both", self)
+        self.pop_out_action = QAction(qta.icon("mdi6.open-in-new"), "Pop Out Plot", self)
 
         self.table_action.setCheckable(True)
         self.figure_action.setCheckable(True)
@@ -65,12 +67,15 @@ class BRMSYieldCurveWidget(QWidget):
         self.toolbar.addAction(self.figure_action)
         self.toolbar.addAction(self.all_view_action)
         self.toolbar.addAction(self.save_action)
+        self.toolbar.addAction(self.pop_out_action)
 
         self.table_view = QTableView()
         self.table_view.setHorizontalHeader(RightAlignHeaderView(Qt.Horizontal))
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table_view.setSelectionBehavior(QTableView.SelectRows)
         self.table_view.setItemDelegate(YieldItemDelegate())
+        self.table_view.verticalHeader().setDefaultSectionSize(18)
+        self.table_view.verticalHeader().setMinimumSectionSize(16)
 
         self.plot_widget = PlotWidget(self)
 
@@ -90,6 +95,9 @@ class BRMSYieldCurveWidget(QWidget):
         self.table_action.triggered.connect(self.set_table_view)
         self.figure_action.triggered.connect(self.set_figure_view)
         self.save_action.triggered.connect(self.plot_widget.export_plot)
+
+        self._popout = PopOutManager(self.plot_widget, self.splitter, title="Yield Curve — Plot")
+        self.pop_out_action.triggered.connect(self._popout.toggle)
 
         self.set_default_view()
 
