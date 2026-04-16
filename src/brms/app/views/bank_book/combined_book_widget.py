@@ -1,6 +1,8 @@
 """Combined bank book widget with Banking Book and Trading Book side by side."""
 
+import qtawesome as qta
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
@@ -33,7 +35,11 @@ def _make_tree(model: BankBookModel) -> QTreeView:
 
 
 class BRMSCombinedBookWidget(QWidget):
-    """Single view with Banking Book (left) and Trading Book (right) trees."""
+    """Single view with Banking Book (left) and Trading Book (right) trees.
+
+    Exposes ``tab_actions`` so the main window can surface them in its toolbar
+    while this tab is active.
+    """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the combined book widget."""
@@ -70,9 +76,47 @@ class BRMSCombinedBookWidget(QWidget):
         main_layout = QHBoxLayout(self)
         main_layout.addWidget(splitter)
 
+        # Tab-scoped action surfaced in the main toolbar while this tab is active
+        self.show_closed_action = QAction(
+            qta.icon("mdi6.archive-outline"), "Show Closed Positions", self,
+        )
+        self.show_closed_action.setCheckable(True)
+        self.show_closed_action.setChecked(False)
+        self.show_closed_action.setToolTip(
+            "Show positions that have matured or been closed (hidden by default)",
+        )
+        self.tab_actions: list[QAction] = [self.show_closed_action]
+
+        self.show_closed_action.toggled.connect(self._on_show_closed_toggled)
+        self.banking_model.dataChanged.connect(self._on_banking_data_changed)
+        self.trading_model.dataChanged.connect(self._on_trading_data_changed)
+
         BRMSStyler.instance().tick_colors_changed.connect(self._refresh_tick_colors)
 
     def _refresh_tick_colors(self, _enabled: bool) -> None:  # noqa: FBT001
         """Repaint both trees when the tick-color toggle flips."""
         self.banking_tree.viewport().update()
         self.trading_tree.viewport().update()
+
+    def _on_show_closed_toggled(self, _checked: bool) -> None:  # noqa: FBT001
+        """Re-apply row-hidden state to both trees when the toggle changes."""
+        self.apply_closed_visibility()
+
+    def _on_banking_data_changed(self, *_args: object) -> None:
+        self._apply_for(self.banking_tree, self.banking_model)
+
+    def _on_trading_data_changed(self, *_args: object) -> None:
+        self._apply_for(self.trading_tree, self.trading_model)
+
+    def apply_closed_visibility(self) -> None:
+        """Apply the current 'Show Closed Positions' toggle state to both trees."""
+        self._apply_for(self.banking_tree, self.banking_model)
+        self._apply_for(self.trading_tree, self.trading_model)
+
+    def _apply_for(self, tree: QTreeView, model: BankBookModel) -> None:
+        show = self.show_closed_action.isChecked()
+        for instrument_id in model.closed_instrument_ids():
+            idx = model.index_for_instrument_id(instrument_id)
+            if not idx.isValid():
+                continue
+            tree.setRowHidden(idx.row(), idx.parent(), not show)

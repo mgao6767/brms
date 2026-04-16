@@ -185,6 +185,12 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(self.speed_combo)
         toolbar.addSeparator()
         toolbar.addAction(self.tick_colors_action)
+        self.toolbar = toolbar
+        # Per-tab actions are inserted after this separator when the active main
+        # tab exposes a ``tab_actions`` list.
+        self._tab_action_separator = toolbar.addSeparator()
+        self._tab_action_separator.setVisible(False)
+        self._current_tab_actions: list[QAction] = []
 
     def create_menubar(self) -> None:
         """Create the menubar for the main window."""
@@ -290,6 +296,21 @@ class MainWindow(QMainWindow):
         self.dashboard_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(0))
         self.bank_book_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(1))
         self.transaction_history_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(2))
+        self.tab_widget.currentChanged.connect(self._on_main_tab_changed)
+        self._on_main_tab_changed(self.tab_widget.currentIndex())
+
+    def _on_main_tab_changed(self, index: int) -> None:
+        """Surface the active tab's ``tab_actions`` in the main toolbar."""
+        for action in self._current_tab_actions:
+            self.toolbar.removeAction(action)
+        self._current_tab_actions = []
+        widget = self.tab_widget.widget(index)
+        actions = getattr(widget, "tab_actions", None) if widget is not None else None
+        if actions:
+            for action in actions:
+                self.toolbar.addAction(action)
+                self._current_tab_actions.append(action)
+        self._tab_action_separator.setVisible(bool(self._current_tab_actions))
 
     def set_running_state(self, *, running: bool) -> None:
         """Swap the Run/Pause action between its two modes."""

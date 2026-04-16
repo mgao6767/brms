@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from brms.app.controllers.bank_book_controller import BankingBookController, TradingBookController
 from brms.app.controllers.base import BRMSController
-from brms.core.enums import BookType
+from brms.core.enums import BookType, PositionStatus
 from brms.core.enums import PositionSide as Position
 from brms.core.events import InstrumentAdded, InstrumentRemoved
 
@@ -66,7 +66,11 @@ class BankController(BRMSController):
         initial tree value so it matches the Balance Sheet.  Falls back to
         ``acquisition_cost`` when no valuation is available.
         """
-        for pos in self.bank.positions.open_positions():
+        positions = (
+            self.bank.positions.open_positions()
+            + self.bank.positions.by_status(PositionStatus.CLOSED)
+        )
+        for pos in positions:
             try:
                 instrument = self.bank.instruments.get(pos.instrument_id)
             except KeyError:
@@ -82,8 +86,11 @@ class BankController(BRMSController):
                 instrument, side, initial_value=initial_value,
                 measurement_basis=pos.measurement_basis,
             )
+            if pos.status == PositionStatus.CLOSED:
+                ctrl.model.mark_instrument_closed(pos.instrument_id, closed=True)
         self._combined_view.banking_tree.expandAll()
         self._combined_view.trading_tree.expandAll()
+        self._combined_view.apply_closed_visibility()
 
     def _on_instrument_added(self, event: InstrumentAdded) -> None:
         """Handle an instrument being added to a book."""

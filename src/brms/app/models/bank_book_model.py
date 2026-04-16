@@ -16,12 +16,14 @@ COL_VALUE = 1
 
 # Custom role to retrieve the previous value (for green/red coloring)
 OldValueRole = Qt.ItemDataRole.UserRole + 1
+# Custom role to indicate a row represents a closed/matured position
+ClosedRole = Qt.ItemDataRole.UserRole + 2
 
 
 class _Row:
     """Internal node for the bank book tree."""
 
-    __slots__ = ("bold", "children", "instrument_id", "old_value", "parent", "values")
+    __slots__ = ("bold", "children", "closed", "instrument_id", "old_value", "parent", "values")
 
     def __init__(
         self,
@@ -37,6 +39,7 @@ class _Row:
         self.children: list[_Row] = []
         self.instrument_id = instrument_id
         self.old_value: float | None = None
+        self.closed = False
 
     def append(self, child: _Row) -> None:
         """Append a child row, setting its parent."""
@@ -117,7 +120,7 @@ class BankBookModel(QAbstractItemModel):
             return _INVALID
         return self.createIndex(par.row_index(), 0, par)
 
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:  # noqa: ANN401
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:  # noqa: ANN401, PLR0911
         """Return data for the given index and role."""
         if not index.isValid():
             return None
@@ -131,6 +134,8 @@ class BankBookModel(QAbstractItemModel):
             return True if node.bold else None
         if role == OldValueRole and index.column() == COL_VALUE:
             return node.old_value
+        if role == ClosedRole:
+            return node.closed
         return None
 
     def headerData(  # noqa: N802
@@ -229,6 +234,46 @@ class BankBookModel(QAbstractItemModel):
             self.dataChanged.emit(value_idx, value_idx)
             return True
         return False
+
+    def mark_instrument_closed(self, instrument_id: str, closed: bool = True) -> bool:  # noqa: FBT001, FBT002
+        """Set or clear the closed flag on an instrument row. Returns True if found and changed.
+
+        When transitioning to closed, the value column is cleared to ``None`` so
+        the tree shows a blank cell instead of the stale final valuation.
+        """
+        node = self._find_instrument(instrument_id)
+        if node is None or node.closed == closed:
+            return False
+        node.closed = closed
+        if closed:
+            node.old_value = node.values[COL_VALUE]
+            node.values[COL_VALUE] = None
+        idx = self._index_for_node(node)
+        left = self.createIndex(idx.row(), COL_NAME, node)
+        right = self.createIndex(idx.row(), COL_VALUE, node)
+        self.dataChanged.emit(left, right, [ClosedRole])
+        return True
+
+    def index_for_instrument_id(self, instrument_id: str) -> QModelIndex:
+        """Return the QModelIndex (column 0) for an instrument row, or invalid if not found."""
+        node = self._find_instrument(instrument_id)
+        if node is None:
+            return _INVALID
+        return self._index_for_node(node)
+
+    def closed_instrument_ids(self) -> list[str]:
+        """Return instrument_ids of all rows currently marked as closed."""
+        result: list[str] = []
+
+        def _walk(node: _Row) -> None:
+            if node.closed and node.instrument_id is not None:
+                result.append(node.instrument_id)
+            for child in node.children:
+                _walk(child)
+
+        for side in self._sides:
+            _walk(side)
+        return result
 
     def find_instrument_by_name(self, name: str) -> _Row | None:
         """Find an instrument row by name (used for Cash lookup)."""

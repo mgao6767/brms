@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QMenu
 
 from brms.app.controllers.base import BRMSController
 from brms.app.views.bank_book.columns import AMORTIZED_COST_SUB_GROUPS, MEASUREMENT_BASIS_DISPLAY
-from brms.core.enums import BookType, InstrumentType, MeasurementBasis
+from brms.core.enums import BookType, InstrumentType, MeasurementBasis, PositionStatus
 from brms.core.enums import PositionSide as Position
 from brms.core.events import ShowTransactionsRequested, ValuationsUpdated
 from brms.core.models.instruments.deposits import Cash
@@ -60,8 +60,12 @@ class BankBookController(BRMSController):
         self.tree.expandAll()
 
     def _on_valuations_updated(self, event: ValuationsUpdated) -> None:
-        """Update instrument values from valuation event."""
+        """Update instrument values and sync closed-flag from valuation event."""
         for pos in self._position_store.by_book(self._book_type):
+            is_closed = pos.status == PositionStatus.CLOSED
+            self.model.mark_instrument_closed(pos.instrument_id, is_closed)
+            if is_closed:
+                continue
             val = event.valuations.get(pos.id)
             if val is not None and float(val) != 0:
                 self.model.update_instrument_value(pos.instrument_id, float(val))
