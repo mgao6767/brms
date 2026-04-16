@@ -139,7 +139,7 @@ class PlotWidget(QWidget):
         )
         self.layout.addWidget(self.canvas)
         self.ax = self.canvas.figure.add_subplot()
-        self.ax.set_title("Yield Curve", fontsize=10, fontweight="bold", loc="left")
+        self.styler.style_axes(self.ax, title="Yield Curve")
         # Checkboxes
         checkbox_layout = QHBoxLayout()
         checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -156,34 +156,29 @@ class PlotWidget(QWidget):
         self.styler.style_changed.connect(self.update_plot_style)
 
     def update_plot_style(self):
-        """Update an existing Matplotlib figure when the style changes."""
-        if self.styler.use_custom_style:
-            self.canvas.figure.patch.set_facecolor(self.styler.plot_background_color)  # Update figure background
-        else:
-            self.canvas.figure.patch.set_facecolor("white")  # Default background
-        self.canvas.figure.canvas.draw_idle()  # Redraw canvas
+        """Update figure and axes colors to match the theme."""
+        self.styler.style_figure(self.canvas.figure)
+        self.styler.style_axes(self.ax)
+        self.canvas.draw_idle()
 
     def clear_plot(self):
         self.ax.clear()
-        self.ax.set_title("Yield Curve", fontsize=10, fontweight="bold", loc="left")
+        self.styler.style_axes(self.ax, title="Yield Curve")
         self.canvas.draw()
 
     def update_plot(self, maturities, yields, maturities_z, zero_rates, title, rescale_y, show_grid):
         self.ax.clear()
-        self.ax.plot(maturities, yields, marker="o", color="blue", label="Treasury Par Yields")
-        self.ax.plot(maturities_z, zero_rates, color="crimson", label="Interpolated Zero Rates")
-        self.ax.set_ylabel("Yield (%)", fontsize=11)
+        self.ax.plot(maturities, yields, marker="o", color=self.styler.chart_palette[0], label="Treasury Par Yields")
+        self.ax.plot(maturities_z, zero_rates, color=self.styler.chart_palette[1], label="Interpolated Zero Rates")
+        self.ax.set_ylabel("Yield (%)", fontsize=9)
         # Rescale y-axis if checkbox is checked
         if rescale_y:
             self.ax.set_ybound(0, np.max(yields) * 1.1)
         else:
             self.ax.set_ybound(0.0, 10.0)
-        self.ax.set_title(title, fontsize=10, fontweight="bold", loc="left")
-        if show_grid:
-            self.ax.grid(visible=True, linestyle="--", alpha=0.4)
-        self.ax.tick_params(axis="both", which="major", labelsize=10)
+        self.styler.style_axes(self.ax, title=title)
         self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.2f}"))
-        self.ax.legend(fontsize=9, loc="lower right")
+        self.styler.style_legend(self.ax)
         self.canvas.draw()
 
     def export_plot(self):

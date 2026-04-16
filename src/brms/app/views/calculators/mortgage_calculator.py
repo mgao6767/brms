@@ -557,15 +557,12 @@ class PlotWidget(QWidget):
         self.canvas = FigureCanvas(Figure(figsize=(5, 3), facecolor=self.styler.plot_background_color))
         layout.addWidget(self.canvas)
         self.ax = self.canvas.figure.add_subplot()
-        self.ax.set_title(self.title)
-        self.ax.set_ylabel("Payments")
-        if self.show_grid:
-            self.ax.grid(self.show_grid, linestyle="--", alpha=0.7)
-        self.ax.tick_params(axis="both", which="major", labelsize=10)
+        self.styler.style_axes(self.ax, title=self.title)
+        self.ax.set_ylabel("Payments", fontsize=9)
         self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: _locale.toCurrencyString(x)))
         self.ax2 = self.ax.twinx()
-        self.ax2.set_ylabel("Outstanding Balance")
-        self.ax2.tick_params(axis="y")
+        self.ax2.set_ylabel("Outstanding Balance", fontsize=9, color=self.styler.text_secondary)
+        self.ax2.tick_params(axis="y", labelsize=8, colors=self.styler.text_muted)
         self.ax2.yaxis.set_major_formatter(FuncFormatter(lambda x, _: _locale.toCurrencyString(x)))
         # Checkboxes
         checkbox_layout = QHBoxLayout()
@@ -576,21 +573,30 @@ class PlotWidget(QWidget):
         checkbox_layout.addWidget(self.grid_checkbox)
         layout.addLayout(checkbox_layout)
         # Data containers
-        (self.line_interest_pmt,) = self.ax.plot([], [], color="blue", label="Interest Payment")
-        (self.line_principal_pmt,) = self.ax.plot([], [], color="red", label="Principal Payment")
-        (self.line_total_pmt,) = self.ax.plot([], [], color="darkred", label="Total Payment")
-        (self.line_outstanding_amt,) = self.ax2.plot([], [], color="black", linestyle="--", label="Outstanding Balance")
+        (self.line_interest_pmt,) = self.ax.plot(
+            [], [], color=self.styler.chart_palette[0], label="Interest Payment",
+        )
+        (self.line_principal_pmt,) = self.ax.plot(
+            [], [], color=self.styler.chart_palette[1], label="Principal Payment",
+        )
+        (self.line_total_pmt,) = self.ax.plot(
+            [], [], color=self.styler.chart_palette[7], label="Total Payment",
+        )
+        (self.line_outstanding_amt,) = self.ax2.plot(
+            [], [], color=self.styler.text_primary, linestyle="--", label="Outstanding Balance",
+        )
         # Signals
         self.grid_checkbox.stateChanged.connect(self.on_grid_checkbox_state_changed)
         self.styler.style_changed.connect(self.update_plot_style)
 
     def update_plot_style(self):
-        """Update an existing Matplotlib figure when the style changes."""
-        if self.styler.use_custom_style:
-            self.canvas.figure.patch.set_facecolor(self.styler.plot_background_color)  # Update figure background
-        else:
-            self.canvas.figure.patch.set_facecolor("white")  # Default background
-        self.canvas.figure.canvas.draw_idle()  # Redraw canvas
+        """Update figure and axes colors to match the theme."""
+        self.styler.style_figure(self.canvas.figure)
+        self.styler.style_axes(self.ax)
+        self.ax2.tick_params(colors=self.styler.text_muted)
+        for spine in self.ax2.spines.values():
+            spine.set_edgecolor(self.styler.border_subtle)
+        self.canvas.draw_idle()
 
     def on_grid_checkbox_state_changed(self) -> None:
         self.update_plot(
@@ -605,7 +611,7 @@ class PlotWidget(QWidget):
 
     def clear_plot(self) -> None:
         self.ax.clear()
-        self.ax.set_title(self.title)
+        self.styler.style_axes(self.ax, title=self.title)
         self.canvas.draw()
 
     def update_plot(
@@ -628,8 +634,7 @@ class PlotWidget(QWidget):
 
         self.ax.set_xlim(pd.Timestamp(start_date), pd.Timestamp(end_date))
         if show_grid:
-            # When line properties are provided, the grid will be enabled regardless.
-            self.ax.grid(True, linestyle="--", alpha=0.7)
+            self.ax.grid(True, linestyle="--", alpha=0.15, color=self.styler.chart_grid)
         else:
             self.ax.grid(False)
 
@@ -663,8 +668,8 @@ class PlotWidget(QWidget):
         self.ax2.yaxis.set_major_formatter(formatter)
 
         if dates:
-            self.ax.legend(fontsize=9, loc="upper right")
-            self.ax2.legend(fontsize=9, loc="upper left")
+            self.styler.style_legend(self.ax, loc="upper right")
+            self.styler.style_legend(self.ax2, loc="upper left")
 
         self.canvas.draw_idle()
 

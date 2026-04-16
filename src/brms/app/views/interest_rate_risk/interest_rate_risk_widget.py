@@ -79,11 +79,10 @@ class MaturityGapWidget(QWidget):
 
         # Bar chart
         fig = Figure(figsize=(6, 4), facecolor=self.styler.plot_background_color)
-        fig.subplots_adjust(left=0.12, right=0.95, top=0.9, bottom=0.25)
+        fig.subplots_adjust(left=0.12, right=0.95, top=0.92, bottom=0.25)
         self._canvas = FigureCanvas(fig)
         self._ax = fig.add_subplot()
-        self._ax.set_title("Maturity Gap by Time Bucket", fontsize=10, fontweight="bold", loc="left")
-        self._ax.grid(visible=True, axis="y", linestyle="--", alpha=0.4)
+        self.styler.style_axes(self._ax, title="Maturity Gap by Time Bucket")
         self.styler.style_changed.connect(self._update_style)
 
         # Splitter
@@ -149,9 +148,9 @@ class MaturityGapWidget(QWidget):
             self._canvas.figure.savefig(file_path)
 
     def _update_style(self) -> None:
-        """Update chart background on theme change."""
-        bg = self.styler.plot_background_color if self.styler.use_custom_style else "white"
-        self._canvas.figure.patch.set_facecolor(bg)
+        """Update chart background and axes colors to match the theme."""
+        self.styler.style_figure(self._canvas.figure)
+        self.styler.style_axes(self._ax)
         self._canvas.draw_idle()
 
     def _chart_visible(self) -> bool:
@@ -203,18 +202,17 @@ class MaturityGapWidget(QWidget):
     def _update_chart(self, result: MaturityGapResult) -> None:
         """Redraw the bar chart."""
         self._ax.clear()
-        self._ax.set_title("Maturity Gap by Time Bucket", fontsize=10, fontweight="bold", loc="left")
-        self._ax.grid(visible=True, axis="y", linestyle="--", alpha=0.4)
+        self.styler.style_axes(self._ax, title="Maturity Gap by Time Bucket")
 
         labels = [b.label for b in result.buckets]
         gaps = result.gap
         x = np.arange(len(labels))
-        colors = ["#3b82f6" if g >= 0 else "#ef4444" for g in gaps]
+        colors = [self.styler.support_success if g >= 0 else self.styler.support_error for g in gaps]
 
         self._ax.bar(x, gaps, color=colors, width=0.7)
         self._ax.set_xticks(x)
         self._ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=7)
-        self._ax.axhline(y=0, color="gray", linewidth=0.5)
+        self._ax.axhline(y=0, color=self.styler.text_muted, linewidth=0.5)
 
         # Y-axis formatting
         max_val = max(abs(g) for g in gaps) if any(g != 0 for g in gaps) else 1

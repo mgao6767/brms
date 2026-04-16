@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from brms.app.utils import pydate_to_qdate
 from brms.app.views.bank_book.delegates import CurrencyDelegate
+from brms.app.views.styler import BRMSStyler
 from brms.app.views.widgets.tree_widget import QMODELINDEX, BRMSTreeWidget
 
 CONTROL_PANEL_WIDTH = 220
@@ -153,8 +154,11 @@ class BRMSTransactionHistoryWidget(QWidget):
     def set_filter_indicator(self, *, active: bool) -> None:
         """Show or hide a visual indicator that filters are active."""
         if active:
+            styler = BRMSStyler.instance()
             self.ctrl_group.setTitle("Filter (active)")
-            self.ctrl_group.setStyleSheet("QGroupBox { color: #e67e22; font-weight: bold; }")
+            self.ctrl_group.setStyleSheet(
+                f"QGroupBox {{ color: {styler.interactive_hover}; font-weight: 600; }}",
+            )
         else:
             self.ctrl_group.setTitle(self._filter_group_default_title)
             self.ctrl_group.setStyleSheet("")

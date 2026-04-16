@@ -69,8 +69,6 @@ class MainWindow(QMainWindow):
         self.pause_action: QAction
         self.speed_combo: QComboBox
         self.stop_action: QAction
-        self.fushion_style_action: QAction
-        self.mq_style_action: QAction
         self.dashboard_action: QAction
         self.bank_book_action: QAction
         self.transaction_history_action: QAction
@@ -83,7 +81,7 @@ class MainWindow(QMainWindow):
         if DEBUG_MODE:
             self.debug_panel = DebugPanel(self)
         # Finalize
-        self.on_mq_style_action()
+        self.styler.apply_style()
 
     def init_ui(self) -> None:
         """Initialize the user interface."""
@@ -141,10 +139,6 @@ class MainWindow(QMainWindow):
         self.speed_combo.addItems(["1x", "2x", "3x", "4x", "5x"])
         self.speed_combo.setCurrentText("1x")
         # View
-        self.fushion_style_action = QAction("Fushion Theme", self)
-        self.mq_style_action = QAction("MQ Theme", self)
-        self.fushion_style_action.setCheckable(True)
-        self.mq_style_action.setCheckable(True)
         self.dashboard_action = QAction("Show Dashboard", self)
         self.dashboard_action.setShortcut("Ctrl+1")
         self.bank_book_action = QAction("Show Bank Book", self)
@@ -201,9 +195,6 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(self.copy_row_action)
         edit_menu.addAction(self.copy_details_action)
         # View menu
-        view_menu.addAction(self.fushion_style_action)
-        view_menu.addAction(self.mq_style_action)
-        view_menu.addSeparator()
         view_menu.addAction(self.dashboard_action)
         view_menu.addAction(self.bank_book_action)
         view_menu.addAction(self.transaction_history_action)
@@ -275,8 +266,6 @@ class MainWindow(QMainWindow):
     def connect_signals(self) -> None:
         """Connect signals to their respective slots."""
         self.exit_action.triggered.connect(self.on_exit)
-        self.fushion_style_action.triggered.connect(self.on_fushion_style_action)
-        self.mq_style_action.triggered.connect(self.on_mq_style_action)
         self.restore_views_action.triggered.connect(self.on_restore_views)
         self.about_action.triggered.connect(self.on_about_action)
         self.homepage_action.triggered.connect(self.on_homepage_action)
@@ -325,24 +314,6 @@ class MainWindow(QMainWindow):
         Emit the exit signal and delegate the closing tasks to the controller.
         """
         self.exit_signal.emit()
-
-    def on_fushion_style_action(self) -> None:
-        """Handle the Fushion style action.
-
-        Apply or remove the Fushion style based on the action's checked state.
-        """
-        self.fushion_style_action.setChecked(True)
-        self.mq_style_action.setChecked(False)
-        self.styler.apply_fusion_style()
-
-    def on_mq_style_action(self) -> None:
-        """Handle the MQ style action.
-
-        Apply or remove the MQ style based on the action's checked state.
-        """
-        self.mq_style_action.setChecked(True)
-        self.fushion_style_action.setChecked(False)
-        self.styler.apply_mq_style()
 
     def on_restore_views(self) -> None:
         """Restore the dock widgets to their default positions and sizes."""

@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem
 
 from brms.app.models.bank_book_model import OldValueRole
 from brms.app.models.statement_models import BoldRole
+from brms.app.views.styler import BRMSStyler
 
 LOCALE = QLocale.system()
 
@@ -44,10 +45,11 @@ class BookCurrencyDelegate(QStyledItemDelegate):
             current = index.data(Qt.ItemDataRole.DisplayRole)
             old = index.data(OldValueRole)
             if isinstance(current, int | float) and isinstance(old, int | float):
+                styler = BRMSStyler.instance()
                 if current > old:
-                    option.palette.setColor(QPalette.ColorRole.Text, QColor("green"))
+                    option.palette.setColor(QPalette.ColorRole.Text, QColor(styler.support_success))
                 elif current < old:
-                    option.palette.setColor(QPalette.ColorRole.Text, QColor("red"))
+                    option.palette.setColor(QPalette.ColorRole.Text, QColor(styler.support_error))
         super().paint(painter, option, index)
 
 

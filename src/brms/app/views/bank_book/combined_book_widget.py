@@ -46,7 +46,7 @@ class BRMSCombinedBookWidget(QWidget):
 
         # Banking Book panel (left)
         banking_label = QLabel("Banking Book")
-        banking_label.setStyleSheet("font-weight: bold;")
+        banking_label.setStyleSheet("font-weight: 600;")
         banking_panel = QWidget()
         banking_layout = QVBoxLayout(banking_panel)
         banking_layout.setContentsMargins(0, 0, 0, 0)
@@ -55,7 +55,7 @@ class BRMSCombinedBookWidget(QWidget):
 
         # Trading Book panel (right)
         trading_label = QLabel("Trading Book")
-        trading_label.setStyleSheet("font-weight: bold;")
+        trading_label.setStyleSheet("font-weight: 600;")
         trading_panel = QWidget()
         trading_layout = QVBoxLayout(trading_panel)
         trading_layout.setContentsMargins(0, 0, 0, 0)

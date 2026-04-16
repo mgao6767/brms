@@ -79,17 +79,18 @@ class KPIGroupCard(QFrame):
     def __init__(self, title: str, parent: QWidget | None = None) -> None:
         """Initialize with a group title."""
         super().__init__(parent)
+        self.styler = BRMSStyler.instance()
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(10, 6, 10, 6)
+        outer.setContentsMargins(8, 8, 8, 8)
         outer.setSpacing(4)
 
         header = QLabel(title.upper())
         header.setStyleSheet(
-            "font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: gray;"
-            "border-bottom: 1px solid palette(mid); padding-bottom: 6px;",
+            f"font-size: 10px; font-weight: 600; letter-spacing: 0.5px; color: {self.styler.text_muted};"
+            f"border-bottom: 1px solid {self.styler.border_subtle}; padding-bottom: 4px;",
         )
         header.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         outer.addWidget(header)
@@ -105,9 +106,9 @@ class KPIGroupCard(QFrame):
     def add_metric(self, key: str, label: str, format_type: FormatType) -> None:
         """Add a metric to the grid. Returns nothing — use set_value(key, val) to update."""
         title_lbl = QLabel(label)
-        title_lbl.setStyleSheet("font-size: 12px; color: gray;")
+        title_lbl.setStyleSheet(f"font-size: 10px; color: {self.styler.text_muted};")
         value_lbl = QLabel("\u2014")
-        value_lbl.setStyleSheet("font-size: 13px; font-weight: 600;")
+        value_lbl.setStyleSheet("font-size: 12px; font-weight: 600;")
 
         cell = QVBoxLayout()
         cell.setSpacing(0)
@@ -147,11 +148,15 @@ class SimulationStrip(QFrame):
         layout.setContentsMargins(12, 4, 12, 4)
         layout.setSpacing(12)
 
+        self.styler = BRMSStyler.instance()
+
         # Date
         date_title = QLabel("DATE")
-        date_title.setStyleSheet("font-size: 9px; font-weight: 600; color: gray; letter-spacing: 0.5px;")
+        date_title.setStyleSheet(
+            f"font-size: 10px; font-weight: 600; color: {self.styler.text_muted}; letter-spacing: 0.5px;",
+        )
         self._date_label = QLabel("\u2014")
-        self._date_label.setStyleSheet("font-size: 12px; font-weight: 600;")
+        self._date_label.setStyleSheet("font-size: 11px; font-weight: 600;")
         layout.addWidget(date_title)
         layout.addWidget(self._date_label)
 
@@ -163,9 +168,11 @@ class SimulationStrip(QFrame):
 
         # Period
         period_title = QLabel("PERIOD")
-        period_title.setStyleSheet("font-size: 9px; font-weight: 600; color: gray; letter-spacing: 0.5px;")
+        period_title.setStyleSheet(
+            f"font-size: 10px; font-weight: 600; color: {self.styler.text_muted}; letter-spacing: 0.5px;",
+        )
         self._period_label = QLabel("\u2014")
-        self._period_label.setStyleSheet("font-size: 10px;")
+        self._period_label.setStyleSheet("font-size: 11px;")
         layout.addWidget(period_title)
         layout.addWidget(self._period_label)
 
@@ -221,12 +228,10 @@ class PlotWidget(QWidget):
         self.dates: list[datetime.date] = []
         self.use_ratio_formatter = use_ratio_formatter
         fig = Figure(figsize=(5, 3), facecolor=self.styler.plot_background_color)
-        fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.18)
+        fig.subplots_adjust(left=0.1, right=0.9, top=0.92, bottom=0.18)
         self.canvas = FigureCanvas(fig)
         self.ax = fig.add_subplot()
-        self.ax.set_title(title, fontsize=10, fontweight="bold", loc="left", pad=6)
-        self.ax.grid(visible=True, linestyle="--", alpha=0.4)
-        self.ax.tick_params(axis="both", which="major", labelsize=7)
+        self.styler.style_axes(self.ax, title=title)
         # Limit date ticks and use concise format
         from matplotlib.dates import DAILY, AutoDateLocator, ConciseDateFormatter
 
@@ -283,10 +288,10 @@ class PlotWidget(QWidget):
         self._update_annotations(dates)
 
     def update_plot_style(self) -> None:
-        """Update figure background when the app style changes."""
-        bg = self.styler.plot_background_color if self.styler.use_custom_style else "white"
-        self.canvas.figure.patch.set_facecolor(bg)
-        self.canvas.figure.canvas.draw_idle()
+        """Update figure and axes colors to match the theme."""
+        self.styler.style_figure(self.canvas.figure)
+        self.styler.style_axes(self.ax)
+        self.canvas.draw_idle()
 
     def update_plot(
         self,
@@ -360,13 +365,13 @@ class PlotWidget(QWidget):
                 color=line.get_color(),
                 va="center",
                 ha="left",
-                fontweight="bold",
+                fontweight="semibold",
             )
             self._annotations.append(ann)
 
     def _rebuild_legend(self) -> None:
         """Rebuild the legend with pick support and correct alpha state."""
-        legend = self.ax.legend(fontsize=9, loc="lower right", framealpha=0.9)
+        legend = self.styler.style_legend(self.ax)
         self._legend_artist_to_title.clear()
         data_lines = list(self.lines.values())
         titles = list(self.lines.keys())
@@ -467,28 +472,29 @@ class BRMSDashboard(QWidget):
         grid = QGridLayout()
         grid.setSpacing(4)
 
+        s = BRMSStyler.instance()
         self.balance_sheet_plot = PlotWidget(
             title="Balance Sheet",
             line_titles=["Total Assets", "Total Liabilities", "Total Equity"],
             hidden_by_default={"Total Liabilities", "Total Equity"},
-            line_colors=["#3b82f6", "#ef4444", "#10b981"],
+            line_colors=[s.chart_palette[0], s.chart_palette[1], s.chart_palette[2]],
         )
         self.capital_ratio_plot = PlotWidget(
             title="Capital Ratios",
             line_titles=["CET1 Ratio"],
-            line_colors=["#3b82f6"],
+            line_colors=[s.chart_palette[0]],
             use_ratio_formatter=True,
         )
         self.liquidity_plot = PlotWidget(
             title="Liquidity Ratios",
             line_titles=["NSFR", "LCR"],
-            line_colors=["#0ea5e9", "#14b8a6"],
+            line_colors=[s.chart_palette[5], s.chart_palette[4]],
             use_ratio_formatter=True,
         )
         self.profitability_plot = PlotWidget(
             title="Profitability",
             line_titles=["NIM", "ROA", "ROE"],
-            line_colors=["#f59e0b", "#10b981", "#ef4444"],
+            line_colors=[s.chart_palette[3], s.chart_palette[2], s.chart_palette[1]],
             use_ratio_formatter=True,
         )
 

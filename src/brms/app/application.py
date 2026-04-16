@@ -2,7 +2,8 @@
 
 import sys
 
-from PySide6.QtGui import QIcon
+import qtawesome as qta
+from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QApplication
 
 from brms import DEBUG_MODE
@@ -28,8 +29,11 @@ class App(QApplication):
         self.setWindowIcon(QIcon(":/icons/icon.png"))
 
         font = self.font()
-        font.setFamily("Monospace")
+        font.setStyleHint(QFont.StyleHint.SansSerif)
+        font.setPointSize(8)
         self.setFont(font)
+
+        qta.set_defaults(color="#A8B3C2")
 
         self.view = MainWindow()
         self.controller = MainController(self.view, services=services)
