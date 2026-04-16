@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QFileDialog, QTreeView
 
+from brms import DEBUG_MODE
 from brms.app import clipboard
 from brms.app.controllers.bank_controller import BankController
 from brms.app.controllers.base import BRMSController
@@ -53,6 +54,8 @@ class MainController(BRMSController):
         self.simulation_timer.setInterval(self.simulation_interval)
 
         self._connect_toolbar_signals()
+        if DEBUG_MODE and hasattr(self.view, "debug_panel"):
+            self.view.debug_panel.simulation_selected.connect(self._on_debug_simulation_selected)
         self.load_simulation(services)
 
     def _connect_toolbar_signals(self) -> None:
@@ -168,6 +171,11 @@ class MainController(BRMSController):
         if not file_path:
             return
         services = build_core_services(simulation_zip=Path(file_path))
+        self.load_simulation(services)
+
+    def _on_debug_simulation_selected(self, path: Path) -> None:
+        """Load the simulation zip chosen from the debug panel."""
+        services = build_core_services(simulation_zip=path)
         self.load_simulation(services)
 
     def _on_show_transactions_requested(self, event: ShowTransactionsRequested) -> None:
