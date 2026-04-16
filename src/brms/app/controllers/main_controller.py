@@ -58,9 +58,8 @@ class MainController(BRMSController):
     def _connect_toolbar_signals(self) -> None:
         """Connect toolbar and menu actions (done once, not per simulation load)."""
         self.simulation_timer.timeout.connect(self.on_advance)
-        self.view.next_action.triggered.connect(self.on_advance)
-        self.view.start_action.triggered.connect(self.on_start_action)
-        self.view.pause_action.triggered.connect(self.on_pause_action)
+        self.view.step_action.triggered.connect(self.on_advance)
+        self.view.run_action.triggered.connect(self.on_run_pause_toggle)
         self.view.stop_action.triggered.connect(self.on_stop_action)
         self.view.speed_combo.currentTextChanged.connect(self._on_speed_changed)
         self.view.open_action.triggered.connect(self.on_open_action)
@@ -201,27 +200,33 @@ class MainController(BRMSController):
             logger.info("No more dates; pausing.")
             self.on_pause_action()
 
+    def on_run_pause_toggle(self) -> None:
+        """Toggle between running and paused based on the timer state."""
+        if self.simulation_timer.isActive():
+            self.on_pause_action()
+        else:
+            self.on_start_action()
+
     def on_start_action(self) -> None:
         """Start the simulation timer for continuous advancement."""
-        self.view.next_action.setDisabled(True)
-        self.view.start_action.setDisabled(True)
-        self.view.pause_action.setEnabled(True)
+        self.view.set_running_state(running=True)
+        self.view.step_action.setDisabled(True)
         self.view.stop_action.setEnabled(True)
         self.simulation_timer.start()
 
     def on_pause_action(self) -> None:
         """Pause the simulation timer."""
-        self.view.next_action.setEnabled(True)
-        self.view.start_action.setEnabled(True)
-        self.view.pause_action.setDisabled(True)
+        self.view.set_running_state(running=False)
+        self.view.step_action.setEnabled(True)
+        self.view.run_action.setEnabled(True)
         self.view.stop_action.setDisabled(True)
         self.simulation_timer.stop()
 
     def on_stop_action(self) -> None:
         """Stop the simulation and disable all controls."""
-        self.view.next_action.setDisabled(True)
-        self.view.start_action.setDisabled(True)
-        self.view.pause_action.setDisabled(True)
+        self.view.set_running_state(running=False)
+        self.view.step_action.setDisabled(True)
+        self.view.run_action.setDisabled(True)
         self.view.stop_action.setDisabled(True)
         self.simulation_timer.stop()
 

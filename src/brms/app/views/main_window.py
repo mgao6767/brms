@@ -64,9 +64,8 @@ class MainWindow(QMainWindow):
         self.open_action: QAction
         self.save_action: QAction
         self.exit_action: QAction
-        self.next_action: QAction
-        self.start_action: QAction
-        self.pause_action: QAction
+        self.step_action: QAction
+        self.run_action: QAction
         self.speed_combo: QComboBox
         self.stop_action: QAction
         self.tick_colors_action: QAction
@@ -130,11 +129,13 @@ class MainWindow(QMainWindow):
         self.copy_row_action.setShortcut("Ctrl+Shift+C")
         self.copy_details_action = QAction("Copy All Details", self)
         # Simulation
-        self.next_action = QAction(qta.icon("mdi6.skip-next"), "Next", self)
-        self.start_action = QAction(qta.icon("mdi6.play"), "Start", self)
-        self.pause_action = QAction(qta.icon("mdi6.pause"), "Pause", self)
+        self.step_action = QAction(qta.icon("mdi6.debug-step-over"), "Step", self)
+        self.step_action.setShortcut("F2")
+        self.step_action.setToolTip("Advance the simulation by one step (F2)")
+        self.run_action = QAction(qta.icon("mdi6.play"), "Run", self)
+        self.run_action.setShortcut("F3")
+        self.run_action.setToolTip("Run the simulation continuously (F3)")
         self.stop_action = QAction(qta.icon("mdi6.stop"), "Stop", self)
-        self.pause_action.setEnabled(False)
         self.stop_action.setEnabled(False)
         self.speed_combo = QComboBox(self)
         self.speed_combo.addItems(["1x", "2x", "3x", "4x", "5x"])
@@ -173,9 +174,12 @@ class MainWindow(QMainWindow):
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
         # Add actions to the toolbar
-        toolbar.addAction(self.next_action)
-        toolbar.addAction(self.start_action)
-        toolbar.addAction(self.pause_action)
+        toolbar.addAction(self.run_action)
+        toolbar.addAction(self.step_action)
+        # Fix button widths so Run↔Pause label swap doesn't shift adjacent controls
+        for action in (self.run_action, self.step_action):
+            if (btn := toolbar.widgetForAction(action)) is not None:
+                btn.setFixedWidth(90)
         toolbar.addSeparator()
         toolbar.addWidget(QLabel("  Speed: "))
         toolbar.addWidget(self.speed_combo)
@@ -210,9 +214,9 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.transaction_history_action)
         view_menu.addAction(self.restore_views_action)
         # Simulation menu
-        simulation_menu.addAction(self.next_action)
-        simulation_menu.addAction(self.start_action)
-        simulation_menu.addAction(self.pause_action)
+        simulation_menu.addAction(self.run_action)
+        simulation_menu.addAction(self.step_action)
+        simulation_menu.addAction(self.stop_action)
         # Calculator menu
         calculator_menu.addAction(self.bond_calculator_action)
         calculator_menu.addAction(self.mortgage_calculator_action)
@@ -286,6 +290,19 @@ class MainWindow(QMainWindow):
         self.dashboard_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(0))
         self.bank_book_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(1))
         self.transaction_history_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(2))
+
+    def set_running_state(self, *, running: bool) -> None:
+        """Swap the Run/Pause action between its two modes."""
+        if running:
+            self.run_action.setIcon(qta.icon("mdi6.pause"))
+            self.run_action.setText("Pause")
+            self.run_action.setShortcut("F4")
+            self.run_action.setToolTip("Pause the simulation (F4)")
+        else:
+            self.run_action.setIcon(qta.icon("mdi6.play"))
+            self.run_action.setText("Run")
+            self.run_action.setShortcut("F3")
+            self.run_action.setToolTip("Run the simulation continuously (F3)")
 
     def toggle_bond_calculator(self):
         if self.bond_calculator_action.isChecked():
