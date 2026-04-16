@@ -619,6 +619,8 @@
       
         
       
+        
+      
     
     
       
@@ -1110,6 +1112,28 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fonts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> fonts
+    
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -1761,12 +1785,18 @@
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">show_instrument_details</span><span class="p">(</span><span class="n">instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../../core/models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">show_instrument_details</span><span class="p">(</span>
+    <span class="n">instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../../core/models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
+    <span class="n">positions</span><span class="p">:</span> <span class="n">list</span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.position.Position" href="../../../core/models/position/#brms.core.models.position.Position">Position</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Show the details of the given instrument in the inspector view.</p>
+<p>When <code>positions</code> is provided, the view renders nested <code>Instrument</code>
+and <code>Position</code> (or <code>Positions</code> for multiple) sections, mirroring
+the layout used by transaction details.</p>
 
     </div>
 
