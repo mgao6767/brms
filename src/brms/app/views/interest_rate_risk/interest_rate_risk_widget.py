@@ -11,9 +11,11 @@ from matplotlib.figure import Figure
 from PySide6.QtCore import QLocale, Qt, QTimer
 from PySide6.QtGui import QAction, QFont, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
+    QCheckBox,
     QFileDialog,
     QHeaderView,
     QLabel,
+    QSizePolicy,
     QSplitter,
     QTabWidget,
     QToolBar,
@@ -74,6 +76,13 @@ class MaturityGapWidget(QWidget):
         _left_pad = QWidget()
         _left_pad.setFixedWidth(6)
         self._chart_toolbar.addWidget(_left_pad)
+        self._grid_checkbox = QCheckBox("Show Grid Lines")
+        self._grid_checkbox.setChecked(True)
+        self._grid_checkbox.toggled.connect(self._on_grid_toggled)
+        self._chart_toolbar.addWidget(self._grid_checkbox)
+        _spacer = QWidget()
+        _spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self._chart_toolbar.addWidget(_spacer)
         self._save_action = QAction(qta.icon("mdi6.export"), "Export", self)
         self._save_action.triggered.connect(self._export_plot)
         self._chart_toolbar.addAction(self._save_action)
@@ -170,6 +179,11 @@ class MaturityGapWidget(QWidget):
         if self._chart_dirty and self._last_result is not None:
             QTimer.singleShot(0, self._flush_chart)
 
+    def _on_grid_toggled(self, _checked: bool) -> None:  # noqa: FBT001
+        """Toggle grid lines and redraw if we have data."""
+        if self._last_result is not None and self._canvas.width() > 0:
+            self._update_chart(self._last_result)
+
     def showEvent(self, event: object) -> None:  # noqa: N802
         """Flush any dirty chart data once the widget actually becomes visible."""
         super().showEvent(event)
@@ -243,7 +257,9 @@ class MaturityGapWidget(QWidget):
     def _update_chart(self, result: MaturityGapResult) -> None:
         """Redraw the bar chart."""
         self._ax.clear()
-        self.styler.style_axes(self._ax, title="Maturity Gap by Time Bucket")
+        self.styler.style_axes(
+            self._ax, title="Maturity Gap by Time Bucket", show_grid=self._grid_checkbox.isChecked(),
+        )
 
         labels = [b.label for b in result.buckets]
         gaps = result.gap

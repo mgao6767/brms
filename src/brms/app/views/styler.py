@@ -65,7 +65,7 @@ class BRMSStyler(QObject):
             "#3B82F6", "#EF4444", "#22C55E", "#F59E0B",
             "#A78BFA", "#22D3EE", "#F472B6", "#60A5FA",
         ]
-        self.chart_grid = "#263241"
+        self.chart_grid = "#3A4A5E"
 
         # --- Plot ---
         self.plot_background_color = "#11161D"
@@ -87,7 +87,7 @@ class BRMSStyler(QObject):
         """Apply dark theme to a matplotlib Figure."""
         fig.patch.set_facecolor(self.plot_background_color)
 
-    def style_axes(self, ax: Axes, title: str = "") -> None:
+    def style_axes(self, ax: Axes, title: str = "", *, show_grid: bool = True) -> None:
         """Apply dark theme to a matplotlib Axes (call at init and on style_changed)."""
         ax.set_facecolor(self.plot_background_color)
         if title:
@@ -99,7 +99,10 @@ class BRMSStyler(QObject):
         ax.yaxis.label.set_color(self.text_secondary)
         for spine in ax.spines.values():
             spine.set_edgecolor(self.border_subtle)
-        ax.grid(visible=True, linestyle="--", alpha=0.15, color=self.chart_grid)
+        if show_grid:
+            ax.grid(visible=True, linestyle="--", alpha=0.4, color=self.chart_grid, linewidth=0.6)
+        else:
+            ax.grid(visible=False)
 
     def style_legend(self, ax: Axes, **kwargs: object) -> object:
         """Create a dark-themed legend on the given axes. Returns the Legend object."""

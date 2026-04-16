@@ -196,7 +196,7 @@ class PlotWidget(QWidget):
             self.ax.set_ybound(0, np.max(yields) * 1.1)
         else:
             self.ax.set_ybound(0.0, 10.0)
-        self.styler.style_axes(self.ax, title=title)
+        self.styler.style_axes(self.ax, title=title, show_grid=show_grid)
         self.ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.2f}"))
         self.styler.style_legend(self.ax)
         self.canvas.draw()
