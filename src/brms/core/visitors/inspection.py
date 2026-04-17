@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond
     from brms.core.models.instruments.deposits import Cash, Deposit
     from brms.core.models.instruments.equity import CommonEquity
-    from brms.core.models.instruments.loans import AmortizingFixedRateLoan, CreditCard, PersonalLoan
+    from brms.core.models.instruments.loans import AmortizingFixedRateLoan, CreditCard, PersonalLoan, VariableRateLoan
     from brms.core.models.transaction import Transaction
 
 
@@ -100,6 +100,17 @@ class InstrumentInspectionVisitor(InspectionVisitor, Visitor):
     def visit_credit_card(self, instrument: CreditCard) -> None:
         """Inspect a credit card."""
         raise NotImplementedError
+
+    def visit_variable_rate_loan(self, instrument: VariableRateLoan) -> None:
+        """Inspect a variable rate loan."""
+        self._result.clear()
+        details = self._get_instrument_details(instrument)
+        details["Issue Date"] = instrument.issue_date.strftime("%Y-%m-%d")
+        details["Maturity Date"] = instrument.maturity_date.strftime("%Y-%m-%d")
+        details["Spread"] = f"{instrument.spread * 100:.2f}%"
+        details["Face Value"] = locale.currency(instrument.face_value, grouping=True)
+        details["Benchmark"] = instrument.benchmark_family.value.upper()
+        self._result.update(details)
 
 
 class TransactionInspectionVisitor(InspectionVisitor):

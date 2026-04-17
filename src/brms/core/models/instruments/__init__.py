@@ -38,6 +38,7 @@ def default_instrument_registry() -> InstrumentRegistry:
         Mortgage,
         PersonalLoan,
         ResidentialMortgage,
+        VariableRateLoan,
     )
     from brms.core.models.instruments.other import (
         Commitment,
@@ -46,6 +47,10 @@ def default_instrument_registry() -> InstrumentRegistry:
         StandByLetterOfCredit,
         TradeLetterOfCredit,
     )
+    from brms.core.models.instruments.registry import CorporateInstrumentRegistry, LoanInstrumentRegistry
+
+    LoanInstrumentRegistry.register(VariableRateLoan)
+    CorporateInstrumentRegistry.register(VariableRateLoan)
 
     registry = InstrumentRegistry()
     for type_id, cls in [

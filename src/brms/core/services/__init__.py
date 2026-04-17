@@ -50,6 +50,7 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     from brms.core.models.market_data import MarketDataStore
     from brms.core.rules import default_rules
     from brms.core.services.accounting_service import AccountingService
+    from brms.core.services.benchmark_service import BenchmarkService
     from brms.core.services.data_service import DataService
     from brms.core.services.loaders import ZipLoader
     from brms.core.services.metrics_service import MetricsService
@@ -67,9 +68,19 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
 
     event_bus = EventBus()
     instrument_registry = default_instrument_registry()
+
+    benchmark_service = BenchmarkService()
+
+    from brms.core.models.instruments.loans import VariableRateLoan
+
+    instrument_registry.register(
+        "variable_rate_loan",
+        lambda **kw: VariableRateLoan(ibor_index=benchmark_service.prime_index, **kw),
+    )
+
     rule_engine = RuleEngine(default_rules())
     metric_registry = MetricRegistry(default_metrics())
-    valuation_service = ValuationService(default_valuation_strategies())
+    valuation_service = ValuationService(default_valuation_strategies(), benchmark_service=benchmark_service)
 
     accounting_service = AccountingService()
     metrics_service = MetricsService(metric_registry)
