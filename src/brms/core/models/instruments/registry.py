@@ -1,12 +1,13 @@
 """Registry for financial instrument types to support deserialization."""
 
+from collections.abc import Callable
 from typing import ClassVar
 
 from brms.core.models.instruments.base import Instrument
 
 
 class InstrumentRegistry:
-    """Registry mapping type identifiers to instrument classes.
+    """Registry mapping type identifiers to instrument classes or factory callables.
 
     Allows decoupled deserialization: callers register concrete instrument types
     by a string key, then create instances by key without hard-coded imports.
@@ -14,14 +15,14 @@ class InstrumentRegistry:
 
     def __init__(self) -> None:
         """Initialize an empty registry."""
-        self._registry: dict[str, type[Instrument]] = {}
+        self._registry: dict[str, type[Instrument] | Callable[..., Instrument]] = {}
 
-    def register(self, type_id: str, cls: type[Instrument]) -> None:
-        """Register an instrument class under the given type identifier.
+    def register(self, type_id: str, cls: type[Instrument] | Callable[..., Instrument]) -> None:
+        """Register an instrument class or factory under the given type identifier.
 
         Args:
             type_id: A unique string key for the instrument type.
-            cls: The concrete instrument class to register.
+            cls: The concrete instrument class or a factory callable.
 
         """
         self._registry[type_id] = cls

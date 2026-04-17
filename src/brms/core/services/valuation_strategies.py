@@ -136,6 +136,7 @@ class CarryingValueStrategy:
         InstrumentType.MORTGAGE,
         InstrumentType.AMORTIZING_FIXED_RATE_LOAN,
         InstrumentType.PERSONAL_LOAN,
+        InstrumentType.VARIABLE_RATE_LOAN,
     })
 
     def value_batch(
