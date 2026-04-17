@@ -458,6 +458,13 @@ class BRMSStyler(QObject):
             color: {self.text_secondary};
             font-size: 11px;
         }}
+        QStatusBar QLabel#statusSegment {{
+            padding: 2px 10px;
+            border-left: 1px solid {self.border_subtle};
+        }}
+        QStatusBar QLabel#statusSegmentFirst {{
+            padding: 2px 10px;
+        }}
 
         /* ---- Text Browser ---- */
         QTextBrowser {{

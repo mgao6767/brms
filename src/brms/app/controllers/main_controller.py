@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -215,8 +216,11 @@ class MainController(BRMSController):
         """Advance simulation by one step, batching event dispatch."""
         self.view.setUpdatesEnabled(False)
         try:
+            t0 = time.perf_counter()
             with self.services.event_bus.batch():
                 self.services.simulation_service.advance()
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            self._update_status_bar(elapsed_ms)
         except IndexError:
             logger.info("No more dates; pausing.")
             self.on_pause_action()
@@ -275,6 +279,22 @@ class MainController(BRMSController):
         """Copy the selected row from the focused tree."""
         if tree := self._focused_tree():
             clipboard.copy_tree_row(tree)
+
+    def _update_status_bar(self, step_ms: float | None = None) -> None:
+        """Refresh all status bar segments from current simulation state."""
+        sim = self.services.simulation_service
+        bank = self.services.bank
+        self.view.status_sim_name.setText(bank.name)
+        if sim.current_date and sim.start_date and sim.end_date:
+            day = (sim.current_date - sim.start_date).days + 1
+            total = (sim.end_date - sim.start_date).days + 1
+            self.view.status_date.setText(f"{sim.current_date}  Day {day} / {total}")
+        elif sim.start_date:
+            self.view.status_date.setText(str(sim.start_date))
+        self.view.status_step_time.setText(f"Step: {step_ms:.0f}ms" if step_ms is not None else "Step: --")
+        open_count = len(bank.positions.open_positions())
+        inst_count = len(bank.instruments)
+        self.view.status_portfolio.setText(f"{open_count} open \u00b7 {inst_count} instruments")
 
     def _on_copy_details(self) -> None:
         """Copy inspector details to clipboard."""

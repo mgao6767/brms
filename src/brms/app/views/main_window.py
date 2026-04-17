@@ -234,10 +234,24 @@ class MainWindow(QMainWindow):
         help_menu.addAction(self.github_action)
 
     def create_statusbar(self) -> None:
-        """Create the status bar for the main window."""
+        """Create the status bar with VS Code-style segmented labels."""
         statusbar = QStatusBar(self)
+        statusbar.setSizeGripEnabled(False)
         self.setStatusBar(statusbar)
-        statusbar.showMessage("Ready")
+
+        self.status_sim_name = QLabel()
+        self.status_sim_name.setObjectName("statusSegmentFirst")
+        self.status_date = QLabel()
+        self.status_date.setObjectName("statusSegment")
+        self.status_step_time = QLabel()
+        self.status_step_time.setObjectName("statusSegment")
+        self.status_portfolio = QLabel()
+        self.status_portfolio.setObjectName("statusSegment")
+
+        statusbar.addWidget(self.status_sim_name)
+        statusbar.addWidget(self.status_date)
+        statusbar.addWidget(self.status_step_time)
+        statusbar.addPermanentWidget(self.status_portfolio)
 
     def create_central_widget(self) -> None:
         """Create the central widget."""
