@@ -1,30 +1,34 @@
-"""Generate ``diversified_bank.zip`` -- one of each major instrument type.
+"""Generate ``diversified_bank.zip`` -- 2-3 instruments per major type.
 
 Simulation start date: **2022-01-04**.
 
-    Instrument              Basis            Amount     Acquired     Side   Book
-    ────────────────────    ───────────────  ─────────  ──────────   ─────  ───────
-    Common Equity           NA               1,000,000  2021-01-04   SHORT  BANKING
-    Term Deposit (1%)       NA               6,000,000  2021-01-04   SHORT  BANKING
-    10Y Treasury 3.5% HTM   AMORTIZED_COST    (NPV)    2021-01-04   LONG   BANKING
-    5Y Corp Bond 4.5%       FVOCI             (NPV)    2021-06-01   LONG   BANKING
-    3Y Corp Bond 3.5%       FVTPL             (NPV)    2021-01-04   LONG   TRADING
-    30Y Mortgage 5%         AMORTIZED_COST  (outstand)  2021-01-04   LONG   BANKING
+    Instrument                  Basis            Amount     Acquired     Side   Book
+    ========================    ===============  =========  ==========   =====  =======
+    Common Equity               NA               2,000,000  2021-01-04   SHORT  BANKING
+    Retained Earnings           NA                 500,000  2021-01-04   SHORT  BANKING
+    Demand Deposit (0%)         NA               3,000,000  2021-01-04   SHORT  BANKING
+    Savings Deposit (0.5%)      NA               4,000,000  2021-01-04   SHORT  BANKING
+    Term Deposit (2%)           NA               5,000,000  2021-01-04   SHORT  BANKING
+    10Y Treasury 3.5% HTM       AMORTIZED_COST    (NPV)    2021-01-04   LONG   BANKING
+    5Y Treasury 2.5% HTM        AMORTIZED_COST    (NPV)    2021-01-04   LONG   BANKING
+    5Y Corp Bond 4.5% FVOCI     FVOCI             (NPV)    2021-06-01   LONG   BANKING
+    3Y Corp Bond 3.5% FVTPL     FVTPL             (NPV)    2021-01-04   LONG   TRADING
+    7Y Corp Bond 5.0% FVTPL     FVTPL             (NPV)    2021-01-04   LONG   TRADING
+    30Y Res Mortgage 5%         AMORTIZED_COST  (outstand)  2021-01-04   LONG   BANKING
+    15Y Res Mortgage 4%         AMORTIZED_COST  (outstand)  2021-06-01   LONG   BANKING
+    Prime+250bp 5Y C&I Loan     AMORTIZED_COST   3,000,000  2021-06-01   LONG   BANKING
+    Prime+175bp 3Y Revolver     AMORTIZED_COST   2,000,000  2021-06-01   LONG   BANKING
 
-Treasury Note: issued 2020-01-01, 10Y, 3.5% semi-annual coupon, matures 2030-01-01.
-FVOCI Bond: issued 2021-06-01, 5Y, 4.5% semi-annual coupon, matures 2026-06-01.
-FVTPL Bond: issued 2021-01-04, 3Y, 3.5% semi-annual coupon, matures 2024-01-04.
-Mortgage: issued 2020-06-01, 30Y term, 5% fixed, monthly payments, matures 2050-06-01.
-Deposit carries 2% interest.  Bond acquisition costs are QuantLib NPV at
-acquisition date.  Mortgage acquisition cost is the QL outstanding balance
-at acquisition date.
+Bond acquisition costs are QuantLib NPV at acquisition date.
+Mortgage/loan acquisition costs are QL outstanding balance at acquisition date.
 
 Run::
 
     uv run python src/brms/data/create_diversified_bank.py [data_folder]
 
-Where ``data_folder`` contains ``treasury_yields.csv``.  If omitted,
-yields are extracted from the existing ``htm_treasury.zip``.
+Where ``data_folder`` contains ``treasury_yields.csv`` and ``prime_rates.csv``.
+If omitted, yields are extracted from ``htm_treasury.zip`` and prime rates
+from ``temp/data/prime_rates.csv``.
 """
 
 from __future__ import annotations
@@ -41,16 +45,25 @@ from pathlib import Path
 _DATA_DIR = Path(__file__).resolve().parent
 _OUT_PATH = _DATA_DIR / "diversified_bank.zip"
 _START_DATE = "2022-01-04"
+_PRIME_CSV_DEFAULT = Path(__file__).resolve().parents[3] / "temp" / "data" / "prime_rates.csv"
 
-# ── Instrument & position definitions ────────────────────────────────────
+# -- Instrument & position definitions -----------------------------------------------
 
 _ISSUER_GOV = {"name": "US Government", "issuer_type": "SOVEREIGN", "credit_rating": "AAA"}
 _ISSUER_CORP = {"name": "Acme Corp", "issuer_type": "CORPORATE", "credit_rating": "A"}
+_ISSUER_CORP_B = {"name": "Beta Industries", "issuer_type": "CORPORATE", "credit_rating": "BBB"}
 _ISSUER_INDIVIDUAL = {"name": "Borrower A", "issuer_type": "INDIVIDUAL", "credit_rating": "UNRATED"}
+_ISSUER_INDIVIDUAL_B = {"name": "Borrower B", "issuer_type": "INDIVIDUAL", "credit_rating": "UNRATED"}
 
 INSTRUMENTS = [
+    # -- Equity (2) --
     {"id": "equity-001", "type": "common_equity", "name": "Common Equity"},
-    {"id": "deposit-001", "type": "deposit", "name": "Term Deposit 1%", "interest_rate": 0.01},
+    {"id": "equity-002", "type": "common_equity", "name": "Retained Earnings"},
+    # -- Deposits (3): non-interest-bearing + interest-bearing --
+    {"id": "deposit-001", "type": "deposit", "name": "Demand Deposit (NIB)", "interest_rate": 0.0},
+    {"id": "deposit-002", "type": "deposit", "name": "Savings Deposit 0.5%", "interest_rate": 0.005},
+    {"id": "deposit-003", "type": "deposit", "name": "Term Deposit 2%", "interest_rate": 0.02},
+    # -- Treasury Notes (2) --
     {
         "id": "tnote-10y",
         "type": "treasury_note",
@@ -63,6 +76,19 @@ INSTRUMENTS = [
         "credit_rating": "AAA",
         "issuer": _ISSUER_GOV,
     },
+    {
+        "id": "tnote-5y",
+        "type": "treasury_note",
+        "name": "5Y Treasury 2.5% (HTM)",
+        "face_value": 500_000.0,
+        "coupon_rate": 0.025,
+        "issue_date": "2020-06-01",
+        "maturity_date": "2025-06-01",
+        "measurement_basis": "AMORTIZED_COST",
+        "credit_rating": "AAA",
+        "issuer": _ISSUER_GOV,
+    },
+    # -- Corporate Bonds (3) --
     {
         "id": "corp-bond-5y",
         "type": "fixed_rate_bond",
@@ -88,6 +114,19 @@ INSTRUMENTS = [
         "issuer": _ISSUER_CORP,
     },
     {
+        "id": "fvtpl-7y",
+        "type": "fixed_rate_bond",
+        "name": "7Y Corporate Bond 5.0% (FVTPL)",
+        "face_value": 400_000.0,
+        "coupon_rate": 0.05,
+        "issue_date": "2021-01-04",
+        "maturity_date": "2028-01-04",
+        "measurement_basis": "FVTPL",
+        "credit_rating": "BBB",
+        "issuer": _ISSUER_CORP_B,
+    },
+    # -- Mortgages (2) --
+    {
         "id": "mortgage-30y",
         "type": "residential_mortgage",
         "name": "30Y Residential Mortgage 5%",
@@ -99,9 +138,55 @@ INSTRUMENTS = [
         "credit_rating": "UNRATED",
         "issuer": _ISSUER_INDIVIDUAL,
     },
+    {
+        "id": "mortgage-15y",
+        "type": "residential_mortgage",
+        "name": "15Y Residential Mortgage 4%",
+        "face_value": 1_500_000.0,
+        "interest_rate": 0.04,
+        "issue_date": "2021-06-01",
+        "maturity": "15Y",
+        "measurement_basis": "AMORTIZED_COST",
+        "credit_rating": "UNRATED",
+        "issuer": _ISSUER_INDIVIDUAL_B,
+    },
+    # -- Variable Rate Loans (2) --
+    {
+        "id": "ci-loan-001",
+        "type": "variable_rate_loan",
+        "name": "Prime+250bp 5Y C&I Loan",
+        "face_value": 3_000_000.0,
+        "spread": 0.025,
+        "issue_date": "2021-06-01",
+        "maturity": "5Y",
+        "benchmark_family": "prime",
+        "repricing_frequency": "1M",
+        "payment_frequency": "1M",
+        "principal_repayment_mode": "bullet",
+        "measurement_basis": "AMORTIZED_COST",
+        "credit_rating": "BBB",
+        "issuer": _ISSUER_CORP_B,
+    },
+    {
+        "id": "ci-loan-002",
+        "type": "variable_rate_loan",
+        "name": "Prime+175bp 3Y Revolver",
+        "face_value": 2_000_000.0,
+        "spread": 0.0175,
+        "issue_date": "2021-06-01",
+        "maturity": "3Y",
+        "benchmark_family": "prime",
+        "repricing_frequency": "3M",
+        "payment_frequency": "3M",
+        "principal_repayment_mode": "bullet",
+        "measurement_basis": "AMORTIZED_COST",
+        "credit_rating": "A",
+        "issuer": _ISSUER_CORP,
+    },
 ]
 
 POSITIONS = [
+    # Equity
     {
         "id": "pos-equity",
         "instrument_id": "equity-001",
@@ -109,26 +194,65 @@ POSITIONS = [
         "measurement_basis": "NA",
         "side": "SHORT",
         "acquisition_date": "2021-01-04",
-        "acquisition_cost": 1_000_000.0,
+        "acquisition_cost": 2_000_000.0,
     },
     {
-        "id": "pos-deposit",
+        "id": "pos-retained",
+        "instrument_id": "equity-002",
+        "book_type": "BANKING",
+        "measurement_basis": "NA",
+        "side": "SHORT",
+        "acquisition_date": "2021-01-04",
+        "acquisition_cost": 500_000.0,
+    },
+    # Deposits
+    {
+        "id": "pos-demand",
         "instrument_id": "deposit-001",
         "book_type": "BANKING",
         "measurement_basis": "NA",
         "side": "SHORT",
         "acquisition_date": "2021-01-04",
-        "acquisition_cost": 6_000_000.0,
+        "acquisition_cost": 3_000_000.0,
     },
     {
-        "id": "pos-tnote",
+        "id": "pos-savings",
+        "instrument_id": "deposit-002",
+        "book_type": "BANKING",
+        "measurement_basis": "NA",
+        "side": "SHORT",
+        "acquisition_date": "2021-01-04",
+        "acquisition_cost": 4_000_000.0,
+    },
+    {
+        "id": "pos-term",
+        "instrument_id": "deposit-003",
+        "book_type": "BANKING",
+        "measurement_basis": "NA",
+        "side": "SHORT",
+        "acquisition_date": "2021-01-04",
+        "acquisition_cost": 5_000_000.0,
+    },
+    # Treasury notes
+    {
+        "id": "pos-tnote-10y",
         "instrument_id": "tnote-10y",
         "book_type": "BANKING",
         "measurement_basis": "AMORTIZED_COST",
         "side": "LONG",
         "acquisition_date": "2021-01-04",
-        "acquisition_cost": 500_000.0,  # replaced by NPV below
+        "acquisition_cost": 500_000.0,  # replaced by NPV
     },
+    {
+        "id": "pos-tnote-5y",
+        "instrument_id": "tnote-5y",
+        "book_type": "BANKING",
+        "measurement_basis": "AMORTIZED_COST",
+        "side": "LONG",
+        "acquisition_date": "2021-01-04",
+        "acquisition_cost": 250_000.0,  # replaced by NPV
+    },
+    # Corporate bonds
     {
         "id": "pos-corp-bond",
         "instrument_id": "corp-bond-5y",
@@ -136,30 +260,67 @@ POSITIONS = [
         "measurement_basis": "FVOCI",
         "side": "LONG",
         "acquisition_date": "2021-06-01",
-        "acquisition_cost": 300_000.0,  # replaced by NPV below
+        "acquisition_cost": 300_000.0,  # replaced by NPV
     },
     {
-        "id": "pos-fvtpl",
+        "id": "pos-fvtpl-3y",
         "instrument_id": "fvtpl-3y",
         "book_type": "TRADING",
         "measurement_basis": "FVTPL",
         "side": "LONG",
         "acquisition_date": "2021-01-04",
-        "acquisition_cost": 200_000.0,  # replaced by NPV below
+        "acquisition_cost": 200_000.0,  # replaced by NPV
     },
     {
-        "id": "pos-mortgage",
+        "id": "pos-fvtpl-7y",
+        "instrument_id": "fvtpl-7y",
+        "book_type": "TRADING",
+        "measurement_basis": "FVTPL",
+        "side": "LONG",
+        "acquisition_date": "2021-01-04",
+        "acquisition_cost": 400_000.0,  # replaced by NPV
+    },
+    # Mortgages
+    {
+        "id": "pos-mortgage-30y",
         "instrument_id": "mortgage-30y",
         "book_type": "BANKING",
         "measurement_basis": "AMORTIZED_COST",
         "side": "LONG",
         "acquisition_date": "2021-01-04",
-        "acquisition_cost": 400_000.0,  # replaced by QL outstanding below
+        "acquisition_cost": 400_000.0,  # replaced by QL outstanding
+    },
+    {
+        "id": "pos-mortgage-15y",
+        "instrument_id": "mortgage-15y",
+        "book_type": "BANKING",
+        "measurement_basis": "AMORTIZED_COST",
+        "side": "LONG",
+        "acquisition_date": "2021-06-01",
+        "acquisition_cost": 300_000.0,  # replaced by QL outstanding
+    },
+    # Variable rate loans
+    {
+        "id": "pos-ci-loan-1",
+        "instrument_id": "ci-loan-001",
+        "book_type": "BANKING",
+        "measurement_basis": "AMORTIZED_COST",
+        "side": "LONG",
+        "acquisition_date": "2021-06-01",
+        "acquisition_cost": 3_000_000.0,
+    },
+    {
+        "id": "pos-ci-loan-2",
+        "instrument_id": "ci-loan-002",
+        "book_type": "BANKING",
+        "measurement_basis": "AMORTIZED_COST",
+        "side": "LONG",
+        "acquisition_date": "2021-06-01",
+        "acquisition_cost": 2_000_000.0,
     },
 ]
 
-# Instrument IDs whose acquisition cost should be set to QuantLib NPV.
-_BOND_IDS = frozenset({"tnote-10y", "corp-bond-5y", "fvtpl-3y"})
+_BOND_IDS = frozenset({"tnote-10y", "tnote-5y", "corp-bond-5y", "fvtpl-3y", "fvtpl-7y"})
 
 
 def _set_bond_fair_values(
@@ -167,11 +328,7 @@ def _set_bond_fair_values(
     positions_data: list[dict],
     yields_csv: Path,
 ) -> None:
-    """Replace acquisition_cost with QuantLib NPV for bond positions.
-
-    Only instruments in ``_BOND_IDS`` are repriced.  Each bond is priced
-    using the yield curve on its own acquisition date.
-    """
+    """Replace acquisition_cost with QuantLib NPV for bond positions."""
     import pandas as pd
     import QuantLib as ql  # noqa: N813
 
@@ -201,12 +358,7 @@ def _set_bond_fair_values(
 
 
 def _set_loan_acquisition_costs(instruments: list, positions_data: list[dict]) -> None:
-    """Replace acquisition_cost with QL outstanding balance at acquisition date.
-
-    When a mortgage is acquired after issuance, the outstanding principal is
-    less than face value.  The acquisition cost should reflect what the bank
-    actually paid — the outstanding balance, not the original face.
-    """
+    """Replace acquisition_cost with QL outstanding balance at acquisition date."""
     import QuantLib as ql  # noqa: N813
 
     from brms.core.utils import pydate_to_qldate
@@ -227,16 +379,30 @@ def _build_objects(
     instruments_data: list[dict],
     positions_data: list[dict],
     yields_csv: Path,
+    prime_csv: Path,
 ) -> tuple[list, list]:
     """Construct Instrument and Position objects from raw dicts."""
+    import pandas as pd
+    import QuantLib as ql  # noqa: N813
+
     from brms.core.enums import BookType, MeasurementBasis, PositionSide
     from brms.core.models.instruments.bonds import FixedRateBond, TreasuryNote
     from brms.core.models.instruments.deposits import Cash, Deposit
     from brms.core.models.instruments.equity import CommonEquity
-    from brms.core.models.instruments.loans import ResidentialMortgage
+    from brms.core.models.instruments.loans import ResidentialMortgage, VariableRateLoan
     from brms.core.models.instruments.registry import InstrumentRegistry
+    from brms.core.models.market_data import MarketDataStore
     from brms.core.models.position import Position
+    from brms.core.services.benchmark_service import BenchmarkService
     from brms.core.services.data_service import _convert_kwargs
+
+    shared_yield_handle = ql.RelinkableYieldTermStructureHandle()
+    benchmark_service = BenchmarkService(forwarding_handle=shared_yield_handle)
+
+    prime_df = pd.read_csv(prime_csv, index_col="date", parse_dates=True)
+    temp_store = MarketDataStore()
+    temp_store.add_frame("benchmarks", prime_df)
+    benchmark_service.sync_up_to(date(2030, 1, 1), temp_store)
 
     registry = InstrumentRegistry()
     registry.register("cash", Cash)
@@ -245,6 +411,10 @@ def _build_objects(
     registry.register("treasury_note", TreasuryNote)
     registry.register("fixed_rate_bond", FixedRateBond)
     registry.register("residential_mortgage", ResidentialMortgage)
+    registry.register(
+        "variable_rate_loan",
+        lambda **kw: VariableRateLoan(ibor_index=benchmark_service.prime_index, **kw),
+    )
 
     instruments = []
     for item in instruments_data:
@@ -262,9 +432,7 @@ def _build_objects(
             inst.name = instrument_name
         instruments.append(inst)
 
-    # Set bond acquisition costs to QuantLib fair value at acquisition date
     _set_bond_fair_values(instruments, positions_data, yields_csv)
-    # Set loan acquisition costs to QL outstanding balance at acquisition date
     _set_loan_acquisition_costs(instruments, positions_data)
 
     positions = [
@@ -286,7 +454,7 @@ def _build_objects(
 def create_diversified_zip(data_folder: Path, out_path: Path | None = None) -> Path:
     """Write the diversified simulation zip to *out_path* and return its path.
 
-    *data_folder* must contain ``treasury_yields.csv``.
+    *data_folder* must contain ``treasury_yields.csv`` and ``prime_rates.csv``.
     """
     import pandas as pd
 
@@ -294,19 +462,28 @@ def create_diversified_zip(data_folder: Path, out_path: Path | None = None) -> P
 
     out_path = out_path or _OUT_PATH
     yields_csv = data_folder / "treasury_yields.csv"
+    prime_csv = data_folder / "prime_rates.csv"
+
+    if not prime_csv.exists():
+        prime_csv = _PRIME_CSV_DEFAULT
+    if not prime_csv.exists():
+        msg = f"Prime rate CSV not found at {prime_csv}"
+        raise FileNotFoundError(msg)
 
     instruments_data = copy.deepcopy(INSTRUMENTS)
     positions_data = copy.deepcopy(POSITIONS)
-    instruments, positions = _build_objects(instruments_data, positions_data, yields_csv)
+    instruments, positions = _build_objects(instruments_data, positions_data, yields_csv, prime_csv)
 
     yields_df = pd.read_csv(yields_csv, index_col="date", parse_dates=True)
+    prime_df = pd.read_csv(prime_csv, index_col="date", parse_dates=True)
+
     snapshot = SimulationBuilder().build(
         BuildConfig(
             name="Diversified Bank",
             start_date=date.fromisoformat(_START_DATE),
             instruments=instruments,
             positions=positions,
-            market_frames={"yields": yields_df},
+            market_frames={"yields": yields_df, "benchmarks": prime_df},
         ),
     )
 
@@ -339,6 +516,7 @@ def create_diversified_zip(data_folder: Path, out_path: Path | None = None) -> P
             msg = f"Treasury yields CSV not found at {yields_csv}"
             raise FileNotFoundError(msg)
         zf.write(yields_csv, "yields.csv")
+        zf.writestr("benchmarks.csv", prime_df.to_csv())
 
     return out_path
 
@@ -349,12 +527,11 @@ def _extract_yields_from_existing_zip() -> Path:
 
     existing = _DATA_DIR / "htm_treasury.zip"
     if not existing.exists():
-        msg = f"Cannot find {existing} — needed for yield curve data"
+        msg = f"Cannot find {existing} -- needed for yield curve data"
         raise FileNotFoundError(msg)
     tmp_dir = Path(tempfile.mkdtemp())
     with zipfile.ZipFile(existing) as zf:
         zf.extract("yields.csv", tmp_dir)
-    # Rename to treasury_yields.csv to match expected name
     (tmp_dir / "yields.csv").rename(tmp_dir / "treasury_yields.csv")
     return tmp_dir
 
