@@ -57,6 +57,7 @@ class TimeSeriesPlotWidget(QWidget):
         self._line_data: dict[str, tuple[list, list]] = {}
         self._legend_artist_to_title: dict[int, str] = {}
         self._annotations: list = []
+        self._vline: Line2D | None = None
 
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
@@ -128,7 +129,21 @@ class TimeSeriesPlotWidget(QWidget):
         self._update_annotations(dates)
         self.canvas.draw_idle()
 
+    def set_marker(self, date: datetime.date | None) -> None:
+        """Draw or remove a vertical marker line at *date*."""
+        if self._vline is not None:
+            self._vline.remove()
+            self._vline = None
+        if date is not None:
+            self._vline = self.ax.axvline(
+                pd.Timestamp(date), color=self.styler.text_muted, linestyle="--", linewidth=0.8, alpha=0.7,
+            )
+        self.canvas.draw_idle()
+
     def clear_plot(self) -> None:
+        if self._vline is not None:
+            self._vline.remove()
+            self._vline = None
         for line in self.lines.values():
             line.set_data([], [])
         self._line_data.clear()

@@ -1,15 +1,18 @@
-"""Controller for the Interest Rate tab — table + time-series plot of benchmark rates."""
+"""Controller for the Interest Rate tab -- table + time-series plot of benchmark rates."""
 
 from __future__ import annotations
 
-import datetime
 from typing import TYPE_CHECKING
+
+from PySide6.QtCore import QItemSelectionModel, Qt
 
 from brms.app.controllers.base import BRMSController
 from brms.app.models.interest_rate_model import InterestRateModel
 from brms.core.events import DateAdvanced
 
 if TYPE_CHECKING:
+    import datetime
+
     from brms.app.views.interest_rate import BRMSInterestRateWidget
     from brms.core.events import EventBus
     from brms.core.models.market_data import MarketDataStore
@@ -26,6 +29,7 @@ class InterestRateTabController(BRMSController):
         start_date: datetime.date | None = None,
         end_date: datetime.date | None = None,
     ) -> None:
+        """Initialise controller and wire signals."""
         super().__init__()
         self.view = view
         self._event_bus = event_bus
@@ -42,23 +46,30 @@ class InterestRateTabController(BRMSController):
 
         self._event_bus.subscribe(DateAdvanced, self._on_date_advanced)
         self.view.visibility_changed.connect(self._flush_if_dirty)
+        self.view.table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
 
     def reset(self) -> None:
-        self.model.blockSignals(True)
+        """Clear all state for a new simulation load."""
+        self.model.blockSignals(True)  # noqa: FBT003
         self.model.reset()
-        self.model.blockSignals(False)
+        self.model.blockSignals(False)  # noqa: FBT003
         self._plot_dates.clear()
         self._plot_values = {"Prime": []}
         self.view.plot_widget.clear_plot()
 
     def init(self) -> None:
-        """Populate the table from the benchmarks frame and hide future rows."""
+        """Populate the table from the benchmarks frame (filtered to sim window)."""
         if self._market_data.has_frame("benchmarks"):
-            self.model.update_from_dataframe(self._market_data.get_frame("benchmarks"))
+            self.model.update_from_dataframe(
+                self._market_data.get_frame("benchmarks"),
+                start_date=self._start_date,
+                end_date=self._end_date,
+            )
             self._hide_future_rows(None)
 
     def _on_date_advanced(self, event: DateAdvanced) -> None:
         self._hide_future_rows(event.date)
+        self._select_row_for_date(event.date)
         self._append_rate(event.date)
         if self.view.is_visible:
             self._refresh_plot()
@@ -88,8 +99,36 @@ class InterestRateTabController(BRMSController):
             self._refresh_plot()
 
     def on_visible(self) -> None:
+        """Flush deferred plot updates when the tab becomes visible."""
         if self._plots_dirty:
             self._refresh_plot()
+
+    def _select_row_for_date(self, target: datetime.date) -> None:
+        """Select and scroll to the row matching *target*."""
+        dates = self.model.reference_dates()
+        for i, d in enumerate(dates):
+            if d == target:
+                idx = self.model.index(i, 0)
+                self.view.table_view.selectionModel().setCurrentIndex(
+                    idx,
+                    QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
+                )
+                return
+
+    def _on_selection_changed(self) -> None:
+        """When the user selects a table row, draw a vertical marker on the plot."""
+        indexes = self.view.table_view.selectionModel().selectedRows()
+        if not indexes:
+            self.view.plot_widget.set_marker(None)
+            return
+        row = indexes[0].row()
+        date_str = self.model.headerData(row, Qt.Vertical)
+        if date_str is None:
+            return
+        import datetime
+
+        selected_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        self.view.plot_widget.set_marker(selected_date)
 
     def _hide_future_rows(self, current_date: datetime.date | None) -> None:
         dates = self.model.reference_dates()

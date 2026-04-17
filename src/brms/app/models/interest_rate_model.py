@@ -26,13 +26,27 @@ class InterestRateModel(QAbstractTableModel):
     def reference_dates(self) -> list[datetime.date]:
         return list(self._dates)
 
-    def update_from_dataframe(self, benchmarks_df) -> None:
-        """Load from a date-indexed DataFrame (columns like 'DPRIME')."""
+    def update_from_dataframe(
+        self,
+        benchmarks_df,
+        start_date: datetime.date | None = None,
+        end_date: datetime.date | None = None,
+    ) -> None:
+        """Load from a date-indexed DataFrame, filtered to ``[start_date, end_date]``."""
+        import pandas as pd
+
         self.beginResetModel()
         self._columns = list(benchmarks_df.columns)
-        self._dates = [idx.date() if hasattr(idx, "date") else idx for idx in benchmarks_df.index]
+
+        df = benchmarks_df
+        if start_date is not None:
+            df = df[df.index >= pd.Timestamp(start_date)]
+        if end_date is not None:
+            df = df[df.index <= pd.Timestamp(end_date)]
+
+        self._dates = [idx.date() if hasattr(idx, "date") else idx for idx in df.index]
         self._data = {}
-        for idx, row in benchmarks_df.iterrows():
+        for idx, row in df.iterrows():
             dt = idx.date() if hasattr(idx, "date") else idx
             self._data[dt] = [row[c] for c in self._columns]
         self.endResetModel()
