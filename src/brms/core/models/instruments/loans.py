@@ -338,7 +338,12 @@ class VariableRateLoan(Instrument):
     def payment_schedule(
         self,
     ) -> tuple[list[tuple[datetime.date, float]], list[tuple[datetime.date, float]], list[tuple[datetime.date, float]]]:
-        """Interest, principal, and outstanding schedules from QL cashflows."""
+        """Interest, principal, and outstanding schedules from QL cashflows.
+
+        Interest amounts for future coupons may be unavailable if the index's
+        forwarding curve is not yet linked; those coupons are skipped.
+        Principal/redemption cashflows are always deterministic.
+        """
         interest: list[tuple[datetime.date, float]] = []
         principal: list[tuple[datetime.date, float]] = []
         outstanding: list[tuple[datetime.date, float]] = []
@@ -346,11 +351,14 @@ class VariableRateLoan(Instrument):
         running = self._face_value
         for cf in self.instrument.cashflows():
             d = qldate_to_pydate(cf.date())
-            amt = cf.amount()
             coupon = ql.as_coupon(cf)
             if coupon is not None:
-                interest.append((d, amt))
+                try:
+                    interest.append((d, cf.amount()))
+                except RuntimeError:
+                    pass
             else:
+                amt = cf.amount()
                 principal.append((d, amt))
                 running -= amt
                 outstanding.append((d, running))

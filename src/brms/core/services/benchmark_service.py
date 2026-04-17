@@ -24,9 +24,9 @@ class BenchmarkService:
 
     _PRIME_COLUMN = "DPRIME"
 
-    def __init__(self) -> None:
+    def __init__(self, forwarding_handle: ql.YieldTermStructureHandle | None = None) -> None:
         """Initialise with a fresh PrimeIndex and no synced state."""
-        self._prime_index = PrimeIndex()
+        self._prime_index = PrimeIndex(forwarding=forwarding_handle)
         self._last_synced_date: datetime.date | None = None
 
     @property

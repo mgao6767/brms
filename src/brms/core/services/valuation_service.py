@@ -30,9 +30,10 @@ class ValuationService:
         self,
         strategies: dict[MeasurementBasis, ValuationStrategy] | None = None,
         benchmark_service: BenchmarkService | None = None,
+        yield_handle: ql.RelinkableYieldTermStructureHandle | None = None,
     ) -> None:
         """Initialise with an optional strategy mapping and a shared context."""
-        self._yield_handle: ql.RelinkableYieldTermStructureHandle = ql.RelinkableYieldTermStructureHandle()
+        self._yield_handle = yield_handle or ql.RelinkableYieldTermStructureHandle()
         self._strategies: dict[MeasurementBasis, ValuationStrategy] = dict(strategies) if strategies else {}
         self._context: ValuationContext = ValuationContext(self._yield_handle, benchmark_service=benchmark_service)
 
