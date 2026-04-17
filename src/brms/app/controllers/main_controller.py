@@ -16,6 +16,7 @@ from brms.app.controllers.base import BRMSController
 from brms.app.controllers.dashboard_controller import DashboardController
 from brms.app.controllers.inspector_controller import InspectorController
 from brms.app.controllers.interest_rate_risk_controller import InterestRateRiskController
+from brms.app.controllers.interest_rate_tab_controller import InterestRateTabController
 from brms.app.controllers.statement_controller import StatementController
 from brms.app.controllers.transaction_history_controller import TransactionHistoryController
 from brms.app.controllers.yield_curve_controller import YieldCurveController
@@ -45,6 +46,7 @@ class MainController(BRMSController):
         self.statement_ctrl: StatementController
         self.bank_ctrl: BankController
         self.yield_curve_ctrl: YieldCurveController
+        self.interest_rate_tab_ctrl: InterestRateTabController
         self.interest_rate_risk_ctrl: InterestRateRiskController
 
         # Simulation timer
@@ -81,6 +83,7 @@ class MainController(BRMSController):
             self.statement_ctrl.reset()
             self.bank_ctrl.reset()
             self.yield_curve_ctrl.reset()
+            self.interest_rate_tab_ctrl.reset()
 
         self.services = services
         self.on_pause_action()
@@ -139,6 +142,13 @@ class MainController(BRMSController):
             event_bus=eb,
             market_data=services.market_data,
         )
+        self.interest_rate_tab_ctrl = InterestRateTabController(
+            view=view.interest_rate_tab_widget,
+            event_bus=eb,
+            market_data=services.market_data,
+            start_date=start_date,
+            end_date=end_date,
+        )
         self.interest_rate_risk_ctrl = InterestRateRiskController(
             view=view.interest_rate_risk_widget,
             event_bus=eb,
@@ -154,6 +164,7 @@ class MainController(BRMSController):
         self.transaction_history_ctrl.load_initial()
         self.dashboard_ctrl.init()
         self.yield_curve_ctrl.init()
+        self.interest_rate_tab_ctrl.init()
         self.interest_rate_risk_ctrl.init(start_date)
 
         # Advance first day so dashboard metrics and plots are populated
