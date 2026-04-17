@@ -22,6 +22,7 @@ class InstrumentType(Enum):
     COMMITMENT = auto()
     REPURCHASE_AGREEMENT = auto()
     LETTER_OF_CREDIT = auto()
+    VARIABLE_RATE_LOAN = auto()
 
 
 class BookType(Enum):

@@ -52,7 +52,9 @@ class ZipLoaderConfig:
     config_file: str = "config.json"
     instruments_file: str = "instruments.json"
     positions_file: str = "positions.json"
-    market_data_mapping: dict[str, str] = field(default_factory=lambda: {"yields": "yields.csv"})
+    market_data_mapping: dict[str, str] = field(
+        default_factory=lambda: {"yields": "yields.csv", "benchmarks": "benchmarks.csv"},
+    )
 
 
 class ZipLoader:
@@ -160,6 +162,9 @@ class ZipLoader:
 
     def _load_market_data(self, zf: zipfile.ZipFile) -> dict[str, pd.DataFrame]:
         frames: dict[str, pd.DataFrame] = {}
+        namelist = zf.namelist()
         for frame_name, filename in self._config.market_data_mapping.items():
+            if filename not in namelist:
+                continue
             frames[frame_name] = pd.read_csv(BytesIO(zf.read(filename)), index_col="date", parse_dates=True)
         return frames

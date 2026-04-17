@@ -12,14 +12,20 @@ if TYPE_CHECKING:
     import datetime
 
     from brms.core.models.market_data import MarketDataStore
+    from brms.core.services.benchmark_service import BenchmarkService
 
 
 class ValuationContext:
     """Holds the shared valuation state (date, market data, term structure) for a single valuation run."""
 
-    def __init__(self, yield_handle: ql.RelinkableYieldTermStructureHandle) -> None:
+    def __init__(
+        self,
+        yield_handle: ql.RelinkableYieldTermStructureHandle,
+        benchmark_service: BenchmarkService | None = None,
+    ) -> None:
         """Initialise the context with a pre-created relinkable yield handle."""
         self._yield_handle = yield_handle
+        self._benchmark_service = benchmark_service
         self.market_data: MarketDataStore | None = None
         self.date: datetime.date | None = None
 
@@ -35,6 +41,9 @@ class ValuationContext:
 
         ql_date = ql.Date(date.day, date.month, date.year)
         ql.Settings.instance().evaluationDate = ql_date
+
+        if self._benchmark_service is not None:
+            self._benchmark_service.sync_up_to(date, market_data)
 
         try:
             # market_data can be MarketDataStore or MarketState

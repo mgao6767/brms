@@ -56,6 +56,10 @@ class MarketDataStore:
             return MarketState(date, self)
         return None
 
+    def frame_names(self) -> set[str]:
+        """Names of all registered frames."""
+        return set(self._frames.keys())
+
     def available_dates(self) -> list[datetime.date]:
         """Return sorted list of dates present in all registered frames."""
         if not self._frames:
@@ -95,6 +99,11 @@ class MarketState:
     def fx_rates(self) -> pd.Series:
         """FX rate data as a Series (view, not copy)."""
         return self._store.get_frame("fx").loc[self._ts]
+
+    @property
+    def benchmarks(self) -> pd.Series:
+        """Benchmark rates for this date (e.g. DPRIME). Values in percent as stored."""
+        return self._store.get_frame("benchmarks").loc[self._ts]
 
     def get(self, frame_name: str) -> pd.Series:
         """Return a row from the named frame for this state's date."""

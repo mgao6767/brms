@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import QuantLib as ql  # noqa: N813
 
 from brms.core.enums import MeasurementBasis
+from brms.core.models.benchmarks import BenchmarkFamily, PrincipalRepaymentMode
 from brms.core.models.instruments.base import BookType, CreditRating, Issuer, IssuerType
 from brms.core.models.instruments.registry import InstrumentRegistry
 
@@ -25,7 +26,15 @@ _PERIOD_UNIT_MAP: dict[str, int] = {
     "D": ql.Days,
 }
 
-def _convert_kwargs(kwargs: dict[str, object]) -> dict[str, object]:
+_PERIOD_FIELDS = frozenset({"payment_frequency", "repricing_frequency"})
+
+_DAY_COUNT_MAP: dict[str, ql.DayCounter] = {
+    "ACT/365": ql.Actual365Fixed(),
+    "ACT/360": ql.Actual360(),
+    "30/360": ql.Thirty360(ql.Thirty360.BondBasis),
+}
+
+def _convert_kwargs(kwargs: dict[str, object]) -> dict[str, object]:  # noqa: C901, PLR0912
     """Convert JSON-friendly values to QuantLib types expected by instrument constructors.
 
     * Fields ending with ``_date``: ISO date string -> ``ql.Date``.
@@ -61,6 +70,20 @@ def _convert_kwargs(kwargs: dict[str, object]) -> dict[str, object]:
             issuer_type = IssuerType[value["issuer_type"]]
             cr = CreditRating[value["credit_rating"]] if "credit_rating" in value else None
             kwargs[key] = Issuer(name=value["name"], issuer_type=issuer_type, credit_rating=cr)
+
+        elif key in _PERIOD_FIELDS and isinstance(value, str):
+            m = _PERIOD_RE.match(value)
+            if m:
+                kwargs[key] = ql.Period(int(m.group(1)), _PERIOD_UNIT_MAP[m.group(2).upper()])
+
+        elif key == "benchmark_family" and isinstance(value, str):
+            kwargs[key] = BenchmarkFamily(value)
+
+        elif key == "principal_repayment_mode" and isinstance(value, str):
+            kwargs[key] = PrincipalRepaymentMode(value)
+
+        elif key == "day_count" and isinstance(value, str):
+            kwargs[key] = _DAY_COUNT_MAP[value]
 
     return kwargs
 
