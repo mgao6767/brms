@@ -39,6 +39,8 @@ class CoreServices:
 
 def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     """Instantiate and wire all core services. Returns a frozen CoreServices."""
+    import QuantLib as ql_  # noqa: N813
+
     from brms.core.events import EventBus
     from brms.core.metrics import default_metrics
     from brms.core.metrics.base import MetricRegistry
@@ -50,6 +52,7 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     from brms.core.models.market_data import MarketDataStore
     from brms.core.rules import default_rules
     from brms.core.services.accounting_service import AccountingService
+    from brms.core.services.benchmark_service import BenchmarkService
     from brms.core.services.data_service import DataService
     from brms.core.services.loaders import ZipLoader
     from brms.core.services.metrics_service import MetricsService
@@ -67,9 +70,24 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
 
     event_bus = EventBus()
     instrument_registry = default_instrument_registry()
+
+    shared_yield_handle = ql_.RelinkableYieldTermStructureHandle()
+    benchmark_service = BenchmarkService(forwarding_handle=shared_yield_handle)
+
+    from brms.core.models.instruments.loans import VariableRateLoan
+
+    instrument_registry.register(
+        "variable_rate_loan",
+        lambda **kw: VariableRateLoan(ibor_index=benchmark_service.prime_index, **kw),
+    )
+
     rule_engine = RuleEngine(default_rules())
     metric_registry = MetricRegistry(default_metrics())
-    valuation_service = ValuationService(default_valuation_strategies())
+    valuation_service = ValuationService(
+        default_valuation_strategies(),
+        benchmark_service=benchmark_service,
+        yield_handle=shared_yield_handle,
+    )
 
     accounting_service = AccountingService()
     metrics_service = MetricsService(metric_registry)

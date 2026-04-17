@@ -1,0 +1,74 @@
+"""BenchmarkService: syncs Prime fixings from MarketDataStore into QL's IndexManager."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import pandas as pd
+import QuantLib as ql  # noqa: N813
+
+from brms.core.models.benchmarks import PrimeIndex
+
+if TYPE_CHECKING:
+    import datetime
+
+    from brms.core.models.market_data import MarketDataStore
+
+
+class BenchmarkService:
+    """Keeps the QL PrimeIndex fixing history in sync with MarketDataStore.
+
+    The MarketDataStore is authoritative. This service projects the 'benchmarks'
+    frame into QL's global IndexManager, one-way and incrementally.
+    """
+
+    _PRIME_COLUMN = "DPRIME"
+
+    def __init__(self, forwarding_handle: ql.YieldTermStructureHandle | None = None) -> None:
+        """Initialise with a fresh PrimeIndex and no synced state."""
+        self._prime_index = PrimeIndex(forwarding=forwarding_handle)
+        self._last_synced_date: datetime.date | None = None
+
+    @property
+    def prime_index(self) -> PrimeIndex:
+        """The shared PrimeIndex instance whose fixings this service manages."""
+        return self._prime_index
+
+    def sync_up_to(self, date: datetime.date, market_data: MarketDataStore) -> None:
+        """Append fixings from the store that aren't yet in the QL index."""
+        if not market_data.has_frame("benchmarks"):
+            return
+        benchmarks = market_data.get_frame("benchmarks")
+        if self._PRIME_COLUMN not in benchmarks.columns:
+            return
+
+        ts = pd.Timestamp(date)
+        if self._last_synced_date is None:
+            mask = benchmarks.index <= ts
+        else:
+            last_ts = pd.Timestamp(self._last_synced_date)
+            mask = (benchmarks.index > last_ts) & (benchmarks.index <= ts)
+
+        new_rows = benchmarks.loc[mask, self._PRIME_COLUMN].dropna()
+        if new_rows.empty:
+            self._last_synced_date = date
+            return
+
+        calendar = self._prime_index.fixingCalendar()
+        ql_dates = []
+        ql_rates = []
+        for d, r in zip(new_rows.index, new_rows.to_numpy(), strict=False):
+            qd = ql.Date(d.day, d.month, d.year)
+            if calendar.isBusinessDay(qd):
+                ql_dates.append(qd)
+                ql_rates.append(float(r) / 100.0)
+        if not ql_dates:
+            self._last_synced_date = date
+            return
+        self._prime_index.addFixings(ql_dates, ql_rates, forceOverwrite=True)
+        self._last_synced_date = date
+
+    def reset(self) -> None:
+        """Clear QL's fixing history for this index. For test isolation."""
+        ql.IndexManager.instance().clearHistory(self._prime_index.name())
+        self._last_synced_date = None

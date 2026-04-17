@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
     from brms.core.models.bank import Bank
     from brms.core.models.market_data import MarketDataStore
+    from brms.core.services.benchmark_service import BenchmarkService
     from brms.core.services.valuation_strategies import ValuationStrategy
     from brms.core.stores.valuation_store import ValuationStore
 
@@ -25,11 +26,16 @@ class ValuationService:
     rebuilding the term structure multiple times per date.
     """
 
-    def __init__(self, strategies: dict[MeasurementBasis, ValuationStrategy] | None = None) -> None:
+    def __init__(
+        self,
+        strategies: dict[MeasurementBasis, ValuationStrategy] | None = None,
+        benchmark_service: BenchmarkService | None = None,
+        yield_handle: ql.RelinkableYieldTermStructureHandle | None = None,
+    ) -> None:
         """Initialise with an optional strategy mapping and a shared context."""
-        self._yield_handle: ql.RelinkableYieldTermStructureHandle = ql.RelinkableYieldTermStructureHandle()
+        self._yield_handle = yield_handle or ql.RelinkableYieldTermStructureHandle()
         self._strategies: dict[MeasurementBasis, ValuationStrategy] = dict(strategies) if strategies else {}
-        self._context: ValuationContext = ValuationContext(self._yield_handle)
+        self._context: ValuationContext = ValuationContext(self._yield_handle, benchmark_service=benchmark_service)
 
     def register_strategy(self, measurement_basis: MeasurementBasis, strategy: ValuationStrategy) -> None:
         """Register *strategy* for positions of *measurement_basis*."""

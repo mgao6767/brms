@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond
     from brms.core.models.instruments.deposits import Cash, Deposit
     from brms.core.models.instruments.equity import CommonEquity
-    from brms.core.models.instruments.loans import AmortizingFixedRateLoan, CreditCard, PersonalLoan
+    from brms.core.models.instruments.loans import AmortizingFixedRateLoan, CreditCard, PersonalLoan, VariableRateLoan
     from brms.core.models.market_data import MarketState
 
 
@@ -73,6 +73,10 @@ class ValuationVisitor(Visitor):
     @abstractmethod
     def visit_credit_card(self, instrument: "CreditCard") -> None:
         """Value a credit card."""
+
+    def visit_variable_rate_loan(self, instrument: "VariableRateLoan") -> None:
+        """Value a variable rate loan — delegates to the same amortizing-loan path."""
+        self.visit_amortizing_fixed_rate_loan(instrument)  # type: ignore[arg-type]
 
     def _value_fair_value_security(self, instrument: Union["FixedRateBond", "AmortizingFixedRateLoan"]) -> float:
         if self.valuation_date is None:

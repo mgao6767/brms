@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import datetime
 from functools import cache
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import QuantLib as ql  # noqa: N813
 
 from brms.core.enums import InstrumentType
+from brms.core.models.benchmarks import BenchmarkFamily, PrincipalRepaymentMode
 from brms.core.models.instruments.base import Instrument, MeasurementBasis
 from brms.core.rules.amortization import AmortizationRule
 from brms.core.rules.interest_accrual import InterestIncomeAccrualRule
@@ -38,11 +39,11 @@ class AmortizingFixedRateLoan(Instrument):
         calendar: ql.Calendar = ql.NullCalendar(),  # noqa: B008
         day_count: ql.DayCounter = ql.Thirty360(ql.Thirty360.BondBasis),  # noqa: B008
         business_convention: int = ql.Unadjusted,
-        book_type: Optional["BookType"] = None,
-        credit_rating: Optional["CreditRating"] = None,
-        issuer: Optional["Issuer"] = None,
-        parent: Optional["Instrument"] = None,
-        measurement_basis: Optional["MeasurementBasis"] = None,
+        book_type: BookType | None = None,
+        credit_rating: CreditRating | None = None,
+        issuer: Issuer | None = None,
+        parent: Instrument | None = None,
+        measurement_basis: MeasurementBasis | None = None,
     ) -> None:
         """Build a fixed rate amortizing loan object.
 
@@ -208,3 +209,165 @@ class CreditCard(Instrument):
     def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""
         visitor.visit_credit_card(self)  # type: ignore[union-attr]
+
+
+# ---------------------------------------------------------------------------
+# Variable-rate loans
+# ---------------------------------------------------------------------------
+
+
+def _build_notionals(
+    face_value: float,
+    n_periods: int,
+    mode: PrincipalRepaymentMode,
+) -> list[float]:
+    """Build notional schedule for each coupon period."""
+    if mode == PrincipalRepaymentMode.BULLET:
+        return [float(face_value)] * n_periods
+    if mode == PrincipalRepaymentMode.SINKING:
+        return [float(face_value) * (1.0 - i / n_periods) for i in range(n_periods)]
+    msg = f"Unsupported principal_repayment_mode: {mode}"
+    raise NotImplementedError(msg)
+
+
+class VariableRateLoan(Instrument):
+    """Benchmark-indexed variable-rate loan backed by ``ql.AmortizingFloatingRateBond``."""
+
+    applicable_rules = frozenset({InterestIncomeAccrualRule, LoanInterestSettlementRule, AmortizationRule})
+    _instrument_type_label = "Variable Rate Loan"
+
+    def __init__(  # noqa: PLR0913
+        self,
+        face_value: float,
+        spread: float,
+        issue_date: ql.Date,
+        maturity: ql.Period,
+        ibor_index: ql.IborIndex,
+        repricing_frequency: ql.Period | None = None,
+        payment_frequency: ql.Period | None = None,
+        principal_repayment_mode: PrincipalRepaymentMode = PrincipalRepaymentMode.BULLET,
+        floor_rate: float | None = None,
+        cap_rate: float | None = None,
+        benchmark_family: BenchmarkFamily = BenchmarkFamily.PRIME,
+        settlement_days: int = 0,
+        calendar: ql.Calendar | None = None,
+        day_count: ql.DayCounter | None = None,
+        business_convention: int = ql.ModifiedFollowing,
+        book_type: BookType | None = None,
+        credit_rating: CreditRating | None = None,
+        issuer: Issuer | None = None,
+        parent: Instrument | None = None,
+        measurement_basis: MeasurementBasis | None = MeasurementBasis.AMORTIZED_COST,
+    ) -> None:
+        """Build a variable-rate loan from contract terms and a shared IborIndex."""
+        repricing_frequency = repricing_frequency or ql.Period(1, ql.Months)
+        maturity_date_str = qldate_to_string(issue_date + maturity)
+        name = f"Prime+{spread * 100:.0f}bp {maturity_date_str} {self._instrument_type_label}"
+        super().__init__(
+            name,
+            book_type,
+            credit_rating,
+            issuer,
+            parent,
+            measurement_basis=measurement_basis,
+            repricing_frequency=repricing_frequency,
+        )
+        self.instrument_type = InstrumentType.VARIABLE_RATE_LOAN
+        self._face_value = float(face_value)
+        self.spread = float(spread)
+        self.floor_rate = floor_rate
+        self.cap_rate = cap_rate
+        self.benchmark_family = benchmark_family
+        self.principal_repayment_mode = principal_repayment_mode
+        self._issue_date = qldate_to_pydate(issue_date)
+        self._maturity_date = qldate_to_pydate(issue_date + maturity)
+
+        calendar = calendar or ql.UnitedStates(ql.UnitedStates.FederalReserve)
+        day_count = day_count or ql.Actual365Fixed()
+        payment_frequency = payment_frequency or repricing_frequency
+
+        self._schedule = ql.Schedule(
+            issue_date,
+            issue_date + maturity,
+            payment_frequency,
+            calendar,
+            business_convention,
+            business_convention,
+            ql.DateGeneration.Forward,
+            False,  # noqa: FBT003
+        )
+        n_periods = len(list(self._schedule)) - 1
+        notionals = _build_notionals(self._face_value, n_periods, principal_repayment_mode)
+
+        self.instrument = ql.AmortizingFloatingRateBond(
+            settlement_days,
+            notionals,
+            self._schedule,
+            ibor_index,
+            day_count,
+            business_convention,
+            0,
+            [1.0] * n_periods,
+            [float(spread)] * n_periods,
+            [] if cap_rate is None else [float(cap_rate)] * n_periods,
+            [] if floor_rate is None else [float(floor_rate)] * n_periods,
+            False,  # noqa: FBT003
+            issue_date,
+        )
+        self.ql_instrument = self.instrument
+
+    @property
+    def face_value(self) -> float:
+        """Original face value of the loan."""
+        return self._face_value
+
+    @property
+    def issue_date(self) -> datetime.date:
+        """Issue date of the loan."""
+        return self._issue_date
+
+    @property
+    def maturity_date(self) -> datetime.date:
+        """Maturity date of the loan."""
+        return self._maturity_date
+
+    def notional(self, date: datetime.date) -> float:
+        """Outstanding notional as of *date*."""
+        return self.instrument.notional(pydate_to_qldate(date))
+
+    def payment_schedule(
+        self,
+    ) -> tuple[list[tuple[datetime.date, float]], list[tuple[datetime.date, float]], list[tuple[datetime.date, float]]]:
+        """Interest, principal, and outstanding schedules from QL cashflows.
+
+        Interest amounts for future coupons may be unavailable if the index's
+        forwarding curve is not yet linked; those coupons are skipped.
+        Principal/redemption cashflows are always deterministic.
+        """
+        interest: list[tuple[datetime.date, float]] = []
+        principal: list[tuple[datetime.date, float]] = []
+        outstanding: list[tuple[datetime.date, float]] = []
+
+        running = self._face_value
+        for cf in self.instrument.cashflows():
+            d = qldate_to_pydate(cf.date())
+            coupon = ql.as_coupon(cf)
+            if coupon is not None:
+                try:
+                    interest.append((d, cf.amount()))
+                except RuntimeError:
+                    pass
+            else:
+                amt = cf.amount()
+                principal.append((d, amt))
+                running -= amt
+                outstanding.append((d, running))
+        return interest, principal, outstanding
+
+    def set_pricing_engine(self, engine: ql.PricingEngine) -> None:
+        """Set the pricing engine for NPV calculations."""
+        self.instrument.setPricingEngine(engine)
+
+    def accept(self, visitor: Visitor) -> None:
+        """Accept a visitor."""
+        visitor.visit_variable_rate_loan(self)

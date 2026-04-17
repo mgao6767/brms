@@ -22,6 +22,7 @@ from brms.app.views.bank_book import BRMSCombinedBookWidget
 from brms.app.views.calculators import BRMSBondCalculatorWidget, BRMSMortgageCalculatorWidget
 from brms.app.views.dashboard import BRMSDashboard
 from brms.app.views.inspector import BRMSInspectorWidget
+from brms.app.views.interest_rate import BRMSInterestRateWidget
 from brms.app.views.interest_rate_risk import BRMSInterestRateRiskWidget
 from brms.app.views.rwa_credit_risk import BRMSRWACreditRiskWidget
 from brms.app.views.statement_viewer import BRMSStatementViewer
@@ -52,6 +53,7 @@ class MainWindow(QMainWindow):
         self.statement_viewer_widget: BRMSStatementViewer
         self._dock_widgets: list[BRMSDockWidget] = []
         self.yield_curve_widget = BRMSYieldCurveWidget(self)
+        self.interest_rate_tab_widget = BRMSInterestRateWidget(self)
         self.bond_calculator_widget: BRMSBondCalculatorWidget | None = None
         self.mortgage_calculator_widget: BRMSMortgageCalculatorWidget | None = None
         self.transaction_history_widget: BRMSTransactionHistoryWidget
@@ -253,6 +255,7 @@ class MainWindow(QMainWindow):
         # Economic indicators at the bottom
         self.econ_indicator_tabs = QTabWidget(self)
         self.econ_indicator_tabs.addTab(self.yield_curve_widget, "Yield Curve")
+        self.econ_indicator_tabs.addTab(self.interest_rate_tab_widget, "Interest Rate")
         self.econ_indicator_tabs.addTab(QWidget(), "Stock Market")
         # Vertical splitter: bank tabs on top, economic indicators on bottom
         self.tab_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)

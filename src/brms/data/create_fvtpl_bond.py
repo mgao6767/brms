@@ -218,6 +218,7 @@ def create_fvtpl_zip(data_folder: Path, out_path: Path | None = None) -> Path:
                 {
                     "name": snapshot.name,
                     "start_date": snapshot.start_date.isoformat(),
+                    "end_date": "2025-12-31",
                 },
                 indent=2,
             ),
