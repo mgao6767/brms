@@ -54,8 +54,17 @@ class BenchmarkService:
             self._last_synced_date = date
             return
 
-        ql_dates = [ql.Date(d.day, d.month, d.year) for d in new_rows.index]
-        ql_rates = [float(r) / 100.0 for r in new_rows.to_numpy()]
+        calendar = self._prime_index.fixingCalendar()
+        ql_dates = []
+        ql_rates = []
+        for d, r in zip(new_rows.index, new_rows.to_numpy(), strict=False):
+            qd = ql.Date(d.day, d.month, d.year)
+            if calendar.isBusinessDay(qd):
+                ql_dates.append(qd)
+                ql_rates.append(float(r) / 100.0)
+        if not ql_dates:
+            self._last_synced_date = date
+            return
         self._prime_index.addFixings(ql_dates, ql_rates, forceOverwrite=True)
         self._last_synced_date = date
 

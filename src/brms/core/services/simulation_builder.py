@@ -29,6 +29,7 @@ _LOAN_TYPES = frozenset({
     InstrumentType.MORTGAGE,
     InstrumentType.AMORTIZING_FIXED_RATE_LOAN,
     InstrumentType.PERSONAL_LOAN,
+    InstrumentType.VARIABLE_RATE_LOAN,
 })
 
 
@@ -80,6 +81,8 @@ class SimulationBuilder:
         config: BuildConfig,
     ) -> tuple[BankChartOfAccounts, SimulationService, Bank, AccountingService]:
         """Instantiate and wire the full simulation engine."""
+        import QuantLib as ql  # noqa: N813
+
         from brms.core.events import EventBus
         from brms.core.metrics import default_metrics
         from brms.core.metrics.base import MetricRegistry
@@ -110,10 +113,21 @@ class SimulationBuilder:
         for name, df in config.market_frames.items():
             market_data.add_frame(name, df)
 
+        shared_yield_handle = ql.RelinkableYieldTermStructureHandle()
+        benchmark_service = None
+        if "benchmarks" in config.market_frames:
+            from brms.core.services.benchmark_service import BenchmarkService
+
+            benchmark_service = BenchmarkService(forwarding_handle=shared_yield_handle)
+
         sim = SimulationService(
             bank=bank,
             market_data=market_data,
-            valuation_service=ValuationService(default_valuation_strategies()),
+            valuation_service=ValuationService(
+                default_valuation_strategies(),
+                benchmark_service=benchmark_service,
+                yield_handle=shared_yield_handle,
+            ),
             rule_engine=RuleEngine(default_rules()),
             accounting_service=accounting_service,
             metrics_service=MetricsService(MetricRegistry(default_metrics())),
