@@ -212,12 +212,16 @@ class MainController(BRMSController):
         self.view.close()
 
     def on_advance(self) -> None:
-        """Advance simulation by one step."""
+        """Advance simulation by one step, batching event dispatch."""
+        self.view.setUpdatesEnabled(False)
         try:
-            self.services.simulation_service.advance()
+            with self.services.event_bus.batch():
+                self.services.simulation_service.advance()
         except IndexError:
             logger.info("No more dates; pausing.")
             self.on_pause_action()
+        finally:
+            self.view.setUpdatesEnabled(True)
 
     def on_run_pause_toggle(self) -> None:
         """Toggle between running and paused based on the timer state."""
@@ -250,7 +254,7 @@ class MainController(BRMSController):
         self.simulation_timer.stop()
 
     def _on_speed_changed(self, text: str) -> None:
-        """Handle speed dropdown change (e.g. '2x' → 2.0)."""
+        """Handle speed dropdown change (e.g. '2x' → 250ms interval)."""
         multiplier = float(text.rstrip("x"))
         self.simulation_interval = int(self.simulation_base_interval / multiplier)
         self.simulation_timer.setInterval(self.simulation_interval)

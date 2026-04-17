@@ -124,3 +124,84 @@ def test_statements_changed_is_frozen() -> None:
 
     event = StatementsChanged(date=datetime.date(2024, 1, 1))
     assert event.date == datetime.date(2024, 1, 1)  # noqa: S101
+
+
+class TestEventBusBatch:
+    """Tests for EventBus batch context manager."""
+
+    def test_batch_queues_events(self) -> None:
+        """Events emitted inside batch() are held until the batch exits."""
+        bus = EventBus()
+        received: list[FakeEvent] = []
+        bus.subscribe(FakeEvent, lambda e: received.append(e))
+        with bus.batch():
+            bus.emit(FakeEvent(value=1))
+            bus.emit(FakeEvent(value=2))
+            assert received == []  # noqa: S101
+        assert len(received) == 2  # noqa: S101, PLR2004
+
+    def test_batch_preserves_order(self) -> None:
+        """Queued events flush in the order they were emitted."""
+        bus = EventBus()
+        received: list[int] = []
+        bus.subscribe(FakeEvent, lambda e: received.append(e.value))
+        with bus.batch():
+            bus.emit(FakeEvent(value=10))
+            bus.emit(FakeEvent(value=20))
+            bus.emit(FakeEvent(value=30))
+        assert received == [10, 20, 30]  # noqa: S101
+
+    def test_nested_batch_flushes_only_on_outermost_exit(self) -> None:
+        """Inner batch exit does not flush; only the outermost does."""
+        bus = EventBus()
+        received: list[int] = []
+        bus.subscribe(FakeEvent, lambda e: received.append(e.value))
+        with bus.batch():
+            bus.emit(FakeEvent(value=1))
+            with bus.batch():
+                bus.emit(FakeEvent(value=2))
+            assert received == []  # noqa: S101
+        assert received == [1, 2]  # noqa: S101
+
+    def test_immediate_outside_batch(self) -> None:
+        """Without a batch context, events dispatch immediately as before."""
+        bus = EventBus()
+        received: list[int] = []
+        bus.subscribe(FakeEvent, lambda e: received.append(e.value))
+        bus.emit(FakeEvent(value=99))
+        assert received == [99]  # noqa: S101
+
+    def test_secondary_events_during_flush_dispatch_immediately(self) -> None:
+        """Events emitted by handlers during flush fire immediately (depth is 0)."""
+
+        @dataclass(frozen=True)
+        class SecondaryEvent:
+            value: int
+
+        bus = EventBus()
+        order: list[str] = []
+        bus.subscribe(FakeEvent, lambda _e: (bus.emit(SecondaryEvent(value=2)), order.append("primary")))
+        bus.subscribe(SecondaryEvent, lambda _e: order.append("secondary"))
+        with bus.batch():
+            bus.emit(FakeEvent(value=1))
+        assert order == ["secondary", "primary"]  # noqa: S101
+
+    def test_empty_batch_is_noop(self) -> None:
+        """Entering and exiting a batch with no events is harmless."""
+        bus = EventBus()
+        with bus.batch():
+            pass
+
+    def test_exception_still_flushes(self) -> None:
+        """If code inside batch raises, queued events still flush via finally."""
+        bus = EventBus()
+        received: list[int] = []
+        bus.subscribe(FakeEvent, lambda e: received.append(e.value))
+        try:
+            with bus.batch():
+                bus.emit(FakeEvent(value=1))
+                msg = "boom"
+                raise RuntimeError(msg)  # noqa: TRY301
+        except RuntimeError:
+            pass
+        assert received == [1]  # noqa: S101

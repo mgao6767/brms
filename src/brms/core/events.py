@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import datetime
-    from collections.abc import Callable
+    from collections.abc import Callable, Generator
     from decimal import Decimal
 
     from brms.core.enums import MetricName
@@ -21,6 +22,8 @@ class EventBus:
     def __init__(self) -> None:
         """Initialize with an empty handler registry."""
         self._handlers: dict[type, list[Callable]] = defaultdict(list)
+        self._batch_depth: int = 0
+        self._queued: list = []
 
     def subscribe(self, event_type: type, handler: Callable) -> None:
         """Register a handler for the given event type."""
@@ -31,9 +34,34 @@ class EventBus:
         self._handlers[event_type].remove(handler)
 
     def emit(self, event: Any) -> None:  # noqa: ANN401
-        """Dispatch an event to all registered handlers for its type."""
+        """Dispatch an event, or queue it if inside a batch context."""
+        if self._batch_depth > 0:
+            self._queued.append(event)
+        else:
+            self._dispatch(event)
+
+    @contextmanager
+    def batch(self) -> Generator[None, None, None]:
+        """Queue events instead of dispatching. Flush on outermost exit."""
+        self._batch_depth += 1
+        try:
+            yield
+        finally:
+            self._batch_depth -= 1
+            if self._batch_depth == 0:
+                self._flush()
+
+    def _dispatch(self, event: Any) -> None:  # noqa: ANN401
+        """Call all handlers for a single event."""
         for handler in self._handlers[type(event)]:
             handler(event)
+
+    def _flush(self) -> None:
+        """Dispatch all queued events in order, then clear the queue."""
+        queued = self._queued
+        self._queued = []
+        for event in queued:
+            self._dispatch(event)
 
 
 # Domain events
