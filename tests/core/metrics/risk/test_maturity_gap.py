@@ -140,3 +140,28 @@ def test_delta_nii_computation() -> None:
     # gap in bucket 9 (3Y-4Y) = 1,000,000
     assert abs(result.delta_nii_up[9] - 1000000 * 0.02) < 0.01
     assert abs(result.delta_nii_down[9] - 1000000 * -0.02) < 0.01
+
+
+def test_variable_rate_loan_in_short_bucket() -> None:
+    """A monthly-repricing variable-rate loan lands in the 0-1M RSA bucket."""
+    as_of = datetime.date(2024, 3, 15)
+
+    loan = _make_instrument("ci-loan-1", InstrumentType.VARIABLE_RATE_LOAN, datetime.date(2029, 1, 2))
+    loan.repricing_date.return_value = datetime.date(2024, 4, 1)
+
+    pos = _make_position("pos-loan", "ci-loan-1", BookType.BANKING, PositionSide.LONG, 10_000_000)
+
+    bank = MagicMock()
+    bank.positions.open_positions.return_value = [pos]
+    bank.instruments.get.return_value = loan
+
+    valuation_store = MagicMock()
+    valuation_store.get.return_value = Decimal("10000000")
+
+    model = MaturityGapModel()
+    result = model.compute(bank, as_of, valuation_store)
+
+    # Bucket index 1 is 0-1M (index 0 is overnight)
+    assert result.rsa[1] == 10_000_000.0
+    assert result.rsa[0] == 0.0
+    assert result.total_rsa == 10_000_000.0
