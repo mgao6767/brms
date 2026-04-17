@@ -33,6 +33,7 @@ from pathlib import Path
 _DATA_DIR = Path(__file__).resolve().parent
 _OUT_PATH = _DATA_DIR / "ci_loan_prime.zip"
 _START_DATE = "2022-01-04"
+_END_DATE = "2025-12-31"
 _PRIME_CSV = Path(__file__).resolve().parents[3] / "temp" / "data" / "prime_rates.csv"
 
 _ISSUER_CORP = {"name": "Acme Manufacturing", "issuer_type": "CORPORATE", "credit_rating": "BBB"}
@@ -207,7 +208,11 @@ def create_ci_loan_prime_zip(out_path: Path | None = None) -> Path:
         zf.writestr(
             "config.json",
             json.dumps(
-                {"name": snapshot.name, "start_date": snapshot.start_date.isoformat()},
+                {
+                    "name": snapshot.name,
+                    "start_date": snapshot.start_date.isoformat(),
+                    "end_date": _END_DATE,
+                },
                 indent=2,
             ),
         )
