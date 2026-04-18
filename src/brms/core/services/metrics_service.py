@@ -30,7 +30,7 @@ class MetricsService:
     ) -> None:
         """Compute all registered metrics and write results to metric_store."""
         for metric in self._registry.all_metrics():
-            value = metric.compute(bank, market_state, valuation_store)
+            value = metric.compute(bank, market_state, valuation_store, date=date)
             metric_store.record(metric.name, date, value)
 
     def compute_all(
@@ -56,6 +56,6 @@ class MetricsService:
     ) -> Any:  # noqa: ANN401
         """Compute a single metric by name and write it to metric_store."""
         metric = self._registry.get(name)
-        value = metric.compute(bank, market_state, valuation_store)
+        value = metric.compute(bank, market_state, valuation_store, date=date)
         metric_store.record(metric.name, date, value)
         return value

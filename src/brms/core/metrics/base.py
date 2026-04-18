@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    import datetime
     from collections.abc import Iterable
 
     from brms.core.enums import MetricName
@@ -23,6 +24,7 @@ class Metric(Protocol):
         bank: Any,  # noqa: ANN401
         market_state: MarketState,
         valuation_store: ValuationStore,
+        date: datetime.date | None = None,
     ) -> Any:  # noqa: ANN401
         """Compute the metric value."""
         ...

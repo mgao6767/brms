@@ -1,12 +1,25 @@
 """Metrics package for BRMS bank simulation."""
 
-from brms.core.metrics.capital import TotalAssetsMetric, TotalEquityMetric, TotalLiabilitiesMetric
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from brms.core.metrics.capital import (
+    CET1RatioMetric,
+    TotalAssetsMetric,
+    TotalEquityMetric,
+    TotalLiabilitiesMetric,
+)
+
+if TYPE_CHECKING:
+    from brms.core.services.reporting_service import ReportingService
 
 
-def default_metrics() -> tuple:
+def default_metrics(reporting_service: ReportingService) -> tuple:
     """Return a tuple of all default metric instances."""
     return (
-        TotalAssetsMetric(),
-        TotalLiabilitiesMetric(),
-        TotalEquityMetric(),
+        TotalAssetsMetric(reporting_service),
+        TotalLiabilitiesMetric(reporting_service),
+        TotalEquityMetric(reporting_service),
+        CET1RatioMetric(reporting_service),
     )

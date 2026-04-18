@@ -20,14 +20,14 @@ _CET1_RATIO_V2 = 0.10
 class FakeMetric:  # noqa: D101
     name = MetricName.TOTAL_ASSETS
 
-    def compute(self, bank, market_state, valuation_store) -> float:  # noqa: ANN001, ARG002, D102
+    def compute(self, bank, market_state, valuation_store, **kwargs) -> float:  # noqa: ANN001, ANN003, ARG002, D102
         return _TOTAL_ASSETS
 
 
 class FakeMetricB:  # noqa: D101
     name = MetricName.TOTAL_EQUITY
 
-    def compute(self, bank, market_state, valuation_store) -> float:  # noqa: ANN001, ARG002, D102
+    def compute(self, bank, market_state, valuation_store, **kwargs) -> float:  # noqa: ANN001, ANN003, ARG002, D102
         return _TOTAL_EQUITY
 
 
@@ -61,7 +61,7 @@ def test_compute_overwrites_on_same_date() -> None:
         name = MetricName.CET1_RATIO
         value = _CET1_RATIO_V1
 
-        def compute(self, bank, market_state, valuation_store) -> float:  # noqa: ANN001, ARG002
+        def compute(self, bank, market_state, valuation_store, **kwargs) -> float:  # noqa: ANN001, ANN003, ARG002
             return self.value
 
     m = MutableMetric()

@@ -94,6 +94,7 @@ class SimulationBuilder:
         from brms.core.rules import default_rules
         from brms.core.services.accounting_service import AccountingService
         from brms.core.services.metrics_service import MetricsService
+        from brms.core.services.reporting_service import ReportingService
         from brms.core.services.rule_engine import RuleEngine
         from brms.core.services.simulation_service import SimulationService
         from brms.core.services.valuation_service import ValuationService
@@ -130,7 +131,7 @@ class SimulationBuilder:
             ),
             rule_engine=RuleEngine(default_rules()),
             accounting_service=accounting_service,
-            metrics_service=MetricsService(MetricRegistry(default_metrics())),
+            metrics_service=MetricsService(MetricRegistry(default_metrics(ReportingService()))),
             valuation_store=ValuationStore(),
             metric_store=MetricStore(),
             transaction_log=TransactionLog(),

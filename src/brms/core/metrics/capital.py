@@ -1,93 +1,101 @@
-"""Concrete capital metric implementations for the BRMS bank simulation."""
+"""Capital metrics that delegate to ReportingService for closed-ledger values."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
 from brms.core.enums import MetricName
-from brms.core.models.accounting.accounts import AccountType
 
 if TYPE_CHECKING:
+    import datetime
+
     from brms.core.models.market_data import MarketState
+    from brms.core.services.reporting_service import ReportingService
     from brms.core.stores.valuation_store import ValuationStore
 
 
 class TotalAssetsMetric:
-    """Sum of all ASSET account balances."""
+    """Total assets from the closed balance sheet."""
 
     name = MetricName.TOTAL_ASSETS
 
+    def __init__(self, reporting_service: ReportingService) -> None:
+        """Initialize with a ReportingService reference."""
+        self._reporting = reporting_service
+
     def compute(
         self,
         bank: Any,  # noqa: ANN401
         market_state: MarketState,  # noqa: ARG002
         valuation_store: ValuationStore,  # noqa: ARG002
+        date: datetime.date | None = None,
     ) -> float:
-        """Sum of all ASSET account balances."""
-        total = 0.0
-        for account in bank.ledger.chart_of_accounts:
-            if account.type == AccountType.ASSET:
-                total += account.balance()
-        return total
+        """Total assets from the closed balance sheet."""
+        bs = self._reporting.balance_sheet(bank.ledger, date=date)
+        return bs["total_assets"]
 
 
 class TotalLiabilitiesMetric:
-    """Sum of all LIABILITY account balances."""
+    """Total liabilities from the closed balance sheet."""
 
     name = MetricName.TOTAL_LIABILITIES
 
+    def __init__(self, reporting_service: ReportingService) -> None:
+        """Initialize with a ReportingService reference."""
+        self._reporting = reporting_service
+
     def compute(
         self,
         bank: Any,  # noqa: ANN401
         market_state: MarketState,  # noqa: ARG002
         valuation_store: ValuationStore,  # noqa: ARG002
+        date: datetime.date | None = None,
     ) -> float:
-        """Sum of all LIABILITY account balances."""
-        total = 0.0
-        for account in bank.ledger.chart_of_accounts:
-            if account.type == AccountType.LIABILITY:
-                total += account.balance()
-        return total
+        """Total liabilities from the closed balance sheet."""
+        bs = self._reporting.balance_sheet(bank.ledger, date=date)
+        return bs["total_liabilities"]
 
 
 class TotalEquityMetric:
-    """Sum of all EQUITY account balances."""
+    """Total equity from the closed balance sheet (includes net income)."""
 
     name = MetricName.TOTAL_EQUITY
 
+    def __init__(self, reporting_service: ReportingService) -> None:
+        """Initialize with a ReportingService reference."""
+        self._reporting = reporting_service
+
     def compute(
         self,
         bank: Any,  # noqa: ANN401
         market_state: MarketState,  # noqa: ARG002
         valuation_store: ValuationStore,  # noqa: ARG002
+        date: datetime.date | None = None,
     ) -> float:
-        """Sum of all EQUITY account balances."""
-        total = 0.0
-        for account in bank.ledger.chart_of_accounts:
-            if account.type == AccountType.EQUITY:
-                total += account.balance()
-        return total
+        """Total equity from the closed balance sheet."""
+        bs = self._reporting.balance_sheet(bank.ledger, date=date)
+        return bs["total_equity"]
 
 
 class CET1RatioMetric:
-    """CET1 capital ratio: equity / total assets (simplified)."""
+    """CET1 capital ratio from the closed balance sheet (simplified)."""
 
     name = MetricName.CET1_RATIO
+
+    def __init__(self, reporting_service: ReportingService) -> None:
+        """Initialize with a ReportingService reference."""
+        self._reporting = reporting_service
 
     def compute(
         self,
         bank: Any,  # noqa: ANN401
         market_state: MarketState,  # noqa: ARG002
         valuation_store: ValuationStore,  # noqa: ARG002
+        date: datetime.date | None = None,
     ) -> float:
-        """CET1 / Total Assets (simplified)."""
-        equity = 0.0
-        assets = 0.0
-        for account in bank.ledger.chart_of_accounts:
-            if account.type == AccountType.EQUITY:
-                equity += account.balance()
-            elif account.type == AccountType.ASSET:
-                assets += account.balance()
+        """CET1 (equity) / total assets from the closed balance sheet."""
+        bs = self._reporting.balance_sheet(bank.ledger, date=date)
+        assets = bs["total_assets"]
         if assets == 0:
             return 0.0
-        return equity / assets
+        return bs["total_equity"] / assets

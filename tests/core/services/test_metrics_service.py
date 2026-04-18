@@ -18,14 +18,14 @@ _EQUITY = 200_000
 class PointMetric:  # noqa: D101
     name = MetricName.TOTAL_ASSETS
 
-    def compute(self, bank, market_state, valuation_store) -> int:  # noqa: ANN001, ARG002, D102
+    def compute(self, bank, market_state, valuation_store, **kwargs) -> int:  # noqa: ANN001, ANN003, ARG002, D102
         return _ASSETS
 
 
 class EquityMetric:  # noqa: D101
     name = MetricName.TOTAL_EQUITY
 
-    def compute(self, bank, market_state, valuation_store) -> int:  # noqa: ANN001, ARG002, D102
+    def compute(self, bank, market_state, valuation_store, **kwargs) -> int:  # noqa: ANN001, ANN003, ARG002, D102
         return _EQUITY
 
 
