@@ -49,7 +49,6 @@ class DashboardController(BRMSController):
             "CET1 Ratio": [],
             "NSFR": [],
             "LCR": [],
-            "NIM": [],
             "ROA": [],
             "ROE": [],
         }
@@ -87,6 +86,8 @@ class DashboardController(BRMSController):
             MetricName.TOTAL_LIABILITIES: "Total Liabilities",
             MetricName.TOTAL_EQUITY: "Total Equity",
             MetricName.CET1_RATIO: "CET1 Ratio",
+            MetricName.ROA: "ROA",
+            MetricName.ROE: "ROE",
         }
         # Collect dates from the first available metric
         for metric_name, series_key in metric_to_series.items():
@@ -123,13 +124,14 @@ class DashboardController(BRMSController):
         self._series["Total Liabilities"].append(m.get(MetricName.TOTAL_LIABILITIES, 0.0))
         self._series["Total Equity"].append(m.get(MetricName.TOTAL_EQUITY, 0.0))
         self._series["CET1 Ratio"].append(m.get(MetricName.CET1_RATIO, 0.0))
+        self._series["ROA"].append(m.get(MetricName.ROA, 0.0))
+        self._series["ROE"].append(m.get(MetricName.ROE, 0.0))
 
         # Update group card metrics from MetricsComputed (non-BS metrics)
         self.view.capital_group.set_value("cet1_capital", m.get(MetricName.CET1_CAPITAL))
         self.view.capital_group.set_value("cet1_ratio", m.get(MetricName.CET1_RATIO))
         self.view.liquidity_group.set_value("credit_rwa", m.get(MetricName.CREDIT_RWA))
         self.view.liquidity_group.set_value("op_rwa", m.get(MetricName.OPERATIONAL_RWA))
-        self.view.profit_group.set_value("nim", m.get(MetricName.NET_INTEREST_MARGIN))
         self.view.profit_group.set_value("roa", m.get(MetricName.ROA))
         self.view.profit_group.set_value("roe", m.get(MetricName.ROE))
         self.view.profit_group.set_value("leverage_ratio", m.get(MetricName.LEVERAGE_RATIO))
@@ -161,10 +163,8 @@ class DashboardController(BRMSController):
                 "LCR": self._series["LCR"],
             })
 
-        # Profitability (series may be empty until wired)
-        if self._series["NIM"] or self._series["ROA"] or self._series["ROE"]:
-            self.view.profitability_plot.update_plot(s, e, d, {
-                "NIM": self._series["NIM"],
-                "ROA": self._series["ROA"],
-                "ROE": self._series["ROE"],
-            })
+        # Profitability
+        self.view.profitability_plot.update_plot(s, e, d, {
+            "ROA": self._series["ROA"],
+            "ROE": self._series["ROE"],
+        })

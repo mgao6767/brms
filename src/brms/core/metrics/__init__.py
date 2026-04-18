@@ -10,6 +10,7 @@ from brms.core.metrics.capital import (
     TotalEquityMetric,
     TotalLiabilitiesMetric,
 )
+from brms.core.metrics.profitability import ROAMetric, ROEMetric
 
 if TYPE_CHECKING:
     from brms.core.services.reporting_service import ReportingService
@@ -22,4 +23,6 @@ def default_metrics(reporting_service: ReportingService) -> tuple:
         TotalLiabilitiesMetric(reporting_service),
         TotalEquityMetric(reporting_service),
         CET1RatioMetric(reporting_service),
+        ROAMetric(reporting_service),
+        ROEMetric(reporting_service),
     )

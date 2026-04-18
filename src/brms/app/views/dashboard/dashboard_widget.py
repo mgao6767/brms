@@ -490,7 +490,6 @@ class BRMSDashboard(QWidget):
         self.liquidity_group.add_metric("op_rwa", "Op. RWA", FormatType.CURRENCY)
 
         self.profit_group = KPIGroupCard("Profitability")
-        self.profit_group.add_metric("nim", "NIM", FormatType.PERCENTAGE)
         self.profit_group.add_metric("roa", "ROA", FormatType.PERCENTAGE)
         self.profit_group.add_metric("roe", "ROE", FormatType.PERCENTAGE)
         self.profit_group.add_metric("leverage_ratio", "Leverage Ratio", FormatType.PERCENTAGE)
@@ -524,8 +523,8 @@ class BRMSDashboard(QWidget):
         )
         self.profitability_plot = PlotWidget(
             title="Profitability",
-            line_titles=["NIM", "ROA", "ROE"],
-            line_colors=[s.chart_palette[3], s.chart_palette[2], s.chart_palette[1]],
+            line_titles=["ROA", "ROE"],
+            line_colors=[s.chart_palette[2], s.chart_palette[1]],
             use_ratio_formatter=True,
         )
 
