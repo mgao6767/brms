@@ -99,6 +99,9 @@ class MaturityGapWidget(QWidget):
         self._tree.setSelectionBehavior(QTreeView.SelectionBehavior.SelectRows)
         self._tree.header().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
+        from brms.app.clipboard import add_copy_context_menu
+        add_copy_context_menu(self._tree)
+
         # Bar chart
         fig = Figure(figsize=(6, 4), facecolor=self.styler.plot_background_color)
         fig.subplots_adjust(left=0.12, right=0.95, top=0.92, bottom=0.25)
