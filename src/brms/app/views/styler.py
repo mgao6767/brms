@@ -256,16 +256,16 @@ class BRMSStyler(QObject):
 
         /* ---- Menu ---- */
         QMenu {{
-            background-color: {self.layer_overlay};
+            background-color: {self.layer_hover};
             color: {self.text_primary};
-            border: 1px solid {self.border_subtle};
+            border: 1px solid {self.border_strong};
             font-size: 12px;
         }}
         QMenu::item {{
             padding: 6px 24px 6px 12px;
         }}
         QMenu::item:selected {{
-            background-color: {self.layer_hover};
+            background-color: {self.layer_selected};
         }}
         QMenu::separator {{
             height: 1px;

@@ -154,7 +154,8 @@ class BankBookController(BRMSController):
         )
         menu.addAction(action)
         menu.addSeparator()
-        copy_val = QAction("Copy Value", menu)
+        import qtawesome as qta
+        copy_val = QAction(qta.icon("mdi6.content-copy"), "Copy Value", menu)
         copy_val.triggered.connect(lambda: copy_tree_value(self.tree))
         menu.addAction(copy_val)
         copy_row_action = QAction("Copy Row", menu)

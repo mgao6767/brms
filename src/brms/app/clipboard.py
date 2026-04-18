@@ -23,7 +23,8 @@ def add_copy_context_menu(tree: QTreeView) -> None:
         if not index.isValid():
             return
         menu = QMenu(tree)
-        copy_val = QAction("Copy Value", menu)
+        import qtawesome as qta
+        copy_val = QAction(qta.icon("mdi6.content-copy"), "Copy Value", menu)
         copy_val.triggered.connect(lambda: copy_tree_value(tree))
         menu.addAction(copy_val)
         copy_row_act = QAction("Copy Row", menu)

@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
         self.exit_action = QAction(qta.icon("mdi6.exit-run"), "Exit", self)
         self.exit_action.setShortcut("Ctrl+Q")
         # Edit
-        self.copy_value_action = QAction("Copy Value", self)
+        self.copy_value_action = QAction(qta.icon("mdi6.content-copy"), "Copy Value", self)
         self.copy_value_action.setShortcut("Ctrl+C")
         self.copy_row_action = QAction("Copy Row", self)
         self.copy_row_action.setShortcut("Ctrl+Shift+C")
