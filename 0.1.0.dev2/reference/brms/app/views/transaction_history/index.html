@@ -742,6 +742,8 @@
       
         
       
+        
+      
     
     
       
@@ -812,6 +814,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -914,6 +920,8 @@
       
         
           
+        
+      
         
       
         
@@ -1253,6 +1261,58 @@
         
   
   
+    <a href="../interest_rate/" class="md-nav__link">
+      
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> interest_rate
+    
+  </span>
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
     <a href="../interest_rate_risk/" class="md-nav__link">
       
   
@@ -1453,7 +1513,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_2_9_12" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_2_9_13" checked>
         
           
           
@@ -1470,14 +1530,14 @@
             </a>
             
               
-              <label class="md-nav__link md-nav__link--active" for="__nav_3_1_2_9_12" id="__nav_3_1_2_9_12_label" tabindex="0">
+              <label class="md-nav__link md-nav__link--active" for="__nav_3_1_2_9_13" id="__nav_3_1_2_9_13_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="5" aria-labelledby="__nav_3_1_2_9_12_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3_1_2_9_12">
+        <nav class="md-nav" data-md-level="5" aria-labelledby="__nav_3_1_2_9_13_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_1_2_9_13">
             <span class="md-nav__icon md-icon"></span>
             <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> transaction_history
           </label>
@@ -1730,6 +1790,8 @@
       
         
       
+        
+      
     
     
       
@@ -1859,6 +1921,33 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.reset_filters" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;reset_filters
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.search_transactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;search_transactions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.set_end_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;set_end_date
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.set_filter_indicator" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;set_filter_indicator
@@ -1868,9 +1957,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.validate_dates" class="md-nav__link">
+  <a href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.set_start_date" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;validate_dates
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;set_start_date
     </span>
   </a>
   
@@ -1924,7 +2013,7 @@
           <b><code><a class="autorefs autorefs-internal" title="brms.app.views.transaction_history.transaction_history_widget" href="transaction_history_widget/#brms.app.views.transaction_history.transaction_history_widget">transaction_history_widget</a></code></b>
           –
           <div class="doc-md-description">
-            
+            <p>Transaction history widget — QTableView backed by a flat list model.</p>
           </div>
         </li>
     </ul>
@@ -1938,7 +2027,7 @@
           <b><code><a class="autorefs autorefs-internal" title="brms.app.views.transaction_history.BRMSTransactionHistoryWidget" href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget">BRMSTransactionHistoryWidget</a></code></b>
           –
           <div class="doc-md-description">
-            
+            <p>Transaction history view with filter panel and flat table.</p>
           </div>
         </li>
     </ul>
@@ -1967,13 +2056,15 @@
 
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">BRMSTransactionHistoryWidget</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">BRMSTransactionHistoryWidget</span><span class="p">(</span><span class="n">parent</span><span class="p">:</span> <span class="n"><span title="PySide6.QtWidgets.QWidget">QWidget</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><span title="PySide6.QtWidgets.QWidget">QWidget</span></code></p>
 
+
+        <p>Transaction history view with filter panel and flat table.</p>
 
 
 
@@ -1989,14 +2080,35 @@
             <b><code><a class="autorefs autorefs-internal" title="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.add_row" href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.add_row">add_row</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Buffer a pre-formatted row dict for batch insertion.</p>
+              <p>Buffer a row tuple for batch insertion.</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
             <b><code><a class="autorefs autorefs-internal" title="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.flush_transactions" href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.flush_transactions">flush_transactions</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Flush buffered row dicts to the tree model.</p>
+              <p>Flush buffered rows to the model in a single insert.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.reset_filters" href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.reset_filters">reset_filters</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Unhide all rows and restore insertion order (Tx# ascending).</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.search_transactions" href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.search_transactions">search_transactions</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Apply filter controls to all rows (operates on proxy row indices).</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.set_end_date" href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.set_end_date">set_end_date</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Set the end date filter.</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
@@ -2007,10 +2119,10 @@
             </div>
           </li>
           <li class="doc-section-item field-body">
-            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.validate_dates" href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.validate_dates">validate_dates</a></code></b>
+            <b><code><a class="autorefs autorefs-internal" title="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.set_start_date" href="#brms.app.views.transaction_history.BRMSTransactionHistoryWidget.set_start_date">set_start_date</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Ensure start date is earlier than or equal to end date.</p>
+              <p>Set the start date filter.</p>
             </div>
           </li>
     </ul>
@@ -2038,12 +2150,12 @@
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">add_row</span><span class="p">(</span><span class="n">row_data</span><span class="p">:</span> <span class="n">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">add_row</span><span class="p">(</span><span class="n">row_tuple</span><span class="p">:</span> <span class="n">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Buffer a pre-formatted row dict for batch insertion.</p>
+        <p>Buffer a row tuple for batch insertion.</p>
 
     </div>
 
@@ -2062,7 +2174,64 @@
 
     <div class="doc doc-contents ">
 
-        <p>Flush buffered row dicts to the tree model.</p>
+        <p>Flush buffered rows to the model in a single insert.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.reset_filters" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">reset_filters</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">reset_filters</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Unhide all rows and restore insertion order (Tx# ascending).</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.search_transactions" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">search_transactions</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">search_transactions</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Apply filter controls to all rows (operates on proxy row indices).</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.set_end_date" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">set_end_date</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">set_end_date</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n"><span title="PySide6.QtCore.QDate">QDate</span></span> <span class="o">|</span> <span class="n"><span title="datetime.date">date</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Set the end date filter.</p>
 
     </div>
 
@@ -2090,17 +2259,17 @@
 <div class="doc doc-object doc-function">
 
 
-<h3 id="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.validate_dates" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">validate_dates</span>
+<h3 id="brms.app.views.transaction_history.BRMSTransactionHistoryWidget.set_start_date" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">set_start_date</span>
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">validate_dates</span><span class="p">()</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">set_start_date</span><span class="p">(</span><span class="n">date</span><span class="p">:</span> <span class="n"><span title="PySide6.QtCore.QDate">QDate</span></span> <span class="o">|</span> <span class="n"><span title="datetime.date">date</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Ensure start date is earlier than or equal to end date.</p>
+        <p>Set the start date filter.</p>
 
     </div>
 

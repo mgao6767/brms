@@ -1001,6 +1001,8 @@
       
         
       
+        
+      
     
     
       
@@ -1119,6 +1121,8 @@
       
         
           
+        
+      
         
       
         
@@ -1351,6 +1355,8 @@
       
         
       
+        
+      
     
     
       
@@ -1510,7 +1516,7 @@
           <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.capital" href="capital/#brms.core.metrics.capital">capital</a></code></b>
           –
           <div class="doc-md-description">
-            <p>Concrete capital metric implementations for the BRMS bank simulation.</p>
+            <p>Capital metrics that delegate to ReportingService for closed-ledger values.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -1560,7 +1566,9 @@
 
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">default_metrics</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">tuple</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">default_metrics</span><span class="p">(</span>
+    <span class="n">reporting_service</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.reporting_service.ReportingService" href="../services/reporting_service/#brms.core.services.reporting_service.ReportingService">ReportingService</a></span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tuple</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">

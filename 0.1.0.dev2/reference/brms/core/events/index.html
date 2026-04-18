@@ -840,6 +840,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#brms.core.events.EventBus.batch" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;batch
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#brms.core.events.EventBus.emit" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;emit
@@ -1073,6 +1082,8 @@
       
         
       
+        
+      
     
     
       
@@ -1191,6 +1202,8 @@
       
         
           
+        
+      
         
       
         
@@ -1423,6 +1436,8 @@
       
         
       
+        
+      
     
     
       
@@ -1550,6 +1565,15 @@
   
     <nav class="md-nav" aria-label=" EventBus">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.events.EventBus.batch" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;batch
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#brms.core.events.EventBus.emit" class="md-nav__link">
@@ -1952,10 +1976,17 @@
 <p><span class="doc-section-title">Methods:</span></p>
     <ul>
           <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.core.events.EventBus.batch" href="#brms.core.events.EventBus.batch">batch</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Queue events instead of dispatching. Flush on outermost exit.</p>
+            </div>
+          </li>
+          <li class="doc-section-item field-body">
             <b><code><a class="autorefs autorefs-internal" title="brms.core.events.EventBus.emit" href="#brms.core.events.EventBus.emit">emit</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Dispatch an event to all registered handlers for its type.</p>
+              <p>Dispatch an event, or queue it if inside a batch context.</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
@@ -1992,6 +2023,25 @@
 <div class="doc doc-object doc-function">
 
 
+<h3 id="brms.core.events.EventBus.batch" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">batch</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">batch</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="collections.abc.Generator">Generator</span></span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Queue events instead of dispatching. Flush on outermost exit.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="brms.core.events.EventBus.emit" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">emit</span>
 
@@ -2002,7 +2052,7 @@
 
     <div class="doc doc-contents ">
 
-        <p>Dispatch an event to all registered handlers for its type.</p>
+        <p>Dispatch an event, or queue it if inside a batch context.</p>
 
     </div>
 

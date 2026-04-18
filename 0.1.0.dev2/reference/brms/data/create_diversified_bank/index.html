@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://bankrisk.org/0.1.0.dev2/reference/brms/data/create_diversified_bank/">
       
       
-        <link rel="prev" href="../">
+        <link rel="prev" href="../create_ci_loan_prime/">
       
       
         <link rel="next" href="../create_fvtpl_bond/">
@@ -749,6 +749,8 @@
       
         
       
+        
+      
     
     
       
@@ -791,6 +793,28 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../create_ci_loan_prime/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> create_ci_loan_prime
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -1042,29 +1066,33 @@
 
     <div class="doc doc-contents first">
 
-        <p>Generate <code>diversified_bank.zip</code> -- one of each major instrument type.</p>
+        <p>Generate <code>diversified_bank.zip</code> -- 2-3 instruments per major type.</p>
 <p>Simulation start date: <strong>2022-01-04</strong>.</p>
-<pre><code>Instrument              Basis            Amount     Acquired     Side   Book
-────────────────────    ───────────────  ─────────  ──────────   ─────  ───────
-Common Equity           NA               1,000,000  2021-01-04   SHORT  BANKING
-Term Deposit (1%)       NA               6,000,000  2021-01-04   SHORT  BANKING
-10Y Treasury 3.5% HTM   AMORTIZED_COST    (NPV)    2021-01-04   LONG   BANKING
-5Y Corp Bond 4.5%       FVOCI             (NPV)    2021-06-01   LONG   BANKING
-3Y Corp Bond 3.5%       FVTPL             (NPV)    2021-01-04   LONG   TRADING
-30Y Mortgage 5%         AMORTIZED_COST  (outstand)  2021-01-04   LONG   BANKING
+<pre><code>Instrument                  Basis            Amount     Acquired     Side   Book
+========================    ===============  =========  ==========   =====  =======
+Common Equity               NA               2,000,000  2021-01-04   SHORT  BANKING
+Retained Earnings           NA                 500,000  2021-01-04   SHORT  BANKING
+Demand Deposit (0%)         NA               3,000,000  2021-01-04   SHORT  BANKING
+Savings Deposit (0.5%)      NA               4,000,000  2021-01-04   SHORT  BANKING
+Term Deposit (2%)           NA               5,000,000  2021-01-04   SHORT  BANKING
+10Y Treasury 3.5% HTM       AMORTIZED_COST    (NPV)    2021-01-04   LONG   BANKING
+5Y Treasury 2.5% HTM        AMORTIZED_COST    (NPV)    2021-01-04   LONG   BANKING
+5Y Corp Bond 4.5% FVOCI     FVOCI             (NPV)    2021-06-01   LONG   BANKING
+3Y Corp Bond 3.5% FVTPL     FVTPL             (NPV)    2021-01-04   LONG   TRADING
+7Y Corp Bond 5.0% FVTPL     FVTPL             (NPV)    2021-01-04   LONG   TRADING
+30Y Res Mortgage 5%         AMORTIZED_COST  (outstand)  2021-01-04   LONG   BANKING
+15Y Res Mortgage 4%         AMORTIZED_COST  (outstand)  2021-06-01   LONG   BANKING
+Prime+250bp 5Y C&amp;I Loan     AMORTIZED_COST   3,000,000  2021-06-01   LONG   BANKING
+Prime+175bp 3Y Revolver     AMORTIZED_COST   2,000,000  2021-06-01   LONG   BANKING
 </code></pre>
-<p>Treasury Note: issued 2020-01-01, 10Y, 3.5% semi-annual coupon, matures 2030-01-01.
-FVOCI Bond: issued 2021-06-01, 5Y, 4.5% semi-annual coupon, matures 2026-06-01.
-FVTPL Bond: issued 2021-01-04, 3Y, 3.5% semi-annual coupon, matures 2024-01-04.
-Mortgage: issued 2020-06-01, 30Y term, 5% fixed, monthly payments, matures 2050-06-01.
-Deposit carries 2% interest.  Bond acquisition costs are QuantLib NPV at
-acquisition date.  Mortgage acquisition cost is the QL outstanding balance
-at acquisition date.</p>
+<p>Bond acquisition costs are QuantLib NPV at acquisition date.
+Mortgage/loan acquisition costs are QL outstanding balance at acquisition date.</p>
 <p>Run::</p>
 <pre><code>uv run python src/brms/data/create_diversified_bank.py [data_folder]
 </code></pre>
-<p>Where <code>data_folder</code> contains <code>treasury_yields.csv</code>.  If omitted,
-yields are extracted from the existing <code>htm_treasury.zip</code>.</p>
+<p>Where <code>data_folder</code> contains <code>treasury_yields.csv</code> and <code>prime_rates.csv</code>.
+If omitted, yields are extracted from <code>htm_treasury.zip</code> and prime rates
+from <code>temp/data/prime_rates.csv</code>.</p>
 
 
 
@@ -1115,7 +1143,7 @@ yields are extracted from the existing <code>htm_treasury.zip</code>.</p>
     <div class="doc doc-contents ">
 
         <p>Write the diversified simulation zip to <em>out_path</em> and return its path.</p>
-<p><em>data_folder</em> must contain <code>treasury_yields.csv</code>.</p>
+<p><em>data_folder</em> must contain <code>treasury_yields.csv</code> and <code>prime_rates.csv</code>.</p>
 
     </div>
 
@@ -1168,7 +1196,7 @@ yields are extracted from the existing <code>htm_treasury.zip</code>.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="Previous: brms.data">
+          <a href="../create_ci_loan_prime/" class="md-footer__link md-footer__link--prev" aria-label="Previous: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; create_ci_loan_prime">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1178,7 +1206,7 @@ yields are extracted from the existing <code>htm_treasury.zip</code>.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                brms.data
+                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> create_ci_loan_prime
               </div>
             </div>
           </a>

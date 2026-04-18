@@ -1138,6 +1138,8 @@
       
         
       
+        
+      
     
     
       
@@ -1256,6 +1258,8 @@
       
         
           
+        
+      
         
       
         
@@ -1478,6 +1482,8 @@
       
         
           
+        
+      
         
       
         
@@ -1715,7 +1721,7 @@
 
     <div class="doc doc-contents first">
 
-        <p>Concrete capital metric implementations for the BRMS bank simulation.</p>
+        <p>Capital metrics that delegate to ReportingService for closed-ledger values.</p>
 
 
 
@@ -1729,28 +1735,28 @@
           <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.capital.CET1RatioMetric" href="#brms.core.metrics.capital.CET1RatioMetric">CET1RatioMetric</a></code></b>
           –
           <div class="doc-md-description">
-            <p>CET1 capital ratio: equity / total assets (simplified).</p>
+            <p>CET1 capital ratio from the closed balance sheet (simplified).</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
           <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.capital.TotalAssetsMetric" href="#brms.core.metrics.capital.TotalAssetsMetric">TotalAssetsMetric</a></code></b>
           –
           <div class="doc-md-description">
-            <p>Sum of all ASSET account balances.</p>
+            <p>Total assets from the closed balance sheet.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
           <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.capital.TotalEquityMetric" href="#brms.core.metrics.capital.TotalEquityMetric">TotalEquityMetric</a></code></b>
           –
           <div class="doc-md-description">
-            <p>Sum of all EQUITY account balances.</p>
+            <p>Total equity from the closed balance sheet (includes net income).</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
           <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.capital.TotalLiabilitiesMetric" href="#brms.core.metrics.capital.TotalLiabilitiesMetric">TotalLiabilitiesMetric</a></code></b>
           –
           <div class="doc-md-description">
-            <p>Sum of all LIABILITY account balances.</p>
+            <p>Total liabilities from the closed balance sheet.</p>
           </div>
         </li>
     </ul>
@@ -1779,12 +1785,13 @@
 
 
 </h2>
-
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">CET1RatioMetric</span><span class="p">(</span><span class="n">reporting_service</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.reporting_service.ReportingService" href="../../services/reporting_service/#brms.core.services.reporting_service.ReportingService">ReportingService</a></span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
 
 
-        <p>CET1 capital ratio: equity / total assets (simplified).</p>
+        <p>CET1 capital ratio from the closed balance sheet (simplified).</p>
 
 
 
@@ -1800,7 +1807,7 @@
             <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.capital.CET1RatioMetric.compute" href="#brms.core.metrics.capital.CET1RatioMetric.compute">compute</a></code></b>
             –
             <div class="doc-md-description">
-              <p>CET1 / Total Assets (simplified).</p>
+              <p>CET1 (equity) / total assets from the closed balance sheet.</p>
             </div>
           </li>
     </ul>
@@ -1832,12 +1839,13 @@
     <span class="n">bank</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
     <span class="n">market_state</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.market_data.MarketState" href="../../models/market_data/#brms.core.models.market_data.MarketState">MarketState</a></span><span class="p">,</span>
     <span class="n">valuation_store</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.stores.valuation_store.ValuationStore" href="../../stores/valuation_store/#brms.core.stores.valuation_store.ValuationStore">ValuationStore</a></span><span class="p">,</span>
+    <span class="n">date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">float</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>CET1 / Total Assets (simplified).</p>
+        <p>CET1 (equity) / total assets from the closed balance sheet.</p>
 
     </div>
 
@@ -1860,12 +1868,13 @@
 
 
 </h2>
-
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">TotalAssetsMetric</span><span class="p">(</span><span class="n">reporting_service</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.reporting_service.ReportingService" href="../../services/reporting_service/#brms.core.services.reporting_service.ReportingService">ReportingService</a></span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
 
 
-        <p>Sum of all ASSET account balances.</p>
+        <p>Total assets from the closed balance sheet.</p>
 
 
 
@@ -1881,7 +1890,7 @@
             <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.capital.TotalAssetsMetric.compute" href="#brms.core.metrics.capital.TotalAssetsMetric.compute">compute</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Sum of all ASSET account balances.</p>
+              <p>Total assets from the closed balance sheet.</p>
             </div>
           </li>
     </ul>
@@ -1913,12 +1922,13 @@
     <span class="n">bank</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
     <span class="n">market_state</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.market_data.MarketState" href="../../models/market_data/#brms.core.models.market_data.MarketState">MarketState</a></span><span class="p">,</span>
     <span class="n">valuation_store</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.stores.valuation_store.ValuationStore" href="../../stores/valuation_store/#brms.core.stores.valuation_store.ValuationStore">ValuationStore</a></span><span class="p">,</span>
+    <span class="n">date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">float</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Sum of all ASSET account balances.</p>
+        <p>Total assets from the closed balance sheet.</p>
 
     </div>
 
@@ -1941,12 +1951,13 @@
 
 
 </h2>
-
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">TotalEquityMetric</span><span class="p">(</span><span class="n">reporting_service</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.reporting_service.ReportingService" href="../../services/reporting_service/#brms.core.services.reporting_service.ReportingService">ReportingService</a></span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
 
 
-        <p>Sum of all EQUITY account balances.</p>
+        <p>Total equity from the closed balance sheet (includes net income).</p>
 
 
 
@@ -1962,7 +1973,7 @@
             <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.capital.TotalEquityMetric.compute" href="#brms.core.metrics.capital.TotalEquityMetric.compute">compute</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Sum of all EQUITY account balances.</p>
+              <p>Total equity from the closed balance sheet.</p>
             </div>
           </li>
     </ul>
@@ -1994,12 +2005,13 @@
     <span class="n">bank</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
     <span class="n">market_state</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.market_data.MarketState" href="../../models/market_data/#brms.core.models.market_data.MarketState">MarketState</a></span><span class="p">,</span>
     <span class="n">valuation_store</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.stores.valuation_store.ValuationStore" href="../../stores/valuation_store/#brms.core.stores.valuation_store.ValuationStore">ValuationStore</a></span><span class="p">,</span>
+    <span class="n">date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">float</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Sum of all EQUITY account balances.</p>
+        <p>Total equity from the closed balance sheet.</p>
 
     </div>
 
@@ -2022,12 +2034,13 @@
 
 
 </h2>
-
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">TotalLiabilitiesMetric</span><span class="p">(</span><span class="n">reporting_service</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.reporting_service.ReportingService" href="../../services/reporting_service/#brms.core.services.reporting_service.ReportingService">ReportingService</a></span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
 
 
-        <p>Sum of all LIABILITY account balances.</p>
+        <p>Total liabilities from the closed balance sheet.</p>
 
 
 
@@ -2043,7 +2056,7 @@
             <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.capital.TotalLiabilitiesMetric.compute" href="#brms.core.metrics.capital.TotalLiabilitiesMetric.compute">compute</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Sum of all LIABILITY account balances.</p>
+              <p>Total liabilities from the closed balance sheet.</p>
             </div>
           </li>
     </ul>
@@ -2075,12 +2088,13 @@
     <span class="n">bank</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
     <span class="n">market_state</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.market_data.MarketState" href="../../models/market_data/#brms.core.models.market_data.MarketState">MarketState</a></span><span class="p">,</span>
     <span class="n">valuation_store</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.stores.valuation_store.ValuationStore" href="../../stores/valuation_store/#brms.core.stores.valuation_store.ValuationStore">ValuationStore</a></span><span class="p">,</span>
+    <span class="n">date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">float</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Sum of all LIABILITY account balances.</p>
+        <p>Total liabilities from the closed balance sheet.</p>
 
     </div>
 

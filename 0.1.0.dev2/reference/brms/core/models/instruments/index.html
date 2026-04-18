@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://bankrisk.org/0.1.0.dev2/reference/brms/core/models/instruments/">
       
       
-        <link rel="prev" href="../bank/">
+        <link rel="prev" href="../benchmarks/">
       
       
         <link rel="next" href="base/">
@@ -884,6 +884,8 @@
       
         
       
+        
+      
     
     
       
@@ -1014,6 +1016,28 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> benchmarks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1053,7 +1077,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_3_6_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_3_6_5" checked>
         
           
           
@@ -1070,14 +1094,14 @@
             </a>
             
               
-              <label class="md-nav__link md-nav__link--active" for="__nav_3_1_3_6_4" id="__nav_3_1_3_6_4_label" tabindex="0">
+              <label class="md-nav__link md-nav__link--active" for="__nav_3_1_3_6_5" id="__nav_3_1_3_6_5_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="5" aria-labelledby="__nav_3_1_3_6_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3_1_3_6_4">
+        <nav class="md-nav" data-md-level="5" aria-labelledby="__nav_3_1_3_6_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_1_3_6_5">
             <span class="md-nav__icon md-icon"></span>
             <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> instruments
           </label>
@@ -1452,6 +1476,8 @@
       
         
       
+        
+      
     
     
       
@@ -1646,6 +1672,8 @@
       
         
           
+        
+      
         
       
         
@@ -2341,7 +2369,7 @@
           <b><code><a class="autorefs autorefs-internal" title="brms.core.models.instruments.InstrumentRegistry" href="#brms.core.models.instruments.InstrumentRegistry">InstrumentRegistry</a></code></b>
           –
           <div class="doc-md-description">
-            <p>Registry mapping type identifiers to instrument classes.</p>
+            <p>Registry mapping type identifiers to instrument classes or factory callables.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -3220,7 +3248,7 @@ instrument.  The default is an empty set (no rules apply).</p>
     <div class="doc doc-contents ">
 
 
-        <p>Registry mapping type identifiers to instrument classes.</p>
+        <p>Registry mapping type identifiers to instrument classes or factory callables.</p>
 <p>Allows decoupled deserialization: callers register concrete instrument types
 by a string key, then create instances by key without hard-coded imports.</p>
 
@@ -3245,7 +3273,7 @@ by a string key, then create instances by key without hard-coded imports.</p>
             <b><code><a class="autorefs autorefs-internal" title="brms.core.models.instruments.InstrumentRegistry.register" href="#brms.core.models.instruments.InstrumentRegistry.register">register</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Register an instrument class under the given type identifier.</p>
+              <p>Register an instrument class or factory under the given type identifier.</p>
             </div>
           </li>
     </ul>
@@ -3339,12 +3367,15 @@ by a string key, then create instances by key without hard-coded imports.</p>
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">register</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" href="#brms.core.models.instruments.InstrumentRegistry.register(type_id)">type_id</a></span><span class="p">:</span> <span class="n">str</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" href="#brms.core.models.instruments.InstrumentRegistry.register(cls)">cls</a></span><span class="p">:</span> <span class="n">type</span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">register</span><span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" href="#brms.core.models.instruments.InstrumentRegistry.register(type_id)">type_id</a></span><span class="p">:</span> <span class="n">str</span><span class="p">,</span>
+    <span class="n"><a class="autorefs autorefs-internal" href="#brms.core.models.instruments.InstrumentRegistry.register(cls)">cls</a></span><span class="p">:</span> <span class="n">type</span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Register an instrument class under the given type identifier.</p>
+        <p>Register an instrument class or factory under the given type identifier.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3359,10 +3390,10 @@ by a string key, then create instances by key without hard-coded imports.</p>
         </li>
         <li class="doc-section-item field-body">
 <h4 id="brms.core.models.instruments.InstrumentRegistry.register(cls)" class="doc doc-heading doc-heading-parameter">              <b><code>cls</code></b>
-</h4>              (<code>type[<a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="base/#brms.core.models.instruments.base.Instrument">Instrument</a>]</code>)
+</h4>              (<code>type[<a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="base/#brms.core.models.instruments.base.Instrument">Instrument</a>] | <span title="collections.abc.Callable">Callable</span>[..., <a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="base/#brms.core.models.instruments.base.Instrument">Instrument</a>]</code>)
           –
           <div class="doc-md-description">
-            <p>The concrete instrument class to register.</p>
+            <p>The concrete instrument class or a factory callable.</p>
           </div>
         </li>
     </ul>
@@ -3874,7 +3905,7 @@ by a string key, then create instances by key without hard-coded imports.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../bank/" class="md-footer__link md-footer__link--prev" aria-label="Previous: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; bank">
+          <a href="../benchmarks/" class="md-footer__link md-footer__link--prev" aria-label="Previous: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; benchmarks">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -3884,7 +3915,7 @@ by a string key, then create instances by key without hard-coded imports.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> bank
+                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> benchmarks
               </div>
             </div>
           </a>
