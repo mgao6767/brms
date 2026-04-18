@@ -70,42 +70,44 @@ class StatementController(BRMSController):
 
     def _on_statements_changed(self, event: StatementsChanged) -> None:
         self._last_date = event.date
-        # Always emit FinancialsUpdated so the dashboard stays current
-        self._emit_financials(event.date)
+        closed = self._close_ledger(event.date)
+        self._emit_financials(event.date, closed)
         if self.view.isVisible():
-            self._render(event.date)
+            self._render(event.date, closed)
         else:
             self._dirty = True
 
-    def _render(self, date: datetime.date | None = None) -> None:
-        # Trial balance — flat, uses ReportingService output
-        tb_data = self._reporting.trial_balance(self._ledger)
-        self.view.trial_balance_model.update(tb_data)
-
-        # Balance sheet — walk closed ledger's chart of accounts
+    def _close_ledger(self, date: datetime.date | None) -> object:
+        """Deep-copy and close the ledger once. Returns the closed copy."""
         closed = copy.deepcopy(self._ledger)
         if date is not None:
             closed.close_ledger(date)
-        self.view.balance_sheet_model.update(closed.chart_of_accounts)
+        return closed
 
-        # Income statement — walk unclosed ledger's chart of accounts
+    def _render(self, date: datetime.date | None = None, closed: object = None) -> None:
+        if closed is None:
+            closed = self._close_ledger(date)
+
+        tb_data = self._reporting.trial_balance(self._ledger)
+        self.view.trial_balance_model.update(tb_data)
+        self.view.balance_sheet_model.update(closed.chart_of_accounts)
         self.view.income_statement_model.update(self._ledger.chart_of_accounts)
 
-        # Expand all trees so accounts are visible
         self.view.trial_balance_tab.tree.expandAll()
         self.view.income_statement_tab.tree.expandAll()
         self.view.balance_sheet_tab.tree.expandAll()
 
-    def _emit_financials(self, date: datetime.date | None) -> None:
-        """Emit FinancialsUpdated with closed BS totals (independent of view visibility)."""
-        if date is not None:
-            bs_data = self._reporting.balance_sheet(self._ledger, date=date)
-            self._event_bus.emit(FinancialsUpdated(
-                date=date,
-                total_assets=bs_data["total_assets"],
-                total_liabilities=bs_data["total_liabilities"],
-                total_equity=bs_data["total_equity"],
-            ))
+    def _emit_financials(self, date: datetime.date | None, closed: object) -> None:
+        """Emit FinancialsUpdated via the reporting service using the pre-closed ledger."""
+        if date is None:
+            return
+        bs_data = self._reporting.balance_sheet(closed, date=None)
+        self._event_bus.emit(FinancialsUpdated(
+            date=date,
+            total_assets=bs_data["total_assets"],
+            total_liabilities=bs_data["total_liabilities"],
+            total_equity=bs_data["total_equity"],
+        ))
 
     def _on_export(self, statement_type: str) -> None:
         """Export a statement as HTML via file dialog."""

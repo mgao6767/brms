@@ -359,9 +359,9 @@ class PlotWidget(QWidget):
                     line2d.set_visible(True)
         self.ax.relim()
         self.ax.autoscale_view(scalex=False)  # only rescale Y, keep rolling X window
-        # Update formatter based on visible data
+        # Update formatter based on latest visible values (O(series) not O(all points))
         if not self.use_ratio_formatter:
-            visible_vals = [v for t, vs in data.items() if t not in self._hidden_lines for v in vs]
+            visible_vals = [vs[-1] for t, vs in data.items() if t not in self._hidden_lines and vs]
             self.formatter = _value_formatter(visible_vals) if visible_vals else self.formatter
         self.ax.yaxis.set_major_formatter(self.formatter)
         self._rebuild_legend()

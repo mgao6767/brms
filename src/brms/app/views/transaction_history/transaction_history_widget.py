@@ -1,6 +1,6 @@
 import datetime
 
-from PySide6.QtCore import QDate, QSortFilterProxyModel, Qt, QTimer
+from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
@@ -28,13 +28,7 @@ class BRMSTransactionHistoryWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        # For performance
         self._transaction_buffer: list[dict] = []
-        self._transaction_buffer_max_size = 100
-        self._transaction_timer = QTimer(self)
-        self._transaction_timer.setInterval(200)
-        self._transaction_timer.timeout.connect(self.flush_transactions)
-        self._transaction_timer.start()
         # Create a control panel
         self.ctrl_group = QGroupBox("Filter")
         group_layout = QVBoxLayout()
@@ -76,18 +70,10 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.transaction_tree.setItemDelegateForColumn(4, CurrencyDelegate(self.transaction_tree))  # value column
         self.transaction_tree.setColumnHidden(6, True)  # journal entry
 
-        # Sort proxy for column-header sorting
-        # Default: insertion order (Tx# ascending). Dynamic sort disabled for performance —
-        # new rows append without re-sorting. User can click a header to re-sort.
-        self.sort_proxy = QSortFilterProxyModel(self)
-        self.sort_proxy.setSourceModel(self.transaction_tree.tree_model)
-        self.sort_proxy.setDynamicSortFilter(False)
-        self.transaction_tree.setModel(self.sort_proxy)
-        self.transaction_tree.setSortingEnabled(True)
-        self.sort_proxy.sort(-1, Qt.SortOrder.AscendingOrder)
-
-        # Convenient access — source model for data mutation
+        # Source model used directly — no proxy in the hot insertion path.
+        # Sorting disabled by default; filtering uses setRowHidden.
         self.transactions_tree_model = self.transaction_tree.tree_model
+        self.transaction_tree.setSortingEnabled(False)
 
         # Arrange in a splitter with fixed-width left panel
         self.ctrl_group.setFixedWidth(CONTROL_PANEL_WIDTH)
@@ -116,33 +102,37 @@ class BRMSTransactionHistoryWidget(QWidget):
         if start_date > end_date:
             self.start_date_filter.setDate(end_date)  # Reset start date to match end date
 
-    def search_transactions(self) -> None:
-        self.reset_filters()
+    def _row_matches_filter(self, row: int) -> bool:
+        """Check whether a single row matches the current filter controls."""
+        model = self.transactions_tree_model
         start_date = self.start_date_filter.date().toPython()
         end_date = self.end_date_filter.date().toPython()
         tx_type = self.type_filter.currentText()
         instrument_query = self.instrument_filter.text().strip().lower()
-        proxy = self.sort_proxy
-        for row in range(proxy.rowCount()):
-            idx_date = proxy.index(row, 1)
-            idx_tx_type = proxy.index(row, 2)
-            idx_instrument = proxy.index(row, 3)
-            if not (idx_date.isValid() and idx_tx_type.isValid()):
-                continue
-            date_text = proxy.data(idx_date, Qt.ItemDataRole.DisplayRole)
-            tx_type_text = proxy.data(idx_tx_type, Qt.ItemDataRole.DisplayRole)
-            date = datetime.datetime.strptime(date_text, "%Y-%m-%d").date()
-            date_ok = start_date <= date <= end_date
-            type_ok = tx_type == "All" or tx_type_text == tx_type
-            if instrument_query:
-                inst_text = str(proxy.data(idx_instrument, Qt.ItemDataRole.DisplayRole) or "").lower()
-                inst_ok = instrument_query in inst_text
-            else:
-                inst_ok = True
-            self.transaction_tree.setRowHidden(row, QMODELINDEX, not (date_ok and type_ok and inst_ok))
+
+        idx_date = model.index(row, 1)
+        idx_tx_type = model.index(row, 2)
+        if not (idx_date.isValid() and idx_tx_type.isValid()):
+            return True
+        date_text = model.data(idx_date, Qt.ItemDataRole.DisplayRole)
+        tx_type_text = model.data(idx_tx_type, Qt.ItemDataRole.DisplayRole)
+        date = datetime.datetime.strptime(date_text, "%Y-%m-%d").date()
+        date_ok = start_date <= date <= end_date
+        type_ok = tx_type == "All" or tx_type_text == tx_type
+        if instrument_query:
+            inst_text = str(model.data(model.index(row, 3), Qt.ItemDataRole.DisplayRole) or "").lower()
+            return date_ok and type_ok and (instrument_query in inst_text)
+        return date_ok and type_ok
+
+    def search_transactions(self) -> None:
+        """Apply filter controls to all rows."""
+        self.reset_filters()
+        for row in range(self.transactions_tree_model.rowCount()):
+            if not self._row_matches_filter(row):
+                self.transaction_tree.setRowHidden(row, QMODELINDEX, True)
 
     def reset_filters(self) -> None:
-        for row in range(self.sort_proxy.rowCount()):
+        for row in range(self.transactions_tree_model.rowCount()):
             self.transaction_tree.setRowHidden(row, QMODELINDEX, False)
 
     def set_start_date(self, date: QDate | datetime.date) -> None:
@@ -164,15 +154,11 @@ class BRMSTransactionHistoryWidget(QWidget):
             self.ctrl_group.setStyleSheet("")
 
     def flush_transactions(self) -> None:
-        """Flush buffered row dicts to the tree model."""
+        """Flush buffered row dicts to the tree model via beginInsertRows/endInsertRows."""
         if not self._transaction_buffer:
             return
         self.setUpdatesEnabled(False)
-        self.transactions_tree_model.layoutAboutToBeChanged.emit()
-        self.transactions_tree_model.blockSignals(True)
         self.transactions_tree_model.add_data(QMODELINDEX, list(self._transaction_buffer))
-        self.transactions_tree_model.blockSignals(False)
-        self.transactions_tree_model.layoutChanged.emit()
         self._transaction_buffer.clear()
         self.transaction_tree.scrollToBottom()
         self.setUpdatesEnabled(True)
@@ -180,5 +166,3 @@ class BRMSTransactionHistoryWidget(QWidget):
     def add_row(self, row_data: dict) -> None:
         """Buffer a pre-formatted row dict for batch insertion."""
         self._transaction_buffer.append(row_data)
-        if len(self._transaction_buffer) >= self._transaction_buffer_max_size:
-            self.flush_transactions()

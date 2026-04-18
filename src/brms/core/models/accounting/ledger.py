@@ -62,15 +62,16 @@ class Ledger:
     # ------------------------------------------------------------------
 
     def __deepcopy__(self, memo: dict[int, Any]) -> Ledger:
-        """Create a deep copy with independent accounts but a shared journal.
+        """Create an independent copy with a fresh empty journal.
 
-        The journal is shared (not copied) to avoid issues with QuantLib's
-        SWIG objects that cannot be pickled.  The chart of accounts is fully
-        deep-copied so that account balances are independent.
+        Account balances live in the deep-copied chart of accounts.
+        Closing entries posted on the copy go to its own journal,
+        keeping the live ledger's journal untouched.  Historical
+        entries are not needed — only account balances matter.
         """
         return Ledger(
             chart_of_accounts=copy.deepcopy(self.chart_of_accounts, memo),
-            journal=self.journal,
+            journal=Journal(),
             date_closed=copy.deepcopy(self.date_closed, memo),
         )
 
@@ -177,12 +178,14 @@ class Ledger:
                 debit_accounts = contra_entries
                 credit_accounts = parent_entries
 
-            self.post(CompoundEntry(
-                debit_accounts=debit_accounts,
-                credit_accounts=credit_accounts,
-                date=date,
-                description=f"Close contra accounts of {account.name}",
-            ))
+            self.post(
+                CompoundEntry(
+                    debit_accounts=debit_accounts,
+                    credit_accounts=credit_accounts,
+                    date=date,
+                    description=f"Close contra accounts of {account.name}",
+                )
+            )
 
     def close_income_and_expense_accounts(self, date: datetime.date) -> None:
         """Transfer all income and expense balances to Income Summary.
@@ -214,20 +217,25 @@ class Ledger:
         if balance == 0:
             return
 
-        self.post(SimpleEntry(
-            debit_account=income_summary,
-            credit_account=retained_earnings,
-            value=balance,
-            date=date,
-            description="Close Income Summary to Retained Earnings",
-        ))
+        self.post(
+            SimpleEntry(
+                debit_account=income_summary,
+                credit_account=retained_earnings,
+                value=balance,
+                date=date,
+                description="Close Income Summary to Retained Earnings",
+            )
+        )
 
     # ------------------------------------------------------------------
     # Closing helpers
     # ------------------------------------------------------------------
 
     def _make_closing_entry(
-        self, account: TAccount, income_summary: TAccount, date: datetime.date,
+        self,
+        account: TAccount,
+        income_summary: TAccount,
+        date: datetime.date,
     ) -> CompoundEntry:
         """Build a closing entry that transfers *account*'s balance to Income Summary.
 

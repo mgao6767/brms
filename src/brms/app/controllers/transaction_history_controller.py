@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import Qt
 
 from brms.app.controllers.base import BRMSController
+from brms.app.views.widgets.tree_widget import QMODELINDEX
 from brms.core.enums import TransactionType
 from brms.core.events import DateAdvanced, TransactionsRecorded
 
@@ -61,14 +62,11 @@ class TransactionHistoryController(BRMSController):
         self.view.transaction_tree.customContextMenuRequested.connect(self._on_context_menu)
         self.view.search_button.clicked.connect(self._on_search)
         self.view.reset_button.clicked.connect(self._on_reset)
-        # Re-apply filter after flush adds rows to the model
-        self.view.transactions_tree_model.layoutChanged.connect(self._enforce_filter)
+        self.view.transactions_tree_model.rowsInserted.connect(self._on_rows_inserted)
 
     def reset(self) -> None:
         """Clear all transaction data from the view."""
-        self.view.transactions_tree_model.blockSignals(True)
         self.view.transaction_tree.clear_data()
-        self.view.transactions_tree_model.blockSignals(False)
         self.view._transaction_buffer.clear()  # noqa: SLF001
         self._pushed_tx_ids.clear()
         self._tx_count = 0
@@ -94,11 +92,16 @@ class TransactionHistoryController(BRMSController):
                 self.view.add_row(self._format_transaction(tx))
                 self._pushed_tx_ids.add(tx.id)
                 self._tx_count += 1
+        self.view.flush_transactions()
 
-    def _enforce_filter(self) -> None:
-        """Re-apply active filter after new rows are flushed to the model."""
-        if self._filter_active:
-            self.view.search_transactions()
+    def _on_rows_inserted(self, _parent: object, first: int, last: int) -> None:
+        """Filter only newly inserted rows when a filter is active."""
+        if not self._filter_active:
+            return
+        for row in range(first, last + 1):
+            if not self.view._row_matches_filter(row):  # noqa: SLF001
+                hidden = True
+                self.view.transaction_tree.setRowHidden(row, QMODELINDEX, hidden)
 
     def _on_search(self) -> None:
         """Handle search button — apply filter and show indicator."""
@@ -110,7 +113,6 @@ class TransactionHistoryController(BRMSController):
         """Handle reset button — clear filter and hide indicator."""
         self._filter_active = False
         self.view.reset_filters()
-        self.view.sort_proxy.sort(-1, Qt.SortOrder.AscendingOrder)
         self.view.set_filter_indicator(active=False)
 
     def filter_by_instrument(self, instrument_id: str) -> None:
@@ -146,10 +148,7 @@ class TransactionHistoryController(BRMSController):
         indexes = self.view.transaction_tree.selectedIndexes()
         if not indexes:
             return
-        # Map proxy index to source model index to access TreeItem
-        proxy_index = indexes[0]
-        source_index = self.view.sort_proxy.mapToSource(proxy_index)
-        item = source_index.internalPointer()
+        item = indexes[0].internalPointer()
         tx_id = item.data(6)  # hidden column stores transaction id
         if not tx_id:
             return
