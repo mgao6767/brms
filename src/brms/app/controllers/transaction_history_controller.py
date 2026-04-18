@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QModelIndex, Qt
 
 from brms.app.controllers.base import BRMSController
-from brms.app.views.widgets.tree_widget import QMODELINDEX
 from brms.core.enums import TransactionType
 from brms.core.events import DateAdvanced, TransactionsRecorded
 
@@ -22,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class TransactionHistoryController(BRMSController):
-    """Subscribes to TransactionsRecorded, transforms transactions to view-ready dicts."""
+    """Subscribes to TransactionsRecorded, transforms transactions to view-ready tuples."""
 
     def __init__(  # noqa: PLR0913
         self,
@@ -42,14 +41,12 @@ class TransactionHistoryController(BRMSController):
         self._tx_count = 0
         self._filter_active = False
 
-        # Populate type filter — sorted alphabetically
         type_labels = sorted(t.name.replace("_", " ").title() for t in TransactionType)
         self.view.type_filter.clear()
         self.view.type_filter.addItem("All")
         for label in type_labels:
             self.view.type_filter.addItem(label)
 
-        # Initialize date filters from simulation dates
         if start_date:
             self.view.set_start_date(start_date)
         if end_date:
@@ -57,16 +54,16 @@ class TransactionHistoryController(BRMSController):
 
         event_bus.subscribe(TransactionsRecorded, self._on_transactions_recorded)
         event_bus.subscribe(DateAdvanced, self._on_date_advanced)
-        self.view.transaction_tree.selectionModel().selectionChanged.connect(self._on_selection_changed)
-        self.view.transaction_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.view.transaction_tree.customContextMenuRequested.connect(self._on_context_menu)
+        self.view.table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
+        self.view.table_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.view.table_view.customContextMenuRequested.connect(self._on_context_menu)
         self.view.search_button.clicked.connect(self._on_search)
         self.view.reset_button.clicked.connect(self._on_reset)
-        self.view.transactions_tree_model.rowsInserted.connect(self._on_rows_inserted)
+        self.view.model.rowsInserted.connect(self._on_rows_inserted)
 
     def reset(self) -> None:
         """Clear all transaction data from the view."""
-        self.view.transaction_tree.clear_data()
+        self.view.model.clear()
         self.view._transaction_buffer.clear()  # noqa: SLF001
         self._pushed_tx_ids.clear()
         self._tx_count = 0
@@ -87,6 +84,8 @@ class TransactionHistoryController(BRMSController):
         self.view.set_end_date(event.date)
 
     def _on_transactions_recorded(self, event: TransactionsRecorded) -> None:
+        """Buffer incoming transactions and flush to the model."""
+        self.view.set_end_date(event.date)
         for tx in event.transactions:
             if tx.id not in self._pushed_tx_ids:
                 self.view.add_row(self._format_transaction(tx))
@@ -94,14 +93,16 @@ class TransactionHistoryController(BRMSController):
                 self._tx_count += 1
         self.view.flush_transactions()
 
-    def _on_rows_inserted(self, _parent: object, first: int, last: int) -> None:
-        """Filter only newly inserted rows when a filter is active."""
+    def _on_rows_inserted(self, _parent: QModelIndex, first: int, last: int) -> None:
+        """Filter only newly inserted source rows when a filter is active."""
         if not self._filter_active:
             return
-        for row in range(first, last + 1):
-            if not self.view._row_matches_filter(row):  # noqa: SLF001
-                hidden = True
-                self.view.transaction_tree.setRowHidden(row, QMODELINDEX, hidden)
+        proxy = self.view._sort_proxy  # noqa: SLF001
+        for source_row in range(first, last + 1):
+            if not self.view._source_row_matches_filter(source_row):  # noqa: SLF001
+                proxy_idx = proxy.mapFromSource(self.view.model.index(source_row, 0))
+                if proxy_idx.isValid():
+                    self.view.table_view.setRowHidden(proxy_idx.row(), True)  # noqa: FBT003
 
     def _on_search(self) -> None:
         """Handle search button — apply filter and show indicator."""
@@ -127,29 +128,30 @@ class TransactionHistoryController(BRMSController):
 
         from brms.app.clipboard import copy_tree_row, copy_tree_value
 
-        tree = self.view.transaction_tree
-        index = tree.indexAt(pos)  # type: ignore[arg-type]
+        table = self.view.table_view
+        index = table.indexAt(pos)  # type: ignore[arg-type]
         if not index.isValid():
             return
-        menu = QMenu(tree)
+        menu = QMenu(table)
         copy_val = QAction("Copy Value", menu)
-        copy_val.triggered.connect(lambda: copy_tree_value(tree))
+        copy_val.triggered.connect(lambda: copy_tree_value(table))
         menu.addAction(copy_val)
         copy_row_action = QAction("Copy Row", menu)
-        copy_row_action.triggered.connect(lambda: copy_tree_row(tree))
+        copy_row_action.triggered.connect(lambda: copy_tree_row(table))
         menu.addAction(copy_row_action)
         copy_details = QAction("Copy All Details", menu)
         copy_details.triggered.connect(self._inspector_ctrl.copy_details)
         menu.addAction(copy_details)
-        menu.exec(tree.viewport().mapToGlobal(pos))  # type: ignore[arg-type]
+        menu.exec(table.viewport().mapToGlobal(pos))  # type: ignore[arg-type]
 
     def _on_selection_changed(self) -> None:
         """Look up the selected transaction and show its details in the inspector."""
-        indexes = self.view.transaction_tree.selectedIndexes()
+        indexes = self.view.table_view.selectedIndexes()
         if not indexes:
             return
-        item = indexes[0].internalPointer()
-        tx_id = item.data(6)  # hidden column stores transaction id
+        source_idx = self.view._sort_proxy.mapToSource(indexes[0])  # noqa: SLF001
+        row_data = self.view.model.row_data(source_idx.row())
+        tx_id = row_data[6]
         if not tx_id:
             return
         try:
@@ -158,15 +160,16 @@ class TransactionHistoryController(BRMSController):
             return
         self._inspector_ctrl.show_transaction_details(tx)
 
-    def _format_transaction(self, transaction: Transaction) -> dict:
+    def _format_transaction(self, transaction: Transaction) -> tuple:
+        """Format a transaction as a tuple for the flat model."""
         type_label = transaction.type.name.replace("_", " ").title()
         description = transaction.description or type_label
-        return {
-            0: self._tx_count,
-            1: str(transaction.date),
-            2: type_label,
-            3: transaction.instrument_id or "",
-            4: float(transaction.amount),
-            5: description,
-            6: transaction.id,
-        }
+        return (
+            self._tx_count,
+            str(transaction.date),
+            type_label,
+            transaction.instrument_id or "",
+            float(transaction.amount),
+            description,
+            transaction.id,
+        )

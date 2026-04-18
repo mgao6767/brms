@@ -1,7 +1,12 @@
+"""Transaction history widget — QTableView backed by a flat list model."""
+
+from __future__ import annotations
+
 import datetime
 
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, QSortFilterProxyModel, Qt
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QDateEdit,
     QFrame,
@@ -11,29 +16,34 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QSplitter,
+    QTableView,
     QVBoxLayout,
     QWidget,
 )
 
+from brms.app.models.transaction_table_model import TransactionTableModel
 from brms.app.utils import pydate_to_qdate
 from brms.app.views.bank_book.delegates import CurrencyDelegate
 from brms.app.views.styler import BRMSStyler
-from brms.app.views.widgets.tree_widget import QMODELINDEX, BRMSTreeWidget
 
 CONTROL_PANEL_WIDTH = 220
+_COL_VALUE = 4
+_COL_ID = 6
 
 
 class BRMSTransactionHistoryWidget(QWidget):
-    def __init__(self, parent=None):
+    """Transaction history view with filter panel and flat table."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize the transaction history widget."""
         super().__init__(parent)
 
-        self._transaction_buffer: list[dict] = []
-        # Create a control panel
+        self._transaction_buffer: list[tuple] = []
+
+        # Filter panel
         self.ctrl_group = QGroupBox("Filter")
         group_layout = QVBoxLayout()
         group_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        # Add filter controls
         self.start_date_label = QLabel("Start Date:")
         self.start_date_filter = QDateEdit()
         self.end_date_label = QLabel("End Date:")
@@ -42,11 +52,10 @@ class BRMSTransactionHistoryWidget(QWidget):
         self.type_filter = QComboBox()
         self.instrument_label = QLabel("Instrument ID:")
         self.instrument_filter = QLineEdit()
-        self.instrument_filter.setPlaceholderText("Partial match…")
+        self.instrument_filter.setPlaceholderText("Partial match\u2026")
         self.search_button = QPushButton("Search")
         self.reset_button = QPushButton("Reset")
 
-        # Add widgets to layout
         group_layout.addWidget(self.start_date_label)
         group_layout.addWidget(self.start_date_filter)
         group_layout.addWidget(self.end_date_label)
@@ -62,83 +71,84 @@ class BRMSTransactionHistoryWidget(QWidget):
         group_layout.addWidget(self.reset_button)
         self.ctrl_group.setLayout(group_layout)
 
-        # Create a tree view
-        columns = ["Tx#", "Date", "Type", "Instrument", "Value", "Description", "Journal Entry"]
-        self.transaction_tree = BRMSTreeWidget(columns)
-        self.transaction_tree.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.transaction_tree.setUniformRowHeights(True)  # for performance
-        self.transaction_tree.setItemDelegateForColumn(4, CurrencyDelegate(self.transaction_tree))  # value column
-        self.transaction_tree.setColumnHidden(6, True)  # journal entry
+        # Table model + sort proxy (dynamicSort off — only sorts on header click)
+        self.model = TransactionTableModel(self)
+        self._sort_proxy = QSortFilterProxyModel(self)
+        self._sort_proxy.setSourceModel(self.model)
+        self._sort_proxy.setDynamicSortFilter(False)
 
-        # Source model used directly — no proxy in the hot insertion path.
-        # Sorting disabled by default; filtering uses setRowHidden.
-        self.transactions_tree_model = self.transaction_tree.tree_model
-        self.transaction_tree.setSortingEnabled(False)
+        self.table_view = QTableView(self)
+        self.table_view.setModel(self._sort_proxy)
+        self.table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table_view.setAlternatingRowColors(False)
+        self.table_view.setShowGrid(False)
+        self.table_view.setSortingEnabled(True)
+        self.table_view.verticalHeader().setVisible(False)
+        self.table_view.verticalHeader().setMinimumSectionSize(4)
+        self.table_view.verticalHeader().setDefaultSectionSize(self.fontMetrics().height() + 6)
+        self.table_view.horizontalHeader().setStretchLastSection(True)
+        self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table_view.setItemDelegateForColumn(_COL_VALUE, CurrencyDelegate(self.table_view))
+        self.table_view.setColumnHidden(_COL_ID, True)
 
-        # Arrange in a splitter with fixed-width left panel
+        # Layout — QHBoxLayout with spacing (matches RWA tab pattern)
         self.ctrl_group.setFixedWidth(CONTROL_PANEL_WIDTH)
-        splitter = QSplitter()
-        splitter.addWidget(self.ctrl_group)
-        splitter.addWidget(self.transaction_tree)
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
-
-        # Main layout
         main_layout = QHBoxLayout()
-        main_layout.addWidget(splitter)
+        main_layout.addWidget(self.ctrl_group)
+        main_layout.addWidget(self.table_view, stretch=1)
         self.setLayout(main_layout)
 
-        # Filter active indicator
         self._filter_group_default_title = "Filter"
+        self.start_date_filter.dateChanged.connect(self._validate_dates)
+        self.end_date_filter.dateChanged.connect(self._validate_dates)
 
-        # Connect signals (date validation only — search/reset owned by controller)
-        self.start_date_filter.dateChanged.connect(self.validate_dates)
-        self.end_date_filter.dateChanged.connect(self.validate_dates)
-
-    def validate_dates(self):
+    def _validate_dates(self) -> None:
         """Ensure start date is earlier than or equal to end date."""
-        start_date = self.start_date_filter.date()
-        end_date = self.end_date_filter.date()
-        if start_date > end_date:
-            self.start_date_filter.setDate(end_date)  # Reset start date to match end date
+        if self.start_date_filter.date() > self.end_date_filter.date():
+            self.start_date_filter.setDate(self.end_date_filter.date())
 
-    def _row_matches_filter(self, row: int) -> bool:
-        """Check whether a single row matches the current filter controls."""
-        model = self.transactions_tree_model
+    # -- Filter helpers ---------------------------------------------------
+
+    def _source_row_matches_filter(self, source_row: int) -> bool:
+        """Check whether a source model row matches the current filter controls."""
+        row_data = self.model.row_data(source_row)
         start_date = self.start_date_filter.date().toPython()
         end_date = self.end_date_filter.date().toPython()
         tx_type = self.type_filter.currentText()
         instrument_query = self.instrument_filter.text().strip().lower()
 
-        idx_date = model.index(row, 1)
-        idx_tx_type = model.index(row, 2)
-        if not (idx_date.isValid() and idx_tx_type.isValid()):
-            return True
-        date_text = model.data(idx_date, Qt.ItemDataRole.DisplayRole)
-        tx_type_text = model.data(idx_tx_type, Qt.ItemDataRole.DisplayRole)
-        date = datetime.datetime.strptime(date_text, "%Y-%m-%d").date()
-        date_ok = start_date <= date <= end_date
-        type_ok = tx_type == "All" or tx_type_text == tx_type
-        if instrument_query:
-            inst_text = str(model.data(model.index(row, 3), Qt.ItemDataRole.DisplayRole) or "").lower()
-            return date_ok and type_ok and (instrument_query in inst_text)
-        return date_ok and type_ok
+        date = datetime.date.fromisoformat(str(row_data[1]))
+        if not (start_date <= date <= end_date):
+            return False
+        if tx_type != "All" and row_data[2] != tx_type:
+            return False
+        return not (instrument_query and instrument_query not in str(row_data[3]).lower())
 
     def search_transactions(self) -> None:
-        """Apply filter controls to all rows."""
+        """Apply filter controls to all rows (operates on proxy row indices)."""
         self.reset_filters()
-        for row in range(self.transactions_tree_model.rowCount()):
-            if not self._row_matches_filter(row):
-                self.transaction_tree.setRowHidden(row, QMODELINDEX, True)
+        proxy = self._sort_proxy
+        for proxy_row in range(proxy.rowCount()):
+            source_row = proxy.mapToSource(proxy.index(proxy_row, 0)).row()
+            if not self._source_row_matches_filter(source_row):
+                self.table_view.setRowHidden(proxy_row, True)  # noqa: FBT003
 
     def reset_filters(self) -> None:
-        for row in range(self.transactions_tree_model.rowCount()):
-            self.transaction_tree.setRowHidden(row, QMODELINDEX, False)
+        """Unhide all rows and restore insertion order (Tx# ascending)."""
+        self._sort_proxy.sort(0, Qt.SortOrder.AscendingOrder)
+        for row in range(self._sort_proxy.rowCount()):
+            self.table_view.setRowHidden(row, False)  # noqa: FBT003
+        self.table_view.horizontalHeader().setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
+
+    # -- Public API -------------------------------------------------------
 
     def set_start_date(self, date: QDate | datetime.date) -> None:
+        """Set the start date filter."""
         self.start_date_filter.setDate(pydate_to_qdate(date) if isinstance(date, datetime.date) else date)
 
     def set_end_date(self, date: QDate | datetime.date) -> None:
+        """Set the end date filter."""
         self.end_date_filter.setDate(pydate_to_qdate(date) if isinstance(date, datetime.date) else date)
 
     def set_filter_indicator(self, *, active: bool) -> None:
@@ -153,16 +163,19 @@ class BRMSTransactionHistoryWidget(QWidget):
             self.ctrl_group.setTitle(self._filter_group_default_title)
             self.ctrl_group.setStyleSheet("")
 
+    def add_row(self, row_tuple: tuple) -> None:
+        """Buffer a row tuple for batch insertion."""
+        self._transaction_buffer.append(row_tuple)
+
     def flush_transactions(self) -> None:
-        """Flush buffered row dicts to the tree model via beginInsertRows/endInsertRows."""
+        """Flush buffered rows to the model in a single insert."""
         if not self._transaction_buffer:
             return
-        self.setUpdatesEnabled(False)
-        self.transactions_tree_model.add_data(QMODELINDEX, list(self._transaction_buffer))
+        needs_initial_sort = self.model.rowCount() == 0
+        self.table_view.setUpdatesEnabled(False)
+        self.model.append_rows(list(self._transaction_buffer))
         self._transaction_buffer.clear()
-        self.transaction_tree.scrollToBottom()
-        self.setUpdatesEnabled(True)
-
-    def add_row(self, row_data: dict) -> None:
-        """Buffer a pre-formatted row dict for batch insertion."""
-        self._transaction_buffer.append(row_data)
+        if needs_initial_sort:
+            self._sort_proxy.sort(0, Qt.SortOrder.AscendingOrder)
+        self.table_view.scrollToBottom()
+        self.table_view.setUpdatesEnabled(True)
