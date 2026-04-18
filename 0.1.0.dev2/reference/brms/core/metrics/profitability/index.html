@@ -12,13 +12,13 @@
         <meta name="author" content="Mingze Gao">
       
       
-        <link rel="canonical" href="https://bankrisk.org/0.1.0.dev2/reference/brms/core/rules/loan_interest_settlement/">
+        <link rel="canonical" href="https://bankrisk.org/0.1.0.dev2/reference/brms/core/metrics/profitability/">
       
       
-        <link rel="prev" href="../interest_accrual/">
+        <link rel="prev" href="../capital/">
       
       
-        <link rel="next" href="../mark_to_market/">
+        <link rel="next" href="../risk/">
       
       
       <link rel="icon" href="../../../../../icon.png">
@@ -26,7 +26,7 @@
     
     
       
-        <title>brms.core.rules.loan_interest_settlement - Bank Risk Management Simulation</title>
+        <title>brms.core.metrics.profitability - Bank Risk Management Simulation</title>
       
     
     
@@ -90,7 +90,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#brms.core.rules.loan_interest_settlement" class="md-skip">
+        <a href="#brms.core.metrics.profitability" class="md-skip">
           Skip to content
         </a>
       
@@ -158,7 +158,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              brms.core.rules.loan_interest_settlement
+              brms.core.metrics.profitability
             
           </span>
         </div>
@@ -805,6 +805,228 @@
                 
   
   
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_3_5" checked>
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> metrics
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_1_3_5" id="__nav_3_1_3_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_3_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_1_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> metrics
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../base/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> base
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../capital/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> capital
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> profitability
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> profitability
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#brms.core.metrics.profitability.ROAMetric" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ROAMetric
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" ROAMetric">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.metrics.profitability.ROAMetric.compute" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;compute
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brms.core.metrics.profitability.ROEMetric" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ROEMetric
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" ROEMetric">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.metrics.profitability.ROEMetric.compute" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;compute
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
   
   
     
@@ -838,11 +1060,11 @@
         
   
   
-    <a href="../../metrics/" class="md-nav__link">
+    <a href="../risk/" class="md-nav__link">
       
   
   <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> metrics
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> risk
     
   </span>
   
@@ -853,6 +1075,14 @@
     </a>
   
 
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
       
     </li>
   
@@ -927,8 +1157,6 @@
                 
   
   
-    
-  
   
   
     
@@ -965,18 +1193,17 @@
     
     
       
+        
+        
+      
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_3_7" checked>
-        
-          
-          
-          <div class="md-nav__link md-nav__container">
-            <a href="../" class="md-nav__link ">
-              
+  
+  
+    <a href="../../rules/" class="md-nav__link">
+      
   
   <span class="md-ellipsis">
     <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> rules
@@ -984,320 +1211,12 @@
   </span>
   
 
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_3_1_3_7" id="__nav_3_1_3_7_label" tabindex="0">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
-        
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_3_7_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3_1_3_7">
-            <span class="md-nav__icon md-icon"></span>
-            <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> rules
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../amortization/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> amortization
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../base/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> base
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../context/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> context
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../coupon/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> coupon
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../deposit_interest/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> deposit_interest
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../interest/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> interest
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../interest_accrual/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> interest_accrual
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
       
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+        <span class="md-nav__icon md-icon"></span>
       
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> loan_interest_settlement
-    
-  </span>
+    </a>
   
 
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> loan_interest_settlement
-    
-  </span>
-  
-
-      </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;LoanInterestSettlementRule
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label=" LoanInterestSettlementRule">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule.applies_to" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;applies_to
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule.generate" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;generate
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../mark_to_market/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> mark_to_market
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../maturity/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> maturity
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
       
     </li>
   
@@ -1652,28 +1571,43 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule" class="md-nav__link">
+  <a href="#brms.core.metrics.profitability.ROAMetric" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;LoanInterestSettlementRule
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ROAMetric
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" LoanInterestSettlementRule">
+    <nav class="md-nav" aria-label=" ROAMetric">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule.applies_to" class="md-nav__link">
+  <a href="#brms.core.metrics.profitability.ROAMetric.compute" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;applies_to
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;compute
     </span>
   </a>
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule.generate" class="md-nav__link">
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brms.core.metrics.profitability.ROEMetric" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;generate
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ROEMetric
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" ROEMetric">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#brms.core.metrics.profitability.ROEMetric.compute" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;compute
     </span>
   </a>
   
@@ -1707,24 +1641,15 @@
 
 
 
-<h1 id="brms.core.rules.loan_interest_settlement" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">loan_interest_settlement</span>
+<h1 id="brms.core.metrics.profitability" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">profitability</span>
 
 
 </h1>
 
     <div class="doc doc-contents first">
 
-        <p>LoanInterestSettlementRule: settles interest on amortizing loan payment dates.</p>
-<p>On each scheduled interest payment date, the borrower remits the interest
-portion of the monthly payment.  The accounting entry clears the Accrued
-Interest Receivable built up by daily <code>InterestIncomeAccrualRule</code> postings:</p>
-<pre><code>Dr  Cash                         (scheduled interest amount)
-Cr  Accrued Interest Receivable  (what was actually accrued)
-Cr  Interest Income              (catch-up difference)
-</code></pre>
-<p>This follows the same three-leg settlement pattern as <code>CouponPaymentRule</code>
-for bonds — the <code>AccountingService</code> handles the metadata identically.</p>
+        <p>Profitability metrics that delegate to ReportingService.</p>
 
 
 
@@ -1735,10 +1660,17 @@ for bonds — the <code>AccountingService</code> handles the metadata identicall
 <p><span class="doc-section-title">Classes:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule" href="#brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule">LoanInterestSettlementRule</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.profitability.ROAMetric" href="#brms.core.metrics.profitability.ROAMetric">ROAMetric</a></code></b>
           –
           <div class="doc-md-description">
-            <p>Settle interest payments on amortizing loan payment dates.</p>
+            <p>Return on Assets = Net Income / Total Assets.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.profitability.ROEMetric" href="#brms.core.metrics.profitability.ROEMetric">ROEMetric</a></code></b>
+          –
+          <div class="doc-md-description">
+            <p>Return on Equity = Net Income / Total Equity.</p>
           </div>
         </li>
     </ul>
@@ -1762,19 +1694,18 @@ for bonds — the <code>AccountingService</code> handles the metadata identicall
 
 
 
-<h2 id="brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">LoanInterestSettlementRule</span>
+<h2 id="brms.core.metrics.profitability.ROAMetric" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ROAMetric</span>
 
 
 </h2>
-
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">ROAMetric</span><span class="p">(</span><span class="n">reporting_service</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.reporting_service.ReportingService" href="../../services/reporting_service/#brms.core.services.reporting_service.ReportingService">ReportingService</a></span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
 
 
-        <p>Settle interest payments on amortizing loan payment dates.</p>
-<p>Reads interest payment dates and amounts from <code>payment_schedule()[0]</code>
-(the interest_pmt list of the 3-element loan schedule tuple).</p>
+        <p>Return on Assets = Net Income / Total Assets.</p>
 
 
 
@@ -1787,17 +1718,10 @@ for bonds — the <code>AccountingService</code> handles the metadata identicall
 <p><span class="doc-section-title">Methods:</span></p>
     <ul>
           <li class="doc-section-item field-body">
-            <b><code><a class="autorefs autorefs-internal" title="brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule.applies_to" href="#brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule.applies_to">applies_to</a></code></b>
+            <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.profitability.ROAMetric.compute" href="#brms.core.metrics.profitability.ROAMetric.compute">compute</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Return True for LONG positions on a scheduled interest payment date.</p>
-            </div>
-          </li>
-          <li class="doc-section-item field-body">
-            <b><code><a class="autorefs autorefs-internal" title="brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule.generate" href="#brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule.generate">generate</a></code></b>
-            –
-            <div class="doc-md-description">
-              <p>Generate an interest settlement transaction for the scheduled amount.</p>
+              <p>Net income / total assets from the closed balance sheet.</p>
             </div>
           </li>
     </ul>
@@ -1820,46 +1744,105 @@ for bonds — the <code>AccountingService</code> handles the metadata identicall
 <div class="doc doc-object doc-function">
 
 
-<h3 id="brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule.applies_to" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">applies_to</span>
+<h3 id="brms.core.metrics.profitability.ROAMetric.compute" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">compute</span>
 
 
 </h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">applies_to</span><span class="p">(</span>
-    <span class="n">instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
-    <span class="n">position</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.position.Position" href="../../models/position/#brms.core.models.position.Position">Position</a></span><span class="p">,</span>
-    <span class="n">context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.rules.context.RuleContext" href="../context/#brms.core.rules.context.RuleContext">RuleContext</a></span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">bool</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">compute</span><span class="p">(</span>
+    <span class="n">bank</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
+    <span class="n">market_state</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.market_data.MarketState" href="../../models/market_data/#brms.core.models.market_data.MarketState">MarketState</a></span><span class="p">,</span>
+    <span class="n">valuation_store</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.stores.valuation_store.ValuationStore" href="../../stores/valuation_store/#brms.core.stores.valuation_store.ValuationStore">ValuationStore</a></span><span class="p">,</span>
+    <span class="n">date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">float</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Return True for LONG positions on a scheduled interest payment date.</p>
-<p>Income-side settlement: Dr Cash / Cr AIR / Cr Interest Income.
-Skips dates on or before acquisition (no AIR to settle yet).</p>
+        <p>Net income / total assets from the closed balance sheet.</p>
 
     </div>
 
 </div>
 
-<div class="doc doc-object doc-function">
 
 
-<h3 id="brms.core.rules.loan_interest_settlement.LoanInterestSettlementRule.generate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">generate</span>
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
 
 
-</h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">generate</span><span class="p">(</span>
-    <span class="n">instrument</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.instruments.base.Instrument" href="../../models/instruments/base/#brms.core.models.instruments.base.Instrument">Instrument</a></span><span class="p">,</span>
-    <span class="n">position</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.position.Position" href="../../models/position/#brms.core.models.position.Position">Position</a></span><span class="p">,</span>
-    <span class="n">context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.rules.context.RuleContext" href="../context/#brms.core.rules.context.RuleContext">RuleContext</a></span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">list</span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.transaction.Transaction" href="../../models/transaction/#brms.core.models.transaction.Transaction">Transaction</a></span><span class="p">]</span>
+
+<h2 id="brms.core.metrics.profitability.ROEMetric" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ROEMetric</span>
+
+
+</h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">ROEMetric</span><span class="p">(</span><span class="n">reporting_service</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.services.reporting_service.ReportingService" href="../../services/reporting_service/#brms.core.services.reporting_service.ReportingService">ReportingService</a></span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Generate an interest settlement transaction for the scheduled amount.</p>
+
+        <p>Return on Equity = Net Income / Total Equity.</p>
+
+
+
+
+
+
+
+
+
+<p><span class="doc-section-title">Methods:</span></p>
+    <ul>
+          <li class="doc-section-item field-body">
+            <b><code><a class="autorefs autorefs-internal" title="brms.core.metrics.profitability.ROEMetric.compute" href="#brms.core.metrics.profitability.ROEMetric.compute">compute</a></code></b>
+            –
+            <div class="doc-md-description">
+              <p>Net income / total equity from the closed balance sheet.</p>
+            </div>
+          </li>
+    </ul>
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="brms.core.metrics.profitability.ROEMetric.compute" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">compute</span>
+
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">compute</span><span class="p">(</span>
+    <span class="n">bank</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
+    <span class="n">market_state</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.models.market_data.MarketState" href="../../models/market_data/#brms.core.models.market_data.MarketState">MarketState</a></span><span class="p">,</span>
+    <span class="n">valuation_store</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="brms.core.stores.valuation_store.ValuationStore" href="../../stores/valuation_store/#brms.core.stores.valuation_store.ValuationStore">ValuationStore</a></span><span class="p">,</span>
+    <span class="n">date</span><span class="p">:</span> <span class="n"><span title="datetime.date">date</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">float</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Net income / total equity from the closed balance sheet.</p>
 
     </div>
 
@@ -1921,7 +1904,7 @@ Skips dates on or before acquisition (no AIR to settle yet).</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../interest_accrual/" class="md-footer__link md-footer__link--prev" aria-label="Previous: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; interest_accrual">
+          <a href="../capital/" class="md-footer__link md-footer__link--prev" aria-label="Previous: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; capital">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1931,20 +1914,20 @@ Skips dates on or before acquisition (no AIR to settle yet).</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> interest_accrual
+                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> capital
               </div>
             </div>
           </a>
         
         
           
-          <a href="../mark_to_market/" class="md-footer__link md-footer__link--next" aria-label="Next: &lt;code class=&#34;doc-symbol doc-symbol-nav doc-symbol-module&#34;&gt;&lt;/code&gt; mark_to_market">
+          <a href="../risk/" class="md-footer__link md-footer__link--next" aria-label="Next: brms.core.metrics.risk">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code> mark_to_market
+                brms.core.metrics.risk
               </div>
             </div>
             <div class="md-footer__button md-icon">
