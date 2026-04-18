@@ -61,9 +61,20 @@ class BRMSStyler(QObject):
         self.support_info = "#22D3EE"
 
         # --- Chart ---
+        self.chart_blue = "#3B82F6"
+        self.chart_red = "#EF4444"
+        self.chart_green = "#22C55E"
+        self.chart_amber = "#F59E0B"
+        self.chart_purple = "#A78BFA"
+        self.chart_cyan = "#22D3EE"
+        self.chart_pink = "#F472B6"
+        self.chart_sky = "#60A5FA"
+        self.chart_emerald = "#10B981"
+        self.chart_emerald_light = "#6EE7B7"
         self.chart_palette = [
-            "#3B82F6", "#EF4444", "#22C55E", "#F59E0B",
-            "#A78BFA", "#22D3EE", "#F472B6", "#60A5FA",
+            self.chart_blue, self.chart_red, self.chart_green, self.chart_amber,
+            self.chart_purple, self.chart_cyan, self.chart_pink, self.chart_sky,
+            self.chart_emerald, self.chart_emerald_light,
         ]
         self.chart_grid = "#3A4A5E"
 

@@ -188,8 +188,8 @@ class PlotWidget(QWidget):
 
     def update_plot(self, maturities, yields, maturities_z, zero_rates, title, rescale_y, show_grid):
         self.ax.clear()
-        self.ax.plot(maturities, yields, marker="o", color=self.styler.chart_palette[0], label="Treasury Par Yields")
-        self.ax.plot(maturities_z, zero_rates, color=self.styler.chart_palette[1], label="Interpolated Zero Rates")
+        self.ax.plot(maturities, yields, marker="o", color=self.styler.chart_blue, label="Treasury Par Yields")
+        self.ax.plot(maturities_z, zero_rates, color=self.styler.chart_red, label="Interpolated Zero Rates")
         self.ax.set_ylabel("Yield (%)", fontsize=9)
         # Rescale y-axis if checkbox is checked
         if rescale_y:

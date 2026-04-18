@@ -507,24 +507,24 @@ class BRMSDashboard(QWidget):
             title="Balance Sheet",
             line_titles=["Total Assets", "Total Liabilities", "Total Equity"],
             hidden_by_default={"Total Liabilities", "Total Equity"},
-            line_colors=[s.chart_palette[0], s.chart_palette[1], s.chart_palette[2]],
+            line_colors=[s.chart_blue, s.chart_red, s.chart_green],
         )
         self.capital_ratio_plot = PlotWidget(
             title="Capital Ratios",
             line_titles=["CET1 Ratio"],
-            line_colors=[s.chart_palette[0]],
+            line_colors=[s.chart_blue],
             use_ratio_formatter=True,
         )
         self.liquidity_plot = PlotWidget(
             title="Liquidity Ratios",
             line_titles=["NSFR", "LCR"],
-            line_colors=[s.chart_palette[5], s.chart_palette[4]],
+            line_colors=[s.chart_cyan, s.chart_purple],
             use_ratio_formatter=True,
         )
         self.profitability_plot = PlotWidget(
             title="Profitability",
             line_titles=["ROA", "ROE"],
-            line_colors=[s.chart_palette[2], s.chart_palette[1]],
+            line_colors=[s.chart_emerald, s.chart_emerald_light],
             use_ratio_formatter=True,
         )
 

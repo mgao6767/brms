@@ -592,13 +592,13 @@ class PlotWidget(QWidget):
         self.ax2.yaxis.set_major_formatter(FuncFormatter(lambda x, _: _locale.toCurrencyString(x)))
         # Data containers
         (self.line_interest_pmt,) = self.ax.plot(
-            [], [], color=self.styler.chart_palette[0], label="Interest Payment",
+            [], [], color=self.styler.chart_blue, label="Interest Payment",
         )
         (self.line_principal_pmt,) = self.ax.plot(
-            [], [], color=self.styler.chart_palette[1], label="Principal Payment",
+            [], [], color=self.styler.chart_red, label="Principal Payment",
         )
         (self.line_total_pmt,) = self.ax.plot(
-            [], [], color=self.styler.chart_palette[7], label="Total Payment",
+            [], [], color=self.styler.chart_sky, label="Total Payment",
         )
         (self.line_outstanding_amt,) = self.ax2.plot(
             [], [], color=self.styler.text_primary, linestyle="--", label="Outstanding Balance",

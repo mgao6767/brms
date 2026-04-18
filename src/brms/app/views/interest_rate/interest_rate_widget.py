@@ -264,7 +264,7 @@ class BRMSInterestRateWidget(QWidget):
         self.plot_widget = TimeSeriesPlotWidget(
             title="Interest Rate",
             line_labels=["Prime"],
-            line_colors=[styler.chart_palette[0]],
+            line_colors=[styler.chart_blue],
             parent=self,
         )
 
