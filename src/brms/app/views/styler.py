@@ -49,6 +49,7 @@ class BRMSStyler(QObject):
         self.interactive_hover = "#60A5FA"
         self.interactive_active = "#2563EB"
         self.highlight = "#1E2E45"
+        self.status_bar = self.interactive_active
 
         # --- Border ---
         self.border_subtle = "#202A36"
@@ -72,14 +73,21 @@ class BRMSStyler(QObject):
         self.chart_emerald = "#10B981"
         self.chart_emerald_light = "#6EE7B7"
         self.chart_palette = [
-            self.chart_blue, self.chart_red, self.chart_green, self.chart_amber,
-            self.chart_purple, self.chart_cyan, self.chart_pink, self.chart_sky,
-            self.chart_emerald, self.chart_emerald_light,
+            self.chart_blue,
+            self.chart_red,
+            self.chart_green,
+            self.chart_amber,
+            self.chart_purple,
+            self.chart_cyan,
+            self.chart_pink,
+            self.chart_sky,
+            self.chart_emerald,
+            self.chart_emerald_light,
         ]
         self.chart_grid = "#3A4A5E"
 
         # --- Plot ---
-        self.plot_background_color = "#11161D"
+        self.plot_background_color = self.layer_01
 
     @classmethod
     def instance(cls) -> BRMSStyler:
@@ -321,7 +329,7 @@ class BRMSStyler(QObject):
             color: {self.text_primary};
         }}
         QTreeView::item:focus, QTableView::item:focus {{
-            border-left: 3px solid {self.interactive};
+            border-bottom: 2px solid {self.interactive};
         }}
         QTreeView::item:hover, QTableView::item:hover {{
             background-color: {self.layer_hover};
@@ -465,13 +473,13 @@ class BRMSStyler(QObject):
 
         /* ---- Status Bar ---- */
         QStatusBar {{
-            background-color: {self.layer_02};
-            color: {self.text_secondary};
+            background-color: {self.status_bar};
+            color: {self.text_on_color};
             font-size: 11px;
         }}
         QStatusBar QLabel#statusSegment {{
             padding: 2px 10px;
-            border-left: 1px solid {self.border_subtle};
+            border-left: 1px solid {self.interactive};
         }}
         QStatusBar QLabel#statusSegmentFirst {{
             padding: 2px 10px;
