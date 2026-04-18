@@ -1765,7 +1765,7 @@
             <b><code><a class="autorefs autorefs-internal" title="brms.app.controllers.main_controller.MainController.on_advance" href="#brms.app.controllers.main_controller.MainController.on_advance">on_advance</a></code></b>
             –
             <div class="doc-md-description">
-              <p>Advance simulation to the next business day, batching event dispatch.</p>
+              <p>Advance simulation by one step, optionally stepping over non-business days.</p>
             </div>
           </li>
           <li class="doc-section-item field-body">
@@ -1859,10 +1859,11 @@
 
     <div class="doc doc-contents ">
 
-        <p>Advance simulation to the next business day, batching event dispatch.</p>
-<p>Non-business days (no market data) are still processed for accruals
-and other calendar-based transactions, but the GUI keeps stepping
-until it reaches a day that has market data.</p>
+        <p>Advance simulation by one step, optionally stepping over non-business days.</p>
+<p>When <em>Step Over Non-Business Days</em> is active, non-business days (no
+market data) are still processed for accruals and other calendar-based
+transactions, but the GUI keeps stepping until it reaches a day that
+has market data.</p>
 
     </div>
 
