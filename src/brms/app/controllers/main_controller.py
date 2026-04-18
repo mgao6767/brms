@@ -213,12 +213,20 @@ class MainController(BRMSController):
         self.view.close()
 
     def on_advance(self) -> None:
-        """Advance simulation by one step, batching event dispatch."""
+        """Advance simulation to the next business day, batching event dispatch.
+
+        Non-business days (no market data) are still processed for accruals
+        and other calendar-based transactions, but the GUI keeps stepping
+        until it reaches a day that has market data.
+        """
+        sim = self.services.simulation_service
         self.view.setUpdatesEnabled(False)
         try:
             t0 = time.perf_counter()
             with self.services.event_bus.batch():
-                self.services.simulation_service.advance()
+                sim.advance()
+                while not sim.market_data.has_data(sim.current_date):
+                    sim.advance()
             elapsed_ms = (time.perf_counter() - t0) * 1000
             self._update_status_bar(elapsed_ms)
         except IndexError:
