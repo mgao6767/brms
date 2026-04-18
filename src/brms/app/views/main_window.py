@@ -149,6 +149,13 @@ class MainWindow(QMainWindow):
         self.tick_colors_action.setCheckable(True)
         self.tick_colors_action.setChecked(True)
         self.tick_colors_action.setToolTip("Show green/red colors for value changes")
+        # Step-over non-business days toggle
+        self.step_over_non_bdays_action = QAction(
+            qta.icon("mdi6.calendar-weekend"), "Step Over Non-Business Days", self,
+        )
+        self.step_over_non_bdays_action.setCheckable(True)
+        self.step_over_non_bdays_action.setChecked(True)
+        self.step_over_non_bdays_action.setToolTip("Step over non-business days")
         # View
         self.dashboard_action = QAction("Show Dashboard", self)
         self.dashboard_action.setShortcut("Ctrl+1")
@@ -187,6 +194,7 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(self.speed_combo)
         toolbar.addSeparator()
         toolbar.addAction(self.tick_colors_action)
+        toolbar.addAction(self.step_over_non_bdays_action)
         self.toolbar = toolbar
         # Per-tab actions are inserted after this separator when the active main
         # tab exposes a ``tab_actions`` list.
