@@ -142,6 +142,7 @@ def bank_file_from_call_report(
     return {
         "name": f"{items.get('NAME', 'Bank')} (Call Report {as_of}, USD thousands)",
         "as_of": as_of.isoformat(),
+        "unit": 1000,  # amounts are USD thousands, as reported
         "source": {"provider": "FDIC BankFind financials (Call Report)", "cert": items.get("CERT"),
                    "report_date": as_of.isoformat()},
         "reported": {k: items.get(k) for k in _REPORTED},

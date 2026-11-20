@@ -6,6 +6,7 @@ start date are real; from the start date on, every business day through the end 
 
 from __future__ import annotations
 
+import itertools
 import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -111,11 +112,35 @@ _NAMED = {
 }
 
 
-def _constant(bp: float) -> Callable[[float], float]:
-    def shape(_t: float) -> float:
-        return bp
+@dataclass(frozen=True)
+class KeyRateShift:
+    """A shift in basis points given at key maturities, linear in between and flat beyond the ends.
 
-    return shape
+    ``points`` are ``(t_years, bp)`` pairs. Picklable, so it can travel to a worker process.
+    """
+
+    points: tuple[tuple[float, float], ...]
+
+    def __post_init__(self) -> None:
+        """Sort the points; reject an empty shape."""
+        if not self.points:
+            msg = "A key-rate shift needs at least one (t_years, bp) point"
+            raise ValueError(msg)
+        object.__setattr__(self, "points", tuple(sorted((float(t), float(bp)) for t, bp in self.points)))
+
+    def __call__(self, t: float) -> float:
+        """Return the shift in basis points at maturity *t* years."""
+        points = self.points
+        if t <= points[0][0]:
+            return points[0][1]
+        for (t0, bp0), (t1, bp1) in itertools.pairwise(points):
+            if t <= t1:
+                return bp0 + (bp1 - bp0) * (t - t0) / (t1 - t0)
+        return points[-1][1]
+
+
+def _constant(bp: float) -> KeyRateShift:
+    return KeyRateShift(((0.0, bp),))
 
 
 def parse_scenario(text: str) -> Historical | Shock:

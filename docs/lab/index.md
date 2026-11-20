@@ -8,7 +8,10 @@ and reports statements, regulatory capital and interest-rate risk every day.
 ```bash
 pip install brms          # headless library and lab
 pip install "brms[gui]"   # plus the desktop app
+pip install "brms[web]"   # plus the browser app: run `brms-web`
 ```
+
+Prefer clicking to scripting? [The lab in a browser](web.md) does everything below with charts.
 
 ## Describe a bank
 

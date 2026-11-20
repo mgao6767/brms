@@ -7,6 +7,6 @@
 """
 
 from brms.lab.runner import RunResult, run, run_many
-from brms.lab.scenarios import Historical, Shock, parse_scenario
+from brms.lab.scenarios import Historical, KeyRateShift, Shock, parse_scenario
 
-__all__ = ["Historical", "RunResult", "Shock", "parse_scenario", "run", "run_many"]
+__all__ = ["Historical", "KeyRateShift", "RunResult", "Shock", "parse_scenario", "run", "run_many"]

@@ -244,7 +244,7 @@ class VariableRateLoan(Instrument):
         """Build a variable-rate loan from contract terms and a shared IborIndex."""
         repricing_frequency = repricing_frequency or ql.Period(1, ql.Months)
         maturity_date_str = qldate_to_string(issue_date + maturity)
-        name = f"Prime+{spread * 100:.0f}bp {maturity_date_str} {self._instrument_type_label}"
+        name = f"Prime{spread * 10_000:+.0f}bp {maturity_date_str} {self._instrument_type_label}"
         super().__init__(
             name,
             book_type,

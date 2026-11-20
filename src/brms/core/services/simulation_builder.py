@@ -155,11 +155,20 @@ class SimulationBuilder:
         from brms.core.services.spreads import calibrate_spread, valuation_leg
 
         handle = sim.valuation_service.yield_handle
+        calibrated = False
         for inst, pos in self._group_by_date(config).get(day, []):
             if pos.measurement_basis == MeasurementBasis.NA or pos.spread is not None:
                 continue
             target = config.spread_targets.get(pos.id, Decimal(pos.acquisition_cost))
             pos.spread = calibrate_spread(valuation_leg(inst, handle, day), handle, day, target)
+            calibrated = True
+        if calibrated:
+            # The day was valued before its new positions had spreads: value it again so the stored
+            # fair values (seeded into the snapshot when this is its date) use them. No rule has
+            # used those values, since nothing fires on an acquisition date; valuation is idempotent.
+            sim.valuation_service.value_all(
+                sim.bank, sim.market_data, day, sim.valuation_store, has_market_data=sim.market_data.has_data(day),
+            )
 
     def _add_positions_on(
         self,
