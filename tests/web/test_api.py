@@ -53,6 +53,8 @@ def test_front_end_is_served(client: TestClient) -> None:
     assert response.status_code == 200
     assert "<title>" in response.text
     assert client.get("/static/vendor/echarts.min.js").status_code == 200
+    assert response.headers["cache-control"] == "no-cache"
+    assert client.get("/static/js/main.js").headers["cache-control"] == "no-cache"
 
 
 def test_demo_banks_are_listed_and_summarised(client: TestClient) -> None:
@@ -93,6 +95,7 @@ def test_historical_run_end_to_end(client: TestClient) -> None:
     totals = day["totals"]
     assert totals["total_assets"] == pytest.approx(totals["total_liabilities"] + totals["total_equity"], abs=0.01)
     assert day["journal"], "every market day posts accruals"
+    assert any(entry["instrument"] for entry in day["journal"])
     for entry in day["journal"]:
         debit = sum(line["debit"] for line in entry["lines"])
         credit = sum(line["credit"] for line in entry["lines"])

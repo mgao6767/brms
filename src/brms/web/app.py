@@ -12,7 +12,7 @@ from concurrent.futures import Executor, Future, ProcessPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -22,7 +22,7 @@ from brms.web.payloads import day_payload
 from brms.web.workspace import DEMO_PREFIX, Workspace, default_data_dir, now
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable
+    from collections.abc import AsyncIterator, Awaitable, Callable
 
     from brms.lab.runner import RunResult
 
@@ -188,7 +188,8 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
             sheet = summary["balance_sheet"]
             view.update(status="ready", name=summary["name"], start_date=summary["start_date"],
                         end_date=summary["end_date"], total_assets=sheet["total_assets"],
-                        total_equity=sheet["total_equity"], positions=len(summary["positions"]))
+                        total_equity=sheet["total_equity"],
+                        positions=sum(1 for p in summary["positions"] if p["side"] == "LONG" and p["basis"] != "NA"))
         return view
 
     # -- banks -----------------------------------------------------------------------------
@@ -317,6 +318,14 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
         workspace.delete_run(run_id)
 
     # -- front end ---------------------------------------------------------------------------
+
+    @app.middleware("http")
+    async def revalidate_front_end(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        # Browsers must revalidate (ETag, cheap 304) so an upgraded package never runs stale scripts.
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
 
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import re
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -150,16 +151,27 @@ def _statements(services: CoreServices, day: datetime.date) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["date", "section", "account", "balance"])
 
 
+_TX_REF = re.compile(r"\s*\(tx=([0-9a-f-]+)\)")
+
+
 def _journal(services: CoreServices, start: datetime.date) -> pd.DataFrame:
-    """Return every journal line posted from *start* (opening entries excluded)."""
+    """Return every journal line posted from *start* (opening entries excluded).
+
+    Each line carries the position whose transaction produced the entry (None for entries that
+    belong to no position); the transaction reference is taken out of the description.
+    """
+    owners = {t.id: t.position_id for t in services.transaction_log.all()}
     rows = []
     for number, entry in enumerate(services.bank.ledger.journal.entries):
         if entry.date is None or entry.date < start or entry.kind == EntryKind.OPENING:
             continue
-        head = (entry.date, number, entry.kind.name, entry.description)
+        reference = _TX_REF.search(entry.description)
+        description = _TX_REF.sub("", entry.description)
+        position = owners.get(reference.group(1)) if reference else None
+        head = (entry.date, number, entry.kind.name, description, position)
         rows += [(*head, account.name, float(value), 0.0) for account, value in entry.debit_account_value_pairs()]
         rows += [(*head, account.name, 0.0, float(value)) for account, value in entry.credit_account_value_pairs()]
-    columns = ["date", "entry", "kind", "description", "account", "debit", "credit"]
+    columns = ["date", "entry", "kind", "description", "position", "account", "debit", "credit"]
     return pd.DataFrame(rows, columns=columns)
 
 

@@ -136,11 +136,15 @@ def day_payload(result: RunResult, day: datetime.date) -> dict[str, Any]:
     totals = {a: _clean(b) for a, b in zip(rows[rows["section"] == "totals"]["account"],
                                             rows[rows["section"] == "totals"]["balance"], strict=True)}
     journal = result.journal[result.journal["date"] == day]
+    names = dict(zip(result.positions["id"], result.positions["name"], strict=True))
     entries = []
     for number, lines in journal.groupby("entry", sort=True):
         first = lines.iloc[0]
+        position = first.get("position")
+        position = position if isinstance(position, str) else None
         entries.append({
             "entry": int(number), "kind": first["kind"], "description": first["description"],
+            "position": position, "instrument": names.get(position) if position else None,
             "lines": [{"account": a, "debit": _clean(d), "credit": _clean(c)}
                       for a, d, c in zip(lines["account"], lines["debit"], lines["credit"], strict=True)],
         })

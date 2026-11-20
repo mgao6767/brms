@@ -1,1 +1,35 @@
-<!doctype html><title>BRMS Stress Lab</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BRMS Stress Lab</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='2' fill='%23171a1e'/%3E%3Cpath d='M3 12V8m3.3 4V5m3.4 7V7m3.3 5V3' stroke='%233987e5' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/vendor/echarts.min.js"></script>
+  <script type="module" src="/static/js/main.js"></script>
+</head>
+<body>
+  <header class="appbar">
+    <a class="brand" href="#/banks" aria-label="BRMS Stress Lab home">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 12V8m3.3 4V5m3.4 7V7m3.3 5V3"/></svg>
+      <span>BRMS</span><span class="brand-sub">Stress Lab</span>
+    </a>
+    <nav class="tabs" id="tabs" aria-label="Open views"></nav>
+    <div class="appbar-right">
+      <span class="jobs" id="jobs" hidden></span>
+      <a class="appbar-link" href="https://bankrisk.org" target="_blank" rel="noopener">Docs</a>
+    </div>
+  </header>
+  <div class="shell">
+    <nav class="rail" aria-label="Sections">
+      <a href="#/banks" data-section="banks"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8l7-4 7 4M4 8v7m4-7v7m4-7v7m4-7v7M3 16h14"/></svg><span>Banks</span></a>
+      <a href="#/runs" data-section="runs"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 15l4-5 3 3 4-6 3 4M3 17h14"/></svg><span>Runs</span></a>
+      <a href="#/compare" data-section="compare"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4v12m6-9v9m6-6v6M3 17h14"/></svg><span>Compare</span></a>
+      <a href="#/import" data-section="import"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m-4-4l4 4 4-4M4 15h12"/></svg><span>Import</span></a>
+    </nav>
+    <main id="view" tabindex="-1"></main>
+  </div>
+  <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+</body>
+</html>

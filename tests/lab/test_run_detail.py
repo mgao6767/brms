@@ -36,7 +36,11 @@ def test_daily_statements_on_market_days(result) -> None:  # noqa: ANN001
 
 def test_journal_lines_balance_per_entry(result) -> None:  # noqa: ANN001
     journal = result.journal
-    assert {"date", "entry", "kind", "description", "account", "debit", "credit"} <= set(journal.columns)
+    assert {"date", "entry", "kind", "description", "account", "debit", "credit", "position"} <= set(journal.columns)
+    assert "tx=" not in " ".join(journal["description"])
+    known = set(result.positions["id"])
+    assert set(journal["position"].dropna()) <= known
+    assert journal["position"].notna().mean() > 0.9  # nearly every entry comes from a position's transaction
     by_entry = journal.groupby("entry")[["debit", "credit"]].sum()
     assert (by_entry["debit"] - by_entry["credit"]).abs().max() < 1e-6
     assert journal["date"].min() >= result.start
