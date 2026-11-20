@@ -6,6 +6,8 @@ from __future__ import annotations
 import datetime
 from decimal import Decimal
 
+import pandas as pd
+
 from brms.core.enums import MeasurementBasis, MetricName, ValuationType
 from brms.core.results import metrics_frame, valuations_frame
 from tests.support.engine import flat_yields, make_bond, make_position, run_bank
@@ -25,7 +27,7 @@ def test_metrics_frame() -> None:
     assert frame.index.name == "date"  # noqa: S101
     assert "CET1_RATIO" in frame.columns  # noqa: S101
     day = datetime.date(2021, 1, 29)
-    assert frame.loc[day, "TOTAL_ASSETS"] == float(sim.metric_store.get(MetricName.TOTAL_ASSETS, day))  # noqa: S101
+    assert frame.loc[pd.Timestamp(day), "TOTAL_ASSETS"] == float(sim.metric_store.get(MetricName.TOTAL_ASSETS, day))  # noqa: S101
     assert frame.dtypes.map(lambda t: t.kind).isin(["f"]).all()  # noqa: S101
 
 
@@ -34,4 +36,5 @@ def test_valuations_frame() -> None:
     frame = valuations_frame(sim.valuation_store, ValuationType.CARRYING_VALUE)
     assert list(frame.columns) == ["pos-R"]  # noqa: S101
     day = datetime.date(2021, 1, 10)
-    assert frame.loc[day, "pos-R"] == float(sim.valuation_store.get("pos-R", day, ValuationType.CARRYING_VALUE))  # noqa: S101
+    expected = float(sim.valuation_store.get("pos-R", day, ValuationType.CARRYING_VALUE))
+    assert frame.loc[pd.Timestamp(day), "pos-R"] == expected  # noqa: S101
