@@ -17,7 +17,7 @@ EXPECTED_POSITION_SIDE_COUNT = 2
 EXPECTED_POSITION_STATUS_COUNT = 2
 EXPECTED_MEASUREMENT_BASIS_COUNT = 4
 EXPECTED_VALUATION_TYPE_COUNT = 5
-EXPECTED_TRANSACTION_TYPE_COUNT = 25
+EXPECTED_TRANSACTION_TYPE_COUNT = 26
 EXPECTED_METRIC_NAME_COUNT = 24
 
 
@@ -150,6 +150,7 @@ class TestTransactionType:
             "OTHER_ASSETS",
             "OTHER_LIABILITIES",
             "DIVIDEND",
+            "INTANGIBLE_ASSETS",
         }
         actual_members = {member.name for member in TransactionType}
         assert actual_members == expected_members  # noqa: S101

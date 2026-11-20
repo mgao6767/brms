@@ -61,6 +61,8 @@ class BuildConfig:
     # liabilities), booked against cash on the first replay day and carried unchanged.
     other_assets: Decimal = Decimal(0)
     other_liabilities: Decimal = Decimal(0)
+    # Goodwill and other intangibles: carried unchanged and deducted from CET1.
+    intangible_assets: Decimal = Decimal(0)
     # The BenchmarkService whose Prime index the floating-rate instruments were built with, so the
     # engine discounts and forecasts on the same curve handle. Built by the engine when omitted.
     benchmark_service: Any = None
@@ -165,6 +167,7 @@ class SimulationBuilder:
         txns = [
             Transaction(id=str(uuid.uuid4()), type=tx_type, date=day, amount=amount, description=tx_type.name.title())
             for tx_type, amount in ((TransactionType.OTHER_ASSETS, config.other_assets),
+                                    (TransactionType.INTANGIBLE_ASSETS, config.intangible_assets),
                                     (TransactionType.OTHER_LIABILITIES, config.other_liabilities))
             if amount
         ]

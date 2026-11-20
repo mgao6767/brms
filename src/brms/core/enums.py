@@ -89,6 +89,7 @@ class TransactionType(Enum):
     OTHER_ASSETS = auto()
     OTHER_LIABILITIES = auto()
     DIVIDEND = auto()
+    INTANGIBLE_ASSETS = auto()
 
 
 class MetricName(Enum):

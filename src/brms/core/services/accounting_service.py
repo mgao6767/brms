@@ -112,6 +112,9 @@ class AccountingService:
                 return self._operating(transaction, ledger)
             case TransactionType.DIVIDEND:
                 return [self._simple(ledger, "Dividends Paid", "Cash and Cash Equivalents", transaction, "Dividend")]
+            case TransactionType.INTANGIBLE_ASSETS:
+                return [self._simple(ledger, "Intangible Assets", "Cash and Cash Equivalents", transaction,
+                                     "Intangible assets")]
             case TransactionType.OTHER_ASSETS:
                 return [self._simple(ledger, "Other Assets", "Cash and Cash Equivalents", transaction, "Other assets")]
             case TransactionType.OTHER_LIABILITIES:

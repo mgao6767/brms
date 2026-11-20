@@ -8,6 +8,7 @@
       "operating": {"noninterest_expense": 2.2e9, "noninterest_income": 8e8, "tax_rate": 0.21},  # optional, per year
       "cash": 1000000,
       "other_assets": 50000, "other_liabilities": 20000,   # optional: carried unchanged, not modelled
+      "intangible_assets": 10000,                           # optional: goodwill etc., deducted from CET1
       "deposits": [{"id": "dep", "name": "Savings", "balance": 2500000, "interest_rate": 0.001,
                     "beta": 0.3, "runoff_rate": 0.05, "withdrawals": [["2022-03-09", 0.25]]}],   # optional
       "positions": [
@@ -179,11 +180,12 @@ def build_bank(bank_file: Path, market_frames: dict[str, pd.DataFrame], out: Pat
         })
 
     other_assets = Decimal(str(data.get("other_assets", 0)))
+    intangibles = Decimal(str(data.get("intangible_assets", 0)))
     other_liabilities = Decimal(str(data.get("other_liabilities", 0)))
-    if other_assets < 0 or other_liabilities < 0:
-        msg = "other_assets and other_liabilities must be zero or positive"
+    if min(other_assets, intangibles, other_liabilities) < 0:
+        msg = "other_assets, intangible_assets and other_liabilities must be zero or positive"
         raise SimulationDataError(msg)
-    equity = Decimal(str(data["cash"])) + total_cost - deposits_total + other_assets - other_liabilities
+    equity = Decimal(str(data["cash"])) + total_cost - deposits_total + other_assets + intangibles - other_liabilities
     if equity <= 0:
         msg = f"The bank file implies non-positive equity ({equity:,.2f}): assets must exceed deposits"
         raise SimulationDataError(msg)
@@ -206,6 +208,7 @@ def build_bank(bank_file: Path, market_frames: dict[str, pd.DataFrame], out: Pat
         operating=OperatingConfig.from_json(data.get("operating")),
         other_assets=other_assets,
         other_liabilities=other_liabilities,
+        intangible_assets=intangibles,
         benchmark_service=benchmark_service,
         calibrate_spreads=True,
         spread_targets=targets,

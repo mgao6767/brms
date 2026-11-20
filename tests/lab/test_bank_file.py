@@ -203,3 +203,18 @@ def test_other_assets_and_liabilities_are_carried_and_weighted(tmp_path: Path) -
     extra = services.metric_store.get(MetricName.CREDIT_RWA, day) - base.metric_store.get(MetricName.CREDIT_RWA, day)
     assert float(extra) == pytest.approx(300_000, rel=1e-6)  # noqa: S101
     assert_books_reconcile(sim, day)
+
+
+def test_intangible_assets_are_deducted_from_cet1(tmp_path: Path) -> None:
+    from brms.core.enums import MetricName
+
+    out = tmp_path / "a.zip"
+    build_bank(_write(tmp_path, {**_bank(), "intangible_assets": 100_000.0}), {"yields": _yields()}, out)
+    services = build_core_services(simulation_zip=out)
+    sim = services.simulation_service
+    assert float(account_balance(sim, "Intangible Assets")) == pytest.approx(100_000)  # noqa: S101
+    sim.advance()
+    day = sim.current_date
+    equity = services.metric_store.get(MetricName.TOTAL_EQUITY, day)
+    cet1 = services.metric_store.get(MetricName.CET1_CAPITAL, day)
+    assert float(equity) - float(cet1) == pytest.approx(100_000, abs=0.01)  # noqa: S101

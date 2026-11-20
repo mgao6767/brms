@@ -205,7 +205,9 @@ def test_other_assets_and_liabilities_close_the_gap_to_reported_equity(bank: dic
                      for p in bank["positions"] if p["id"].startswith(("nm-", "pt-", "omb-")))
     loans = sum(p["amortized_cost"] for p in bank["positions"] if p["id"].startswith(("ln-", "rs-")))
     deposits = sum(d["balance"] for d in bank["deposits"])
-    equity = bank["cash"] + securities + loans + bank["other_assets"] - deposits - bank["other_liabilities"]
+    equity = (bank["cash"] + securities + loans + bank["other_assets"] + bank["intangible_assets"] - deposits
+              - bank["other_liabilities"])
+    assert bank["intangible_assets"] == items["INTAN"]
     assert equity == pytest.approx(items["EQ"], rel=0.01)
     assert bank["other_assets"] >= 0
     assert bank["other_liabilities"] >= 0

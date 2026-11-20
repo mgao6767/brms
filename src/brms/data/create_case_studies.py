@@ -56,7 +56,7 @@ def create_case_study(case: CaseStudy, data_folder: Path = DEFAULT_DATA_FOLDER) 
     report_date = datetime.datetime.strptime(str(items["REPDTE"]), "%Y%m%d").date()  # noqa: DTZ007
     frames = default_market_frames()
     bank = bank_file_from_call_report(items, prime=prime_on(frames, report_date), aoci_filter=case.aoci_filter)
-    bank["name"] = f"{case.name} (USD thousands)"
+    bank["name"] = case.name
     bank["story"] = case.story
     out = data_folder.parent / f"case_{case.slug}.zip"
     with tempfile.TemporaryDirectory() as tmp:

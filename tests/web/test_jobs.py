@@ -64,5 +64,5 @@ def test_summary_reads_unit_and_story_from_the_zip(tmp_path: Path) -> None:
     summary = jobs.summarise_bank(str(zip_path), str(tmp_path / "summary.json"))
     assert summary["unit"] == 1000
     assert summary["story"] == case.story
-    assert summary["name"] == "Silicon Valley Bank, end-2021 (USD thousands)"
+    assert summary["name"] == "Silicon Valley Bank, end-2021"
     assert float(summary["operating"]["noninterest_expense"]) > 0

@@ -330,13 +330,16 @@ def _other_balances(items: dict[str, Any]) -> dict[str, float]:
     """Return the assets and liabilities the mapping does not model, so equity matches the report.
 
     Other assets are total assets less cash, debt securities and net loans (trading assets, premises,
-    intangibles, equity securities and the rest); other liabilities are total liabilities less
-    deposits and borrowings. Both are carried unchanged; other assets are risk-weighted at 100%.
+    equity securities and the rest); intangibles (goodwill and others) are carried separately and
+    deducted from CET1; other liabilities are total liabilities less deposits and borrowings. All are
+    carried unchanged; other assets are risk-weighted at 100%.
     """
+    intangibles = _n(items, "INTAN")
     modelled_assets = (_n(items, "CHBAL") + _n(items, "FREPO") + _n(items, "SCHA") + _n(items, "SCAF")
-                       + _n(items, "LNLSNET"))
+                       + _n(items, "LNLSNET") + intangibles)
     modelled_liabilities = _n(items, "DEP") + _n(items, "OTHBRF") + _n(items, "FREPP") + _n(items, "SUBND")
     return {
+        "intangible_assets": intangibles,
         "other_assets": max(0.0, _n(items, "ASSET") - modelled_assets),
         "other_liabilities": max(0.0, _n(items, "LIAB") - modelled_liabilities),
     }
