@@ -28,23 +28,25 @@ _START = datetime.date(2021, 6, 1)
 _END = datetime.date(2021, 8, 31)
 _LEGACY = Path(__file__).resolve().parents[2] / "fixtures" / "legacy" / "htm_treasury_pre_correct_books.zip"
 
+_GOV = {"name": "US Government", "issuer_type": "SOVEREIGN", "credit_rating": "AAA"}
+
 _SPECS: list[dict[str, object]] = [
     {"id": "equity", "type": "common_equity", "name": "Equity"},
     {"id": "deposit", "type": "deposit", "name": "Savings", "interest_rate": 0.01},
     *[
         {
             "id": f"R-{basis}", "type": "treasury_note", "face_value": 500_000.0, "coupon_rate": 0.05,
-            "issue_date": "2020-07-01", "maturity_date": "2022-07-01",
+            "issue_date": "2020-07-01", "maturity_date": "2022-07-01", "issuer": _GOV,
         }
         for basis in ("AMORTIZED_COST", "FVOCI", "FVTPL")
     ],
     {
         "id": "short", "type": "treasury_note", "face_value": 100_000.0, "coupon_rate": 0.02,
-        "issue_date": "2020-03-01", "maturity_date": "2021-03-01",
+        "issue_date": "2020-03-01", "maturity_date": "2021-03-01", "issuer": _GOV,
     },
     {
         "id": "M", "type": "residential_mortgage", "face_value": 300_000.0, "interest_rate": 0.06,
-        "issue_date": "2020-12-15", "maturity": "1Y",
+        "issue_date": "2020-12-15", "maturity": "1Y", "ltv": 0.7,
     },
 ]
 

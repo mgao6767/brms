@@ -57,7 +57,7 @@ def test_basic_gap_computation() -> None:
     bank.instruments.get.return_value = bond
 
     valuation_store = MagicMock()
-    valuation_store.get.return_value = None  # fall back to acquisition_cost
+    valuation_store.get.return_value = Decimal("500000")  # carrying value on the day
 
     model = MaturityGapModel()
     result = model.compute(bank, as_of, valuation_store)
@@ -111,7 +111,9 @@ def test_deposit_short_is_rsl() -> None:
     as_of = datetime.date(2024, 1, 4)
     deposit = _make_instrument("dep-1", InstrumentType.DEPOSIT)
     deposit.maturity_date = None  # demand deposit, no maturity
-    pos = _make_position("pos-d", "dep-1", BookType.BANKING, PositionSide.SHORT, 6000000)
+    pos = _make_position(
+        "pos-d", "dep-1", BookType.BANKING, PositionSide.SHORT, 6000000, measurement_basis=MeasurementBasis.NA,
+    )
 
     bank = MagicMock()
     bank.positions.open_positions.return_value = [pos]
@@ -125,21 +127,25 @@ def test_deposit_short_is_rsl() -> None:
 
 
 def test_delta_nii_computation() -> None:
-    """ΔNII = gap * ΔR for each bucket."""
+    """ΔNII = gap * ΔR * (1 - bucket midpoint) within one year, 0 beyond it."""
     as_of = datetime.date(2024, 1, 4)
-    bond = _make_instrument("bond-1", InstrumentType.FIXED_RATE_BOND, datetime.date(2028, 1, 4))
-    pos = _make_position("pos-1", "bond-1", BookType.BANKING, PositionSide.LONG, 1000000)
+    near = _make_instrument("bond-1", InstrumentType.FIXED_RATE_BOND, datetime.date(2024, 5, 4))  # 3M-6M
+    far = _make_instrument("bond-2", InstrumentType.FIXED_RATE_BOND, datetime.date(2028, 1, 4))  # 3Y-4Y
+    positions = [
+        _make_position("pos-1", "bond-1", BookType.BANKING, PositionSide.LONG, 1000000),
+        _make_position("pos-2", "bond-2", BookType.BANKING, PositionSide.LONG, 1000000),
+    ]
 
     bank = MagicMock()
-    bank.positions.open_positions.return_value = [pos]
-    bank.instruments.get.return_value = bond
+    bank.positions.open_positions.return_value = positions
+    bank.instruments.get.side_effect = lambda iid: {"bond-1": near, "bond-2": far}[iid]
 
     model = MaturityGapModel()
-    result = model.compute(bank, as_of, MagicMock(get=MagicMock(return_value=None)))
+    result = model.compute(bank, as_of, MagicMock(get=MagicMock(return_value=Decimal("1000000"))))
 
-    # gap in bucket 9 (3Y-4Y) = 1,000,000
-    assert abs(result.delta_nii_up[9] - 1000000 * 0.02) < 0.01
-    assert abs(result.delta_nii_down[9] - 1000000 * -0.02) < 0.01
+    assert abs(result.delta_nii_up[3] - 1000000 * 0.02 * (1 - 0.375)) < 0.01
+    assert abs(result.delta_nii_down[3] - 1000000 * -0.02 * (1 - 0.375)) < 0.01
+    assert result.delta_nii_up[9] == 0
 
 
 def test_variable_rate_loan_in_short_bucket() -> None:

@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from brms.core.enums import BookType, InstrumentType
+from brms.core.enums import BookType, InstrumentType, MeasurementBasis
+from brms.core.exceptions import ValuationError
 from brms.core.metrics.risk.interest_rate_risk.buckets import IRRBB_BUCKETS, TimeBucket, assign_bucket
 
 if TYPE_CHECKING:
@@ -70,9 +71,15 @@ class MaturityGapModel:
 
             bucket_idx = assign_bucket(remaining_years)
 
-            # Value: carrying value from store, else acquisition cost
-            cv = valuation_store.get(position.id, date, ValuationType.CARRYING_VALUE)
-            value = float(cv) if cv is not None else float(position.acquisition_cost)
+            # Bonds and loans carry a valuation; deposits and other unvalued holdings sit at their balance.
+            if position.measurement_basis == MeasurementBasis.NA:
+                value = float(position.acquisition_cost)
+            else:
+                cv = valuation_store.get(position.id, date, ValuationType.CARRYING_VALUE)
+                if cv is None:
+                    msg = f"Position {position.id} has no carrying value on {date}"
+                    raise ValuationError(msg)
+                value = float(cv)
 
             if position.side == PositionSide.LONG:
                 rsa[bucket_idx] += value
@@ -86,8 +93,11 @@ class MaturityGapModel:
         for g in gap:
             running += g
             cumulative_gap.append(running)
-        delta_nii_up = [g * _PARALLEL_SHOCK for g in gap]
-        delta_nii_down = [g * -_PARALLEL_SHOCK for g in gap]
+        # A gap repricing at the bucket midpoint m earns the shock for the rest of the year, (1 - m);
+        # buckets repricing after one year do not affect 12-month NII.
+        exposure = [max(0.0, 1.0 - b.midpoint) for b in IRRBB_BUCKETS]
+        delta_nii_up = [g * _PARALLEL_SHOCK * w for g, w in zip(gap, exposure, strict=True)]
+        delta_nii_down = [g * -_PARALLEL_SHOCK * w for g, w in zip(gap, exposure, strict=True)]
 
         return MaturityGapResult(
             rsa=rsa,

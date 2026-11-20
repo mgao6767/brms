@@ -19,7 +19,8 @@ from tests.support.reconcile import account_balance
 
 def test_loan_closes_after_final_payment() -> None:
     loan = ResidentialMortgage(
-        face_value=300_000.0, interest_rate=0.06, issue_date=ql.Date(15, 12, 2020), maturity=ql.Period(1, ql.Years),
+        face_value=300_000.0, interest_rate=0.06, issue_date=ql.Date(15, 12, 2020), ltv=0.7,
+        maturity=ql.Period(1, ql.Years),
     )
     loan.id = "M"
     acquired = datetime.date(2021, 1, 4)

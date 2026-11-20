@@ -10,8 +10,10 @@ import pandas as pd
 
 from brms.core.enums import BookType, MeasurementBasis, PositionSide
 from brms.core.models.instruments import default_instrument_registry
+from brms.core.models.instruments.base import CreditRating, Issuer, IssuerType
 from brms.core.models.instruments.equity import CommonEquity
 from brms.core.models.position import Position
+from brms.core.models.regulatory import RegulatoryConfig
 from brms.core.services.simulation_builder import BuildConfig, SimulationBuilder
 from brms.core.utils import pydate_to_qldate
 from tests.support.reconcile import Check, assert_books_reconcile
@@ -31,6 +33,7 @@ R_ISSUE = datetime.date(2020, 7, 1)
 R_MATURITY = datetime.date(2022, 7, 1)
 FUNDING_DATE = datetime.date(2021, 1, 4)
 FUNDING = Decimal(2_000_000)
+_SOVEREIGN = object()  # sentinel: make_bond's default issuer
 
 
 def flat_yields(start: datetime.date, end: datetime.date, rate: float = 0.03) -> pd.DataFrame:
@@ -56,14 +59,18 @@ def make_bond(  # noqa: PLR0913
     issue: datetime.date = R_ISSUE,
     maturity: datetime.date = R_MATURITY,
     registry_type: str = "treasury_note",
+    issuer: Issuer | None | object = _SOVEREIGN,
 ) -> Instrument:
-    """Build a fixed-rate bond through the default registry."""
+    """Build a fixed-rate bond through the default registry (issuer: US sovereign, AAA, by default)."""
+    if issuer is _SOVEREIGN:
+        issuer = Issuer(name="US Government", issuer_type=IssuerType.SOVEREIGN, credit_rating=CreditRating.AAA)
     bond = default_instrument_registry().create(
         registry_type,
         face_value=face,
         coupon_rate=coupon,
         issue_date=pydate_to_qldate(issue),
         maturity_date=pydate_to_qldate(maturity),
+        issuer=issuer,
     )
     bond.id = id
     return bond
@@ -117,6 +124,7 @@ def run_bank(  # noqa: PLR0913
     checks: frozenset[Check] = frozenset(Check),
     each_day: Callable[[SimulationService, datetime.date], None] | None = None,
     with_funding: bool = True,
+    regulatory: RegulatoryConfig | None = None,
 ) -> SimulationService:
     """Replay the bank day by day through *until*, reconciling after every advance."""
     if with_funding:
@@ -135,5 +143,6 @@ def run_bank(  # noqa: PLR0913
         instruments=instruments,
         positions=positions,
         market_frames={"yields": yields},
+        regulatory=regulatory or RegulatoryConfig(),
     )
     return SimulationBuilder().replay(config, until=until, on_advance=on_advance)

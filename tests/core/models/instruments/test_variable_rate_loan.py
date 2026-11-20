@@ -92,9 +92,10 @@ class TestVariableRateLoanSchedule:
 
 
 class TestVariableRateLoanRepricingDate:
-    def test_repricing_date_returns_as_of_plus_frequency(self, bullet_loan) -> None:
+    def test_repricing_date_is_the_next_scheduled_reset(self, bullet_loan) -> None:
+        """Not as_of + frequency: the next reset in the loan's own schedule (business-day adjusted)."""
         rd = bullet_loan.repricing_date(datetime.date(2024, 3, 15))
-        assert rd == datetime.date(2024, 4, 15)
+        assert rd == datetime.date(2024, 4, 2)
 
     def test_notional_bullet_before_maturity(self, bullet_loan) -> None:
         assert bullet_loan.notional(datetime.date(2024, 6, 1)) == pytest.approx(10_000_000, rel=1e-2)

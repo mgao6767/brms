@@ -16,6 +16,7 @@ import pandas as pd
 from brms.core.enums import BookType, MeasurementBasis, PositionSide, PositionStatus
 from brms.core.exceptions import SimulationDataError
 from brms.core.models.position import Position
+from brms.core.models.regulatory import RegulatoryConfig
 from brms.core.services.data_service import _convert_kwargs
 
 if TYPE_CHECKING:
@@ -40,6 +41,7 @@ class SimulationData:
     market_frames: dict[str, pd.DataFrame]
     balances: dict[str, float] = field(default_factory=dict)
     valuations: dict[str, dict[str, float]] = field(default_factory=dict)
+    regulatory: RegulatoryConfig = field(default_factory=RegulatoryConfig)
 
 
 @runtime_checkable
@@ -158,6 +160,7 @@ class ZipLoader:
             market_frames=market_frames,
             balances=balances,
             valuations=valuations,
+            regulatory=RegulatoryConfig.from_json(cfg.get("regulatory")),
         )
 
     def _load_instruments(self, zf: zipfile.ZipFile) -> list[Instrument]:

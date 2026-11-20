@@ -92,7 +92,7 @@ def _build_objects(
     instruments_data: list[dict],
     positions_data: list[dict],
     prime_csv: Path,
-) -> tuple[list, list]:
+) -> tuple[list, list, object]:
     """Construct Instrument and Position objects from raw dicts."""
     import pandas as pd
     import QuantLib as ql  # noqa: N813
@@ -152,7 +152,7 @@ def _build_objects(
         for p in positions_data
     ]
 
-    return instruments, positions
+    return instruments, positions, benchmark_service
 
 
 def create_ci_loan_prime_zip(data_folder: Path, out_path: Path | None = None) -> Path:
@@ -173,7 +173,7 @@ def create_ci_loan_prime_zip(data_folder: Path, out_path: Path | None = None) ->
 
     instruments_data = copy.deepcopy(INSTRUMENTS)
     positions_data = copy.deepcopy(POSITIONS)
-    instruments, positions = _build_objects(instruments_data, positions_data, prime_csv)
+    instruments, positions, benchmark_service = _build_objects(instruments_data, positions_data, prime_csv)
 
     yields_df = pd.read_csv(yields_csv, index_col="date", parse_dates=True)
     prime_df = pd.read_csv(prime_csv, index_col="date", parse_dates=True)
@@ -185,6 +185,7 @@ def create_ci_loan_prime_zip(data_folder: Path, out_path: Path | None = None) ->
             instruments=instruments,
             positions=positions,
             market_frames={"yields": yields_df, "benchmarks": prime_df},
+            benchmark_service=benchmark_service,
         ),
     )
 

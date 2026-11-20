@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from brms.core.enums import BookType
+from brms.core.models.regulatory import RegulatoryConfig
 
 if TYPE_CHECKING:
     from brms.core.models.accounting.ledger import Ledger
@@ -44,12 +45,20 @@ class BookView:
 class Bank:
     """Holds instruments, positions, and ledger. No business logic."""
 
-    def __init__(self, name: str, instruments: InstrumentStore, positions: PositionStore, ledger: Ledger) -> None:
-        """Initialize a bank with its stores and ledger."""
+    def __init__(
+        self,
+        name: str,
+        instruments: InstrumentStore,
+        positions: PositionStore,
+        ledger: Ledger,
+        regulatory: RegulatoryConfig | None = None,
+    ) -> None:
+        """Initialize a bank with its stores, ledger and regulatory inputs."""
         self.name = name
         self.instruments = instruments
         self.positions = positions
         self.ledger = ledger
+        self.regulatory = regulatory or RegulatoryConfig()
 
     @property
     def banking_book(self) -> BookView:

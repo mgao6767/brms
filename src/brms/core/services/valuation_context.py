@@ -49,11 +49,13 @@ class ValuationContext:
         self.has_market_data = has_market_data
 
         # Every day, market data or not: floating-rate coupons need the evaluation date and
-        # the benchmark fixings (which come from their own frame, not from the yields).
+        # the benchmark fixings (which come from their own frame, not from the yields). On a
+        # market day the fixings are synced after the new curve is linked, because the Prime
+        # forecast basis is measured against it.
         ql.Settings.instance().evaluationDate = ql.Date(date.day, date.month, date.year)
-        if self._benchmark_service is not None:
-            self._benchmark_service.sync_up_to(date, market_data)
         if not has_market_data:
+            if self._benchmark_service is not None:
+                self._benchmark_service.sync_up_to(date, market_data)
             return
 
         try:
@@ -67,3 +69,5 @@ class ValuationContext:
             msg = f"No yields to build the curve for {date}"
             raise ValuationError(msg)
         self._yield_handle.linkTo(term_structure)
+        if self._benchmark_service is not None:
+            self._benchmark_service.sync_up_to(date, market_data)

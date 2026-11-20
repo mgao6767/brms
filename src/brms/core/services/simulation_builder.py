@@ -6,10 +6,12 @@ import datetime
 import uuid
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from brms.core.enums import InstrumentType, MeasurementBasis, TransactionType, TxMeta, ValuationType
+from brms.core.enums import InstrumentType, MeasurementBasis, PositionSide, TransactionType, TxMeta, ValuationType
 from brms.core.exceptions import UnsupportedPositionError
+from brms.core.metrics.risk.credit_risk.exposures import classify
+from brms.core.models.regulatory import RegulatoryConfig
 from brms.core.models.transaction import Transaction
 from brms.core.services.amortized_cost import AmortizedCostCalculator
 
@@ -52,6 +54,10 @@ class BuildConfig:
     instruments: list[Instrument]
     positions: list[Position]
     market_frames: dict[str, pd.DataFrame]
+    regulatory: RegulatoryConfig = field(default_factory=RegulatoryConfig)
+    # The BenchmarkService whose Prime index the floating-rate instruments were built with, so the
+    # engine discounts and forecasts on the same curve handle. Built by the engine when omitted.
+    benchmark_service: Any = None
 
 
 @dataclass
@@ -65,6 +71,7 @@ class SimulationSnapshot:
     balances: dict[str, float]
     valuations: dict[str, dict[str, float]] = field(default_factory=dict)
     market_frames: dict[str, pd.DataFrame] = field(default_factory=dict)
+    regulatory: RegulatoryConfig = field(default_factory=RegulatoryConfig)
 
 
 class SimulationBuilder:
@@ -93,6 +100,7 @@ class SimulationBuilder:
             balances=balances,
             valuations=valuations,
             market_frames=config.market_frames,
+            regulatory=config.regulatory,
         )
 
     def replay(
@@ -137,6 +145,8 @@ class SimulationBuilder:
     ) -> None:
         """Add the positions acquired on *day* and post their acquisition transactions."""
         for inst, pos in self._group_by_date(config).get(day, []):
+            if pos.side == PositionSide.LONG and pos.measurement_basis != MeasurementBasis.NA:
+                classify(inst, pos)  # fail before any day runs, not on the first market day
             sim.bank.instruments.add(inst)
             sim.bank.positions.add(pos)
             txns = self._make_acquisition_transactions(inst, pos, calculator)
@@ -171,21 +181,28 @@ class SimulationBuilder:
         from brms.core.stores.valuation_store import ValuationStore
 
         calculator = AmortizedCostCalculator()
+        metric_store = MetricStore()
         coa = BankChartOfAccounts()
         ledger = Ledger(chart_of_accounts=coa, journal=Journal())
-        bank = Bank(name=config.name, instruments=InstrumentStore(), positions=PositionStore(), ledger=ledger)
+        bank = Bank(
+            name=config.name, instruments=InstrumentStore(), positions=PositionStore(), ledger=ledger,
+            regulatory=config.regulatory,
+        )
         market_data = MarketDataStore()
         accounting_service = AccountingService()
 
         for name, df in config.market_frames.items():
             market_data.add_frame(name, df)
 
-        shared_yield_handle = ql.RelinkableYieldTermStructureHandle()
-        benchmark_service = None
-        if "benchmarks" in config.market_frames:
-            from brms.core.services.benchmark_service import BenchmarkService
+        benchmark_service = config.benchmark_service
+        if benchmark_service is not None:
+            shared_yield_handle = benchmark_service.curve_handle
+        else:
+            shared_yield_handle = ql.RelinkableYieldTermStructureHandle()
+            if "benchmarks" in config.market_frames:
+                from brms.core.services.benchmark_service import BenchmarkService
 
-            benchmark_service = BenchmarkService(forwarding_handle=shared_yield_handle)
+                benchmark_service = BenchmarkService(forwarding_handle=shared_yield_handle)
 
         sim = SimulationService(
             bank=bank,
@@ -197,9 +214,11 @@ class SimulationBuilder:
             ),
             rule_engine=RuleEngine(default_rules()),
             accounting_service=accounting_service,
-            metrics_service=MetricsService(MetricRegistry(default_metrics(ReportingService()))),
+            metrics_service=MetricsService(
+                MetricRegistry(default_metrics(ReportingService(), metric_store, shared_yield_handle)),
+            ),
             valuation_store=ValuationStore(),
-            metric_store=MetricStore(),
+            metric_store=metric_store,
             transaction_log=TransactionLog(),
             event_bus=EventBus(),
         )

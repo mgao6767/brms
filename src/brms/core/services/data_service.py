@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import QuantLib as ql  # noqa: N813
 
 from brms.core.enums import MeasurementBasis
+from brms.core.metrics.risk.credit_risk.exposures import validate_exposures
 from brms.core.models.benchmarks import BenchmarkFamily, PrincipalRepaymentMode
 from brms.core.models.instruments.base import BookType, CreditRating, Issuer, IssuerType
 from brms.core.models.instruments.registry import InstrumentRegistry
@@ -103,6 +104,7 @@ class DataService:
         Balance journal entry is posted to establish the ledger state.
         """
         data = loader.load()  # type: ignore[union-attr]
+        simulation_service.bank.regulatory = data.regulatory
 
         for inst in data.instruments:
             simulation_service.bank.instruments.add(inst)  # type: ignore[union-attr]
@@ -111,6 +113,7 @@ class DataService:
         for name, df in data.market_frames.items():
             simulation_service.market_data.add_frame(name, df)  # type: ignore[union-attr]
 
+        validate_exposures(simulation_service.bank)
         self._post_opening_balances(data, simulation_service)
         self._seed_valuations(data, simulation_service)
         simulation_service.initialize_from_snapshot(data.start_date, end_date=data.end_date)  # type: ignore[union-attr]

@@ -166,9 +166,17 @@ class Mortgage(AmortizingFixedRateLoan):
     _instrument_type_enum = InstrumentType.MORTGAGE
     _default_frequency = ql.Monthly
 
-    def __init__(self, *, frequency: int = ql.Monthly, **kwargs: object) -> None:  # type: ignore[assignment]
-        """Initialize a mortgage with monthly payment frequency by default."""
+    def __init__(self, *, frequency: int = ql.Monthly, ltv: float | None = None, **kwargs: object) -> None:  # type: ignore[assignment]
+        """Initialize a mortgage with monthly payment frequency by default.
+
+        Args:
+            frequency: Payment frequency (QuantLib frequency), monthly by default.
+            ltv: Loan-to-value ratio at origination, as a fraction; used for the credit risk weight.
+            **kwargs: Passed to :class:`AmortizingFixedRateLoan`.
+
+        """
         super().__init__(frequency=frequency, **kwargs)  # type: ignore[arg-type]
+        self.ltv = ltv
 
 
 class ResidentialMortgage(Mortgage):
@@ -308,6 +316,14 @@ class VariableRateLoan(Instrument):
     def notional(self, date: datetime.date) -> float:
         """Outstanding notional as of *date*."""
         return self.instrument.notional(pydate_to_qldate(date))
+
+    def repricing_date(self, as_of: datetime.date) -> datetime.date | None:
+        """Return the next scheduled rate reset after *as_of* (None once the last period has started)."""
+        for ql_date in self._schedule:
+            day = qldate_to_pydate(ql_date)
+            if day > as_of:
+                return day
+        return None
 
     def payment_schedule(
         self,
