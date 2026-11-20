@@ -11,7 +11,7 @@ from brms.core.enums import (
     ValuationType,
 )
 
-EXPECTED_INSTRUMENT_TYPE_COUNT = 12
+EXPECTED_INSTRUMENT_TYPE_COUNT = 13
 EXPECTED_BOOK_TYPE_COUNT = 2
 EXPECTED_POSITION_SIDE_COUNT = 2
 EXPECTED_POSITION_STATUS_COUNT = 2
@@ -39,6 +39,7 @@ class TestInstrumentType:
             "COMMERCIAL_MORTGAGE",
             "AMORTIZING_FIXED_RATE_LOAN",
             "VARIABLE_RATE_LOAN",
+            "MORTGAGE_BACKED_SECURITY",
         }
         actual_members = {member.name for member in InstrumentType}
         assert actual_members == expected_members  # noqa: S101

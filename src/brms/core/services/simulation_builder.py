@@ -152,14 +152,14 @@ class SimulationBuilder:
 
     def _calibrate_spreads_on(self, day: datetime.date, config: BuildConfig, sim: SimulationService) -> None:
         """Set the spread of positions acquired on *day* so that they are worth their cost on the day's curve."""
-        from brms.core.services.spreads import calibrate_spread
+        from brms.core.services.spreads import calibrate_spread, valuation_leg
 
         handle = sim.valuation_service.yield_handle
         for inst, pos in self._group_by_date(config).get(day, []):
             if pos.measurement_basis == MeasurementBasis.NA or pos.spread is not None:
                 continue
             target = config.spread_targets.get(pos.id, Decimal(pos.acquisition_cost))
-            pos.spread = calibrate_spread(inst.ql_instrument.cashflows(), handle, day, target)
+            pos.spread = calibrate_spread(valuation_leg(inst, handle, day), handle, day, target)
 
     def _add_positions_on(
         self,
@@ -333,6 +333,10 @@ class SimulationBuilder:
             if basis == MeasurementBasis.AMORTIZED_COST and inst_type in _LOAN_TYPES:
                 tx_type = TransactionType.LOAN_DISBURSEMENT
                 _check_loan_at_par(inst, pos, Decimal(str(pos.acquisition_cost)) - accrued)
+            elif inst_type == InstrumentType.MORTGAGE_BACKED_SECURITY:
+                _check_mbs(inst, pos, Decimal(str(pos.acquisition_cost)) - accrued)
+                tx_type = TransactionType.SECURITY_PURCHASE
+                metadata = ((TxMeta.MEASUREMENT_BASIS, basis),)
             else:
                 tx_type = TransactionType.SECURITY_PURCHASE
                 metadata = ((TxMeta.MEASUREMENT_BASIS, basis),)
@@ -368,6 +372,23 @@ def _check_loan_at_par(instrument: Instrument, position: Position, clean_cost: D
         msg = (
             f"Position {position.id}: loans bought at a premium or discount are not supported yet "
             f"(clean cost {clean_cost:.2f}, outstanding principal {outstanding:.2f} on {position.acquisition_date})"
+        )
+        raise UnsupportedPositionError(msg)
+
+
+def _check_mbs(instrument: Instrument, position: Position, clean_cost: Decimal) -> None:
+    """MBS are bought at par and held at amortised cost or FVOCI."""
+    if position.measurement_basis not in (MeasurementBasis.AMORTIZED_COST, MeasurementBasis.FVOCI):
+        msg = (
+            f"Position {position.id}: mortgage-backed securities at {position.measurement_basis.name} are not "
+            "supported (use AMORTIZED_COST or FVOCI)"
+        )
+        raise UnsupportedPositionError(msg)
+    outstanding = outstanding_principal(instrument, position.acquisition_date)
+    if abs(clean_cost - outstanding) > Decimal("0.01"):
+        msg = (
+            f"Position {position.id}: mortgage-backed securities bought at a premium or discount are not supported "
+            f"yet (clean cost {clean_cost:.2f}, outstanding principal {outstanding:.2f} on {position.acquisition_date})"
         )
         raise UnsupportedPositionError(msg)
 

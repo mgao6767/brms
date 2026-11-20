@@ -21,6 +21,25 @@ run off (`runoff_rate`) or suffer scheduled withdrawals.
 python -m brms.lab build-bank bank.json --out bank.zip
 ```
 
+Agency mortgage-backed securities are pass-through pools:
+
+```json
+{"id": "mbs", "type": "mortgage_backed_security", "face_value": 600000, "coupon_rate": 0.02,
+ "wac": 0.025, "issue_date": "2021-12-31", "maturity": "25Y",
+ "issuer": {"name": "Agency", "issuer_type": "PSE", "credit_rating": "AA_PLUS"},
+ "basis": "AMORTIZED_COST", "amortized_cost": 600000, "fair_value": 590000,
+ "prepayment": {"turnover_cpr": 0.06, "max_cpr": 0.5, "refi_center": 0.0075, "refi_width": 0.0075,
+                "mortgage_spread": 0.017}}
+```
+
+The annual prepayment rate (CPR) is an S-curve in the refinancing incentive: the note rate (`wac`,
+default coupon + 0.5%) less the mortgage rate, taken as the 10-year Treasury zero rate plus
+`mortgage_spread`. Fair value and EVE project the remaining cash flows at today's speed, so a
+rate rise slows prepayment and lengthens the pool, and a rate fall caps its gains. Realised
+paydowns, which drive the cash and the books, follow a constant `pricing_cpr`. It defaults to the
+model's speed on the as-of date. Pools must be bought at par and held at `AMORTIZED_COST` or
+`FVOCI`. Every field of `prepayment` is optional.
+
 ## Run scenarios
 
 ```bash
@@ -48,7 +67,8 @@ result.metrics["CET1_RATIO"].plot()
 ## What the engine assumes
 
 - Valuation by discounting each position's cash flows on the Treasury curve plus a constant credit
-  spread; no prepayment model (mortgage-backed securities do not extend as rates rise).
+  spread. Mortgage-backed securities project prepayments from rates, but their realised paydowns
+  follow a fixed speed, so the cash available to reinvest does not respond to rates.
 - Standardised approaches only: CRE20 credit risk, SRP31 interest-rate shocks; operational RWA,
   AT1 and Tier 2 are inputs.
 - Deposits reprice overnight for EVE and NII sensitivity.

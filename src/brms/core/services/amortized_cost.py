@@ -46,6 +46,19 @@ def is_loan(instrument: Instrument) -> bool:
     return getattr(instrument, "instrument_type", None) in LOAN_TYPES
 
 
+def is_mbs(instrument: Instrument) -> bool:
+    """Return True for mortgage-backed securities (pass-throughs)."""
+    return getattr(instrument, "instrument_type", None) == InstrumentType.MORTGAGE_BACKED_SECURITY
+
+
+def repays_on_schedule(instrument: Instrument) -> bool:
+    """Return True for instruments repaid in instalments and bought at par: loans and MBS.
+
+    Their amortised cost is clean cost less the scheduled principal received since acquisition.
+    """
+    return is_loan(instrument) or is_mbs(instrument)
+
+
 class AmortizedCostCalculator:
     """Computes acquisition-related values and amortised cost of a position.
 
@@ -82,10 +95,10 @@ class AmortizedCostCalculator:
     def amortized_cost(self, instrument: Instrument, position: Position, date: datetime.date) -> Decimal:
         """Return the amortised cost of *position* at close of business on *date*.
 
-        Loans: clean cost less scheduled principal paid after acquisition through *date*.
+        Loans and MBS: clean cost less scheduled principal paid after acquisition through *date*.
         Bonds: clean price at the effective rate; face value on and after maturity.
         """
-        if is_loan(instrument):
+        if repays_on_schedule(instrument):
             _interest, principal, _outstanding = instrument.payment_schedule()  # type: ignore[attr-defined]
             repaid = sum(
                 (Decimal(str(a)) for d, a in principal if position.acquisition_date < d <= date), Decimal(0),

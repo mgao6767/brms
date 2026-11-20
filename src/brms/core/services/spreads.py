@@ -31,6 +31,18 @@ def spreaded_handle(base: ql.YieldTermStructureHandle, spread: Decimal | float) 
     return ql.YieldTermStructureHandle(curve)
 
 
+def valuation_leg(instrument: object, curve: ql.YieldTermStructureHandle, date: datetime.date) -> object:
+    """Return the cash flows *instrument* is valued on.
+
+    MBS project theirs at the prepayment speed *curve* (the unspreaded market curve) implies;
+    other instruments return their contractual cash flows.
+    """
+    project = getattr(instrument, "projected_leg", None)
+    if project is not None:
+        return project(curve, date)
+    return instrument.ql_instrument.cashflows()  # type: ignore[attr-defined]
+
+
 def dirty_value(leg: object, handle: ql.YieldTermStructureHandle, date: datetime.date) -> float:
     """Present value on *date* of the cash flows of *leg* paid after *date*."""
     qd = pydate_to_qldate(date)

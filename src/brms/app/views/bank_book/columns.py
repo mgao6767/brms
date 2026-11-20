@@ -35,6 +35,7 @@ AMORTIZED_COST_SUB_GROUPS: dict[InstrumentType, str] = {
     InstrumentType.TREASURY_BOND: "Held-to-Maturity",
     InstrumentType.FIXED_RATE_BOND: "Held-to-Maturity",
     InstrumentType.COVERED_BOND: "Held-to-Maturity",
+    InstrumentType.MORTGAGE_BACKED_SECURITY: "Held-to-Maturity",
     InstrumentType.RESIDENTIAL_MORTGAGE: "Loans & Mortgages",
     InstrumentType.COMMERCIAL_MORTGAGE: "Loans & Mortgages",
     InstrumentType.MORTGAGE: "Loans & Mortgages",

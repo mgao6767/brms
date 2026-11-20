@@ -393,9 +393,12 @@ class AccountingService:
         return [entry]
 
     def _amortization(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
-        """AMORTIZATION: debit Cash, credit Loans."""
+        """AMORTIZATION: debit Cash, credit Loans (or, for a security's paydown, its investment account)."""
         cash = self._lookup(ledger, "Cash and Cash Equivalents")
-        loans = self._lookup(ledger, "Loans and Advances")
+        if TxMeta.MEASUREMENT_BASIS in dict(tx.metadata):
+            loans = self._resolve_investment_account(tx, ledger)
+        else:
+            loans = self._lookup(ledger, "Loans and Advances")
         entry = SimpleEntry(
             debit_account=cash,
             credit_account=loans,

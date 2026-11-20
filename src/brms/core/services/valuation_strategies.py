@@ -20,8 +20,8 @@ import QuantLib as ql  # noqa: N813
 
 from brms.core.enums import MeasurementBasis, ValuationType
 from brms.core.exceptions import UnsupportedPositionError, ValuationError
-from brms.core.services.amortized_cost import is_loan, scaled_accrued
-from brms.core.services.spreads import dirty_value, spreaded_handle
+from brms.core.services.amortized_cost import is_loan, is_mbs, scaled_accrued
+from brms.core.services.spreads import dirty_value, spreaded_handle, valuation_leg
 
 if TYPE_CHECKING:
     import datetime
@@ -75,18 +75,21 @@ class _BaseStrategy:
         """Return the clean fair value, or None when it is not defined today.
 
         Positions with a credit spread are discounted on the curve plus that spread (loans get a
-        fair value only then); others are priced on the curve itself (bonds only).
+        fair value only then); others are priced on the curve itself (bonds only). MBS cash flows
+        are projected at the prepayment speed the day's curve implies.
         """
         if is_loan(inst) and pos.spread is None:
             return None
         date = context.date
-        if not is_loan(inst) and date >= inst.maturity_date:  # type: ignore[attr-defined]
+        if not is_loan(inst) and not is_mbs(inst) and date >= inst.maturity_date:  # type: ignore[attr-defined]
             return Decimal(str(inst.face_value))  # type: ignore[attr-defined]
         if not context.has_market_data:
             return None
-        if pos.spread is not None:
+        if pos.spread is not None or is_mbs(inst):
+            handle = context.yield_handle if pos.spread is None else self._spread_handle(pos, context)
             try:
-                dirty = dirty_value(inst.ql_instrument.cashflows(), self._spread_handle(pos, context), date)  # type: ignore[attr-defined]
+                leg = valuation_leg(inst, context.yield_handle, date)  # type: ignore[arg-type]
+                dirty = dirty_value(leg, handle, date)  # type: ignore[arg-type]
             except RuntimeError as exc:
                 msg = f"Cannot price position {pos.id} on {date}: {exc}"
                 raise ValuationError(msg) from exc
