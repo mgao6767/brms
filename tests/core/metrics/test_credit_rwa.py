@@ -95,18 +95,16 @@ def test_cash_carries_no_risk_weight_and_total_sums_lines() -> None:
 
 
 def test_bond_without_issuer_is_rejected() -> None:
-    sim = _bank(("pos-B", make_bond(id="B", issuer=None)))
+    """Credit RWA is a daily metric, so an unclassifiable exposure stops the run on its first market day."""
     with pytest.raises(UnsupportedPositionError, match="pos-B"):
-        credit_rwa(sim.bank, sim.valuation_store, _DAY)
+        _bank(("pos-B", make_bond(id="B", issuer=None)))
 
 
 def test_mortgage_without_ltv_is_rejected() -> None:
-    sim = _bank(("pos-M", _mortgage("M", ltv=None)))
     with pytest.raises(UnsupportedPositionError, match="pos-M"):
-        credit_rwa(sim.bank, sim.valuation_store, _DAY)
+        _bank(("pos-M", _mortgage("M", ltv=None)))
 
 
 def test_unrated_bank_is_rejected() -> None:
-    sim = _bank(("pos-B", make_bond(id="B", issuer=_issuer(IssuerType.BANK))))
     with pytest.raises(UnsupportedPositionError, match="pos-B"):
-        credit_rwa(sim.bank, sim.valuation_store, _DAY)
+        _bank(("pos-B", make_bond(id="B", issuer=_issuer(IssuerType.BANK))))

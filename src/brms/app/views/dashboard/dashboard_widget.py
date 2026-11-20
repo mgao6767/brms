@@ -27,6 +27,8 @@ from brms.app.utils import pydate_to_qdate
 from brms.app.views.styler import BRMSStyler
 
 if TYPE_CHECKING:
+    from decimal import Decimal
+
     from matplotlib.lines import Line2D
 
 _locale = QLocale()
@@ -59,10 +61,11 @@ def _ratio_formatter() -> FuncFormatter:
     return FuncFormatter(lambda x, _: f"{x * 100:.2f}%")
 
 
-def _format_value(value: float | None, fmt: FormatType) -> str:
-    """Format a metric value for display."""
+def _format_value(value: float | Decimal | None, fmt: FormatType) -> str:
+    """Format a metric value for display (money metrics arrive as Decimal)."""
     if value is None:
         return "\u2014"
+    value = float(value)
     if fmt == FormatType.CURRENCY:
         return _locale.toCurrencyString(value)
     return f"{value * 100:.2f}%"
@@ -479,7 +482,7 @@ class BRMSDashboard(QWidget):
         """Add grouped detail cards vertically to the given layout."""
         self.capital_group = KPIGroupCard("Capital Adequacy")
         self.capital_group.add_metric("cet1_capital", "CET1 Capital", FormatType.CURRENCY)
-        self.capital_group.add_metric("equity_to_assets", "Equity / Assets", FormatType.PERCENTAGE)
+        self.capital_group.add_metric("cet1_ratio", "CET1 Ratio", FormatType.PERCENTAGE)
         self.capital_group.add_metric("tier1_ratio", "Tier 1 Ratio", FormatType.PERCENTAGE)
         self.capital_group.add_metric("total_capital_ratio", "Total Capital Ratio", FormatType.PERCENTAGE)
 
@@ -510,8 +513,8 @@ class BRMSDashboard(QWidget):
         )
         self.capital_ratio_plot = PlotWidget(
             title="Capital Ratios",
-            line_titles=["Equity / Assets"],
-            line_colors=[s.chart_blue],
+            line_titles=["CET1 Ratio", "Equity / Assets"],
+            line_colors=[s.chart_blue, s.chart_green],
             use_ratio_formatter=True,
         )
         self.liquidity_plot = PlotWidget(

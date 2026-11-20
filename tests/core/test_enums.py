@@ -18,7 +18,7 @@ EXPECTED_POSITION_STATUS_COUNT = 2
 EXPECTED_MEASUREMENT_BASIS_COUNT = 4
 EXPECTED_VALUATION_TYPE_COUNT = 5
 EXPECTED_TRANSACTION_TYPE_COUNT = 19
-EXPECTED_METRIC_NAME_COUNT = 10
+EXPECTED_METRIC_NAME_COUNT = 18
 
 
 class TestInstrumentType:
@@ -161,9 +161,17 @@ class TestMetricName:
             "TOTAL_ASSETS",
             "TOTAL_LIABILITIES",
             "TOTAL_EQUITY",
-            "CET1_CAPITAL",
             "EQUITY_TO_ASSETS",
+            "INTEREST_EARNING_ASSETS",
+            "CET1_CAPITAL",
+            "TIER1_CAPITAL",
+            "TOTAL_CAPITAL",
             "CREDIT_RWA",
+            "OPERATIONAL_RWA",
+            "TOTAL_RWA",
+            "CET1_RATIO",
+            "TIER1_RATIO",
+            "TOTAL_CAPITAL_RATIO",
             "LEVERAGE_RATIO",
             "NET_INTEREST_MARGIN",
             "ROA",

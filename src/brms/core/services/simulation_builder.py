@@ -175,6 +175,7 @@ class SimulationBuilder:
         from brms.core.stores.valuation_store import ValuationStore
 
         calculator = AmortizedCostCalculator()
+        metric_store = MetricStore()
         coa = BankChartOfAccounts()
         ledger = Ledger(chart_of_accounts=coa, journal=Journal())
         bank = Bank(
@@ -204,9 +205,9 @@ class SimulationBuilder:
             ),
             rule_engine=RuleEngine(default_rules()),
             accounting_service=accounting_service,
-            metrics_service=MetricsService(MetricRegistry(default_metrics(ReportingService()))),
+            metrics_service=MetricsService(MetricRegistry(default_metrics(ReportingService(), metric_store))),
             valuation_store=ValuationStore(),
-            metric_store=MetricStore(),
+            metric_store=metric_store,
             transaction_log=TransactionLog(),
             event_bus=EventBus(),
         )

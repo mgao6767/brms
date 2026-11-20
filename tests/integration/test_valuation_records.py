@@ -79,7 +79,8 @@ def test_weekend_carrying_for_fvoci_moves_with_amortized_cost() -> None:
 
 def test_loan_has_no_fair_value() -> None:
     loan = ResidentialMortgage(
-        face_value=300_000.0, interest_rate=0.06, issue_date=ql.Date(15, 12, 2020), maturity=ql.Period(1, ql.Years),
+        face_value=300_000.0, interest_rate=0.06, issue_date=ql.Date(15, 12, 2020), ltv=0.7,
+        maturity=ql.Period(1, ql.Years),
     )
     loan.id = "M"
     pos = make_position(

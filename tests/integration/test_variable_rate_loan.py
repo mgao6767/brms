@@ -35,6 +35,7 @@ def _build_test_zip(tmp_path: Path) -> Path:
             "measurement_basis": "AMORTIZED_COST",
             "book_type": "banking",
             "credit_rating": "BBB",
+            "issuer": {"name": "Acme", "issuer_type": "CORPORATE", "credit_rating": "BBB"},
         },
     ]
 

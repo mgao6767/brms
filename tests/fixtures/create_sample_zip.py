@@ -17,16 +17,18 @@ from brms.core.services.snapshot_writer import save_snapshot
 
 TENORS = ("1 Mo", "2 Mo", "3 Mo", "4 Mo", "6 Mo", "1 Yr", "2 Yr", "3 Yr", "5 Yr", "7 Yr", "10 Yr", "20 Yr", "30 Yr")
 
+_GOV = {"name": "US Government", "issuer_type": "SOVEREIGN", "credit_rating": "AAA"}
+
 INSTRUMENTS: list[dict[str, object]] = [
     {"id": "equity", "type": "common_equity", "name": "Common Equity"},
     {"id": "deposit", "type": "deposit", "name": "Savings Deposit", "interest_rate": 0.01},
     {
         "id": "note-htm", "type": "treasury_note", "face_value": 1_000_000.0, "coupon_rate": 0.04,
-        "issue_date": "2022-07-15", "maturity_date": "2025-07-15",
+        "issue_date": "2022-07-15", "maturity_date": "2025-07-15", "issuer": _GOV,
     },
     {
         "id": "note-oci", "type": "treasury_note", "face_value": 500_000.0, "coupon_rate": 0.03,
-        "issue_date": "2022-03-15", "maturity_date": "2024-03-15",
+        "issue_date": "2022-03-15", "maturity_date": "2024-03-15", "issuer": _GOV,
     },
 ]
 

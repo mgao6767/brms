@@ -47,6 +47,7 @@ class DashboardController(BRMSController):
             "Total Liabilities": [],
             "Total Equity": [],
             "Equity / Assets": [],
+            "CET1 Ratio": [],
             "NSFR": [],
             "LCR": [],
             "ROA": [],
@@ -86,6 +87,7 @@ class DashboardController(BRMSController):
             MetricName.TOTAL_LIABILITIES: "Total Liabilities",
             MetricName.TOTAL_EQUITY: "Total Equity",
             MetricName.EQUITY_TO_ASSETS: "Equity / Assets",
+            MetricName.CET1_RATIO: "CET1 Ratio",
             MetricName.ROA: "ROA",
             MetricName.ROE: "ROE",
         }
@@ -94,7 +96,7 @@ class DashboardController(BRMSController):
             pairs = self._metric_store.series(metric_name)
             if pairs and not self._dates:
                 self._dates = [d for d, _ in pairs]
-            self._series[series_key] = [v for _, v in pairs]
+            self._series[series_key] = [float(v) for _, v in pairs]
 
     def on_visible(self) -> None:
         """Flush deferred plot updates when the dashboard becomes visible."""
@@ -120,16 +122,22 @@ class DashboardController(BRMSController):
         self._dates.append(event.date)
 
         # Append to series (BS values will be overwritten by _on_financials_updated)
-        self._series["Total Assets"].append(m.get(MetricName.TOTAL_ASSETS, 0.0))
-        self._series["Total Liabilities"].append(m.get(MetricName.TOTAL_LIABILITIES, 0.0))
-        self._series["Total Equity"].append(m.get(MetricName.TOTAL_EQUITY, 0.0))
-        self._series["Equity / Assets"].append(m.get(MetricName.EQUITY_TO_ASSETS, 0.0))
-        self._series["ROA"].append(m.get(MetricName.ROA, 0.0))
-        self._series["ROE"].append(m.get(MetricName.ROE, 0.0))
+        def value(name: MetricName) -> float:
+            return float(m.get(name, 0.0))
+
+        self._series["Total Assets"].append(value(MetricName.TOTAL_ASSETS))
+        self._series["Total Liabilities"].append(value(MetricName.TOTAL_LIABILITIES))
+        self._series["Total Equity"].append(value(MetricName.TOTAL_EQUITY))
+        self._series["Equity / Assets"].append(value(MetricName.EQUITY_TO_ASSETS))
+        self._series["CET1 Ratio"].append(value(MetricName.CET1_RATIO))
+        self._series["ROA"].append(value(MetricName.ROA))
+        self._series["ROE"].append(value(MetricName.ROE))
 
         # Update group card metrics from MetricsComputed (non-BS metrics)
         self.view.capital_group.set_value("cet1_capital", m.get(MetricName.CET1_CAPITAL))
-        self.view.capital_group.set_value("equity_to_assets", m.get(MetricName.EQUITY_TO_ASSETS))
+        self.view.capital_group.set_value("cet1_ratio", m.get(MetricName.CET1_RATIO))
+        self.view.capital_group.set_value("tier1_ratio", m.get(MetricName.TIER1_RATIO))
+        self.view.capital_group.set_value("total_capital_ratio", m.get(MetricName.TOTAL_CAPITAL_RATIO))
         self.view.liquidity_group.set_value("credit_rwa", m.get(MetricName.CREDIT_RWA))
         self.view.profit_group.set_value("roa", m.get(MetricName.ROA))
         self.view.profit_group.set_value("roe", m.get(MetricName.ROE))
@@ -152,6 +160,7 @@ class DashboardController(BRMSController):
 
         # Capital ratios
         self.view.capital_ratio_plot.update_plot(s, e, d, {
+            "CET1 Ratio": self._series["CET1 Ratio"],
             "Equity / Assets": self._series["Equity / Assets"],
         })
 

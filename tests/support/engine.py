@@ -13,6 +13,7 @@ from brms.core.models.instruments import default_instrument_registry
 from brms.core.models.instruments.base import CreditRating, Issuer, IssuerType
 from brms.core.models.instruments.equity import CommonEquity
 from brms.core.models.position import Position
+from brms.core.models.regulatory import RegulatoryConfig
 from brms.core.services.simulation_builder import BuildConfig, SimulationBuilder
 from brms.core.utils import pydate_to_qldate
 from tests.support.reconcile import Check, assert_books_reconcile
@@ -123,6 +124,7 @@ def run_bank(  # noqa: PLR0913
     checks: frozenset[Check] = frozenset(Check),
     each_day: Callable[[SimulationService, datetime.date], None] | None = None,
     with_funding: bool = True,
+    regulatory: RegulatoryConfig | None = None,
 ) -> SimulationService:
     """Replay the bank day by day through *until*, reconciling after every advance."""
     if with_funding:
@@ -141,5 +143,6 @@ def run_bank(  # noqa: PLR0913
         instruments=instruments,
         positions=positions,
         market_frames={"yields": yields},
+        regulatory=regulatory or RegulatoryConfig(),
     )
     return SimulationBuilder().replay(config, until=until, on_advance=on_advance)

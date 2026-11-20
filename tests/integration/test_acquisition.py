@@ -109,6 +109,7 @@ def _mortgage() -> ResidentialMortgage:
         interest_rate=0.06,
         issue_date=ql.Date(15, 12, 2020),
         maturity=ql.Period(1, ql.Years),
+        ltv=0.7,
     )
     loan.id = "M"
     return loan

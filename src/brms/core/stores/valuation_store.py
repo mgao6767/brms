@@ -83,6 +83,10 @@ class ValuationStore:
                 return val
         return None
 
+    def position_ids(self) -> list[str]:
+        """Return the ids of all positions with any recorded value."""
+        return list(self._data)
+
     def snapshot(
         self,
         date: datetime.date,

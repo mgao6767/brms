@@ -82,7 +82,6 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
 
     rule_engine = RuleEngine(default_rules())
     reporting_service = ReportingService()
-    metric_registry = MetricRegistry(default_metrics(reporting_service))
     valuation_service = ValuationService(
         default_valuation_strategies(AmortizedCostCalculator()),
         benchmark_service=benchmark_service,
@@ -90,11 +89,12 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     )
 
     accounting_service = AccountingService()
-    metrics_service = MetricsService(metric_registry)
     data_service = DataService()
 
     valuation_store = ValuationStore()
     metric_store = MetricStore()
+    metric_registry = MetricRegistry(default_metrics(reporting_service, metric_store))
+    metrics_service = MetricsService(metric_registry)
     transaction_log = TransactionLog()
 
     coa = BankChartOfAccounts()
