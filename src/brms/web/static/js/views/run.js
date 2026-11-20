@@ -2,7 +2,7 @@
 
 import { api } from "../api.js";
 import { chartBox, lineChart, setMarker } from "../charts.js";
-import { BASIS, GROUP, date, full, humanType, last, money, pct, signClass, years } from "../format.js";
+import { BASIS, GROUP, date, full, humanType, last, money, pct, setUnit, signAt, signClass, unitNote, years } from "../format.js";
 import { chip, dataTable, errorBox, h, kpi, loading, panel, seg, toast } from "../ui.js";
 
 const RATE_TENORS = [["3 Mo", "3M"], ["2 Yr", "2Y"], ["10 Yr", "10Y"]];
@@ -25,6 +25,7 @@ export async function render(main, ctx) {
     if (!ctx.alive()) return;
     const { meta } = data;
     ctx.setTitle(meta.label || meta.spec.description);
+    setUnit(meta.unit);
     if (meta.status === "queued" || meta.status === "running") {
       main.replaceChildren(head(meta), panel("In progress", h("div", { class: "form" },
         h("div", {}, chip(meta.status)),
@@ -199,7 +200,7 @@ function dashboard(data) {
     drawDay();
   });
   const detail = panel("Books", h("div", {}, scrub, dayBody), { flush: true, tools: tabs,
-    note: "drag the slider or click a chart to pick a day" });
+    note: ["drag the slider or click a chart to pick a day", unitNote()].filter(Boolean).join(" \u00B7 ") });
 
   const liveCharts = [];
   const node = h("div", {}, tiles, rateCharts, h("div", { style: { height: "6px" } }), detail);
@@ -246,7 +247,7 @@ function positionsTable(positions) {
     { key: "carrying", label: "Carrying value", num: true, render: (p) => full(p.carrying, 0) },
     { key: "amortized", label: "Amortised cost", num: true, render: (p) => full(p.amortized, 0) },
     { key: "fair", label: "Fair value", num: true, render: (p) => full(p.fair, 0) },
-    { key: "unrealised", label: "Unrealised", num: true, render: (p) => full(p.unrealised, 0), cls: (p) => signClass(p.unrealised) },
+    { key: "unrealised", label: "Unrealised", num: true, render: (p) => full(p.unrealised, 0), cls: (p) => signAt(p.unrealised) },
     { key: "as_of", label: "Last valued", render: (p) => date(p.as_of) },
   ], rows, { sortKey: "unrealised", sortDir: "asc" });
 }

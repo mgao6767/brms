@@ -1,5 +1,5 @@
 """Worker jobs, run in this process."""
-# ruff: noqa: D103, S101
+# ruff: noqa: D103, S101, PLR2004
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ def test_call_report_build(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     summary = jobs.build_from_call_report({"cert": 24735, "date": "2021-12-31"}, str(tmp_path))
     assert "SILICON VALLEY BANK" in summary["name"]
     assert summary["start_date"] == "2022-01-01"
+    assert summary["unit"] == 1000
     assert (tmp_path / "bank.zip").exists()
     assert json.loads((tmp_path / "summary.json").read_text())["positions"]
 

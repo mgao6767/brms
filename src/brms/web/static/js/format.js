@@ -1,9 +1,20 @@
 // Number and date formatting for dense financial tables.
 
 const MINUS = "−";
+let scale = 1;
 
-export function money(value, { compact = true, sign = false, digits } = {}) {
-  if (value === null || value === undefined || Number.isNaN(value)) return "–";
+/** Set the currency amount one unit of the current bank's figures stands for (1000 for Call Reports). */
+export function setUnit(unit) { scale = Number(unit) || 1; }
+
+/** A note for tables that show figures as reported, e.g. "USD thousands". */
+export function unitNote(unit = scale) {
+  return { 1: "", 1000: "USD thousands", 1000000: "USD millions" }[unit] ?? `×${unit}`;
+}
+
+/** Compact money, scaled to currency units (by *unit*, else the current bank's). */
+export function money(raw, { compact = true, sign = false, digits, unit } = {}) {
+  if (raw === null || raw === undefined || Number.isNaN(raw)) return "–";
+  const value = raw * (unit ?? scale);
   const abs = Math.abs(value);
   let text;
   if (compact && abs >= 1e3) {
@@ -23,7 +34,13 @@ export function money(value, { compact = true, sign = false, digits } = {}) {
 export function full(value, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(value)) return "–";
   const text = Math.abs(value).toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
-  return value < 0 ? MINUS + text : text;
+  return value < 0 && /[1-9]/.test(text) ? MINUS + text : text;  // no "−0" for amounts that round to zero
+}
+
+/** Sign class for a value shown at *digits* decimals: nothing for amounts that round to zero. */
+export function signAt(value, digits = 0) {
+  if (value === null || value === undefined) return "";
+  return Math.abs(value) < 0.5 * 10 ** -digits ? "" : signClass(value);
 }
 
 export function pct(value, { digits = 2, sign = false } = {}) {

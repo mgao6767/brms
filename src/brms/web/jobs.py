@@ -91,8 +91,11 @@ def describe(spec: dict[str, Any]) -> str:
 # -- bank jobs -------------------------------------------------------------------------------------
 
 
-def summarise_bank(zip_path: str, out: str) -> dict[str, Any]:
-    """Write ``summary.json`` for a simulation zip: dates, balance sheet and positions at the start."""
+def summarise_bank(zip_path: str, out: str, unit: float = 1.0) -> dict[str, Any]:
+    """Write ``summary.json`` for a simulation zip: dates, balance sheet and positions at the start.
+
+    *unit* is the currency amount one unit of the bank's figures stands for (1000 for a Call Report).
+    """
     from brms.core.enums import ValuationType
     from brms.core.services import build_core_services
 
@@ -119,6 +122,7 @@ def summarise_bank(zip_path: str, out: str) -> dict[str, Any]:
     regulatory = services.bank.regulatory
     summary = {
         "name": _zip_name(zip_path),
+        "unit": unit,
         "start_date": sim.start_date.isoformat(),
         "end_date": sim.end_date.isoformat() if sim.end_date else None,
         "balance_sheet": services.reporting_service.balance_sheet(services.bank.ledger, date=snapshot),
@@ -138,13 +142,13 @@ def _zip_name(zip_path: str) -> str:
 
 
 def build_from_bank_file(bank: dict[str, Any], folder: str) -> dict[str, Any]:
-    """Build ``bank.zip`` from a bank file and summarise it."""
+    """Build ``bank.zip`` from a bank file and summarise it (with the file's ``unit``, default 1)."""
     from brms.lab.bank_file import build_bank, default_market_frames
 
     out = Path(folder)
     (out / "bank.json").write_text(json.dumps(bank, indent=1))
     build_bank(out / "bank.json", default_market_frames(), out / "bank.zip")
-    return summarise_bank(str(out / "bank.zip"), str(out / "summary.json"))
+    return summarise_bank(str(out / "bank.zip"), str(out / "summary.json"), unit=float(bank.get("unit") or 1))
 
 
 def build_from_call_report(request: dict[str, Any], folder: str) -> dict[str, Any]:

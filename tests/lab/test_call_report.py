@@ -35,6 +35,7 @@ def test_header(bank: dict, items: dict) -> None:
     assert bank["cash"] == items["CHBAL"] + items["FREPO"]
     assert bank["reported"]["EQ"] == items["EQ"]
     assert bank["regulatory"] == {"aoci_filter": True}
+    assert bank["unit"] == 1000
 
 
 def test_securities_reproduce_the_reported_book_and_fair_values(bank: dict, items: dict) -> None:

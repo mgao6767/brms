@@ -187,6 +187,7 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
         if summary:
             sheet = summary["balance_sheet"]
             view.update(status="ready", name=summary["name"], start_date=summary["start_date"],
+                        unit=summary.get("unit", 1),
                         end_date=summary["end_date"], total_assets=sheet["total_assets"],
                         total_equity=sheet["total_equity"],
                         positions=sum(1 for p in summary["positions"] if p["side"] == "LONG" and p["basis"] != "NA"))

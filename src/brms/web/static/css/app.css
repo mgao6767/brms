@@ -181,7 +181,7 @@ table.data td.indent { padding-left: 20px; }
 .field { display: grid; gap: 4px; }
 .field > label, .field > .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
 .field .hint { color: var(--muted); font-size: 11px; }
-.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
 .row > .field { flex: 1; min-width: 120px; }
 input[type=text], input[type=number], input[type=date], select, textarea {
   height: 26px; padding: 0 8px; background: var(--page); border: 1px solid var(--border-strong);

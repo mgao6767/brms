@@ -153,7 +153,8 @@ class Workspace:
         run_id = new_id("r")
         folder = self.runs_dir / run_id
         folder.mkdir()
-        meta = {"id": run_id, "bank_id": bank["id"], "bank_name": bank["name"], "spec": spec,
+        meta = {"id": run_id, "bank_id": bank["id"], "bank_name": bank["name"], "unit": bank.get("unit", 1),
+                "spec": spec,
                 "label": spec.get("label") or "", "status": "queued", "created": now(), "finished": None,
                 "error": None, "summary": None}
         _write(folder / "meta.json", meta)

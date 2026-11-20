@@ -79,6 +79,7 @@ def test_historical_run_end_to_end(client: TestClient) -> None:
     run = finished_run(client, run_id)
     assert run["meta"]["status"] == "done", run["meta"]["error"]
     assert run["meta"]["spec"]["description"] == "Historical rates"
+    assert run["meta"]["unit"] == 1
     dates = run["dates"]
     assert len(dates) >= 18
     cet1 = run["metrics"]["CET1_RATIO"]

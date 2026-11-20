@@ -13,6 +13,21 @@ It is developed by Dr. [Mingze Gao](https://mingze-gao.com) from the Department 
 
 A simulation in BRMS begins with a predefined set of banking and trading books, covering instruments from standard mortgages to HTM, FVOCI, and FVTPL securities (e.g., Treasuries). Each simulation unfolds through daily scenarios, incorporating economic data such as yield curves. As users navigate these scenarios, the bank's performance is automatically computed and reported under IFRS accounting. Capital adequacy and liquidity ratios are assessed following the Basel III framework, with RWAs calculated based on the selected approach. Users can actively adjust exposures through various risk mitigation strategies, and their overall performance is analyzed at the simulation’s conclusion.  
 
+## Stress-test lab
+
+The engine also runs as a stress-test lab: put a bank's balance sheet (from a bank file or a US bank's
+Call Report) through historical rates or the Basel interest-rate shocks, and read its statements,
+regulatory capital, unrealised losses and interest-rate risk day by day.
+
+```bash
+pip install "brms[web]"
+brms-web                      # the lab in your browser
+python -m brms.lab --help     # or from the command line
+```
+
+See [the lab documentation](docs/lab/index.md), [the browser app](docs/lab/web.md) and
+[the SVB case study](docs/lab/svb.md).
+
 ## GUI Demo
 
 Here is an overview of the user interface at this stage (2025-01-31).

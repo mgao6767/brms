@@ -2,7 +2,7 @@
 
 import { api } from "../api.js";
 import { SERIES, chartBox, lineChart } from "../charts.js";
-import { money, pct, signClass } from "../format.js";
+import { money, pct, setUnit, signClass } from "../format.js";
 import { chip, dataTable, errorBox, h, loading, panel } from "../ui.js";
 
 const MAX_RUNS = SERIES.length;
@@ -48,6 +48,7 @@ export async function render(main, ctx) {
       main.replaceChildren(headNode, errorBox("None of these runs finished successfully"));
       return;
     }
+    setUnit(done[0].meta.unit);
     main.replaceChildren(headNode, ...view(done, runs.filter((r) => r.meta.status === "failed")));
   }
 

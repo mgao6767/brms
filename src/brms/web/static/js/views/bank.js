@@ -1,7 +1,7 @@
 // One bank: its balance sheet and positions at the start, and the scenario launcher.
 
 import { api } from "../api.js";
-import { BASIS, date, datetime, full, humanType, money, pct, signClass } from "../format.js";
+import { BASIS, date, datetime, full, humanType, money, pct, setUnit, signAt, signClass, unitNote } from "../format.js";
 import { chip, dataTable, errorBox, h, kpi, loading, panel, toast } from "../ui.js";
 
 const KEY_TENORS = [["3M", 0.25], ["1Y", 1], ["2Y", 2], ["5Y", 5], ["10Y", 10], ["30Y", 30]];
@@ -21,6 +21,7 @@ export async function render(main, ctx) {
     }
     if (!ctx.alive()) return;
     ctx.setTitle(bank.name);
+    setUnit(bank.unit);
     if (bank.status !== "ready") {
       main.replaceChildren(head(bank), pendingPanel(bank));
       if (bank.status !== "failed") timer = setTimeout(refresh, 1500);
@@ -97,7 +98,7 @@ function balanceSheet(bank) {
       h("td", { class: "num" }, full(sheet[key], 0))));
   }
   return panel("Balance sheet at start", h("div", { class: "table-wrap short" },
-    h("table", { class: "data" }, h("tbody", {}, rows))), { flush: true, note: date(previousDay(bank.start_date)) });
+    h("table", { class: "data" }, h("tbody", {}, rows))), { flush: true, note: [date(previousDay(bank.start_date)), unitNote()].filter(Boolean).join(" \u00B7 ") });
 }
 
 function positions(bank) {
@@ -112,8 +113,8 @@ function positions(bank) {
     { key: "carrying", label: "Carrying value", num: true, render: (p) => full(p.carrying, 0) },
     { key: "fair", label: "Fair value", num: true, render: (p) => full(p.fair, 0) },
     { key: "unrealised", label: "Unrealised", num: true, render: (p) => full(p.unrealised, 0),
-      cls: (p) => signClass(p.unrealised) },
-  ], rows, { sortKey: "carrying", short: true }), { flush: true, note: `${rows.length} long positions` });
+      cls: (p) => signAt(p.unrealised) },
+  ], rows, { sortKey: "carrying", short: true }), { flush: true, note: [`${rows.length} long positions`, unitNote()].filter(Boolean).join(" \u00B7 ") });
 }
 
 function launcher(bank, scenarios) {

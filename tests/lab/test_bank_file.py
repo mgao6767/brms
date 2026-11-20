@@ -140,3 +140,25 @@ def test_mbs_pricing_speed_defaults_to_the_model_speed_on_the_as_of_date(tmp_pat
     for _ in range(40):
         sim.advance()
         assert_books_reconcile(sim, sim.current_date)
+
+
+def test_snapshot_fair_values_are_the_reported_ones(tmp_path: Path) -> None:
+    out = tmp_path / "bank.zip"
+    build_bank(_write(tmp_path, _bank()), {"yields": _yields()}, out)
+    services = build_core_services(simulation_zip=out)
+    snapshot = services.simulation_service.start_date - datetime.timedelta(days=1)
+    store = services.valuation_store
+    assert float(store.get("pos-ust-htm", snapshot, ValuationType.FAIR_VALUE)) == pytest.approx(950_000, abs=0.01)  # noqa: S101
+    assert float(store.get("pos-ust-afs", snapshot, ValuationType.FAIR_VALUE)) == pytest.approx(490_000, abs=0.01)  # noqa: S101
+
+
+def test_floating_loan_name_shows_the_spread_in_basis_points() -> None:
+    import QuantLib as ql  # noqa: N813
+
+    from brms.core.models.instruments.loans import VariableRateLoan
+    from brms.core.services.benchmark_service import BenchmarkService
+
+    index = BenchmarkService(forwarding_handle=ql.RelinkableYieldTermStructureHandle()).prime_index
+    loan = VariableRateLoan(face_value=100.0, spread=0.0037, issue_date=ql.Date(31, 12, 2021),
+                            maturity=ql.Period(3, ql.Years), ibor_index=index)
+    assert loan.name.startswith("Prime+37bp")  # noqa: S101

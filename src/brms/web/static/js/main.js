@@ -2,6 +2,7 @@
 
 import { api } from "./api.js";
 import { disposeAll } from "./charts.js";
+import { setUnit } from "./format.js";
 import { errorBox, h } from "./ui.js";
 import * as banks from "./views/banks.js";
 import * as bank from "./views/bank.js";
@@ -68,6 +69,7 @@ async function route() {
   const mine = ++generation;
   if (cleanup) { try { cleanup(); } catch { /* ignore */ } cleanup = null; }
   disposeAll();
+  setUnit(1);
   const main = document.getElementById("view");
   main.replaceChildren();
   main.scrollTop = 0;
