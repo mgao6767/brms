@@ -46,6 +46,8 @@ def main(argv: list[str] | None = None) -> int:
     report_cmd.add_argument("--date", required=True, help="quarter-end report date, e.g. 2021-12-31")
     report_cmd.add_argument("--ltv", type=float, default=0.8, help="loan-to-value assumed for 1-4 family loans")
     report_cmd.add_argument("--no-aoci-filter", action="store_true", help="include AOCI in CET1")
+    report_cmd.add_argument("--deposit-beta", type=float, default=0.35,
+                            help="share of 3-month yield moves passed to interest-bearing deposits (default 0.35)")
     report_cmd.add_argument("--out", type=Path, required=True, help="bank.json to write")
     args = parser.parse_args(argv)
 
@@ -58,7 +60,8 @@ def main(argv: list[str] | None = None) -> int:
         items = call_report.fetch_call_report(args.cert, args.date)
         prime = prime_on(default_market_frames(), datetime.date.fromisoformat(args.date))
         bank = call_report.bank_file_from_call_report(items, prime=prime, ltv=args.ltv,
-                                                      aoci_filter=not args.no_aoci_filter)
+                                                      aoci_filter=not args.no_aoci_filter,
+                                                      deposit_beta=args.deposit_beta)
         args.out.write_text(json.dumps(bank, indent=2))
         sys.stdout.write(f"Wrote {args.out} ({bank['name']})\n")
         return 0

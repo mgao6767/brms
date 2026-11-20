@@ -59,7 +59,8 @@ class BankChartOfAccounts(ChartOfAccounts):
 
         Expenses
         ├── Interest Expense
-        └── Operating Expense
+        ├── Operating Expense
+        └── Income Tax Expense
     """
 
     def __init__(self) -> None:  # noqa: D107
@@ -67,7 +68,7 @@ class BankChartOfAccounts(ChartOfAccounts):
         self._create_accounts()
         self._register_accounts()
 
-    def _create_accounts(self) -> None:
+    def _create_accounts(self) -> None:  # noqa: PLR0915 (one statement per account)
         """Create all account instances and wire composites."""
         # ── Assets ───────────────────────────────────────────────────
         self.cash_account = TAccount("Cash and Cash Equivalents", AccountType.ASSET)
@@ -91,6 +92,8 @@ class BankChartOfAccounts(ChartOfAccounts):
         self.ppe_account = TAccount("Property, Plant and Equipment", AccountType.ASSET)
         self.intangible_account = TAccount("Intangible Assets", AccountType.ASSET)
         self.accrued_interest_receivable = TAccount("Accrued Interest Receivable", AccountType.ASSET)
+        # Balances the engine does not model one by one (premises, trading and other assets).
+        self.other_assets_account = TAccount("Other Assets", AccountType.ASSET)
 
         # ── Liabilities ──────────────────────────────────────────────
         self.customer_deposits_account = TAccount("Deposits", AccountType.LIABILITY)
@@ -102,9 +105,14 @@ class BankChartOfAccounts(ChartOfAccounts):
         self.interest_payable_account = TAccount("Interest Payable", AccountType.LIABILITY)
         self.payable_account = TAccount("Payables to Financial Institutions", AccountType.LIABILITY)
         self.debt_account = TAccount("Debt Issues", AccountType.LIABILITY)
+        self.other_liabilities_account = TAccount("Other Liabilities", AccountType.LIABILITY)
 
         # ── Equity ───────────────────────────────────────────────────
         self.equity_account = TAccount("Shareholders' Equity", AccountType.EQUITY)
+        # Dividends declared and paid in the simulation: a contra equity account netted in "Dividends".
+        self.dividends_paid_account = TAccount("Dividends Paid", AccountType.EQUITY, is_contra_account=True)
+        self.dividends_account = CompositeTAccount("Dividends", AccountType.EQUITY)
+        self.dividends_account.add_sub_account(self.dividends_paid_account)
 
         self.unrealized_oci_loss_account = TAccount(
             "Unrealized OCI Loss", AccountType.EQUITY, is_contra_account=True,
@@ -142,6 +150,8 @@ class BankChartOfAccounts(ChartOfAccounts):
         # ── Expenses ─────────────────────────────────────────────────
         self.interest_expense_account = TAccount("Interest Expense", AccountType.EXPENSE)
         self.operating_expense_account = TAccount("Operating Expense", AccountType.EXPENSE)
+        self.income_tax_account = TAccount("Income Tax Expense", AccountType.EXPENSE)
+        self.noninterest_income_account = TAccount("Non-interest Income", AccountType.INCOME)
 
     def _register_accounts(self) -> None:
         """Register all accounts using the builder for type validation."""
@@ -151,24 +161,27 @@ class BankChartOfAccounts(ChartOfAccounts):
         for acct in [
             self.cash_account, self.receivable_account, self.loan_account,
             self.asset_fvtpl_account, self.investment_securities_account,
-            self.ppe_account, self.intangible_account, self.accrued_interest_receivable,
+            self.ppe_account, self.intangible_account, self.accrued_interest_receivable, self.other_assets_account,
         ]:
             builder.add_asset_account(acct)
 
         # Liabilities
-        for acct in [self.deposit_account, self.interest_payable_account, self.payable_account, self.debt_account]:
+        for acct in [self.deposit_account, self.interest_payable_account, self.payable_account, self.debt_account,
+                     self.other_liabilities_account]:
             builder.add_liability_account(acct)
 
         # Equity
-        for acct in [self.equity_account, self.accumulated_oci_account, self.opening_balance_equity]:
+        for acct in [self.equity_account, self.dividends_account, self.accumulated_oci_account,
+                     self.opening_balance_equity]:
             builder.add_equity_account(acct)
 
         # Income
-        for acct in [self.interest_income_account, self.trading_income_account, self.investment_income_account]:
+        for acct in [self.interest_income_account, self.noninterest_income_account, self.trading_income_account,
+                     self.investment_income_account]:
             builder.add_income_account(acct)
 
         # Expenses
-        for acct in [self.interest_expense_account, self.operating_expense_account]:
+        for acct in [self.interest_expense_account, self.operating_expense_account, self.income_tax_account]:
             builder.add_expense_account(acct)
 
         # Build validates types, then copy lists into self

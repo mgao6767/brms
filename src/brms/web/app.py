@@ -51,6 +51,7 @@ class CallReportRequest(BaseModel):
     date: datetime.date
     ltv: float = Field(default=0.8, gt=0, le=1.5)
     aoci_filter: bool = True
+    deposit_beta: float = Field(default=0.35, ge=0, le=1)
     afs: dict[str, float] | None = None
 
 
@@ -211,7 +212,7 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
             view.update(status="ready", name=summary["name"], start_date=summary["start_date"],
                         unit=summary.get("unit", 1),
                         end_date=summary["end_date"], total_assets=sheet["total_assets"],
-                        total_equity=sheet["total_equity"],
+                        total_equity=sheet["total_equity"], story=summary.get("story"),
                         positions=sum(1 for p in summary["positions"] if p["side"] == "LONG" and p["basis"] != "NA"))
         return view
 

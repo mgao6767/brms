@@ -5,7 +5,9 @@
     {
       "name": "...", "as_of": "2021-12-31",
       "regulatory": {"aoci_filter": false, "operational_rwa": "...", ...},   # optional
+      "operating": {"noninterest_expense": 2.2e9, "noninterest_income": 8e8, "tax_rate": 0.21},  # optional, per year
       "cash": 1000000,
+      "other_assets": 50000, "other_liabilities": 20000,   # optional: carried unchanged, not modelled
       "deposits": [{"id": "dep", "name": "Savings", "balance": 2500000, "interest_rate": 0.001,
                     "beta": 0.3, "runoff_rate": 0.05, "withdrawals": [["2022-03-09", 0.25]]}],   # optional
       "positions": [
@@ -39,6 +41,7 @@ from brms.core.exceptions import SimulationDataError
 from brms.core.models.instruments import default_instrument_registry
 from brms.core.models.instruments.deposits import Deposit
 from brms.core.models.instruments.equity import CommonEquity
+from brms.core.models.operating import OperatingConfig
 from brms.core.models.position import Position
 from brms.core.models.regulatory import RegulatoryConfig
 from brms.core.services.amortized_cost import AmortizedCostCalculator
@@ -125,7 +128,7 @@ def _model_speed(
     return probe.prepayment.cpr(probe.wac - mortgage_rate)
 
 
-def build_bank(bank_file: Path, market_frames: dict[str, pd.DataFrame], out: Path) -> Path:
+def build_bank(bank_file: Path, market_frames: dict[str, pd.DataFrame], out: Path) -> Path:  # noqa: PLR0915
     """Read *bank_file*, build its snapshot with *market_frames* and write the simulation zip to *out*."""
     data = json.loads(bank_file.read_text())
     as_of = datetime.date.fromisoformat(data["as_of"])
@@ -175,7 +178,12 @@ def build_bank(bank_file: Path, market_frames: dict[str, pd.DataFrame], out: Pat
             **behaviour,
         })
 
-    equity = Decimal(str(data["cash"])) + total_cost - deposits_total
+    other_assets = Decimal(str(data.get("other_assets", 0)))
+    other_liabilities = Decimal(str(data.get("other_liabilities", 0)))
+    if other_assets < 0 or other_liabilities < 0:
+        msg = "other_assets and other_liabilities must be zero or positive"
+        raise SimulationDataError(msg)
+    equity = Decimal(str(data["cash"])) + total_cost - deposits_total + other_assets - other_liabilities
     if equity <= 0:
         msg = f"The bank file implies non-positive equity ({equity:,.2f}): assets must exceed deposits"
         raise SimulationDataError(msg)
@@ -195,10 +203,14 @@ def build_bank(bank_file: Path, market_frames: dict[str, pd.DataFrame], out: Pat
         positions=positions,
         market_frames=market_frames,
         regulatory=RegulatoryConfig.from_json(data.get("regulatory")),
+        operating=OperatingConfig.from_json(data.get("operating")),
+        other_assets=other_assets,
+        other_liabilities=other_liabilities,
         benchmark_service=benchmark_service,
         calibrate_spreads=True,
         spread_targets=targets,
     )
     end = market_frames["yields"].index.max().date()
-    save_snapshot(SimulationBuilder().build(config), specs, out, end_date=end)
+    info = {key: data[key] for key in ("unit", "story", "source", "reported") if data.get(key) is not None}
+    save_snapshot(SimulationBuilder().build(config), specs, out, end_date=end, info=info)
     return out

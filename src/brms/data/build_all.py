@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from brms.data import DEFAULT_DATA_FOLDER
+from brms.data.create_case_studies import create_case_study_zips
 from brms.data.create_ci_loan_prime import create_ci_loan_prime_zip
 from brms.data.create_diversified_bank import create_diversified_zip
 from brms.data.create_fvtpl_bond import create_fvtpl_zip
@@ -22,8 +23,8 @@ BUILDERS = (
 
 
 def build_all(data_folder: Path = DEFAULT_DATA_FOLDER) -> list[Path]:
-    """Write all default simulation zips and return their paths."""
-    return [build(data_folder=data_folder) for build in BUILDERS]
+    """Write all default simulation zips (teaching examples and case studies) and return their paths."""
+    return [build(data_folder=data_folder) for build in BUILDERS] + create_case_study_zips(data_folder)
 
 
 if __name__ == "__main__":

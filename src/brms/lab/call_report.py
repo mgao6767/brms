@@ -15,20 +15,27 @@ enough to give the lab a bank with the right interest-rate profile:
 * **Loans** (Schedule RC-C, Memorandum 2) by remaining maturity or next repricing, scaled to net
   loans. Loans repricing within 3 months are Prime floaters; the rest are amortising fixed-rate
   loans (1-4 family loans as residential mortgages) at the bucket midpoint, at the loan yield.
-* **Funding**: noninterest-bearing deposits; interest-bearing deposits at the bank's deposit cost;
+* **Funding**: noninterest-bearing deposits; interest-bearing deposits at the bank's deposit cost,
+  repricing with ``deposit_beta`` of the 3-month yield;
   other borrowings, fed funds purchased and subordinated debt as one floating-rate liability.
+* **Operating flows**: non-interest expense and income, annualised, and the effective tax rate.
+* **Operational-risk RWA** estimated with the Basel III standardised approach from a simplified
+  business indicator (loss multiplier 1), so capital ratios are not on credit RWA alone.
 * **Equity** is the balancing figure (bank_file); items not modelled (trading assets, premises,
   intangibles, other assets and liabilities) explain its gap to reported equity, which is kept
   under ``"reported"`` with the reported capital figures.
 
 Values stay in USD thousands, as reported. Income items are year-to-date and are annualised.
-Deposit behaviour (``beta``, ``runoff_rate``) is left at zero for the user to set.
+Interest-bearing deposits pass through ``deposit_beta`` (default 0.35) of moves in the 3-month
+Treasury yield; noninterest-bearing deposits pay nothing; no deposit runs off unless you say so.
 """
 
 from __future__ import annotations
 
 import datetime
 import json
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from typing import TYPE_CHECKING, Any
@@ -37,6 +44,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 API = "https://api.fdic.gov/banks/financials"
+FEDERAL_TAX_RATE = 0.21
+DEPOSIT_BETA = 0.35
 
 # (bucket key, FDIC suffix, bond maturity in years, MBS remaining term, loan remaining term)
 _BUCKETS = (
@@ -51,12 +60,13 @@ _OTHER_MBS = (("3yles", "SCO3YLES", 2.0), ("ov3y", "SCOOV3Y", 6.0))
 _REPORTED = ("ASSET", "EQ", "RBCT1C", "RBCT1CER", "RWAJ", "SCHA", "SCHF", "SCAA", "SCAF", "INTAN", "TRADE")
 
 FIELDS: tuple[str, ...] = (
-    "CERT", "NAME", "REPDTE", "ASSET", "EQ", "CHBAL", "FREPO", "TRADE", "INTAN",
+    "CERT", "NAME", "REPDTE", "ASSET", "LIAB", "EQ", "CHBAL", "FREPO", "TRADE", "INTAN",
     "SC", "SC5", "SCHA", "SCHF", "SCAA", "SCAF", "SCUST", "SCO3YLES", "SCOOV3Y",
     *(f"SCPT{s}" for _k, s, *_ in _BUCKETS), *(f"SCNM{s}" for _k, s, *_ in _BUCKETS),
     "LNLSNET", "LNLSGR", "LNLSGR5",
     *(f"LNRS{s}" for _k, s, *_ in _BUCKETS), *(f"LNOT{s}" for _k, s, *_ in _BUCKETS),
     "DEP", "DEPNIDOM", "OTHBRF", "FREPP", "SUBND", "EDEP", "EINTEXP", "ISC", "ILNLS",
+    "NONIX", "NONII", "ITAX", "IBEFTAX", "NETINC", "INTINC", "ERNAST", "EQCDIV",
     "RBCT1C", "RBCT1CER", "RWAJ",
 )
 
@@ -91,10 +101,23 @@ def fetch_call_report(
     return items
 
 
-def _get(url: str) -> bytes:
+_RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
+_RETRY_WAITS = (2.0, 5.0, 10.0)
+
+
+def _get(url: str, sleep: Callable[[float], None] = time.sleep) -> bytes:
+    """GET *url*, retrying when the FDIC API is busy (429) or briefly unavailable (5xx)."""
     request = urllib.request.Request(url, headers={"User-Agent": "brms", "Accept": "application/json"})  # noqa: S310
-    with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310
-        return response.read()
+    for wait in (*_RETRY_WAITS, None):
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310
+                return response.read()
+        except urllib.error.HTTPError as exc:
+            if exc.code not in _RETRY_STATUS or wait is None:
+                msg = f"The FDIC API answered {exc.code} {exc.reason} for {url}"
+                raise ConnectionError(msg) from exc
+            sleep(wait)
+    raise AssertionError  # unreachable: the last attempt returns or raises
 
 
 def _n(items: dict[str, Any], key: str) -> float:
@@ -109,13 +132,14 @@ def _ratio(numerator: float, denominator: float, what: str) -> float:
     return numerator / denominator
 
 
-def bank_file_from_call_report(
+def bank_file_from_call_report(  # noqa: PLR0913
     items: dict[str, Any],
     *,
     prime: float,
     ltv: float = 0.8,
     aoci_filter: bool = True,
     afs: dict[str, float] | None = None,
+    deposit_beta: float = DEPOSIT_BETA,
 ) -> dict[str, Any]:
     """Return a bank file (see :mod:`brms.lab.bank_file`) built from Call Report *items*.
 
@@ -124,6 +148,8 @@ def bank_file_from_call_report(
         prime: The Prime rate on the report date (decimal), to set floating loans' spread.
         ltv: Loan-to-value ratio assumed for 1-4 family mortgages (credit risk weight).
         aoci_filter: Whether AOCI is excluded from CET1 (true for most US banks below $700bn).
+        deposit_beta: Share of the change in the 3-month Treasury yield passed to interest-bearing
+            deposits (default 0.35, roughly the US average through the 2022-23 tightening).
         afs: AFS fair value by class (``treasury``, ``other_debt``, ``pass_through``, ``other_mbs``),
             e.g. from the 10-K or FR Y-9C, scaled to the reported AFS total. Each class is then
             AFS in that proportion and HTM for the rest. Without it every class splits in the
@@ -131,8 +157,14 @@ def bank_file_from_call_report(
             securities are in which book.
 
     """
-    as_of = datetime.datetime.strptime(str(items["REPDTE"]), "%Y%m%d").date()  # noqa: DTZ007
-    annualise = 12 / as_of.month
+    if not 0 <= deposit_beta <= 1:
+        msg = f"deposit_beta must be in [0, 1], got {deposit_beta}"
+        raise ValueError(msg)
+    report_date = datetime.datetime.strptime(str(items["REPDTE"]), "%Y%m%d").date()  # noqa: DTZ007
+    annualise = 12 / report_date.month
+    # A quarter end on a weekend is described as of the Friday before: the last business day, when
+    # Prime fixes and the curve exists.
+    as_of = report_date - datetime.timedelta(days=max(0, report_date.weekday() - 4))
     positions = [
         *_securities(items, as_of, _ratio(_n(items, "ISC") * annualise, _n(items, "SC5"), "the securities yield"),
                      afs),
@@ -140,15 +172,24 @@ def bank_file_from_call_report(
                 prime, ltv),
     ]
     return {
-        "name": f"{items.get('NAME', 'Bank')} (Call Report {as_of}, USD thousands)",
+        "name": f"{items.get('NAME', 'Bank')} (Call Report {report_date}, USD thousands)",
         "as_of": as_of.isoformat(),
         "unit": 1000,  # amounts are USD thousands, as reported
         "source": {"provider": "FDIC BankFind financials (Call Report)", "cert": items.get("CERT"),
-                   "report_date": as_of.isoformat()},
+                   "report_date": report_date.isoformat()},
         "reported": {k: items.get(k) for k in _REPORTED},
-        "regulatory": {"aoci_filter": aoci_filter},
+        "regulatory": {
+            "aoci_filter": aoci_filter,
+            "operational_rwa": operational_rwa(
+                net_interest_income=(_n(items, "INTINC") - _n(items, "EINTEXP")) * annualise,
+                earning_assets=_n(items, "ERNAST") or _n(items, "ASSET"),
+                noninterest_income=_n(items, "NONII") * annualise, unit=1000,
+            ),
+        },
+        "operating": _operating(items, annualise),
         "cash": _n(items, "CHBAL") + _n(items, "FREPO"),
-        "deposits": _funding(items, annualise),
+        **_other_balances(items),
+        "deposits": _funding(items, annualise, deposit_beta),
         "positions": positions,
     }
 
@@ -241,14 +282,74 @@ def _loans(
     return out
 
 
-def _funding(items: dict[str, Any], annualise: float) -> list[dict[str, Any]]:
+# Basel III standardised approach for operational risk (OPE25): marginal coefficients on the business
+# indicator, by bucket boundary in currency (the US proposal uses USD 1bn and 30bn).
+_BIC_BUCKETS = ((1e9, 0.12), (30e9, 0.15), (float("inf"), 0.18))
+_ILDC_CAP = 0.0225  # interest component capped at 2.25% of interest-earning assets
+_RWA_PER_CAPITAL = 12.5
+
+
+def operational_rwa(
+    *, net_interest_income: float, earning_assets: float, noninterest_income: float, unit: float = 1.0,
+) -> float:
+    """Return operational-risk RWA from a simplified business indicator (BI), in the inputs' units.
+
+    BI = min(|net interest income|, 2.25% of earning assets) + non-interest income (a proxy for
+    the services and financial components); the capital requirement is the business indicator
+    component with the internal loss multiplier at 1, and RWA = 12.5 x capital.
+    """
+    bi = (min(abs(net_interest_income), _ILDC_CAP * earning_assets) + max(noninterest_income, 0.0)) * unit
+    capital, lower = 0.0, 0.0
+    for upper, coefficient in _BIC_BUCKETS:
+        if bi > lower:
+            capital += coefficient * (min(bi, upper) - lower)
+        lower = upper
+    return _RWA_PER_CAPITAL * capital / unit
+
+
+def _operating(items: dict[str, Any], annualise: float) -> dict[str, float]:
+    """Return the annualised non-interest expense and income and the effective tax rate.
+
+    The tax rate is applicable income taxes over income before taxes; without a positive pre-tax
+    income (or a rate outside [0, 50%]) it falls back to the US federal rate. Provisions for credit
+    losses are not included: credit losses are not modelled.
+    """
+    pretax, tax = _n(items, "IBEFTAX"), _n(items, "ITAX")
+    rate = tax / pretax if pretax > 0 else FEDERAL_TAX_RATE
+    net_income = _n(items, "NETINC")
+    payout = min(1.0, max(0.0, _n(items, "EQCDIV") / net_income)) if net_income > 0 else 0.0
+    return {
+        "noninterest_expense": _n(items, "NONIX") * annualise,
+        "noninterest_income": _n(items, "NONII") * annualise,
+        "tax_rate": rate if 0 <= rate <= 0.5 else FEDERAL_TAX_RATE,  # noqa: PLR2004
+        "dividend_payout": payout,
+    }
+
+
+def _other_balances(items: dict[str, Any]) -> dict[str, float]:
+    """Return the assets and liabilities the mapping does not model, so equity matches the report.
+
+    Other assets are total assets less cash, debt securities and net loans (trading assets, premises,
+    intangibles, equity securities and the rest); other liabilities are total liabilities less
+    deposits and borrowings. Both are carried unchanged; other assets are risk-weighted at 100%.
+    """
+    modelled_assets = (_n(items, "CHBAL") + _n(items, "FREPO") + _n(items, "SCHA") + _n(items, "SCAF")
+                       + _n(items, "LNLSNET"))
+    modelled_liabilities = _n(items, "DEP") + _n(items, "OTHBRF") + _n(items, "FREPP") + _n(items, "SUBND")
+    return {
+        "other_assets": max(0.0, _n(items, "ASSET") - modelled_assets),
+        "other_liabilities": max(0.0, _n(items, "LIAB") - modelled_liabilities),
+    }
+
+
+def _funding(items: dict[str, Any], annualise: float, deposit_beta: float) -> list[dict[str, Any]]:
     noninterest = _n(items, "DEPNIDOM")
     interest_bearing = _n(items, "DEP") - noninterest
     deposit_cost = _n(items, "EDEP") * annualise
     out = [{"id": "nib", "name": "Noninterest-bearing deposits", "balance": noninterest, "interest_rate": 0.0}]
     if interest_bearing > 0:
         out.append({"id": "ib", "name": "Interest-bearing deposits", "balance": interest_bearing,
-                    "interest_rate": deposit_cost / interest_bearing})
+                    "interest_rate": deposit_cost / interest_bearing, "beta": deposit_beta})
     borrowed = _n(items, "OTHBRF") + _n(items, "FREPP") + _n(items, "SUBND")
     if borrowed > 0:
         cost = max(0.0, _n(items, "EINTEXP") * annualise - deposit_cost)

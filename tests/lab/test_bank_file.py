@@ -162,3 +162,44 @@ def test_floating_loan_name_shows_the_spread_in_basis_points() -> None:
     loan = VariableRateLoan(face_value=100.0, spread=0.0037, issue_date=ql.Date(31, 12, 2021),
                             maturity=ql.Period(3, ql.Years), ibor_index=index)
     assert loan.name.startswith("Prime+37bp")  # noqa: S101
+
+
+def test_operating_inputs_reach_the_bank(tmp_path: Path) -> None:
+    from decimal import Decimal
+
+    from brms.core.models.operating import OperatingConfig
+
+    bank = {**_bank(), "operating": {"noninterest_expense": 36500, "noninterest_income": 3650, "tax_rate": 0.21}}
+    out = tmp_path / "bank.zip"
+    build_bank(_write(tmp_path, bank), {"yields": _yields()}, out)
+    services = build_core_services(simulation_zip=out)
+    assert services.bank.operating == OperatingConfig(Decimal(36500), Decimal(3650), 0.21)  # noqa: S101
+    sim = services.simulation_service
+    for _ in range(10):
+        sim.advance()
+    assert float(account_balance(sim, "Operating Expense")) == pytest.approx(1_000, abs=0.01)  # noqa: S101
+
+
+def test_other_assets_and_liabilities_are_carried_and_weighted(tmp_path: Path) -> None:
+    from brms.core.enums import MetricName
+
+    bank = {**_bank(), "other_assets": 300_000.0, "other_liabilities": 100_000.0}
+    out = tmp_path / "bank.zip"
+    build_bank(_write(tmp_path, bank), {"yields": _yields()}, out)
+    services = build_core_services(simulation_zip=out)
+    sim = services.simulation_service
+    assert float(account_balance(sim, "Other Assets")) == pytest.approx(300_000)  # noqa: S101
+    assert float(account_balance(sim, "Other Liabilities")) == pytest.approx(100_000)  # noqa: S101
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    build_bank(_write(plain, _bank()), {"yields": _yields()}, plain / "bank.zip")
+    base = build_core_services(simulation_zip=plain / "bank.zip")
+    equity = "Shareholders' Equity"
+    gap = account_balance(sim, equity) - account_balance(base.simulation_service, equity)
+    assert float(gap) == pytest.approx(200_000, abs=0.05)  # noqa: S101
+    sim.advance()
+    base.simulation_service.advance()
+    day = sim.current_date
+    extra = services.metric_store.get(MetricName.CREDIT_RWA, day) - base.metric_store.get(MetricName.CREDIT_RWA, day)
+    assert float(extra) == pytest.approx(300_000, rel=1e-6)  # noqa: S101
+    assert_books_reconcile(sim, day)

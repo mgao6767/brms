@@ -17,7 +17,7 @@ EXPECTED_POSITION_SIDE_COUNT = 2
 EXPECTED_POSITION_STATUS_COUNT = 2
 EXPECTED_MEASUREMENT_BASIS_COUNT = 4
 EXPECTED_VALUATION_TYPE_COUNT = 5
-EXPECTED_TRANSACTION_TYPE_COUNT = 19
+EXPECTED_TRANSACTION_TYPE_COUNT = 25
 EXPECTED_METRIC_NAME_COUNT = 24
 
 
@@ -144,6 +144,12 @@ class TestTransactionType:
             "INTEREST_SETTLEMENT",
             "OPENING_BALANCE",
             "PREMIUM_DISCOUNT_AMORTIZATION",
+            "OPERATING_EXPENSE",
+            "NONINTEREST_INCOME",
+            "INCOME_TAX",
+            "OTHER_ASSETS",
+            "OTHER_LIABILITIES",
+            "DIVIDEND",
         }
         actual_members = {member.name for member in TransactionType}
         assert actual_members == expected_members  # noqa: S101

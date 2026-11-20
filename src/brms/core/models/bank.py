@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from brms.core.enums import BookType
+from brms.core.models.operating import OperatingConfig
 from brms.core.models.regulatory import RegulatoryConfig
 
 if TYPE_CHECKING:
@@ -54,6 +55,7 @@ class Bank:
         regulatory: RegulatoryConfig | None = None,
         *,
         reinvest_maturities: bool = False,
+        operating: OperatingConfig | None = None,
     ) -> None:
         """Initialize a bank with its stores, ledger and regulatory inputs.
 
@@ -66,6 +68,8 @@ class Bank:
         self.ledger = ledger
         self.regulatory = regulatory or RegulatoryConfig()
         self.reinvest_maturities = reinvest_maturities
+        # Non-interest expense and income and the tax rate (booked daily by the OperatingService).
+        self.operating = operating or OperatingConfig()
 
     @property
     def banking_book(self) -> BookView:

@@ -12,7 +12,10 @@ from typing import Any
 
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
-SIMULATIONS = ("htm_treasury", "fvtpl_bond", "mortgage", "ci_loan_prime", "diversified_bank")
+SIMULATIONS = (
+    "htm_treasury", "fvtpl_bond", "mortgage", "ci_loan_prime", "diversified_bank",
+    "case_svb_2021", "case_svb_2022", "case_signature_2021", "case_first_republic_2021", "case_jpmorgan_chase_2021",
+)
 
 
 def require_simulation_zips(root: Path) -> None:

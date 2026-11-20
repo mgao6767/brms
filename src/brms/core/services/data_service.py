@@ -105,6 +105,7 @@ class DataService:
         """
         data = loader.load()  # type: ignore[union-attr]
         simulation_service.bank.regulatory = data.regulatory
+        simulation_service.bank.operating = getattr(data, "operating", simulation_service.bank.operating)
 
         for inst in data.instruments:
             simulation_service.bank.instruments.add(inst)  # type: ignore[union-attr]

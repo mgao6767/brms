@@ -4,12 +4,14 @@ import datetime
 from unittest.mock import MagicMock
 
 from brms.core.events import DateAdvanced, EventBus
+from brms.core.models.operating import OperatingConfig
 from brms.core.services.simulation_service import SimulationService
 
 
 def test_advance_calls_services_in_order() -> None:
     """advance() should call each collaborator in sequence and emit DateAdvanced."""
     bank = MagicMock()
+    bank.operating = OperatingConfig()  # no bank-level flows
     market_data = MagicMock()
     market_data.available_dates.return_value = [datetime.date(2024, 1, 1)]
     market_data.has_data.return_value = True

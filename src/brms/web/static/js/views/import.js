@@ -42,6 +42,7 @@ function callReportPanel() {
   when.value = "2021-12-31";
   const ltv = h("input", { type: "number", id: "cr-ltv", value: "0.8", min: "0.05", max: "1.5", step: "0.05" });
   const aoci = h("input", { type: "checkbox", id: "cr-aoci", checked: true });
+  const beta = h("input", { type: "number", id: "cr-beta", value: "0.35", min: "0", max: "1", step: "0.05" });
   const submit = h("button", { class: "btn primary", type: "submit" }, "Build from Call Report");
   const form = h("form", { class: "form" },
     h("div", { class: "row" },
@@ -50,10 +51,12 @@ function callReportPanel() {
       h("div", { class: "field" }, h("label", { for: "cr-date" }, "Quarter end"), when)),
     h("div", { class: "row" },
       h("div", { class: "field" }, h("label", { for: "cr-ltv" }, "Mortgage loan-to-value"), ltv),
+      h("div", { class: "field" }, h("label", { for: "cr-beta" }, "Deposit beta"), beta),
       h("label", { class: "check", style: { marginTop: "16px" } }, aoci, "Exclude AOCI from CET1 (AOCI filter)")),
     h("div", { class: "notice" }, "Securities and loans come from the report's maturity buckets; each class splits "
-      + "between HTM and AFS in the bank's overall proportion. Deposits get no pass-through or run-off: edit the bank "
-      + "file afterwards if you need them. Values are in USD thousands."),
+      + "between HTM and AFS in the bank's overall proportion. Interest-bearing deposits pass through the deposit beta "
+      + "of 3-month yield moves; nothing runs off. Costs, fees, tax and dividends come from the income statement. "
+      + "Values are in USD thousands."),
     h("div", { class: "row" }, submit), status);
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -65,7 +68,7 @@ function callReportPanel() {
     status.replaceChildren();
     try {
       const bank = await api.callReport({ cert: Number(cert.value.trim()), date: when.value,
-        ltv: Number(ltv.value), aoci_filter: aoci.checked });
+        ltv: Number(ltv.value), aoci_filter: aoci.checked, deposit_beta: Number(beta.value) });
       toast("Fetching the Call Report and building the bank…");
       location.hash = `#/banks/${encodeURIComponent(bank.id)}`;
     } catch (error) {

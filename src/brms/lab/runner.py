@@ -19,6 +19,7 @@ from brms.core.services import build_core_services
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
+    from brms.core.models.operating import OperatingConfig
     from brms.core.models.regulatory import RegulatoryConfig
     from brms.core.services import CoreServices
     from brms.lab.scenarios import Historical, Shock
@@ -82,13 +83,15 @@ def run(  # noqa: PLR0913
     months: int | None = None,
     end: datetime.date | None = None,
     regulatory: RegulatoryConfig | None = None,
+    operating: OperatingConfig | None = None,
     sales: Mapping[str, datetime.date] | None = None,
     reinvest_maturities: bool = False,
 ) -> RunResult:
     """Run *simulation* (a snapshot zip) through *scenario* from its start date.
 
     The horizon ends at *end*, else *months* after the start, else the archive's end date.
-    *regulatory* overrides the archive's regulatory inputs. *sales* maps position ids to the
+    *regulatory* and *operating* override the archive's regulatory and operating inputs.
+    *sales* maps position ids to the
     market day on which to sell them at fair value (FVOCI and FVTPL positions).
     With *reinvest_maturities*, maturing bonds roll into new par bonds of the same term.
     """
@@ -96,6 +99,8 @@ def run(  # noqa: PLR0913
     sim = services.simulation_service
     if regulatory is not None:
         services.bank.regulatory = regulatory
+    if operating is not None:
+        services.bank.operating = operating
     services.bank.reinvest_maturities = reinvest_maturities
     for position_id, day in (sales or {}).items():
         services.bank.positions.get(position_id).sale_date = day

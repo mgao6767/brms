@@ -22,6 +22,7 @@ def test_call_report_build(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     assert "SILICON VALLEY BANK" in summary["name"]
     assert summary["start_date"] == "2022-01-01"
     assert summary["unit"] == 1000
+    assert float(summary["operating"]["noninterest_expense"]) > 0
     assert (tmp_path / "bank.zip").exists()
     assert json.loads((tmp_path / "summary.json").read_text())["positions"]
 
@@ -51,3 +52,17 @@ def test_worker_marks_its_run_as_started(tmp_path: Path) -> None:
     workspace.update_run(meta["id"], status="done")
     jobs._mark_running(workspace.run_dir(meta["id"]))  # noqa: SLF001
     assert workspace.run_meta(meta["id"])["status"] == "done"  # never overwrites an outcome
+
+
+def test_summary_reads_unit_and_story_from_the_zip(tmp_path: Path) -> None:
+    from brms.data.create_case_studies import CASE_STUDIES, create_case_study
+
+    case = next(c for c in CASE_STUDIES if c.slug == "svb_2021")
+    data = tmp_path / "market"
+    data.mkdir()
+    zip_path = create_case_study(case, data)
+    summary = jobs.summarise_bank(str(zip_path), str(tmp_path / "summary.json"))
+    assert summary["unit"] == 1000
+    assert summary["story"] == case.story
+    assert summary["name"] == "Silicon Valley Bank, end-2021 (USD thousands)"
+    assert float(summary["operating"]["noninterest_expense"]) > 0
