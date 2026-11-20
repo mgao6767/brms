@@ -38,6 +38,11 @@ class ValuationService:
         self._strategies: dict[MeasurementBasis, ValuationStrategy] = dict(strategies) if strategies else {}
         self._context: ValuationContext = ValuationContext(self._yield_handle, benchmark_service=benchmark_service)
 
+    @property
+    def yield_handle(self) -> ql.RelinkableYieldTermStructureHandle:
+        """The shared discount and forwarding handle, linked to the latest market day's curve."""
+        return self._yield_handle
+
     def register_strategy(self, measurement_basis: MeasurementBasis, strategy: ValuationStrategy) -> None:
         """Register *strategy* for positions of *measurement_basis*."""
         self._strategies[measurement_basis] = strategy

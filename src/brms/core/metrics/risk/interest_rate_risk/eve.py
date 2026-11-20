@@ -20,6 +20,7 @@ import QuantLib as ql  # noqa: N813
 
 from brms.core.enums import BookType, MeasurementBasis, PositionSide
 from brms.core.exceptions import ValuationError
+from brms.core.services.spreads import spreaded_handle
 from brms.core.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
@@ -116,6 +117,7 @@ def eve_scenarios(bank: Bank, yield_handle: ql.RelinkableYieldTermStructureHandl
     base = ql.YieldTermStructureHandle(base_curve)
     qd = pydate_to_qldate(date)
     legs = _position_legs(bank)
+    spreads = {p.id: p.spread for p in bank.positions.open_positions() if p.spread is not None}
     other = _cash_less_deposits(bank)
 
     def revalue(shift: Callable[[float], float] | None) -> dict[str, Decimal]:
@@ -124,8 +126,10 @@ def eve_scenarios(bank: Bank, yield_handle: ql.RelinkableYieldTermStructureHandl
         discount = ql.YieldTermStructureHandle(curve)
         values = {}
         for position_id, leg in legs.items():
+            spread = spreads.get(position_id)
+            handle = discount if spread is None else spreaded_handle(discount, spread)
             try:
-                values[position_id] = Decimal(str(ql.CashFlows.npv(leg(), discount, False, qd, qd)))  # noqa: FBT003
+                values[position_id] = Decimal(str(ql.CashFlows.npv(leg(), handle, False, qd, qd)))  # noqa: FBT003
             except RuntimeError as exc:
                 msg = f"Cannot revalue position {position_id} on {date}: {exc}"
                 raise ValuationError(msg) from exc

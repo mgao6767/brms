@@ -185,6 +185,7 @@ def create_ci_loan_prime_zip(data_folder: Path, out_path: Path | None = None) ->
             instruments=instruments,
             positions=positions,
             market_frames={"yields": yields_df, "benchmarks": prime_df},
+            calibrate_spreads=True,
             benchmark_service=benchmark_service,
         ),
     )

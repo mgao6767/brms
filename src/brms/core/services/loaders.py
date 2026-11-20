@@ -193,6 +193,7 @@ class ZipLoader:
                 acquisition_date=datetime.date.fromisoformat(p["acquisition_date"]),
                 acquisition_cost=Decimal(str(p["acquisition_cost"])),
                 status=PositionStatus[p.get("status", "OPEN")],
+                spread=None if p.get("spread") is None else Decimal(str(p["spread"])),
             )
             for p in raw
         ]

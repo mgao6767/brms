@@ -58,6 +58,9 @@ class BuildConfig:
     # The BenchmarkService whose Prime index the floating-rate instruments were built with, so the
     # engine discounts and forecasts on the same curve handle. Built by the engine when omitted.
     benchmark_service: Any = None
+    # Calibrate each bond and loan position's credit spread on its acquisition date so that it is
+    # worth what was paid (removes the first-mark jump of non-Treasury instruments).
+    calibrate_spreads: bool = False
 
 
 @dataclass
@@ -131,10 +134,22 @@ class SimulationBuilder:
         while current <= until:
             self._add_positions_on(current, config, sim, calculator)
             sim.advance(current)
+            if config.calibrate_spreads:
+                self._calibrate_spreads_on(current, config, sim)
             if on_advance is not None:
                 on_advance(sim, current)
             current += datetime.timedelta(days=1)
         return sim, calculator
+
+    def _calibrate_spreads_on(self, day: datetime.date, config: BuildConfig, sim: SimulationService) -> None:
+        """Set the spread of positions acquired on *day* so that they are worth their cost on the day's curve."""
+        from brms.core.services.spreads import calibrate_spread
+
+        handle = sim.valuation_service.yield_handle
+        for inst, pos in self._group_by_date(config).get(day, []):
+            if pos.measurement_basis == MeasurementBasis.NA or pos.spread is not None:
+                continue
+            pos.spread = calibrate_spread(inst.ql_instrument.cashflows(), handle, day, Decimal(pos.acquisition_cost))
 
     def _add_positions_on(
         self,

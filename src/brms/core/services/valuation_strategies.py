@@ -20,6 +20,7 @@ import QuantLib as ql  # noqa: N813
 from brms.core.enums import MeasurementBasis, ValuationType
 from brms.core.exceptions import ValuationError
 from brms.core.services.amortized_cost import is_loan, scaled_accrued
+from brms.core.services.spreads import dirty_value, spreaded_handle
 
 if TYPE_CHECKING:
     import datetime
@@ -58,18 +59,37 @@ class _BaseStrategy:
     def __init__(self, calculator: AmortizedCostCalculator) -> None:
         self._calculator = calculator
         self._engines_set: set[str] = set()
+        self._spread_handles: dict[str, tuple[Decimal, ql.YieldTermStructureHandle]] = {}
+
+    def _spread_handle(self, pos: Position, context: ValuationContext) -> ql.YieldTermStructureHandle:
+        cached = self._spread_handles.get(pos.id)
+        if cached is None or cached[0] != pos.spread:
+            cached = (pos.spread, spreaded_handle(context.yield_handle, pos.spread))  # type: ignore[arg-type]
+            self._spread_handles[pos.id] = cached
+        return cached[1]
 
     def _fair_value(
         self, inst: Instrument, pos: Position, context: ValuationContext, accrued: Decimal,
     ) -> Decimal | None:
-        """Return the clean fair value of a bond, or None when it is not defined today."""
-        if is_loan(inst):
+        """Return the clean fair value, or None when it is not defined today.
+
+        Positions with a credit spread are discounted on the curve plus that spread (loans get a
+        fair value only then); others are priced on the curve itself (bonds only).
+        """
+        if is_loan(inst) and pos.spread is None:
             return None
         date = context.date
-        if date >= inst.maturity_date:  # type: ignore[attr-defined]
+        if not is_loan(inst) and date >= inst.maturity_date:  # type: ignore[attr-defined]
             return Decimal(str(inst.face_value))  # type: ignore[attr-defined]
         if not context.has_market_data:
             return None
+        if pos.spread is not None:
+            try:
+                dirty = dirty_value(inst.ql_instrument.cashflows(), self._spread_handle(pos, context), date)  # type: ignore[attr-defined]
+            except RuntimeError as exc:
+                msg = f"Cannot price position {pos.id} on {date}: {exc}"
+                raise ValuationError(msg) from exc
+            return Decimal(str(dirty)) - accrued
         if inst.id not in self._engines_set:
             engine = ql.DiscountingBondEngine(context.yield_handle)
             inst.ql_instrument.setPricingEngine(engine)  # type: ignore[attr-defined]
