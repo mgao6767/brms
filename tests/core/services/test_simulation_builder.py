@@ -73,7 +73,7 @@ def _equity_and_deposit() -> tuple[list, list]:
     equity_inst.id = "equity-1"
     equity_inst.name = "Common Equity"
 
-    deposit_inst = Deposit()
+    deposit_inst = Deposit(interest_rate=0.02)
     deposit_inst.id = "deposit-1"
     deposit_inst.name = "Customer Deposit"
 

@@ -16,10 +16,10 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import PositionSide
+from brms.core.enums import InterestSide, PositionSide, TxMeta
+from brms.core.exceptions import ValuationError
 from brms.core.models.transaction import Transaction, TransactionType
-from brms.core.rules.interest_accrual import scaled_accrued_amount
-from brms.core.utils import pydate_to_qldate
+from brms.core.services.amortized_cost import scaled_accrued
 
 if TYPE_CHECKING:
     from brms.core.models.instruments.base import Instrument
@@ -71,16 +71,15 @@ class CouponPaymentRule:
                         break
 
         if coupon_amount is None:
-            face_value = Decimal(str(getattr(instrument, "face_value", "0")))
-            coupon_rate = Decimal(str(getattr(instrument, "coupon_rate", "0")))
-            coupon_amount = face_value * coupon_rate
+            msg = f"Position {position.id} has no scheduled coupon on {context.date}"
+            raise ValuationError(msg)
 
         # Compute accrued portion from QL for the three-leg settlement
-        accrued_portion = self._compute_accrued_portion(instrument, context)
+        accrued_portion = self._compute_accrued_portion(instrument, position, context)
 
-        metadata: tuple[tuple[str, object], ...] = (("side", "income"),)
+        metadata: tuple[tuple[TxMeta, object], ...] = ((TxMeta.SIDE, InterestSide.INCOME),)
         if accrued_portion is not None:
-            metadata = (*metadata, ("accrued_portion", str(accrued_portion)))
+            metadata = (*metadata, (TxMeta.ACCRUED_PORTION, str(accrued_portion)))
 
         return [
             Transaction(
@@ -96,26 +95,13 @@ class CouponPaymentRule:
         ]
 
     @staticmethod
-    def _compute_accrued_portion(instrument: Instrument, context: RuleContext) -> Decimal | None:
-        """Compute the accrued interest as of the previous simulation date.
+    def _compute_accrued_portion(instrument: Instrument, position: Position, context: RuleContext) -> Decimal | None:
+        """Return the receivable to clear: the position's accrued interest at its previous date.
 
-        This is what's currently sitting in the Accrued Interest Receivable
-        account — the amount to clear at settlement.  The difference between
-        the coupon amount and this value is the catch-up.
-
-        Uses :func:`scaled_accrued_amount` for correct notional scaling.
-        Returns None if QL accrued amount is unavailable.
+        Rules run before today's postings, so the receivable holds the accrued interest as of the
+        previous date (floored at the acquisition date). Returns None without a QuantLib instrument.
         """
         ql_inst = getattr(instrument, "ql_instrument", None)
         if ql_inst is None or not hasattr(ql_inst, "accruedAmount"):
             return None
-
-        # Use previous_date because the accrual rule for today hasn't posted yet
-        # (rules run before posting), so the receivable = accruedAmount(previous_date)
-        if context.previous_date is not None:
-            ql_prev = pydate_to_qldate(context.previous_date)
-            try:
-                return scaled_accrued_amount(ql_inst, ql_prev)
-            except Exception:  # noqa: BLE001
-                return None
-        return None
+        return scaled_accrued(instrument, position, context.position_previous_date(position))

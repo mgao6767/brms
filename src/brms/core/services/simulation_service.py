@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from brms.core.events import (
@@ -141,22 +142,36 @@ class SimulationService:
         Steps performed (in order):
         1. Determine the target date (next calendar day or explicit).
         2. Fetch market state if available for this date.
-        3. Value all positions (only on market-data days).
+        3. Value all positions (every day; the curve is rebuilt on market-data days).
         4. Apply rules via the rule engine to obtain transactions.
         5. Post all transactions to the ledger via the accounting service.
         6. Record the transaction batch in the transaction log.
         7. Compute metrics (only on market-data days).
         8. Emit granular events and :class:`DateAdvanced`.
+
+        An explicit *date* more than one day after the current date processes every
+        intervening calendar day in order, so no accrual, coupon or amortisation is skipped.
         """
         date = self._resolve_date(date)
+        if self._current_date is not None and date <= self._current_date:
+            msg = f"{date} is already processed (the simulation is at {self._current_date})"
+            raise ValueError(msg)
+        if self._current_date is not None and date > self._current_date + timedelta(days=1):
+            day = self._current_date + timedelta(days=1)
+            while day < date:
+                self._advance_one(day)
+                day += timedelta(days=1)
+        self._advance_one(date)
 
+    def _advance_one(self, date: datetime.date) -> None:  # type: ignore[name-defined]
+        """Process exactly one calendar day."""
         previous_date = self._current_date
-        self._current_date = date
         has_market = self.market_data.has_data(date)
         market_state = self.market_data.get_state_or_none(date)
 
-        if has_market:
-            self.valuation_service.value_all(self.bank, self.market_data, date, self.valuation_store)
+        self.valuation_service.value_all(
+            self.bank, self.market_data, date, self.valuation_store, has_market_data=has_market,
+        )
 
         transactions = self.rule_engine.apply(
             self.bank, self.valuation_store, market_state, date, previous_date,
@@ -164,6 +179,8 @@ class SimulationService:
         )
         self.accounting_service.post_all(transactions, self.bank.ledger, self.bank.positions)
         self.transaction_log.record_batch(transactions)
+        # The day counts as processed only once its transactions are posted.
+        self._current_date = date
 
         # Emit ValuationsUpdated — merge carrying and fair value snapshots
         from brms.core.enums import MetricName, ValuationType

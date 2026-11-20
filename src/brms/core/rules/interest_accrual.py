@@ -8,7 +8,7 @@ the previous simulation date and today.
 Any difference between the sum of daily accruals and the coupon payment amount
 is handled as a "catch-up" at settlement by the CouponPaymentRule.
 
-For non-QL instruments, falls back to face_value * rate / 365.
+Instruments without a QuantLib object are not supported and raise.
 """
 
 from __future__ import annotations
@@ -17,18 +17,19 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import PositionSide, TransactionType
+from brms.core.enums import InterestSide, PositionSide, TransactionType, TxMeta
+from brms.core.exceptions import UnsupportedPositionError, ValuationError
 from brms.core.models.transaction import Transaction
 from brms.core.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
+    import datetime
+
     import QuantLib as ql  # noqa: N813
 
     from brms.core.models.instruments.base import Instrument
     from brms.core.models.position import Position
     from brms.core.rules.context import RuleContext
-
-_DAYS_PER_YEAR = Decimal("365")
 
 
 def scaled_accrued_amount(ql_inst: ql.Bond, ql_date: ql.Date) -> Decimal:
@@ -69,8 +70,9 @@ class InterestIncomeAccrualRule:
         """Generate an accrual transaction based on the change in accrued interest."""
         ql_inst = getattr(instrument, "ql_instrument", None)
         if ql_inst is not None and hasattr(ql_inst, "accruedAmount"):
-            return self._generate_ql(ql_inst, instrument, position, context)
-        return self._generate_fallback(instrument, position, context)
+            return self._generate_ql(ql_inst, position, context)
+        msg = f"Position {position.id} has no QuantLib instrument to accrue interest from"
+        raise UnsupportedPositionError(msg)
 
     # ------------------------------------------------------------------
     # QL-based accrual
@@ -79,7 +81,6 @@ class InterestIncomeAccrualRule:
     def _generate_ql(
         self,
         ql_inst: ql.Bond,
-        instrument: Instrument,
         position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
@@ -96,21 +97,8 @@ class InterestIncomeAccrualRule:
         between total accrued and coupon/interest amount is handled at
         settlement.
         """
-        ql_today = pydate_to_qldate(context.date)
-        try:
-            ai_today = scaled_accrued_amount(ql_inst, ql_today)
-        except Exception:  # noqa: BLE001
-            return self._generate_fallback(instrument, position, context)
-
-        if context.previous_date is not None:
-            ql_prev = pydate_to_qldate(context.previous_date)
-            try:
-                ai_prev = scaled_accrued_amount(ql_inst, ql_prev)
-            except Exception:  # noqa: BLE001
-                ai_prev = Decimal("0")
-        else:
-            # First advance: no prior accrual recorded yet
-            ai_prev = Decimal("0")
+        ai_today = self._accrued(ql_inst, position, context.date)
+        ai_prev = self._accrued(ql_inst, position, context.position_previous_date(position))
 
         change = ai_today - ai_prev
 
@@ -127,32 +115,13 @@ class InterestIncomeAccrualRule:
 
         return self._make_tx(amount, context, position)
 
-    # ------------------------------------------------------------------
-    # Fallback for non-QL instruments
-    # ------------------------------------------------------------------
-
-    def _generate_fallback(
-        self,
-        instrument: Instrument,
-        position: Position,
-        context: RuleContext,
-    ) -> list[Transaction]:
-        """Compute accrual using simple rate / 365 for non-QL instruments.
-
-        Since the simulation advances one calendar day at a time, the accrual
-        is always exactly 1 day (notional * rate / 365).
-        """
-        rate = getattr(instrument, "coupon_rate", None) or getattr(instrument, "interest_rate", None)
-        if rate is None:
-            return []
-
-        face_value = getattr(instrument, "face_value", None)
-        notional = Decimal(str(face_value)) if face_value else Decimal(str(getattr(position, "acquisition_cost", "0")))
-        amount = notional * Decimal(str(rate)) / _DAYS_PER_YEAR
-
-        if amount <= 0:
-            return []
-        return self._make_tx(amount, context, position)
+    @staticmethod
+    def _accrued(ql_inst: ql.Bond, position: Position, day: datetime.date) -> Decimal:
+        try:
+            return scaled_accrued_amount(ql_inst, pydate_to_qldate(day))
+        except RuntimeError as exc:
+            msg = f"Cannot compute accrued interest for position {position.id} on {day}: {exc}"
+            raise ValuationError(msg) from exc
 
     # ------------------------------------------------------------------
     # Helper
@@ -170,6 +139,6 @@ class InterestIncomeAccrualRule:
                 description="Interest income accrual",
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
-                metadata=(("side", "income"),),
+                metadata=((TxMeta.SIDE, InterestSide.INCOME),),
             ),
         ]

@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from brms.core.services.accounting_service import AccountingService
     from brms.core.services.data_service import DataService
     from brms.core.services.reporting_service import ReportingService
-    from brms.core.services.risk_service import RiskService
     from brms.core.services.simulation_service import SimulationService
     from brms.core.stores.metric_store import MetricStore
     from brms.core.stores.transaction_log import TransactionLog
@@ -32,7 +31,6 @@ class CoreServices:
     metric_store: MetricStore
     transaction_log: TransactionLog
     reporting_service: ReportingService
-    risk_service: RiskService
     data_service: DataService
     accounting_service: AccountingService
 
@@ -42,6 +40,7 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     import QuantLib as ql_  # noqa: N813
 
     from brms.core.events import EventBus
+    from brms.core.exceptions import SimulationDataError
     from brms.core.metrics import default_metrics
     from brms.core.metrics.base import MetricRegistry
     from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
@@ -52,12 +51,12 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     from brms.core.models.market_data import MarketDataStore
     from brms.core.rules import default_rules
     from brms.core.services.accounting_service import AccountingService
+    from brms.core.services.amortized_cost import AmortizedCostCalculator
     from brms.core.services.benchmark_service import BenchmarkService
     from brms.core.services.data_service import DataService
     from brms.core.services.loaders import ZipLoader
     from brms.core.services.metrics_service import MetricsService
     from brms.core.services.reporting_service import ReportingService
-    from brms.core.services.risk_service import RiskService
     from brms.core.services.rule_engine import RuleEngine
     from brms.core.services.simulation_service import SimulationService
     from brms.core.services.valuation_service import ValuationService
@@ -85,14 +84,13 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     reporting_service = ReportingService()
     metric_registry = MetricRegistry(default_metrics(reporting_service))
     valuation_service = ValuationService(
-        default_valuation_strategies(),
+        default_valuation_strategies(AmortizedCostCalculator()),
         benchmark_service=benchmark_service,
         yield_handle=shared_yield_handle,
     )
 
     accounting_service = AccountingService()
     metrics_service = MetricsService(metric_registry)
-    risk_service = RiskService()
     data_service = DataService()
 
     valuation_store = ValuationStore()
@@ -127,16 +125,12 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
         import importlib.resources as pkg_resources
 
         simulation_zip = Path(str(pkg_resources.files("brms.data").joinpath("htm_treasury.zip")))
-    if simulation_zip.exists():
-        loader = ZipLoader(path=simulation_zip, instrument_registry=instrument_registry)
-        data_service.load_and_initialize(loader, simulation_service)
+    if not simulation_zip.exists():
+        msg = f"Simulation file not found: {simulation_zip}"
+        raise SimulationDataError(msg)
+    loader = ZipLoader(path=simulation_zip, instrument_registry=instrument_registry)
+    data_service.load_and_initialize(loader, simulation_service)
 
-    # Seed the valuation store so initial tree values match the BS
-    if simulation_service.start_date is not None:
-        import contextlib
-
-        with contextlib.suppress(Exception):
-            valuation_service.value_all(bank, market_data, simulation_service.start_date, valuation_store)
 
     return CoreServices(
         event_bus=event_bus,
@@ -147,7 +141,6 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
         metric_store=metric_store,
         transaction_log=transaction_log,
         reporting_service=reporting_service,
-        risk_service=risk_service,
         data_service=data_service,
         accounting_service=accounting_service,
     )

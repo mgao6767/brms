@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import locale
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from brms.core.visitors.base import Visitor
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
     from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond
     from brms.core.models.instruments.deposits import Cash, Deposit
     from brms.core.models.instruments.equity import CommonEquity
-    from brms.core.models.instruments.loans import AmortizingFixedRateLoan, CreditCard, PersonalLoan, VariableRateLoan
+    from brms.core.models.instruments.loans import AmortizingFixedRateLoan, VariableRateLoan
     from brms.core.models.transaction import Transaction
 
 
@@ -93,14 +94,6 @@ class InstrumentInspectionVisitor(InspectionVisitor, Visitor):
         """Inspect a covered bond."""
         raise NotImplementedError
 
-    def visit_personal_loan(self, instrument: PersonalLoan) -> None:
-        """Inspect a personal loan."""
-        raise NotImplementedError
-
-    def visit_credit_card(self, instrument: CreditCard) -> None:
-        """Inspect a credit card."""
-        raise NotImplementedError
-
     def visit_variable_rate_loan(self, instrument: VariableRateLoan) -> None:
         """Inspect a variable rate loan."""
         self._result.clear()
@@ -146,7 +139,7 @@ class TransactionInspectionVisitor(InspectionVisitor):
         if transaction.description:
             details["Description"] = transaction.description
         if transaction.metadata:
-            details["Metadata"] = {k: str(v) for k, v in transaction.metadata}
+            details["Metadata"] = {_label(k): _label(v) for k, v in transaction.metadata}
         return details
 
     def _inspect_position(self, position_id: str) -> dict[str, Any]:
@@ -193,3 +186,10 @@ class TransactionInspectionVisitor(InspectionVisitor):
                 entry_dict[f"Cr {acct.name}"] = f"{amt:,.2f}"
             je_details[entry_key] = entry_dict
         return je_details
+
+
+def _label(value: object) -> str:
+    """Readable text for a metadata key or value (enum members as lower-case names)."""
+    if isinstance(value, Enum):
+        return value.name.lower()
+    return str(value)

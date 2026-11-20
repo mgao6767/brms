@@ -54,9 +54,9 @@ class AccountingRule(Protocol):
 _RULE_PRIORITY: dict[str, int] = {
     "InterestIncomeAccrualRule": 10,
     "DepositInterestAccrualRule": 10,
+    "EffectiveInterestRule": 10,
     "MarkToMarketRule": 20,
     "CouponPaymentRule": 60,
-    "InterestPaymentRule": 60,
     "LoanInterestSettlementRule": 60,
     "DepositInterestSettlementRule": 60,
     "AmortizationRule": 60,
@@ -114,6 +114,9 @@ class RuleEngine:
         context = RuleContext(date, previous_date, market_state, valuation_store, has_market_data=has_market_data)
         transactions: list[Transaction] = []
         for position in bank.positions.open_positions():  # type: ignore[union-attr]
+            if date <= position.acquisition_date:
+                # Acquired at close of business: no cash flow or accrual on or before that day.
+                continue
             instrument = bank.instruments.get(position.instrument_id)  # type: ignore[union-attr]
             applicable = getattr(instrument, "applicable_rules", frozenset())
             for rule_class in self._sorted_keys:

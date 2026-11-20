@@ -58,7 +58,7 @@ def test_compute_overwrites_on_same_date() -> None:
     """A second compute() call on the same date overwrites the stored value."""
 
     class MutableMetric:
-        name = MetricName.CET1_RATIO
+        name = MetricName.EQUITY_TO_ASSETS
         value = _CET1_RATIO_V1
 
         def compute(self, bank, market_state, valuation_store, **kwargs) -> float:  # noqa: ANN001, ANN003, ARG002
@@ -72,11 +72,11 @@ def test_compute_overwrites_on_same_date() -> None:
     date = datetime.date(2024, 3, 1)
 
     service.compute(MagicMock(), MagicMock(), date, store, MagicMock())
-    assert store.get(MetricName.CET1_RATIO, date) == _CET1_RATIO_V1
+    assert store.get(MetricName.EQUITY_TO_ASSETS, date) == _CET1_RATIO_V1
 
     m.value = _CET1_RATIO_V2
     service.compute(MagicMock(), MagicMock(), date, store, MagicMock())
-    assert store.get(MetricName.CET1_RATIO, date) == _CET1_RATIO_V2
+    assert store.get(MetricName.EQUITY_TO_ASSETS, date) == _CET1_RATIO_V2
 
 
 def test_compute_one_writes_and_returns() -> None:

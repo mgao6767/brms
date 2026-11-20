@@ -47,13 +47,15 @@ class ValuationService:
         market_data: MarketDataStore,
         date: datetime.date,
         valuation_store: ValuationStore,
+        *,
+        has_market_data: bool = True,
     ) -> None:
         """Value all open positions in *bank*, grouped by MeasurementBasis.
 
-        Updates the shared context once for *date*, then delegates to each registered
-        strategy for its corresponding MeasurementBasis, skipping empty batches.
+        Updates the shared context once for *date* (rebuilding the curve only on market-data
+        days), then delegates to each registered strategy for its MeasurementBasis.
         """
-        self._context.update(date, market_data)
+        self._context.update(date, market_data, has_market_data=has_market_data)
         for measurement_basis, strategy in self._strategies.items():
             positions = bank.positions.query(  # type: ignore[union-attr]
                 measurement_basis=measurement_basis,

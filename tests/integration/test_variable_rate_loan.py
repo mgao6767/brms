@@ -16,7 +16,7 @@ from brms.core.enums import TransactionType
 
 def _build_test_zip(tmp_path: Path) -> Path:
     """Build a zip with one variable-rate loan + equity funding."""
-    config = {"name": "CI Loan Test", "start_date": "2024-01-02", "end_date": "2024-04-01"}
+    config = {"format": 2, "name": "CI Loan Test", "start_date": "2024-01-02", "end_date": "2024-04-01"}
 
     instruments = [
         {"id": "equity-001", "type": "common_equity", "name": "Bank Equity"},
@@ -125,6 +125,7 @@ class TestVariableRateLoanIntegration:
 
         zip_path = _build_test_zip(tmp_path)
         services = build_core_services(simulation_zip=zip_path)
+        services.simulation_service.advance()  # the start date is valued when it is processed
 
         cv = services.valuation_store.get("pos-loan", services.simulation_service.start_date, ValuationType.CARRYING_VALUE)
         assert cv is not None

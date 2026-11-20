@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from brms.core.metrics.capital import CET1RatioMetric, TotalAssetsMetric, TotalEquityMetric, TotalLiabilitiesMetric
+from brms.core.metrics.capital import EquityToAssetsMetric, TotalAssetsMetric, TotalEquityMetric, TotalLiabilitiesMetric
 from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal, SimpleEntry
 from brms.core.models.accounting.ledger import Ledger
@@ -58,7 +58,7 @@ def test_total_equity() -> None:  # noqa: D103
     assert TotalEquityMetric(_reporting).compute(bank, None, MagicMock()) == _EQUITY  # noqa: S101
 
 
-def test_cet1_ratio() -> None:  # noqa: D103
+def test_equity_to_assets() -> None:  # noqa: D103
     bank = _make_bank()
-    ratio = CET1RatioMetric(_reporting).compute(bank, None, MagicMock())
+    ratio = EquityToAssetsMetric(_reporting).compute(bank, None, MagicMock())
     assert abs(ratio - _EQUITY / _TOTAL_ASSETS) < _TOLERANCE  # noqa: S101

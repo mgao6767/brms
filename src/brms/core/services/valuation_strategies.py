@@ -1,75 +1,35 @@
-"""Valuation strategy implementations for the strategy-based ValuationService."""
+"""Valuation strategies: record the per-position values the ledger is reconciled against.
+
+For every open bond or loan position, on every calendar day from its acquisition date:
+
+* ``ACCRUED_INTEREST`` — coupon interest earned since the last coupon date (currency).
+* ``AMORTIZED_COST`` — clean acquisition cost rolled forward at the effective interest rate
+  (bonds) or clean cost less scheduled principal (loans). Not recorded for FVTPL positions.
+* ``FAIR_VALUE`` — clean fair value: NPV on the day's curve less accrued interest. Bonds
+  only, on market-data days and on and after the maturity date (where it is face value).
+* ``CARRYING_VALUE`` — what the investment or loan account holds for the position.
+"""
 
 from __future__ import annotations
 
-import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from brms.core.enums import InstrumentType, ValuationType
+import QuantLib as ql  # noqa: N813
+
+from brms.core.enums import MeasurementBasis, ValuationType
+from brms.core.exceptions import ValuationError
+from brms.core.services.amortized_cost import is_loan, scaled_accrued
 
 if TYPE_CHECKING:
+    import datetime
+
     from brms.core.models.instruments.base import Instrument
     from brms.core.models.position import Position
+    from brms.core.services.amortized_cost import AmortizedCostCalculator
     from brms.core.services.valuation_context import ValuationContext
     from brms.core.stores.instrument_store import InstrumentStore
     from brms.core.stores.valuation_store import ValuationStore
-
-
-def _face_value(instrument: Instrument) -> Decimal:
-    """Safely get face value from an instrument, trying multiple accessors."""
-    # Direct attribute (simple instruments like Cash, Deposit)
-    fv = getattr(instrument, "face_value", None)
-    if fv is not None:
-        return Decimal(str(fv))
-    # QL-backed instruments store it in the QL object
-    ql_inst = getattr(instrument, "ql_instrument", None)
-    if ql_inst is not None:
-        try:
-            return Decimal(str(ql_inst.notional()))
-        except Exception:  # noqa: BLE001
-            pass
-    return Decimal("0")
-
-
-def clean_acquisition_cost(position: Position, instrument: Instrument) -> Decimal:
-    """Return the clean acquisition cost — the carrying value at initial recognition.
-
-    When a coupon-bearing bond is purchased between coupon dates the buyer
-    pays a *dirty price* that includes accrued interest since the last coupon.
-    At initial recognition the accounting entry splits the dirty price::
-
-        Dr  Investment account              (clean price)
-        Dr  Accrued Interest Receivable     (accrued interest)
-        Cr  Cash                            (dirty price = acquisition_cost)
-
-    The carrying value of the investment equals the **clean price** — the
-    amount actually debited to the Investment account.  This function computes
-    ``acquisition_cost - accruedAmount(acquisition_date - 1) * face / 100``.
-
-    We use ``acquisition_date - 1 day`` for consistency with the acquisition
-    journal entry posted by :class:`SimulationBuilder` (see
-    ``_compute_accrued_interest_at_acquisition`` for the detailed rationale).
-
-    For instruments without QuantLib accrued-amount support (loans, deposits,
-    equity) the full ``acquisition_cost`` is returned unchanged.
-    """
-    ql_inst = getattr(instrument, "ql_instrument", None)
-    if ql_inst is None or not hasattr(ql_inst, "accruedAmount"):
-        return Decimal(str(position.acquisition_cost))
-
-    from brms.core.rules.interest_accrual import scaled_accrued_amount
-    from brms.core.utils import pydate_to_qldate
-
-    day_before = position.acquisition_date - datetime.timedelta(days=1)
-    try:
-        accrued = scaled_accrued_amount(ql_inst, pydate_to_qldate(day_before)).quantize(Decimal("0.01"))
-    except RuntimeError:
-        return Decimal(str(position.acquisition_cost))
-
-    if accrued > 0:
-        return Decimal(str(position.acquisition_cost)) - accrued
-    return Decimal(str(position.acquisition_cost))
 
 
 @runtime_checkable
@@ -87,57 +47,43 @@ class ValuationStrategy(Protocol):
         ...
 
 
-class FairValueStrategy:
-    """Values positions at fair value (NPV from QuantLib, or face_value fallback)."""
-
-    def __init__(self) -> None:
-        self._engines_set: set[str] = set()  # instrument IDs that have engines
-
-    def value_batch(
-        self,
-        positions: list[Position],
-        instruments: InstrumentStore,
-        context: ValuationContext,
-        output: ValuationStore,
-    ) -> None:
-        """Compute fair value for each position and record it."""
-        import QuantLib as ql  # noqa: N813
-
-        for pos in positions:
-            inst = instruments.get(pos.instrument_id)
-            if inst.ql_instrument is not None:
-                # Set pricing engine on first encounter
-                if inst.id not in self._engines_set:
-                    engine = ql.DiscountingBondEngine(context._yield_handle)  # noqa: SLF001
-                    inst.ql_instrument.setPricingEngine(engine)
-                    self._engines_set.add(inst.id)
-                try:
-                    val = Decimal(str(inst.ql_instrument.NPV()))
-                except Exception:  # noqa: BLE001
-                    val = _face_value(inst)
-            else:
-                val = _face_value(inst)
-            output.record(pos.id, context.date, ValuationType.FAIR_VALUE, val)  # type: ignore[arg-type]
+def _has_ql(instrument: Instrument) -> bool:
+    ql_inst = getattr(instrument, "ql_instrument", None)
+    return ql_inst is not None and hasattr(ql_inst, "accruedAmount")
 
 
-class CarryingValueStrategy:
-    """Values positions at carrying value (amortized cost).
+class _BaseStrategy:
+    """Shared machinery: accrued interest and clean fair value."""
 
-    * **Amortizing loans** — ``acquisition_cost`` minus cumulative scheduled
-      principal payments between ``acquisition_date`` and the current date.
-      Matches the Loans and Advances ledger (debited at acquisition, credited
-      on each AMORTIZATION transaction).
-    * **Bonds / other** — clean acquisition cost (see :func:`clean_acquisition_cost`).
-    """
+    def __init__(self, calculator: AmortizedCostCalculator) -> None:
+        self._calculator = calculator
+        self._engines_set: set[str] = set()
 
-    AMORTIZING_TYPES: frozenset[InstrumentType] = frozenset({
-        InstrumentType.RESIDENTIAL_MORTGAGE,
-        InstrumentType.COMMERCIAL_MORTGAGE,
-        InstrumentType.MORTGAGE,
-        InstrumentType.AMORTIZING_FIXED_RATE_LOAN,
-        InstrumentType.PERSONAL_LOAN,
-        InstrumentType.VARIABLE_RATE_LOAN,
-    })
+    def _fair_value(
+        self, inst: Instrument, pos: Position, context: ValuationContext, accrued: Decimal,
+    ) -> Decimal | None:
+        """Return the clean fair value of a bond, or None when it is not defined today."""
+        if is_loan(inst):
+            return None
+        date = context.date
+        if date >= inst.maturity_date:  # type: ignore[attr-defined]
+            return Decimal(str(inst.face_value))  # type: ignore[attr-defined]
+        if not context.has_market_data:
+            return None
+        if inst.id not in self._engines_set:
+            engine = ql.DiscountingBondEngine(context.yield_handle)
+            inst.ql_instrument.setPricingEngine(engine)  # type: ignore[attr-defined]
+            self._engines_set.add(inst.id)
+        try:
+            npv = Decimal(str(inst.ql_instrument.NPV()))  # type: ignore[attr-defined]
+        except RuntimeError as exc:
+            msg = f"Cannot price position {pos.id} on {date}: {exc}"
+            raise ValuationError(msg) from exc
+        return npv - accrued
+
+
+class CarryingValueStrategy(_BaseStrategy):
+    """Amortised-cost positions: carrying value is amortised cost; bonds also get a fair value."""
 
     def value_batch(
         self,
@@ -146,56 +92,83 @@ class CarryingValueStrategy:
         context: ValuationContext,
         output: ValuationStore,
     ) -> None:
-        """Record carrying value for each position."""
+        """Record accrued interest, amortised cost, fair value and carrying value."""
+        date = context.date
         for pos in positions:
             inst = instruments.get(pos.instrument_id)
-            inst_type = getattr(inst, "instrument_type", None)
+            if not _has_ql(inst):
+                msg = f"Position {pos.id} ({pos.measurement_basis.name}) has no QuantLib instrument to value"
+                raise ValuationError(msg)
+            accrued = scaled_accrued(inst, pos, date)
+            amortized = self._calculator.amortized_cost(inst, pos, date)
+            output.record(pos.id, date, ValuationType.ACCRUED_INTEREST, accrued)
+            output.record(pos.id, date, ValuationType.AMORTIZED_COST, amortized)
+            output.record(pos.id, date, ValuationType.CARRYING_VALUE, amortized)
+            fair = self._fair_value(inst, pos, context, accrued)
+            if fair is not None:
+                output.record(pos.id, date, ValuationType.FAIR_VALUE, fair)
 
-            if inst_type in self.AMORTIZING_TYPES:
-                val = self._loan_carrying_value(pos, inst, context.date)
-            else:
-                val = clean_acquisition_cost(pos, inst)
 
-            output.record(pos.id, context.date, ValuationType.CARRYING_VALUE, val)  # type: ignore[arg-type]
+class FairValueStrategy(_BaseStrategy):
+    """FVOCI and FVTPL positions: carrying value follows clean fair value."""
 
-    @staticmethod
-    def _loan_carrying_value(
-        pos: Position, inst: Instrument, current_date: datetime.date,
+    def value_batch(
+        self,
+        positions: list[Position],
+        instruments: InstrumentStore,
+        context: ValuationContext,
+        output: ValuationStore,
+    ) -> None:
+        """Record accrued interest, amortised cost (FVOCI), fair value and carrying value."""
+        date = context.date
+        for pos in positions:
+            inst = instruments.get(pos.instrument_id)
+            if not _has_ql(inst):
+                msg = f"Position {pos.id} ({pos.measurement_basis.name}) has no QuantLib instrument to value"
+                raise ValuationError(msg)
+            accrued = scaled_accrued(inst, pos, date)
+            output.record(pos.id, date, ValuationType.ACCRUED_INTEREST, accrued)
+            amortized: Decimal | None = None
+            if pos.measurement_basis == MeasurementBasis.FVOCI:
+                amortized = self._calculator.amortized_cost(inst, pos, date)
+                output.record(pos.id, date, ValuationType.AMORTIZED_COST, amortized)
+            fair = self._fair_value(inst, pos, context, accrued)
+            if fair is not None:
+                output.record(pos.id, date, ValuationType.FAIR_VALUE, fair)
+            carrying = self._carrying(inst, pos, date, fair, amortized, output)
+            output.record(pos.id, date, ValuationType.CARRYING_VALUE, carrying)
+
+    def _carrying(  # noqa: PLR0913
+        self,
+        inst: Instrument,
+        pos: Position,
+        date: datetime.date,
+        fair: Decimal | None,
+        amortized: Decimal | None,
+        output: ValuationStore,
     ) -> Decimal:
-        """Return carrying value of an amortizing loan at *current_date*.
-
-        The ledger books the loan at ``acquisition_cost`` and credits it on
-        each principal repayment.  The carrying value equals::
-
-            acquisition_cost - sum(principal payments from acquisition to date)
-
-        Derived from ``payment_schedule()`` to stay independent of ledger state.
-        """
-        cost = Decimal(str(pos.acquisition_cost))
-        schedule = getattr(inst, "payment_schedule", None)
-        if not callable(schedule):
-            return cost
-
-        result = schedule()
-        if not (isinstance(result, tuple) and len(result) == 3):  # noqa: PLR2004
-            return cost
-        _interest_pmt, principal_pmt, _outstanding = result
-
-        cumulative = Decimal("0")
-        for d, amount in principal_pmt:
-            if pos.acquisition_date < d <= current_date:
-                cumulative += Decimal(str(amount))
-
-        return cost - cumulative
+        if date == pos.acquisition_date:
+            return self._calculator.clean_cost(inst, pos)
+        if fair is not None:
+            return fair
+        previous = output.get_previous(pos.id, date, ValuationType.CARRYING_VALUE)
+        if previous is None:
+            msg = f"Position {pos.id} has no carrying value before {date}"
+            raise ValuationError(msg)
+        if amortized is None:  # FVTPL: unchanged until the next mark
+            return previous
+        previous_amortized = output.get_previous(pos.id, date, ValuationType.AMORTIZED_COST)
+        if previous_amortized is None:
+            msg = f"Position {pos.id} has no amortised cost before {date}"
+            raise ValuationError(msg)
+        return previous + (amortized - previous_amortized)
 
 
-def default_valuation_strategies() -> dict:
+def default_valuation_strategies(calculator: AmortizedCostCalculator) -> dict[MeasurementBasis, ValuationStrategy]:
     """Return the default MeasurementBasis → ValuationStrategy mapping."""
-    from brms.core.enums import MeasurementBasis
-
-    fair_value = FairValueStrategy()
+    fair_value = FairValueStrategy(calculator)
     return {
-        MeasurementBasis.AMORTIZED_COST: CarryingValueStrategy(),
+        MeasurementBasis.AMORTIZED_COST: CarryingValueStrategy(calculator),
         MeasurementBasis.FVOCI: fair_value,
         MeasurementBasis.FVTPL: fair_value,
     }

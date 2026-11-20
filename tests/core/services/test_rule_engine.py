@@ -72,7 +72,7 @@ def test_apply_returns_transactions() -> None:
     engine.register(NeverRule())
 
     bank = MagicMock()
-    pos = MagicMock()
+    pos = MagicMock(acquisition_date=datetime.date(2023, 1, 1))
     pos.id = "p1"
     pos.instrument_id = "i1"
     bank.positions.open_positions.return_value = [pos]
@@ -111,7 +111,8 @@ def test_multiple_positions_accumulate_transactions() -> None:
     engine.register(AlwaysRule())
 
     bank = MagicMock()
-    pos1, pos2 = MagicMock(), MagicMock()
+    pos1 = MagicMock(acquisition_date=datetime.date(2023, 1, 1))
+    pos2 = MagicMock(acquisition_date=datetime.date(2023, 1, 1))
     pos1.id = "p1"
     pos1.instrument_id = "i1"
     pos2.id = "p2"
@@ -129,7 +130,7 @@ def test_instrument_fetched_by_position_instrument_id() -> None:
     engine.register(NeverRule())
 
     bank = MagicMock()
-    pos = MagicMock()
+    pos = MagicMock(acquisition_date=datetime.date(2023, 1, 1))
     pos.id = "p1"
     pos.instrument_id = "bond-42"
     bank.positions.open_positions.return_value = [pos]
@@ -137,3 +138,15 @@ def test_instrument_fetched_by_position_instrument_id() -> None:
 
     engine.apply(bank, MagicMock(), MagicMock(), datetime.date(2024, 6, 1))
     bank.instruments.get.assert_called_once_with("bond-42")
+
+
+def test_position_skipped_on_and_before_acquisition_date() -> None:
+    """A position acquired at close of business gets no rule output on its acquisition date."""
+    inst = _mock_instrument(AlwaysRule)
+    bank = MagicMock()
+    pos = MagicMock(acquisition_date=datetime.date(2024, 1, 1))
+    bank.positions.open_positions.return_value = [pos]
+    bank.instruments.get.return_value = inst
+    engine = RuleEngine([AlwaysRule()])
+    assert engine.apply(bank, MagicMock(), MagicMock(), datetime.date(2024, 1, 1)) == []
+    assert engine.apply(bank, MagicMock(), MagicMock(), datetime.date(2024, 1, 2)) != []

@@ -17,11 +17,6 @@ class InstrumentType(Enum):
     RESIDENTIAL_MORTGAGE = auto()
     COMMERCIAL_MORTGAGE = auto()
     AMORTIZING_FIXED_RATE_LOAN = auto()
-    PERSONAL_LOAN = auto()
-    CREDIT_CARD = auto()
-    COMMITMENT = auto()
-    REPURCHASE_AGREEMENT = auto()
-    LETTER_OF_CREDIT = auto()
     VARIABLE_RATE_LOAN = auto()
 
 
@@ -62,6 +57,7 @@ class ValuationType(Enum):
     CARRYING_VALUE = auto()
     ACCRUED_INTEREST = auto()
     NOTIONAL = auto()
+    AMORTIZED_COST = auto()
 
 
 class TransactionType(Enum):
@@ -85,6 +81,7 @@ class TransactionType(Enum):
     INTEREST_ACCRUAL = auto()
     INTEREST_SETTLEMENT = auto()
     OPENING_BALANCE = auto()
+    PREMIUM_DISCOUNT_AMORTIZATION = auto()
 
 
 class MetricName(Enum):
@@ -94,10 +91,36 @@ class MetricName(Enum):
     TOTAL_LIABILITIES = auto()
     TOTAL_EQUITY = auto()
     CET1_CAPITAL = auto()
-    CET1_RATIO = auto()
+    EQUITY_TO_ASSETS = auto()
     CREDIT_RWA = auto()
-    OPERATIONAL_RWA = auto()
     LEVERAGE_RATIO = auto()
     NET_INTEREST_MARGIN = auto()
     ROA = auto()
     ROE = auto()
+
+
+class TxMeta(Enum):
+    """Keys of the metadata pairs carried by a Transaction."""
+
+    MEASUREMENT_BASIS = auto()  # value: MeasurementBasis
+    SIDE = auto()  # value: InterestSide
+    ACCRUED_INTEREST = auto()  # value: str(Decimal), accrued interest bought with a position
+    ACCRUED_PORTION = auto()  # value: str(Decimal), receivable cleared by a settlement
+    DIRECTION = auto()  # value: "gain" | "loss"
+    CARRYING_VALUE = auto()  # value: str(Decimal), carrying value of a maturing position
+    FINAL_PAYMENT = auto()  # value: bool, last scheduled principal payment of a loan
+
+
+class InterestSide(Enum):
+    """Whether an interest transaction is income to the bank or an expense."""
+
+    INCOME = auto()
+    EXPENSE = auto()
+
+
+class EntryKind(Enum):
+    """Why a journal entry was posted: ordinary business, opening balances, or period-end closing."""
+
+    NORMAL = auto()
+    OPENING = auto()
+    CLOSING = auto()

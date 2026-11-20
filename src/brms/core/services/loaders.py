@@ -13,13 +13,19 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 import pandas as pd
 
-from brms.core.enums import BookType, MeasurementBasis, PositionSide
+from brms.core.enums import BookType, MeasurementBasis, PositionSide, PositionStatus
+from brms.core.exceptions import SimulationDataError
 from brms.core.models.position import Position
 from brms.core.services.data_service import _convert_kwargs
 
 if TYPE_CHECKING:
     from brms.core.models.instruments.base import Instrument
     from brms.core.models.instruments.registry import InstrumentRegistry
+
+
+# Version of the archive layout written by save_snapshot. 2: closed-book balances, four
+# valuation types per position, position status.
+SNAPSHOT_FORMAT = 2
 
 
 @dataclass
@@ -55,6 +61,24 @@ class ZipLoaderConfig:
     market_data_mapping: dict[str, str] = field(
         default_factory=lambda: {"yields": "yields.csv", "benchmarks": "benchmarks.csv"},
     )
+
+
+def _reject_profit_and_loss_balances(balances: dict[str, float], source: Path | None) -> None:
+    """Refuse snapshots whose opening balances carry income or expense (written before the books were closed)."""
+    from brms.core.models.accounting.accounts import AccountType
+    from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
+
+    pnl = {
+        a.name for a in BankChartOfAccounts().all_accounts() if a.type in (AccountType.INCOME, AccountType.EXPENSE)
+    }
+    found = sorted(set(balances) & pnl)
+    if found:
+        name = source.name if source is not None else "The simulation archive"
+        msg = (
+            f"{name} was written by an older BRMS (its opening balances include {', '.join(found)}); "
+            "regenerate it with src/brms/data/create_*.py"
+        )
+        raise SimulationDataError(msg)
 
 
 class ZipLoader:
@@ -97,16 +121,25 @@ class ZipLoader:
 
     def _load_from_zip(self, zf: zipfile.ZipFile) -> SimulationData:
         cfg = json.loads(zf.read(self._config.config_file))
+        if cfg.get("format") != SNAPSHOT_FORMAT:
+            name = self._path.name if self._path is not None else "The simulation archive"
+            msg = (
+                f"{name} has snapshot format {cfg.get('format')!r}, this BRMS reads format {SNAPSHOT_FORMAT}; "
+                "regenerate it with save_snapshot (python -m brms.data.build_all for the defaults)"
+            )
+            raise SimulationDataError(msg)
         instruments = self._load_instruments(zf)
         positions = self._load_positions(zf)
         market_frames = self._load_market_data(zf)
 
-        balances: dict[str, float] = {}
-        valuations: dict[str, dict[str, float]] = {}
-        if "balances.json" in zf.namelist():
-            bal_data = json.loads(zf.read("balances.json"))
-            balances = bal_data.get("balances", {})
-            valuations = bal_data.get("valuations", {})
+        if "balances.json" not in zf.namelist():
+            name = self._path.name if self._path is not None else "The simulation archive"
+            msg = f"{name} has no balances.json, so its opening ledger is unknown; regenerate it with save_snapshot"
+            raise SimulationDataError(msg)
+        bal_data = json.loads(zf.read("balances.json"))
+        balances: dict[str, float] = bal_data.get("balances", {})
+        valuations: dict[str, dict[str, float]] = bal_data.get("valuations", {})
+        _reject_profit_and_loss_balances(balances, self._path)
 
         start_date = datetime.date.fromisoformat(cfg["start_date"])
         # end_date from config; fall back to last market data date
@@ -156,6 +189,7 @@ class ZipLoader:
                 side=PositionSide[p["side"]],
                 acquisition_date=datetime.date.fromisoformat(p["acquisition_date"]),
                 acquisition_cost=Decimal(str(p["acquisition_cost"])),
+                status=PositionStatus[p.get("status", "OPEN")],
             )
             for p in raw
         ]

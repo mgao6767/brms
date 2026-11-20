@@ -39,7 +39,6 @@ AMORTIZED_COST_SUB_GROUPS: dict[InstrumentType, str] = {
     InstrumentType.COMMERCIAL_MORTGAGE: "Loans & Mortgages",
     InstrumentType.MORTGAGE: "Loans & Mortgages",
     InstrumentType.AMORTIZING_FIXED_RATE_LOAN: "Loans & Mortgages",
-    InstrumentType.PERSONAL_LOAN: "Loans & Mortgages",
 }
 
 # Legacy aliases kept for backward compatibility

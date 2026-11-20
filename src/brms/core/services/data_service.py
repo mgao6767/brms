@@ -125,7 +125,7 @@ class DataService:
         import uuid
         from decimal import Decimal
 
-        from brms.core.enums import TransactionType
+        from brms.core.enums import EntryKind, TransactionType
         from brms.core.models.accounting.accounts import AccountNormalBalance
         from brms.core.models.accounting.journal import CompoundEntry
         from brms.core.models.transaction import Transaction
@@ -177,8 +177,9 @@ class DataService:
             entry = CompoundEntry(
                 debit_accounts=debit_accounts,
                 credit_accounts=credit_accounts,
-                date=data.start_date,
+                date=snapshot_date,
                 description="Opening Balance",
+                kind=EntryKind.OPENING,
             )
             ledger.post(entry)
 
@@ -187,12 +188,12 @@ class DataService:
 
     @staticmethod
     def _seed_valuations(data: SimulationData, simulation_service: SimulationService) -> None:
-        """Seed the valuation store and accounting service from snapshot valuations.
+        """Seed the valuation store from snapshot valuations.
 
-        Valuations are recorded at ``start_date - 1`` (the snapshot date) so that
-        the first advance computes the correct MTM delta against the replay state.
-        Per-position unrealized gain/loss totals are restored so that maturity
-        reclassification correctly reverses the full gross amounts.
+        Valuations are recorded at ``start_date - 1`` (the snapshot date) so that the first
+        advance computes mark-to-market and amortisation deltas against the replay state.
+        Keys other than the known valuation types (such as the ``unrealized_gain`` and
+        ``unrealized_loss`` written by older versions) are ignored.
         """
         if not data.valuations:
             return
@@ -203,14 +204,14 @@ class DataService:
 
         snapshot_date = data.start_date - datetime.timedelta(days=1)
         vs = simulation_service.valuation_store
-        acct_svc = simulation_service.accounting_service
+        types = {
+            "carrying_value": ValuationType.CARRYING_VALUE,
+            "fair_value": ValuationType.FAIR_VALUE,
+            "amortized_cost": ValuationType.AMORTIZED_COST,
+            "accrued_interest": ValuationType.ACCRUED_INTEREST,
+        }
         for pos_id, vals in data.valuations.items():
-            if "fair_value" in vals:
-                vs.record(pos_id, snapshot_date, ValuationType.FAIR_VALUE, Decimal(str(vals["fair_value"])))
-            if "carrying_value" in vals:
-                vs.record(pos_id, snapshot_date, ValuationType.CARRYING_VALUE, Decimal(str(vals["carrying_value"])))
-            if "unrealized_gain" in vals:
-                acct_svc._unrealized_gain[pos_id] = vals["unrealized_gain"]  # noqa: SLF001
-            if "unrealized_loss" in vals:
-                acct_svc._unrealized_loss[pos_id] = vals["unrealized_loss"]  # noqa: SLF001
+            for key, vtype in types.items():
+                if key in vals:
+                    vs.record(pos_id, snapshot_date, vtype, Decimal(str(vals[key])))
 

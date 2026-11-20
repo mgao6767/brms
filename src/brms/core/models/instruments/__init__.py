@@ -34,18 +34,9 @@ def default_instrument_registry() -> InstrumentRegistry:
     from brms.core.models.instruments.loans import (
         AmortizingFixedRateLoan,
         CommercialMortgage,
-        CreditCard,
         Mortgage,
-        PersonalLoan,
         ResidentialMortgage,
         VariableRateLoan,
-    )
-    from brms.core.models.instruments.other import (
-        Commitment,
-        LetterOfCredit,
-        RepurchaseAgreement,
-        StandByLetterOfCredit,
-        TradeLetterOfCredit,
     )
     from brms.core.models.instruments.registry import CorporateInstrumentRegistry, LoanInstrumentRegistry
 
@@ -65,13 +56,6 @@ def default_instrument_registry() -> InstrumentRegistry:
         ("mortgage", Mortgage),
         ("residential_mortgage", ResidentialMortgage),
         ("commercial_mortgage", CommercialMortgage),
-        ("personal_loan", PersonalLoan),
-        ("credit_card", CreditCard),
-        ("commitment", Commitment),
-        ("letter_of_credit", LetterOfCredit),
-        ("standby_letter_of_credit", StandByLetterOfCredit),
-        ("trade_letter_of_credit", TradeLetterOfCredit),
-        ("repurchase_agreement", RepurchaseAgreement),
     ]:
         registry.register(type_id, cls)
     return registry

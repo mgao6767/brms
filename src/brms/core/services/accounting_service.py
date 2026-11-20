@@ -7,7 +7,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from brms.core.enums import TransactionType
+from brms.core.enums import InterestSide, MeasurementBasis, TransactionType, TxMeta
+from brms.core.exceptions import ValuationError
 from brms.core.models.accounting.journal import CompoundEntry, SimpleEntry
 
 if TYPE_CHECKING:
@@ -17,6 +18,8 @@ if TYPE_CHECKING:
     from brms.core.models.transaction import Transaction
     from brms.core.stores.position_store import PositionStore
 
+_CENT = 0.01
+
 
 class AccountingService:
     """Maps Transaction records to journal entries and posts them to a Ledger.
@@ -24,12 +27,6 @@ class AccountingService:
     The service looks up named accounts from the ledger's chart of accounts so
     that callers do not need to pass account references explicitly.
     """
-
-    def __init__(self) -> None:
-        """Initialize with empty per-position unrealized tracking."""
-        # Per-position cumulative unrealized gain and loss (gross, always positive)
-        self._unrealized_gain: dict[str, float] = {}
-        self._unrealized_loss: dict[str, float] = {}
 
     def post_all(self, transactions: list[Transaction], ledger: Ledger, position_store: PositionStore) -> None:
         """Post all transactions to ledger and update positions as needed."""
@@ -64,8 +61,11 @@ class AccountingService:
             ledger.post(entry)
 
     def _update_positions(self, tx: Transaction, position_store: PositionStore) -> None:
-        """Close positions on maturity or sale transactions."""
-        if tx.type in (TransactionType.MATURITY_SETTLEMENT, TransactionType.SECURITY_SALE) and tx.position_id:
+        """Close positions on maturity, sale, or a loan's final principal payment."""
+        if not tx.position_id:
+            return
+        closing = tx.type in (TransactionType.MATURITY_SETTLEMENT, TransactionType.SECURITY_SALE)
+        if closing or dict(tx.metadata).get(TxMeta.FINAL_PAYMENT):
             position_store.close(tx.position_id)
 
     def _map_to_entries(self, transaction: Transaction, ledger: Ledger) -> list[JournalEntry]:  # noqa: C901, PLR0911, PLR0912
@@ -106,6 +106,8 @@ class AccountingService:
                 return self._amortization(transaction, ledger)
             case TransactionType.MATURITY_SETTLEMENT:
                 return self._maturity_settlement(transaction, ledger)
+            case TransactionType.PREMIUM_DISCOUNT_AMORTIZATION:
+                return self._premium_discount_amortization(transaction, ledger)
             case TransactionType.OPENING_BALANCE:
                 return []  # informational — ledger already updated by compound entry
             case _:
@@ -156,18 +158,16 @@ class AccountingService:
         )
         return [entry]
 
-    _MEASUREMENT_BASIS_TO_ACCOUNT: ClassVar[dict[str, str]] = {
-        "HTM": "Investment Securities at Amortized Cost",
-        "AMORTIZED_COST": "Investment Securities at Amortized Cost",
-        "FVOCI": "Investment Securities at FVOCI",
-        "FVTPL": "Assets at FVTPL",
+    _MEASUREMENT_BASIS_TO_ACCOUNT: ClassVar[dict[MeasurementBasis, str]] = {
+        MeasurementBasis.AMORTIZED_COST: "Investment Securities at Amortized Cost",
+        MeasurementBasis.FVOCI: "Investment Securities at FVOCI",
+        MeasurementBasis.FVTPL: "Assets at FVTPL",
     }
 
     def _resolve_investment_account(self, tx: Transaction, ledger: Ledger) -> TAccount:
         """Return the investment account for the measurement_basis in *tx* metadata."""
-        meta = dict(tx.metadata)
-        measurement_basis = meta.get("measurement_basis", "")
-        account_name = self._MEASUREMENT_BASIS_TO_ACCOUNT.get(measurement_basis)
+        measurement_basis = dict(tx.metadata).get(TxMeta.MEASUREMENT_BASIS)
+        account_name = self._MEASUREMENT_BASIS_TO_ACCOUNT.get(measurement_basis)  # type: ignore[arg-type]
         if account_name is None:
             msg = f"Unknown measurement_basis '{measurement_basis}' in metadata for tx={tx.id}"
             raise ValueError(msg)
@@ -186,28 +186,28 @@ class AccountingService:
         This keeps the Receivable in sync with QuantLib's ``accruedAmount``
         so that coupon settlement clears the correct amount.
         """
-        meta = dict(tx.metadata)
-        accrued_str = meta.get("accrued_interest")
-
-        cash = self._lookup(ledger, "Cash and Cash Equivalents")
         investment = self._resolve_investment_account(tx, ledger)
+        return self._purchase_entries(tx, ledger, investment, "Security purchase")
 
+    def _purchase_entries(self, tx: Transaction, ledger: Ledger, asset: TAccount, label: str) -> list[JournalEntry]:
+        """Dr *asset* (clean cost), Dr Accrued Interest Receivable (accrued bought), Cr Cash (total paid)."""
+        cash = self._lookup(ledger, "Cash and Cash Equivalents")
+        accrued_str = dict(tx.metadata).get(TxMeta.ACCRUED_INTEREST)
         if accrued_str is not None:
             accrued = float(accrued_str)
             receivable = self._lookup(ledger, "Accrued Interest Receivable")
             return [CompoundEntry(
-                debit_accounts={investment: float(tx.amount) - accrued, receivable: accrued},
+                debit_accounts={asset: float(tx.amount) - accrued, receivable: accrued},
                 credit_accounts={cash: float(tx.amount)},
                 date=tx.date,
-                description=f"Security purchase with accrued interest (tx={tx.id})",
+                description=f"{label} with accrued interest (tx={tx.id})",
             )]
-
         return [SimpleEntry(
-            debit_account=investment,
+            debit_account=asset,
             credit_account=cash,
             value=float(tx.amount),
             date=tx.date,
-            description=f"Security purchase (tx={tx.id})",
+            description=f"{label} (tx={tx.id})",
         )]
 
     def _security_sale(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
@@ -237,17 +237,8 @@ class AccountingService:
         return [entry]
 
     def _loan_disbursement(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
-        """LOAN_DISBURSEMENT: debit Loans, credit Cash."""
-        cash = self._lookup(ledger, "Cash and Cash Equivalents")
-        loans = self._lookup(ledger, "Loans and Advances")
-        entry = SimpleEntry(
-            debit_account=loans,
-            credit_account=cash,
-            value=float(tx.amount),
-            date=tx.date,
-            description=f"Loan disbursement (tx={tx.id})",
-        )
-        return [entry]
+        """LOAN_DISBURSEMENT: Dr Loans (clean), Dr Accrued Interest Receivable (accrued bought), Cr Cash."""
+        return self._purchase_entries(tx, ledger, self._lookup(ledger, "Loans and Advances"), "Loan disbursement")
 
     def _loan_repayment(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
         """LOAN_REPAYMENT: debit Cash, credit Loans."""
@@ -289,57 +280,72 @@ class AccountingService:
         return [entry]
 
     def _mark_to_market(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
-        """MARK_TO_MARKET / REVALUATION: debit/credit asset vs income account.
+        """MARK_TO_MARKET / REVALUATION: move the investment by the change in fair value.
 
-        FVTPL: asset is 'Assets at FVTPL'; gain uses 'Unrealized Trading Gain',
-        loss uses 'Unrealized Trading Loss'.
-        FVOCI: asset is 'Investment Securities at FVOCI'; gain uses 'Unrealized OCI Gain',
-        loss uses 'Unrealized OCI Loss'.
-
-        A positive amount represents a gain (debit asset, credit income/equity).
-        A negative amount represents a loss (debit expense/contra-equity, credit asset).
+        FVTPL: gains credit Unrealized Trading Gain, losses debit Unrealized Trading Loss.
+        FVOCI: netted at account level, so at most one of Unrealized OCI Gain and Unrealized
+        OCI Loss carries a balance. A loss first reduces Unrealized OCI Gain and only the
+        remainder goes to Unrealized OCI Loss; a gain first reduces Unrealized OCI Loss.
         """
-        meta = dict(tx.metadata)
-        measurement_basis = meta.get("measurement_basis", "")
+        basis = dict(tx.metadata).get(TxMeta.MEASUREMENT_BASIS)
         amount = float(tx.amount)
-        if measurement_basis == "FVTPL":
+        if basis == MeasurementBasis.FVTPL:
             asset = self._lookup(ledger, "Assets at FVTPL")
             if amount >= 0:
-                debit_account = asset
-                credit_account = self._lookup(ledger, "Unrealized Trading Gain")
-                value = amount
+                debit, credit = asset, self._lookup(ledger, "Unrealized Trading Gain")
             else:
-                debit_account = self._lookup(ledger, "Unrealized Trading Loss")
-                credit_account = asset
-                value = -amount
-        elif measurement_basis == "FVOCI":
-            asset = self._lookup(ledger, "Investment Securities at FVOCI")
-            if amount >= 0:
-                debit_account = asset
-                credit_account = self._lookup(ledger, "Unrealized OCI Gain")
-                value = amount
-            else:
-                debit_account = self._lookup(ledger, "Unrealized OCI Loss")
-                credit_account = asset
-                value = -amount
-        else:
-            msg = f"Unknown measurement_basis '{measurement_basis}' for mark-to-market in tx={tx.id}"
-            raise ValueError(msg)
-        # Track per-position gross unrealized for reclassification at maturity
-        pos_id = tx.position_id or ""
-        if amount >= 0:
-            self._unrealized_gain[pos_id] = self._unrealized_gain.get(pos_id, 0.0) + amount
-        else:
-            self._unrealized_loss[pos_id] = self._unrealized_loss.get(pos_id, 0.0) + (-amount)
+                debit, credit = self._lookup(ledger, "Unrealized Trading Loss"), asset
+            return [SimpleEntry(
+                debit_account=debit,
+                credit_account=credit,
+                value=abs(amount),
+                date=tx.date,
+                description=f"Mark-to-market (tx={tx.id})",
+            )]
+        if basis == MeasurementBasis.FVOCI:
+            return [self._fvoci_mark(tx, ledger, amount)]
+        msg = f"Unknown measurement_basis {basis!r} for mark-to-market in tx={tx.id}"
+        raise ValueError(msg)
 
-        entry = SimpleEntry(
-            debit_account=debit_account,
-            credit_account=credit_account,
-            value=value,
+    def _fvoci_mark(self, tx: Transaction, ledger: Ledger, amount: float) -> JournalEntry:
+        asset = self._lookup(ledger, "Investment Securities at FVOCI")
+        gain = self._lookup(ledger, "Unrealized OCI Gain")
+        loss = self._lookup(ledger, "Unrealized OCI Loss")
+        size = abs(amount)
+        if amount >= 0:
+            # Gain: Dr asset; Cr Unrealized OCI Loss (down to zero), then Cr Unrealized OCI Gain.
+            reduce = min(size, max(loss.balance(), 0.0))
+            debits: dict[TAccount, float] = {asset: size}
+            credit_legs = {loss: reduce, gain: size - reduce}
+        else:
+            # Loss: Dr Unrealized OCI Gain (down to zero), then Dr Unrealized OCI Loss; Cr asset.
+            reduce = min(size, max(gain.balance(), 0.0))
+            debits = {gain: reduce, loss: size - reduce}
+            credit_legs = {asset: size}
+        return CompoundEntry(
+            debit_accounts={k: v for k, v in debits.items() if v > 0},
+            credit_accounts={k: v for k, v in credit_legs.items() if v > 0},
             date=tx.date,
-            description=f"Mark-to-market / revaluation (tx={tx.id})",
+            description=f"Mark-to-market (tx={tx.id})",
         )
-        return [entry]
+
+    def _premium_discount_amortization(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """PREMIUM_DISCOUNT_AMORTIZATION: move the investment toward face through interest income.
+
+        Discount (positive): Dr investment, Cr Interest Income.
+        Premium (negative): Dr Interest Income, Cr investment.
+        """
+        investment = self._resolve_investment_account(tx, ledger)
+        income = self._lookup(ledger, "Interest Income")
+        amount = float(tx.amount)
+        debit, credit = (investment, income) if amount > 0 else (income, investment)
+        return [SimpleEntry(
+            debit_account=debit,
+            credit_account=credit,
+            value=abs(amount),
+            date=tx.date,
+            description=f"Premium/discount amortisation (tx={tx.id})",
+        )]
 
     def _principal_payment(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
         """PRINCIPAL_PAYMENT: debit Cash, credit Loans."""
@@ -367,109 +373,31 @@ class AccountingService:
         )
         return [entry]
 
-    # Unrealized/realized account pairs per measurement basis
-    _UNREALIZED_GAIN: ClassVar[dict[str, str]] = {
-        "FVTPL": "Unrealized Trading Gain",
-        "FVOCI": "Unrealized OCI Gain",
-    }
-    _UNREALIZED_LOSS: ClassVar[dict[str, str]] = {
-        "FVTPL": "Unrealized Trading Loss",
-        "FVOCI": "Unrealized OCI Loss",
-    }
-    _REALIZED_GAIN: ClassVar[dict[str, str]] = {
-        "FVTPL": "Realized Trading Gain",
-        "FVOCI": "Realized OCI Gain",
-    }
-    _REALIZED_LOSS: ClassVar[dict[str, str]] = {
-        "FVTPL": "Realized Trading Loss",
-        "FVOCI": "Realized OCI Loss",
-    }
-
     def _maturity_settlement(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
-        """MATURITY_SETTLEMENT: settle at face value and reclassify unrealized to realized.
+        """MATURITY_SETTLEMENT: Dr Cash face, Cr the position's investment account face.
 
-        For HTM/amortized cost: simple Dr Cash / Cr Investment at face value.
+        By the maturity date the position's carrying value has been brought to face value for
+        every measurement basis (amortisation and the final mark), so no gain or loss arises.
 
-        For FVTPL/FVOCI (carrying value = fair value ≠ face value):
+        Raises:
+            ValuationError: the carrying value in the transaction is not face value.
 
-        Entry 1 - Settlement: Dr Cash (face), Cr Investment (carrying).
-        Entry 2 - Reclassify gross unrealized gain to realized.
-        Entry 3 - Reclassify gross unrealized loss to realized.
-
-        After all entries, the total realized gain/loss = face - acquisition
-        (the true economic result), and the unrealized accounts no longer
-        contain this position's contributions.
         """
-        cash = self._lookup(ledger, "Cash and Cash Equivalents")
-        investment = self._resolve_investment_account(tx, ledger)
-        face_value = float(tx.amount)
-        carrying_value = investment.balance()
-
-        meta = dict(tx.metadata)
-        basis = meta.get("measurement_basis", "")
-
-        # HTM / amortized cost — simple entry
-        if basis not in self._REALIZED_GAIN:
-            return [SimpleEntry(
-                debit_account=cash,
-                credit_account=investment,
-                value=face_value,
-                date=tx.date,
-                description=f"Maturity settlement (tx={tx.id})",
-            )]
-
-        entries: list[JournalEntry] = []
-        _tol = 0.01
-
-        # Entry 1: Settlement — Dr Cash (face), Cr Investment (carrying)
-        if abs(face_value - carrying_value) < _tol:
-            entries.append(SimpleEntry(
-                debit_account=cash,
-                credit_account=investment,
-                value=face_value,
-                date=tx.date,
-                description=f"Maturity settlement (tx={tx.id})",
-            ))
-        else:
-            diff = face_value - carrying_value
-            debit_accounts: dict = {cash: face_value}
-            credit_accounts: dict = {investment: carrying_value}
-            # The residual goes to realized gain/loss
-            if diff > 0:
-                credit_accounts[self._lookup(ledger, self._REALIZED_GAIN[basis])] = diff
-            else:
-                debit_accounts[self._lookup(ledger, self._REALIZED_LOSS[basis])] = -diff
-            entries.append(CompoundEntry(
-                debit_accounts=debit_accounts,
-                credit_accounts=credit_accounts,
-                date=tx.date,
-                description=f"Maturity settlement (tx={tx.id})",
-            ))
-
-        # Entry 2 & 3: Reclassify gross unrealized → realized for this position.
-        # Reverse the exact gross gain and loss amounts tracked during MTM.
-        pos_id = tx.position_id or ""
-        gross_gain = self._unrealized_gain.pop(pos_id, 0.0)
-        gross_loss = self._unrealized_loss.pop(pos_id, 0.0)
-
-        if gross_gain > _tol:
-            entries.append(SimpleEntry(
-                debit_account=self._lookup(ledger, self._UNREALIZED_GAIN[basis]),
-                credit_account=self._lookup(ledger, self._REALIZED_GAIN[basis]),
-                value=gross_gain,
-                date=tx.date,
-                description=f"Reclassify unrealized gain to realized on maturity (tx={tx.id})",
-            ))
-        if gross_loss > _tol:
-            entries.append(SimpleEntry(
-                debit_account=self._lookup(ledger, self._REALIZED_LOSS[basis]),
-                credit_account=self._lookup(ledger, self._UNREALIZED_LOSS[basis]),
-                value=gross_loss,
-                date=tx.date,
-                description=f"Reclassify unrealized loss to realized on maturity (tx={tx.id})",
-            ))
-
-        return entries
+        face = float(tx.amount)
+        carrying_str = dict(tx.metadata).get(TxMeta.CARRYING_VALUE)
+        if carrying_str is None or abs(float(carrying_str) - face) > _CENT:
+            msg = (
+                f"Position {tx.position_id} matures at face {face:.2f} but its carrying value is "
+                f"{carrying_str} (tx={tx.id})"
+            )
+            raise ValuationError(msg)
+        return [SimpleEntry(
+            debit_account=self._lookup(ledger, "Cash and Cash Equivalents"),
+            credit_account=self._resolve_investment_account(tx, ledger),
+            value=face,
+            date=tx.date,
+            description=f"Maturity settlement (tx={tx.id})",
+        )]
 
     def _interest_accrual(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
         """INTEREST_ACCRUAL: accrue interest without cash movement.
@@ -477,13 +405,12 @@ class AccountingService:
         side=income:  Dr Accrued Interest Receivable / Cr Interest Income
         side=expense: Dr Interest Expense / Cr Interest Payable
         """
-        meta = dict(tx.metadata)
-        side = meta.get("side", "")
-        if side == "income":
+        side = dict(tx.metadata).get(TxMeta.SIDE)
+        if side == InterestSide.INCOME:
             debit = self._lookup(ledger, "Accrued Interest Receivable")
             credit = self._lookup(ledger, "Interest Income")
             desc = "Interest income accrual"
-        elif side == "expense":
+        elif side == InterestSide.EXPENSE:
             debit = self._lookup(ledger, "Interest Expense")
             credit = self._lookup(ledger, "Interest Payable")
             desc = "Interest expense accrual"
@@ -520,10 +447,10 @@ class AccountingService:
             Cr  Cash                         amount
         """
         meta = dict(tx.metadata)
-        side = meta.get("side", "")
+        side = meta.get(TxMeta.SIDE)
         cash = self._lookup(ledger, "Cash and Cash Equivalents")
 
-        if side == "expense":
+        if side == InterestSide.EXPENSE:
             return [SimpleEntry(
                 debit_account=self._lookup(ledger, "Interest Payable"),
                 credit_account=cash,
@@ -532,34 +459,39 @@ class AccountingService:
                 description=f"Interest expense settlement (tx={tx.id})",
             )]
 
-        if side == "income":
+        if side == InterestSide.INCOME:
             receivable = self._lookup(ledger, "Accrued Interest Receivable")
             coupon_amount = float(tx.amount)
 
-            accrued_str = meta.get("accrued_portion")
-            accrued_portion = float(accrued_str) if accrued_str is not None else coupon_amount
-
+            accrued_str = meta.get(TxMeta.ACCRUED_PORTION)
+            if accrued_str is None:
+                msg = f"Income settlement tx={tx.id} carries no accrued portion to clear"
+                raise ValueError(msg)
+            accrued_portion = float(accrued_str)
             catch_up = coupon_amount - accrued_portion
 
-            if abs(catch_up) < 0.005:  # noqa: PLR2004
-                # No meaningful catch-up — simple two-leg entry
+            if catch_up == 0:
                 return [SimpleEntry(
                     debit_account=cash,
                     credit_account=receivable,
                     value=coupon_amount,
                     date=tx.date,
-                    description=f"Coupon settlement (tx={tx.id})",
+                    description=f"Interest settlement (tx={tx.id})",
                 )]
 
             # Three-leg compound entry
-            from brms.core.models.accounting.journal import CompoundEntry
-
             interest_income = self._lookup(ledger, "Interest Income")
+            debits: dict[TAccount, float] = {cash: coupon_amount}
+            credit_legs: dict[TAccount, float] = {receivable: accrued_portion}
+            if catch_up > 0:
+                credit_legs[interest_income] = catch_up
+            else:
+                debits[interest_income] = -catch_up
             return [CompoundEntry(
-                debit_accounts={cash: coupon_amount},
-                credit_accounts={receivable: accrued_portion, interest_income: catch_up},
+                debit_accounts=debits,
+                credit_accounts=credit_legs,
                 date=tx.date,
-                description=f"Coupon settlement with day count catch-up (tx={tx.id})",
+                description=f"Interest settlement with day count catch-up (tx={tx.id})",
             )]
 
         msg = f"Unknown side '{side}' for INTEREST_SETTLEMENT in tx={tx.id}"

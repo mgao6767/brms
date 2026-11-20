@@ -11,14 +11,14 @@ from brms.core.enums import (
     ValuationType,
 )
 
-EXPECTED_INSTRUMENT_TYPE_COUNT = 17
+EXPECTED_INSTRUMENT_TYPE_COUNT = 12
 EXPECTED_BOOK_TYPE_COUNT = 2
 EXPECTED_POSITION_SIDE_COUNT = 2
 EXPECTED_POSITION_STATUS_COUNT = 2
 EXPECTED_MEASUREMENT_BASIS_COUNT = 4
-EXPECTED_VALUATION_TYPE_COUNT = 4
-EXPECTED_TRANSACTION_TYPE_COUNT = 18
-EXPECTED_METRIC_NAME_COUNT = 11
+EXPECTED_VALUATION_TYPE_COUNT = 5
+EXPECTED_TRANSACTION_TYPE_COUNT = 19
+EXPECTED_METRIC_NAME_COUNT = 10
 
 
 class TestInstrumentType:
@@ -38,11 +38,6 @@ class TestInstrumentType:
             "RESIDENTIAL_MORTGAGE",
             "COMMERCIAL_MORTGAGE",
             "AMORTIZING_FIXED_RATE_LOAN",
-            "PERSONAL_LOAN",
-            "CREDIT_CARD",
-            "COMMITMENT",
-            "REPURCHASE_AGREEMENT",
-            "LETTER_OF_CREDIT",
             "VARIABLE_RATE_LOAN",
         }
         actual_members = {member.name for member in InstrumentType}
@@ -114,7 +109,7 @@ class TestValuationType:
 
     def test_valuation_type_members(self) -> None:
         """Test that ValuationType has all expected members."""
-        expected_members = {"FAIR_VALUE", "CARRYING_VALUE", "ACCRUED_INTEREST", "NOTIONAL"}
+        expected_members = {"FAIR_VALUE", "CARRYING_VALUE", "ACCRUED_INTEREST", "NOTIONAL", "AMORTIZED_COST"}
         actual_members = {member.name for member in ValuationType}
         assert actual_members == expected_members  # noqa: S101
 
@@ -147,6 +142,7 @@ class TestTransactionType:
             "INTEREST_ACCRUAL",
             "INTEREST_SETTLEMENT",
             "OPENING_BALANCE",
+            "PREMIUM_DISCOUNT_AMORTIZATION",
         }
         actual_members = {member.name for member in TransactionType}
         assert actual_members == expected_members  # noqa: S101
@@ -166,9 +162,8 @@ class TestMetricName:
             "TOTAL_LIABILITIES",
             "TOTAL_EQUITY",
             "CET1_CAPITAL",
-            "CET1_RATIO",
+            "EQUITY_TO_ASSETS",
             "CREDIT_RWA",
-            "OPERATIONAL_RWA",
             "LEVERAGE_RATIO",
             "NET_INTEREST_MARGIN",
             "ROA",

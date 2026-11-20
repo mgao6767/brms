@@ -479,7 +479,7 @@ class BRMSDashboard(QWidget):
         """Add grouped detail cards vertically to the given layout."""
         self.capital_group = KPIGroupCard("Capital Adequacy")
         self.capital_group.add_metric("cet1_capital", "CET1 Capital", FormatType.CURRENCY)
-        self.capital_group.add_metric("cet1_ratio", "CET1 Ratio", FormatType.PERCENTAGE)
+        self.capital_group.add_metric("equity_to_assets", "Equity / Assets", FormatType.PERCENTAGE)
         self.capital_group.add_metric("tier1_ratio", "Tier 1 Ratio", FormatType.PERCENTAGE)
         self.capital_group.add_metric("total_capital_ratio", "Total Capital Ratio", FormatType.PERCENTAGE)
 
@@ -487,7 +487,6 @@ class BRMSDashboard(QWidget):
         self.liquidity_group.add_metric("nsfr", "NSFR", FormatType.PERCENTAGE)
         self.liquidity_group.add_metric("lcr", "LCR", FormatType.PERCENTAGE)
         self.liquidity_group.add_metric("credit_rwa", "Credit RWA", FormatType.CURRENCY)
-        self.liquidity_group.add_metric("op_rwa", "Op. RWA", FormatType.CURRENCY)
 
         self.profit_group = KPIGroupCard("Profitability")
         self.profit_group.add_metric("roa", "ROA", FormatType.PERCENTAGE)
@@ -511,7 +510,7 @@ class BRMSDashboard(QWidget):
         )
         self.capital_ratio_plot = PlotWidget(
             title="Capital Ratios",
-            line_titles=["CET1 Ratio"],
+            line_titles=["Equity / Assets"],
             line_colors=[s.chart_blue],
             use_ratio_formatter=True,
         )

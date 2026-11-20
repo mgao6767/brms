@@ -18,19 +18,14 @@ def _ctx(date: datetime.date, previous_date: datetime.date | None = None) -> Rul
 
 
 def _make_instrument(
-    payment_dates: list[datetime.date] | None,
-    periodic_payment: Decimal = Decimal("5000"),
+    payment_dates: list[datetime.date],
+    principal: Decimal = Decimal("5000"),
 ) -> MagicMock:
-    """Return a mock instrument with the given payment_dates and periodic_payment."""
+    """Return a mock loan whose schedule pays *principal* on each of *payment_dates*."""
     inst = MagicMock()
     inst.id = "loan-1"
-    inst.periodic_payment = periodic_payment
-    if payment_dates is not None:
-        inst.payment_dates = payment_dates
-    else:
-        del inst.payment_dates
-    # No callable payment_schedule for plain payment_dates instruments
-    del inst.payment_schedule
+    principal_pmt = [(d, float(principal)) for d in payment_dates]
+    inst.payment_schedule.return_value = ([], principal_pmt, [])
     return inst
 
 
@@ -50,31 +45,37 @@ def _make_position(
 
 
 def test_applies_on_payment_date() -> None:
-    """Rule should apply when the date is in the instrument's payment_dates list."""
+    """Rule should apply on a scheduled principal payment date."""
     rule = AmortizationRule()
     inst = _make_instrument([datetime.date(2024, 6, 15), datetime.date(2024, 12, 15)])
     assert rule.applies_to(inst, _make_position(), _ctx(datetime.date(2024, 6, 15)))
 
 
 def test_does_not_apply_on_non_payment_date() -> None:
-    """Rule should not apply when the date is not in payment_dates."""
+    """Rule should not apply on a date without a scheduled principal payment."""
     rule = AmortizationRule()
     inst = _make_instrument([datetime.date(2024, 6, 15)])
     assert not rule.applies_to(inst, _make_position(), _ctx(datetime.date(2024, 6, 14)))
 
 
-def test_does_not_apply_if_no_payment_dates_attr() -> None:
-    """Rule should not apply when the instrument has no payment_dates attribute."""
+def test_marks_only_the_final_payment() -> None:
+    """The last scheduled principal payment carries FINAL_PAYMENT, earlier ones do not."""
+    from brms.core.enums import TxMeta
+
     rule = AmortizationRule()
-    inst = MagicMock(spec=[])
-    assert not rule.applies_to(inst, _make_position(), _ctx(datetime.date(2024, 6, 15)))
+    dates = [datetime.date(2024, 6, 15), datetime.date(2024, 12, 15)]
+    inst = _make_instrument(dates)
+    first = rule.generate(inst, _make_position(), _ctx(dates[0]))[0]
+    last = rule.generate(inst, _make_position(), _ctx(dates[1]))[0]
+    assert TxMeta.FINAL_PAYMENT not in dict(first.metadata)
+    assert dict(last.metadata)[TxMeta.FINAL_PAYMENT] is True
 
 
 def test_generates_amortization_transaction() -> None:
-    """Rule should generate an AMORTIZATION transaction with the periodic_payment amount."""
+    """Rule should generate an AMORTIZATION transaction with the scheduled principal amount."""
     rule = AmortizationRule()
     periodic_payment = Decimal("5000")
-    inst = _make_instrument([datetime.date(2024, 6, 15)], periodic_payment=periodic_payment)
+    inst = _make_instrument([datetime.date(2024, 6, 15)], principal=periodic_payment)
     pos = _make_position()
     txs = rule.generate(inst, pos, _ctx(datetime.date(2024, 6, 15)))
     assert len(txs) >= 1

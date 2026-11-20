@@ -46,7 +46,7 @@ class DashboardController(BRMSController):
             "Total Assets": [],
             "Total Liabilities": [],
             "Total Equity": [],
-            "CET1 Ratio": [],
+            "Equity / Assets": [],
             "NSFR": [],
             "LCR": [],
             "ROA": [],
@@ -85,7 +85,7 @@ class DashboardController(BRMSController):
             MetricName.TOTAL_ASSETS: "Total Assets",
             MetricName.TOTAL_LIABILITIES: "Total Liabilities",
             MetricName.TOTAL_EQUITY: "Total Equity",
-            MetricName.CET1_RATIO: "CET1 Ratio",
+            MetricName.EQUITY_TO_ASSETS: "Equity / Assets",
             MetricName.ROA: "ROA",
             MetricName.ROE: "ROE",
         }
@@ -123,15 +123,14 @@ class DashboardController(BRMSController):
         self._series["Total Assets"].append(m.get(MetricName.TOTAL_ASSETS, 0.0))
         self._series["Total Liabilities"].append(m.get(MetricName.TOTAL_LIABILITIES, 0.0))
         self._series["Total Equity"].append(m.get(MetricName.TOTAL_EQUITY, 0.0))
-        self._series["CET1 Ratio"].append(m.get(MetricName.CET1_RATIO, 0.0))
+        self._series["Equity / Assets"].append(m.get(MetricName.EQUITY_TO_ASSETS, 0.0))
         self._series["ROA"].append(m.get(MetricName.ROA, 0.0))
         self._series["ROE"].append(m.get(MetricName.ROE, 0.0))
 
         # Update group card metrics from MetricsComputed (non-BS metrics)
         self.view.capital_group.set_value("cet1_capital", m.get(MetricName.CET1_CAPITAL))
-        self.view.capital_group.set_value("cet1_ratio", m.get(MetricName.CET1_RATIO))
+        self.view.capital_group.set_value("equity_to_assets", m.get(MetricName.EQUITY_TO_ASSETS))
         self.view.liquidity_group.set_value("credit_rwa", m.get(MetricName.CREDIT_RWA))
-        self.view.liquidity_group.set_value("op_rwa", m.get(MetricName.OPERATIONAL_RWA))
         self.view.profit_group.set_value("roa", m.get(MetricName.ROA))
         self.view.profit_group.set_value("roe", m.get(MetricName.ROE))
         self.view.profit_group.set_value("leverage_ratio", m.get(MetricName.LEVERAGE_RATIO))
@@ -153,7 +152,7 @@ class DashboardController(BRMSController):
 
         # Capital ratios
         self.view.capital_ratio_plot.update_plot(s, e, d, {
-            "CET1 Ratio": self._series["CET1 Ratio"],
+            "Equity / Assets": self._series["Equity / Assets"],
         })
 
         # Liquidity (series may be empty until wired)

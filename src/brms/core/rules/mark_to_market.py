@@ -1,13 +1,18 @@
-"""MarkToMarketRule: generates a mark-to-market transaction for FVTPL and FVOCI instruments."""
+"""MarkToMarketRule: moves an FVOCI or FVTPL position's carrying value to its clean fair value.
+
+The amount is ``FAIR_VALUE(today) - CARRYING_VALUE(previous record) - change in AMORTIZED_COST today``.
+The last term is zero for FVTPL; for FVOCI it has already been booked to interest income by
+the EffectiveInterestRule, so the mark carries only the change in unrealised gain or loss.
+"""
 
 from __future__ import annotations
 
-import datetime
 import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import MeasurementBasis, ValuationType
+from brms.core.enums import MeasurementBasis, TxMeta, ValuationType
+from brms.core.exceptions import ValuationError
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
@@ -15,71 +20,50 @@ if TYPE_CHECKING:
     from brms.core.models.position import Position
     from brms.core.rules.context import RuleContext
 
-_MTM_BASES = {MeasurementBasis.FVTPL, MeasurementBasis.FVOCI}
+_MTM_BASES = frozenset({MeasurementBasis.FVTPL, MeasurementBasis.FVOCI})
 
 
 class MarkToMarketRule:
-    """Generates a MARK_TO_MARKET transaction for instruments classified as FVTPL or FVOCI."""
+    """Generates a MARK_TO_MARKET transaction for FVTPL and FVOCI positions with a fair value today."""
 
-    def applies_to(
-        self,
-        instrument: Instrument,
-        position: Position,
-        context: RuleContext,
-    ) -> bool:
-        """Return True if market data is available and the position is FVTPL or FVOCI.
-
-        Skips instruments that have matured — the maturity rule handles settlement.
-        """
-        if not context.has_market_data:
+    def applies_to(self, _instrument: Instrument, position: Position, context: RuleContext) -> bool:
+        """Return True when the position is at fair value and valuation recorded one today."""
+        if position.measurement_basis not in _MTM_BASES:
             return False
-        basis = getattr(position, "measurement_basis", None)
-        if basis not in _MTM_BASES:
-            return False
-        maturity_date = getattr(instrument, "maturity_date", None)
-        return not isinstance(maturity_date, datetime.date) or maturity_date > context.date
+        return context.valuation_store.get(position.id, context.date, ValuationType.FAIR_VALUE) is not None
 
-    def generate(
-        self,
-        _instrument: Instrument,
-        position: Position,
-        context: RuleContext,
-    ) -> list[Transaction]:
-        """Generate a mark-to-market transaction based on fair value change from valuation store."""
-        position_id = getattr(position, "id", None)
-        instrument_id = getattr(position, "instrument_id", None)
-        acquisition_cost = Decimal(str(getattr(position, "acquisition_cost", "0")))
-
-        # Get current fair value from valuation store
-        current_fv = context.valuation_store.get(position_id, context.date, ValuationType.FAIR_VALUE)
-        if current_fv is None:
+    def generate(self, _instrument: Instrument, position: Position, context: RuleContext) -> list[Transaction]:
+        """Generate the mark from today's fair value and the previous carrying value."""
+        store = context.valuation_store
+        fair = store.get(position.id, context.date, ValuationType.FAIR_VALUE)
+        previous = store.get_previous(position.id, context.date, ValuationType.CARRYING_VALUE)
+        if fair is None or previous is None:
+            msg = f"Position {position.id} has no fair value on {context.date} or carrying value before it"
+            raise ValuationError(msg)
+        amortization = Decimal(0)
+        if position.measurement_basis == MeasurementBasis.FVOCI:
+            today_ac = store.get(position.id, context.date, ValuationType.AMORTIZED_COST)
+            previous_ac = store.get_previous(position.id, context.date, ValuationType.AMORTIZED_COST)
+            if today_ac is None or previous_ac is None:
+                msg = f"Position {position.id} has no amortised cost on or before {context.date}"
+                raise ValuationError(msg)
+            amortization = today_ac - previous_ac
+        change = fair - previous - amortization
+        if change == 0:
             return []
-
-        # Find the most recent prior fair value, or fall back to acquisition cost
-        previous_fv = context.valuation_store.get_previous(position_id, context.date, ValuationType.FAIR_VALUE)
-        if previous_fv is None:
-            previous_fv = acquisition_cost
-
-        fair_value_change = current_fv - previous_fv
-        if fair_value_change == 0:
-            return []
-
-        basis = getattr(position, "measurement_basis", None)
-        basis_name = basis.name if basis is not None else ""
-        direction = "gain" if fair_value_change > 0 else "loss"
-
+        direction = "gain" if change > 0 else "loss"
         return [
             Transaction(
                 id=str(uuid.uuid4()),
                 type=TransactionType.MARK_TO_MARKET,
                 date=context.date,
-                amount=fair_value_change,
-                position_id=position_id,
-                instrument_id=instrument_id,
-                description=f"Mark-to-market {direction} ({basis_name})",
+                amount=change,
+                position_id=position.id,
+                instrument_id=position.instrument_id,
+                description=f"Mark-to-market {direction} ({position.measurement_basis.name})",
                 metadata=(
-                    ("measurement_basis", basis_name),
-                    ("direction", direction),
+                    (TxMeta.MEASUREMENT_BASIS, position.measurement_basis),
+                    (TxMeta.DIRECTION, direction),
                 ),
             ),
         ]

@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from brms.core.enums import EntryKind
+
 if TYPE_CHECKING:
     import datetime
     from collections.abc import Iterator
@@ -20,6 +22,7 @@ class JournalEntry(ABC):
     credit_accounts: dict[TAccount, float]
     date: datetime.date | None
     description: str
+    kind: EntryKind
 
     @abstractmethod
     def involves_account(self, account: TAccount) -> bool:
@@ -58,6 +61,7 @@ class SimpleEntry(JournalEntry):
     value: float
     date: datetime.date | None = None
     description: str = ""
+    kind: EntryKind = EntryKind.NORMAL
 
     def __post_init__(self) -> None:
         """Post-initialization processing to conform the protocol."""
@@ -76,6 +80,7 @@ class SimpleEntry(JournalEntry):
             value=self.value,
             date=self.date,
             description=f"Reversal: {self.description}",
+            kind=self.kind,
         )
 
 
@@ -102,6 +107,7 @@ class CompoundEntry(JournalEntry):
     credit_accounts: dict[TAccount, float]
     date: datetime.date | None = None
     description: str = ""
+    kind: EntryKind = EntryKind.NORMAL
 
     def __post_init__(self) -> None:
         """Post-initialization processing to validate the compound journal entry."""
@@ -140,6 +146,7 @@ class CompoundEntry(JournalEntry):
             credit_accounts=dict(self.debit_accounts),
             date=self.date,
             description=f"Reversal: {self.description}",
+            kind=self.kind,
         )
 
 

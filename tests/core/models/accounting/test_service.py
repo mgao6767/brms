@@ -6,6 +6,9 @@ from decimal import Decimal
 
 import pytest
 
+from brms.core.enums import MeasurementBasis, TxMeta
+from brms.core.exceptions import ValuationError
+
 from brms.core.models.accounting.accounts import (
     AccountType,
     TAccount,
@@ -160,7 +163,7 @@ def test_security_purchase_htm() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 2, 1),
         amount=Decimal("50000"),
-        metadata=(("measurement_basis", "HTM"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST),),
     )
     service.post(tx, ledger)
     assert coa.investment_htm_account.balance() == 50_000.0
@@ -176,7 +179,7 @@ def test_security_purchase_fvoci() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 2, 1),
         amount=Decimal("30000"),
-        metadata=(("measurement_basis", "FVOCI"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVOCI),),
     )
     service.post(tx, ledger)
     assert coa.investment_fvoci_account.balance() == 30_000.0
@@ -192,7 +195,7 @@ def test_security_purchase_fvtpl() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 2, 1),
         amount=Decimal("20000"),
-        metadata=(("measurement_basis", "FVTPL"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVTPL),),
     )
     service.post(tx, ledger)
     assert coa.asset_fvtpl_account.balance() == 20_000.0
@@ -213,14 +216,14 @@ def test_security_sale_htm() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 3, 1),
         amount=Decimal("40000"),
-        metadata=(("measurement_basis", "HTM"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST),),
     )
     sale_tx = Transaction(
         id="tx-sell-1",
         type=TransactionType.SECURITY_SALE,
         date=datetime.date(2024, 3, 15),
         amount=Decimal("40000"),
-        metadata=(("measurement_basis", "HTM"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST),),
     )
     service.post(purchase_tx, ledger)
     service.post(sale_tx, ledger)
@@ -377,7 +380,7 @@ def test_mark_to_market_fvtpl_gain() -> None:
         type=TransactionType.MARK_TO_MARKET,
         date=datetime.date(2024, 7, 1),
         amount=Decimal("5000"),
-        metadata=(("measurement_basis", "FVTPL"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVTPL),),
     )
     service.post(tx, ledger)
     assert coa.asset_fvtpl_account.balance() == 5_000.0
@@ -393,7 +396,7 @@ def test_mark_to_market_fvtpl_loss() -> None:
         type=TransactionType.MARK_TO_MARKET,
         date=datetime.date(2024, 7, 2),
         amount=Decimal("-2000"),
-        metadata=(("measurement_basis", "FVTPL"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVTPL),),
     )
     service.post(tx, ledger)
     assert coa.asset_fvtpl_account.balance() == -2_000.0
@@ -414,7 +417,7 @@ def test_mark_to_market_fvoci_gain() -> None:
         type=TransactionType.MARK_TO_MARKET,
         date=datetime.date(2024, 7, 3),
         amount=Decimal("4000"),
-        metadata=(("measurement_basis", "FVOCI"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVOCI),),
     )
     service.post(tx, ledger)
     assert coa.investment_fvoci_account.balance() == 4_000.0
@@ -430,7 +433,7 @@ def test_mark_to_market_fvoci_loss() -> None:
         type=TransactionType.MARK_TO_MARKET,
         date=datetime.date(2024, 7, 4),
         amount=Decimal("-1000"),
-        metadata=(("measurement_basis", "FVOCI"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVOCI),),
     )
     service.post(tx, ledger)
     assert coa.investment_fvoci_account.balance() == -1_000.0
@@ -451,7 +454,7 @@ def test_revaluation_fvtpl() -> None:
         type=TransactionType.REVALUATION,
         date=datetime.date(2024, 8, 1),
         amount=Decimal("3000"),
-        metadata=(("measurement_basis", "FVTPL"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVTPL),),
     )
     service.post(tx, ledger)
     assert coa.asset_fvtpl_account.balance() == 3_000.0
@@ -526,19 +529,34 @@ def test_maturity_settlement_htm() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 1, 1),
         amount=Decimal("100000"),
-        metadata=(("measurement_basis", "HTM"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST),),
     )
     maturity_tx = Transaction(
         id="tx-mat-2",
         type=TransactionType.MATURITY_SETTLEMENT,
         date=datetime.date(2025, 1, 1),
         amount=Decimal("100000"),
-        metadata=(("measurement_basis", "HTM"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST), (TxMeta.CARRYING_VALUE, "100000")),
     )
     service.post(purchase_tx, ledger)
     service.post(maturity_tx, ledger)
     assert coa.investment_htm_account.balance() == 0.0
     assert coa.cash_account.balance() == 500_000.0
+
+
+def test_maturity_settlement_rejects_carrying_value_away_from_face() -> None:
+    """A maturing position whose carrying value is not face value is an error, not a balancing entry."""
+    ledger, _coa = _make_full_ledger()
+    tx = Transaction(
+        id="tx-mat-bad",
+        type=TransactionType.MATURITY_SETTLEMENT,
+        date=datetime.date(2025, 1, 1),
+        amount=Decimal("100000"),
+        position_id="pos-x",
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVTPL), (TxMeta.CARRYING_VALUE, "99000")),
+    )
+    with pytest.raises(ValuationError, match="pos-x"):
+        AccountingService().post(tx, ledger)
 
 
 def test_maturity_settlement_fvoci() -> None:
@@ -550,14 +568,14 @@ def test_maturity_settlement_fvoci() -> None:
         type=TransactionType.SECURITY_PURCHASE,
         date=datetime.date(2024, 1, 1),
         amount=Decimal("70000"),
-        metadata=(("measurement_basis", "FVOCI"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVOCI),),
     )
     maturity_tx = Transaction(
         id="tx-mat-4",
         type=TransactionType.MATURITY_SETTLEMENT,
         date=datetime.date(2025, 1, 1),
         amount=Decimal("70000"),
-        metadata=(("measurement_basis", "FVOCI"),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVOCI), (TxMeta.CARRYING_VALUE, "70000")),
     )
     service.post(purchase_tx, ledger)
     service.post(maturity_tx, ledger)
@@ -578,6 +596,10 @@ def _make_fresh_ledger() -> tuple[Ledger, BankChartOfAccounts]:
     return ledger, coa
 
 
+_AC = ((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST),)
+_OCI = ((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVOCI),)
+_TPL = ((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVTPL),)
+
 ROUND_TRIP_CASES = [
     ("equity", TransactionType.EQUITY_ISSUANCE, Decimal("1000000"), ()),
     ("deposit", TransactionType.DEPOSIT_RECEIVED, Decimal("50000"), ()),
@@ -587,12 +609,12 @@ ROUND_TRIP_CASES = [
     ("interest", TransactionType.INTEREST_PAYMENT, Decimal("500"), ()),
     ("coupon", TransactionType.COUPON_PAYMENT, Decimal("2500"), ()),
     ("interest_exp", TransactionType.INTEREST_EXPENSE, Decimal("300"), ()),
-    ("sec_buy_htm", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("measurement_basis", "HTM"),)),
-    ("sec_buy_fvoci", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("measurement_basis", "FVOCI"),)),
-    ("sec_buy_fvtpl", TransactionType.SECURITY_PURCHASE, Decimal("10000"), (("measurement_basis", "FVTPL"),)),
+    ("sec_buy_htm", TransactionType.SECURITY_PURCHASE, Decimal("10000"), _AC),
+    ("sec_buy_fvoci", TransactionType.SECURITY_PURCHASE, Decimal("10000"), _OCI),
+    ("sec_buy_fvtpl", TransactionType.SECURITY_PURCHASE, Decimal("10000"), _TPL),
     ("principal", TransactionType.PRINCIPAL_PAYMENT, Decimal("5000"), ()),
     ("amortization", TransactionType.AMORTIZATION, Decimal("3000"), ()),
-    ("maturity_htm", TransactionType.MATURITY_SETTLEMENT, Decimal("100000"), (("measurement_basis", "HTM"),)),
+    ("maturity_htm", TransactionType.MATURITY_SETTLEMENT, Decimal("100000"), (*_AC, (TxMeta.CARRYING_VALUE, "100000"))),
 ]
 
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication, QFileDialog, QTreeView
+from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QTreeView
 
 from brms import DEBUG_MODE
 from brms.app import clipboard
@@ -22,6 +22,7 @@ from brms.app.controllers.statement_controller import StatementController
 from brms.app.controllers.transaction_history_controller import TransactionHistoryController
 from brms.app.controllers.yield_curve_controller import YieldCurveController
 from brms.core.events import ShowTransactionsRequested
+from brms.core.exceptions import BRMSError
 from brms.core.services import build_core_services
 
 if TYPE_CHECKING:
@@ -182,13 +183,21 @@ class MainController(BRMSController):
         )
         if not file_path:
             return
-        services = build_core_services(simulation_zip=Path(file_path))
+        self._load_path(Path(file_path))
+
+    def _load_path(self, path: Path) -> None:
+        """Load a simulation zip, reporting a data error in a dialog instead of crashing."""
+        try:
+            services = build_core_services(simulation_zip=path)
+        except BRMSError as exc:
+            logger.exception("Cannot open %s", path)
+            QMessageBox.critical(self.view, "Cannot open simulation", str(exc))
+            return
         self.load_simulation(services)
 
     def _on_debug_simulation_selected(self, path: Path) -> None:
         """Load the simulation zip chosen from the debug panel."""
-        services = build_core_services(simulation_zip=path)
-        self.load_simulation(services)
+        self._load_path(path)
 
     def _on_show_transactions_requested(self, event: ShowTransactionsRequested) -> None:
         """Switch to Transaction History tab and filter by instrument."""
@@ -234,6 +243,10 @@ class MainController(BRMSController):
         except IndexError:
             logger.info("No more dates; pausing.")
             self.on_pause_action()
+        except BRMSError as exc:
+            logger.exception("Simulation stopped on %s", sim.current_date)
+            self.on_pause_action()
+            QMessageBox.critical(self.view, "Simulation stopped", str(exc))
         finally:
             self.view.setUpdatesEnabled(True)
 
