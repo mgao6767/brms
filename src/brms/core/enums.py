@@ -81,6 +81,7 @@ class TransactionType(Enum):
     INTEREST_ACCRUAL = auto()
     INTEREST_SETTLEMENT = auto()
     OPENING_BALANCE = auto()
+    PREMIUM_DISCOUNT_AMORTIZATION = auto()
 
 
 class MetricName(Enum):

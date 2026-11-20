@@ -54,6 +54,7 @@ class AccountingRule(Protocol):
 _RULE_PRIORITY: dict[str, int] = {
     "InterestIncomeAccrualRule": 10,
     "DepositInterestAccrualRule": 10,
+    "EffectiveInterestRule": 10,
     "MarkToMarketRule": 20,
     "CouponPaymentRule": 60,
     "LoanInterestSettlementRule": 60,

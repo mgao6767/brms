@@ -106,6 +106,8 @@ class AccountingService:
                 return self._amortization(transaction, ledger)
             case TransactionType.MATURITY_SETTLEMENT:
                 return self._maturity_settlement(transaction, ledger)
+            case TransactionType.PREMIUM_DISCOUNT_AMORTIZATION:
+                return self._premium_discount_amortization(transaction, ledger)
             case TransactionType.OPENING_BALANCE:
                 return []  # informational — ledger already updated by compound entry
             case _:
@@ -328,6 +330,24 @@ class AccountingService:
             description=f"Mark-to-market / revaluation (tx={tx.id})",
         )
         return [entry]
+
+    def _premium_discount_amortization(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """PREMIUM_DISCOUNT_AMORTIZATION: move the investment toward face through interest income.
+
+        Discount (positive): Dr investment, Cr Interest Income.
+        Premium (negative): Dr Interest Income, Cr investment.
+        """
+        investment = self._resolve_investment_account(tx, ledger)
+        income = self._lookup(ledger, "Interest Income")
+        amount = float(tx.amount)
+        debit, credit = (investment, income) if amount > 0 else (income, investment)
+        return [SimpleEntry(
+            debit_account=debit,
+            credit_account=credit,
+            value=abs(amount),
+            date=tx.date,
+            description=f"Premium/discount amortisation (tx={tx.id})",
+        )]
 
     def _principal_payment(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
         """PRINCIPAL_PAYMENT: debit Cash, credit Loans."""
