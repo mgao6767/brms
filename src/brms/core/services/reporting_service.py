@@ -23,8 +23,14 @@ from brms.core.models.accounting.accounts import AccountNormalBalance, AccountTy
 class ReportingService:
     """Generate structured financial statement data from a Ledger.
 
-    All methods are pure computations — no HTML, no UI concerns.
+    All methods are pure computations — no HTML, no UI concerns. The as-if-closed balance
+    sheet is memoised per (ledger, date, journal length) on the instance, so every metric on a
+    day shares one deep copy of the ledger; the journal only grows, so a new posting changes the key.
     """
+
+    def __init__(self) -> None:
+        """Start with an empty balance-sheet memo."""
+        self._balance_sheets: dict[tuple[int, datetime.date | None, int], dict[str, Any]] = {}
 
     def trial_balance(self, ledger: Ledger) -> list[dict[str, Any]]:
         """Return a trial balance for all accounts in the ledger.
@@ -51,6 +57,10 @@ class ReportingService:
         balance sheet with only permanent accounts (Assets, Liabilities, Equity).
         The original ledger is not modified.
         """
+        key = (id(ledger), date, len(ledger.journal.entries))
+        cached = self._balance_sheets.get(key)
+        if cached is not None:
+            return cached
         # Close a copy so the live ledger is untouched
         closed = copy.deepcopy(ledger)
         if date is not None:
@@ -76,7 +86,7 @@ class ReportingService:
         total_liabilities = sum(row["balance"] for row in liabilities)
         total_equity = sum(row["balance"] for row in equity)
 
-        return {
+        result = {
             "assets": assets,
             "liabilities": liabilities,
             "equity": equity,
@@ -84,6 +94,8 @@ class ReportingService:
             "total_liabilities": total_liabilities,
             "total_equity": total_equity,
         }
+        self._balance_sheets = {key: result}  # keep only the latest state
+        return result
 
     def income_statement(
         self,

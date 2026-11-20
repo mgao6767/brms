@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from brms.core.enums import InstrumentType, MeasurementBasis, TransactionType, TxMeta, ValuationType
 from brms.core.exceptions import UnsupportedPositionError
+from brms.core.models.regulatory import RegulatoryConfig
 from brms.core.models.transaction import Transaction
 from brms.core.services.amortized_cost import AmortizedCostCalculator
 
@@ -52,6 +53,7 @@ class BuildConfig:
     instruments: list[Instrument]
     positions: list[Position]
     market_frames: dict[str, pd.DataFrame]
+    regulatory: RegulatoryConfig = field(default_factory=RegulatoryConfig)
 
 
 @dataclass
@@ -65,6 +67,7 @@ class SimulationSnapshot:
     balances: dict[str, float]
     valuations: dict[str, dict[str, float]] = field(default_factory=dict)
     market_frames: dict[str, pd.DataFrame] = field(default_factory=dict)
+    regulatory: RegulatoryConfig = field(default_factory=RegulatoryConfig)
 
 
 class SimulationBuilder:
@@ -93,6 +96,7 @@ class SimulationBuilder:
             balances=balances,
             valuations=valuations,
             market_frames=config.market_frames,
+            regulatory=config.regulatory,
         )
 
     def replay(
@@ -173,7 +177,10 @@ class SimulationBuilder:
         calculator = AmortizedCostCalculator()
         coa = BankChartOfAccounts()
         ledger = Ledger(chart_of_accounts=coa, journal=Journal())
-        bank = Bank(name=config.name, instruments=InstrumentStore(), positions=PositionStore(), ledger=ledger)
+        bank = Bank(
+            name=config.name, instruments=InstrumentStore(), positions=PositionStore(), ledger=ledger,
+            regulatory=config.regulatory,
+        )
         market_data = MarketDataStore()
         accounting_service = AccountingService()
 

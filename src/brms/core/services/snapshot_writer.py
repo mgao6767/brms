@@ -46,6 +46,7 @@ def save_snapshot(
         "format": SNAPSHOT_FORMAT,
         "name": snapshot.name,
         "start_date": snapshot.start_date.isoformat(),
+        "regulatory": snapshot.regulatory.to_json(),
     }
     if end_date is not None:
         config["end_date"] = end_date.isoformat()

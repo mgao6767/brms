@@ -103,6 +103,7 @@ class DataService:
         Balance journal entry is posted to establish the ledger state.
         """
         data = loader.load()  # type: ignore[union-attr]
+        simulation_service.bank.regulatory = data.regulatory
 
         for inst in data.instruments:
             simulation_service.bank.instruments.add(inst)  # type: ignore[union-attr]
