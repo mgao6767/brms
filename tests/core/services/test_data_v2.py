@@ -19,6 +19,7 @@ def _make_zip() -> BytesIO:
         zf.writestr(
             "config.json",
             json.dumps({
+                "format": 2,
                 "name": "Test Bank",
                 "start_date": "2024-01-05",
             }),

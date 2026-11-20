@@ -17,6 +17,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from brms.core.enums import InterestSide, PositionSide, TxMeta
+from brms.core.exceptions import ValuationError
 from brms.core.models.transaction import Transaction, TransactionType
 from brms.core.services.amortized_cost import scaled_accrued
 
@@ -70,9 +71,8 @@ class CouponPaymentRule:
                         break
 
         if coupon_amount is None:
-            face_value = Decimal(str(getattr(instrument, "face_value", "0")))
-            coupon_rate = Decimal(str(getattr(instrument, "coupon_rate", "0")))
-            coupon_amount = face_value * coupon_rate
+            msg = f"Position {position.id} has no scheduled coupon on {context.date}"
+            raise ValuationError(msg)
 
         # Compute accrued portion from QL for the three-leg settlement
         accrued_portion = self._compute_accrued_portion(instrument, position, context)

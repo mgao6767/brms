@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from brms.core.enums import BookType, MeasurementBasis, PositionSide, PositionStatus, TransactionType
+from brms.core.enums import BookType, MeasurementBasis, PositionSide, PositionStatus, TransactionType, ValuationType
 from brms.core.exceptions import SimulationDataError
 from brms.core.models.accounting.accounts import AccountType
 from brms.core.models.instruments import default_instrument_registry
@@ -147,3 +147,40 @@ def test_income_statement_starts_at_zero_after_load(saved: Path) -> None:
 def test_old_format_zip_is_rejected_clearly() -> None:
     with pytest.raises(SimulationDataError, match="regenerate"):
         build_core_services(simulation_zip=_LEGACY)
+
+
+def _read_json(path: Path, name: str) -> dict:
+    import json
+    import zipfile
+
+    with zipfile.ZipFile(path) as zf:
+        return json.loads(zf.read(name))
+
+
+def test_snapshot_records_its_format_and_snapshot_date(saved: Path) -> None:
+    assert _read_json(saved, "config.json")["format"] == 2  # noqa: S101, PLR2004
+    assert _read_json(saved, "balances.json")["snapshot_date"] == (_START - datetime.timedelta(days=1)).isoformat()  # noqa: S101
+
+
+def test_zip_without_current_format_is_rejected(saved: Path, tmp_path: Path) -> None:
+    import json
+    import zipfile
+
+    stale = tmp_path / "stale.zip"
+    with zipfile.ZipFile(saved) as zin, zipfile.ZipFile(stale, "w") as zout:
+        for name in zin.namelist():
+            data = zin.read(name)
+            if name == "config.json":
+                config = json.loads(data)
+                config.pop("format")
+                data = json.dumps(config).encode()
+            zout.writestr(name, data)
+    with pytest.raises(SimulationDataError, match="regenerate"):
+        build_core_services(simulation_zip=stale)
+
+
+def test_loading_does_not_value_the_start_date_before_it_is_processed(saved: Path) -> None:
+    services = build_core_services(simulation_zip=saved)
+    assert services.valuation_store.snapshot(_START, ValuationType.CARRYING_VALUE) == {}  # noqa: S101
+    snapshot_day = _START - datetime.timedelta(days=1)
+    assert services.valuation_store.snapshot(snapshot_day, ValuationType.CARRYING_VALUE)  # noqa: S101

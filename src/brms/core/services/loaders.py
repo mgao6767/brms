@@ -23,6 +23,11 @@ if TYPE_CHECKING:
     from brms.core.models.instruments.registry import InstrumentRegistry
 
 
+# Version of the archive layout written by save_snapshot. 2: closed-book balances, four
+# valuation types per position, position status.
+SNAPSHOT_FORMAT = 2
+
+
 @dataclass
 class SimulationData:
     """Container for all data loaded by a loader."""
@@ -116,6 +121,13 @@ class ZipLoader:
 
     def _load_from_zip(self, zf: zipfile.ZipFile) -> SimulationData:
         cfg = json.loads(zf.read(self._config.config_file))
+        if cfg.get("format") != SNAPSHOT_FORMAT:
+            name = self._path.name if self._path is not None else "The simulation archive"
+            msg = (
+                f"{name} has snapshot format {cfg.get('format')!r}, this BRMS reads format {SNAPSHOT_FORMAT}; "
+                "regenerate it with save_snapshot (python -m brms.data.build_all for the defaults)"
+            )
+            raise SimulationDataError(msg)
         instruments = self._load_instruments(zf)
         positions = self._load_positions(zf)
         market_frames = self._load_market_data(zf)

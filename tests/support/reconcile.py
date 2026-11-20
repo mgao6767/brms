@@ -33,7 +33,7 @@ LOAN_TYPES = frozenset({
 
 
 class Check(Enum):
-    """The reconciliation identities, in the order of the design (Part 8)."""
+    """The reconciliation identities: the seven of the design (Part 8), plus deposits."""
 
     BALANCE = auto()
     AMORTIZED_COST_SECURITIES = auto()
@@ -42,6 +42,7 @@ class Check(Enum):
     LOANS = auto()
     ACCRUED_INTEREST = auto()
     AOCI = auto()
+    DEPOSITS = auto()
 
 
 def account_balance(sim: SimulationService, name: str) -> Decimal:
@@ -140,6 +141,15 @@ def assert_books_reconcile(  # noqa: C901
             if p.side == PositionSide.LONG and getattr(instruments[p.id], "ql_instrument", None) is not None
         }
         _compare(Check.ACCRUED_INTEREST, date, name, balance, parts)
+
+    if Check.DEPOSITS in checks:
+        # Deposits are held at their acquisition balance (no repricing or run-off yet).
+        parts = {
+            p.id: Decimal(str(p.acquisition_cost))
+            for p in positions
+            if getattr(instruments[p.id], "instrument_type", None) == InstrumentType.DEPOSIT
+        }
+        _compare(Check.DEPOSITS, date, "Deposits", account_balance(sim, "Deposits"), parts)
 
     if Check.AOCI in checks:
         gain = account_balance(sim, "Unrealized OCI Gain")

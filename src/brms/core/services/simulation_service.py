@@ -153,6 +153,9 @@ class SimulationService:
         intervening calendar day in order, so no accrual, coupon or amortisation is skipped.
         """
         date = self._resolve_date(date)
+        if self._current_date is not None and date <= self._current_date:
+            msg = f"{date} is already processed (the simulation is at {self._current_date})"
+            raise ValueError(msg)
         if self._current_date is not None and date > self._current_date + timedelta(days=1):
             day = self._current_date + timedelta(days=1)
             while day < date:
@@ -163,7 +166,6 @@ class SimulationService:
     def _advance_one(self, date: datetime.date) -> None:  # type: ignore[name-defined]
         """Process exactly one calendar day."""
         previous_date = self._current_date
-        self._current_date = date
         has_market = self.market_data.has_data(date)
         market_state = self.market_data.get_state_or_none(date)
 
@@ -177,6 +179,8 @@ class SimulationService:
         )
         self.accounting_service.post_all(transactions, self.bank.ledger, self.bank.positions)
         self.transaction_log.record_batch(transactions)
+        # The day counts as processed only once its transactions are posted.
+        self._current_date = date
 
         # Emit ValuationsUpdated — merge carrying and fair value snapshots
         from brms.core.enums import MetricName, ValuationType

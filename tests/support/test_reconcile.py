@@ -22,17 +22,24 @@ def test_cash_only_bank_reconciles() -> None:
     run_bank([], [], yields=flat_yields(datetime.date(2021, 1, 4), _UNTIL), until=_UNTIL)
 
 
-def test_reconcile_reports_mismatch() -> None:
-    """A stray entry in a control account is reported with the check's name."""
+@pytest.mark.parametrize(
+    ("account", "check"),
+    [
+        ("Investment Securities at Amortized Cost", "AMORTIZED_COST_SECURITIES"),
+        ("Investment Securities at FVOCI", "FVOCI_SECURITIES"),
+        ("Assets at FVTPL", "FVTPL_ASSETS"),
+        ("Loans and Advances", "LOANS"),
+        ("Accrued Interest Receivable", "ACCRUED_INTEREST"),
+        ("Deposits", "DEPOSITS"),
+        ("Unrealized OCI Gain", "AOCI"),
+    ],
+)
+def test_reconcile_reports_mismatch(account: str, check: str) -> None:
+    """A stray entry in any reconciled account is reported with that check's name."""
     sim = run_bank([], [], yields=flat_yields(datetime.date(2021, 1, 4), _UNTIL), until=_UNTIL)
-    sim.bank.ledger.post(
-        SimpleEntry(
-            debit_account=_lookup(sim, "Assets at FVTPL"),
-            credit_account=_lookup(sim, "Cash and Cash Equivalents"),
-            value=100.0,
-            date=_UNTIL,
-            description="stray",
-        ),
-    )
-    with pytest.raises(AssertionError, match="FVTPL_ASSETS"):
+    target = _lookup(sim, account)
+    cash = _lookup(sim, "Cash and Cash Equivalents")
+    debit, credit = (target, cash) if account not in {"Deposits", "Unrealized OCI Gain"} else (cash, target)
+    sim.bank.ledger.post(SimpleEntry(debit_account=debit, credit_account=credit, value=100.0, date=_UNTIL))
+    with pytest.raises(AssertionError, match=check):
         assert_books_reconcile(sim, _UNTIL)

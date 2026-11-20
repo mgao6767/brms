@@ -30,16 +30,7 @@ class AmortizationRule:
         """
         if getattr(position, "side", None) != PositionSide.LONG:
             return False
-        schedule = getattr(instrument, "payment_schedule", None)
-        if callable(schedule):
-            result = schedule()
-            if isinstance(result, tuple) and len(result) == 3:  # noqa: PLR2004
-                _interest_pmt, principal_pmt, _outstanding = result
-                return any(d == context.date for d, _amount in principal_pmt)
-        payment_dates = getattr(instrument, "payment_dates", None)
-        if payment_dates is None:
-            return False
-        return any(d == context.date for d in payment_dates)
+        return any(d == context.date for d, _amount in _principal_payments(instrument))
 
     def generate(
         self,
@@ -47,24 +38,11 @@ class AmortizationRule:
         position: Position,
         context: RuleContext,
     ) -> list[Transaction]:
-        """Generate an amortization transaction for the principal payment amount on this date."""
-        amount = Decimal("0")
-
-        schedule = getattr(instrument, "payment_schedule", None)
-        if callable(schedule):
-            result = schedule()
-            if isinstance(result, tuple) and len(result) == 3:  # noqa: PLR2004
-                _interest_pmt, principal_pmt, _outstanding = result
-                for d, pmt_amount in principal_pmt:
-                    if d == context.date:
-                        amount = Decimal(str(pmt_amount))
-                        break
-
-        if amount == 0:
-            amount = Decimal(str(getattr(instrument, "periodic_payment", "0")))
-
+        """Generate an amortization transaction for the scheduled principal payment on this date."""
+        principal = _principal_payments(instrument)
+        amount = next(Decimal(str(a)) for d, a in principal if d == context.date)
         metadata: tuple[tuple[TxMeta, object], ...] = ()
-        if callable(schedule) and _last_principal_date(instrument) == context.date:
+        if principal[-1][0] == context.date:
             metadata = ((TxMeta.FINAL_PAYMENT, True),)
         return [
             Transaction(
@@ -79,8 +57,7 @@ class AmortizationRule:
         ]
 
 
-def _last_principal_date(instrument: Instrument) -> object:
-    result = instrument.payment_schedule()  # type: ignore[attr-defined]
-    if isinstance(result, tuple) and len(result) == 3 and result[1]:  # noqa: PLR2004
-        return result[1][-1][0]
-    return None
+def _principal_payments(instrument: Instrument) -> list[tuple[object, float]]:
+    """Return the loan's scheduled principal payments ``[(date, amount), ...]``."""
+    _interest, principal, _outstanding = instrument.payment_schedule()  # type: ignore[attr-defined]
+    return principal

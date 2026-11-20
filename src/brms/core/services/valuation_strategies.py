@@ -97,7 +97,8 @@ class CarryingValueStrategy(_BaseStrategy):
         for pos in positions:
             inst = instruments.get(pos.instrument_id)
             if not _has_ql(inst):
-                continue
+                msg = f"Position {pos.id} ({pos.measurement_basis.name}) has no QuantLib instrument to value"
+                raise ValuationError(msg)
             accrued = scaled_accrued(inst, pos, date)
             amortized = self._calculator.amortized_cost(inst, pos, date)
             output.record(pos.id, date, ValuationType.ACCRUED_INTEREST, accrued)
@@ -123,7 +124,8 @@ class FairValueStrategy(_BaseStrategy):
         for pos in positions:
             inst = instruments.get(pos.instrument_id)
             if not _has_ql(inst):
-                continue
+                msg = f"Position {pos.id} ({pos.measurement_basis.name}) has no QuantLib instrument to value"
+                raise ValuationError(msg)
             accrued = scaled_accrued(inst, pos, date)
             output.record(pos.id, date, ValuationType.ACCRUED_INTEREST, accrued)
             amortized: Decimal | None = None

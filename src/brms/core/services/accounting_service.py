@@ -464,18 +464,19 @@ class AccountingService:
             coupon_amount = float(tx.amount)
 
             accrued_str = meta.get(TxMeta.ACCRUED_PORTION)
-            accrued_portion = float(accrued_str) if accrued_str is not None else coupon_amount
-
+            if accrued_str is None:
+                msg = f"Income settlement tx={tx.id} carries no accrued portion to clear"
+                raise ValueError(msg)
+            accrued_portion = float(accrued_str)
             catch_up = coupon_amount - accrued_portion
 
-            if abs(catch_up) < 0.005:  # noqa: PLR2004
-                # No meaningful catch-up — simple two-leg entry
+            if catch_up == 0:
                 return [SimpleEntry(
                     debit_account=cash,
                     credit_account=receivable,
                     value=coupon_amount,
                     date=tx.date,
-                    description=f"Coupon settlement (tx={tx.id})",
+                    description=f"Interest settlement (tx={tx.id})",
                 )]
 
             # Three-leg compound entry

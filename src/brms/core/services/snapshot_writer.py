@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import datetime
 import json
 import zipfile
 from typing import TYPE_CHECKING
 
-from brms.core.services.loaders import ZipLoaderConfig
+from brms.core.services.loaders import SNAPSHOT_FORMAT, ZipLoaderConfig
 
 if TYPE_CHECKING:
-    import datetime
     from pathlib import Path
 
     from brms.core.models.position import Position
@@ -42,11 +42,15 @@ def save_snapshot(
     were built from (``type`` plus constructor arguments), written as ``instruments.json``.
     """
     files = ZipLoaderConfig()
-    config: dict[str, object] = {"name": snapshot.name, "start_date": snapshot.start_date.isoformat()}
+    config: dict[str, object] = {
+        "format": SNAPSHOT_FORMAT,
+        "name": snapshot.name,
+        "start_date": snapshot.start_date.isoformat(),
+    }
     if end_date is not None:
         config["end_date"] = end_date.isoformat()
     balances = {
-        "snapshot_date": snapshot.start_date.isoformat(),
+        "snapshot_date": (snapshot.start_date - datetime.timedelta(days=1)).isoformat(),
         "balances": snapshot.balances,
         "valuations": snapshot.valuations,
     }

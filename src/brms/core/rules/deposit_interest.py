@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from brms.core.enums import InterestSide, TransactionType, TxMeta
+from brms.core.exceptions import UnsupportedPositionError
 from brms.core.models.transaction import Transaction
 
 if TYPE_CHECKING:
@@ -14,8 +15,16 @@ if TYPE_CHECKING:
     from brms.core.models.position import Position
     from brms.core.rules.context import RuleContext
 
-_DEFAULT_ANNUAL_RATE = Decimal("0.02")
 _DAYS_PER_YEAR = Decimal("365")
+
+
+def _deposit_rate(instrument: Instrument, position: Position) -> Decimal:
+    """Return the deposit's interest rate; a deposit without one is an input error."""
+    rate = getattr(instrument, "interest_rate", None)
+    if rate is None:
+        msg = f"Deposit position {position.id} has no interest rate"
+        raise UnsupportedPositionError(msg)
+    return Decimal(str(rate))
 
 
 class DepositInterestAccrualRule:
@@ -27,16 +36,9 @@ class DepositInterestAccrualRule:
     accounting service books:  Dr Interest Expense / Cr Interest Payable.
     """
 
-    def __init__(self, annual_rate: Decimal = _DEFAULT_ANNUAL_RATE) -> None:
-        """Initialise the rule with the given annual interest rate."""
-        self._annual_rate = annual_rate
-
-    def _rate_for(self, instrument: Instrument) -> Decimal:
-        """Return the instrument's interest rate, falling back to the rule default."""
-        inst_rate = getattr(instrument, "interest_rate", None)
-        if inst_rate is not None:
-            return Decimal(str(inst_rate))
-        return self._annual_rate
+    @staticmethod
+    def _rate_for(instrument: Instrument, position: Position) -> Decimal:
+        return _deposit_rate(instrument, position)
 
     def applies_to(
         self,
@@ -59,7 +61,7 @@ class DepositInterestAccrualRule:
         is always exactly ``cost * rate / 365``.
         """
         acquisition_cost = Decimal(str(getattr(position, "acquisition_cost", "0")))
-        rate = self._rate_for(instrument)
+        rate = self._rate_for(instrument, position)
         if rate == 0:
             return []
         amount = acquisition_cost * rate / _DAYS_PER_YEAR
@@ -89,16 +91,9 @@ class DepositInterestSettlementRule:
     books:  Dr Interest Payable / Cr Cash.
     """
 
-    def __init__(self, annual_rate: Decimal = _DEFAULT_ANNUAL_RATE) -> None:
-        """Initialise the rule with the given annual interest rate."""
-        self._annual_rate = annual_rate
-
-    def _rate_for(self, instrument: Instrument) -> Decimal:
-        """Return the instrument's interest rate, falling back to the rule default."""
-        inst_rate = getattr(instrument, "interest_rate", None)
-        if inst_rate is not None:
-            return Decimal(str(inst_rate))
-        return self._annual_rate
+    @staticmethod
+    def _rate_for(instrument: Instrument, position: Position) -> Decimal:
+        return _deposit_rate(instrument, position)
 
     def applies_to(
         self,
@@ -125,7 +120,7 @@ class DepositInterestSettlementRule:
         """
         import calendar
 
-        rate = self._rate_for(instrument)
+        rate = self._rate_for(instrument, position)
         if rate == 0:
             return []
 
