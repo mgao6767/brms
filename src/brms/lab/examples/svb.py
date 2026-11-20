@@ -15,13 +15,14 @@ AFS 2021  27,370           27,221      -149   (-0.5%)
 AFS 2022  28,602           26,069      -2,533 (-8.9%)
 ========  ===============  ==========  =================
 
-Each book is represented by one fixed-rate bullet bond with the portfolio's reported
-weighted-average yield as coupon and a maturity chosen so that its modified duration at that
-yield equals a target. The engine has no prepayment model, so duration cannot extend as rates
-rise; the reported duration did (HTM 4.1 years at end-2021, 6.2 at end-2022; AFS 3.5 and 3.6).
-Two variants bracket the answer: durations as reported at the start, and as reported at the end
-(i.e. after the extension that actually happened). SVB's 2022 trading (AFS sales and purchases,
-HTM paydowns, the removal of AFS hedges) is not replayed, so rates are compared, not amounts.
+Three cases. In the first two, each book is one fixed-rate bullet bond with the portfolio's
+reported weighted-average yield as coupon and a maturity chosen so that its modified duration at
+that yield equals a target: the durations SVB reported at the start (HTM 4.1 years, AFS 3.5) and at
+the end (6.2 and 3.6, after the extension that actually happened). A bullet bond cannot extend. In
+the third, the HTM book, mostly agency MBS, is one pass-through pool (coupon = book yield, note
+rate 50bp higher, 25 years remaining, default prepayment model), whose projected prepayments slow
+as rates rise. SVB's 2022 trading (AFS sales and purchases, the removal of AFS hedges) is not
+replayed, so rates are compared, not amounts.
 
 Run ``python -m brms.lab.examples.svb`` for the comparison table.
 """
@@ -52,6 +53,7 @@ AFS_2021 = {"amortized_cost": 27_370.0, "fair_value": 27_221.0, "yield": 0.0117}
 REPORTED_LOSS_RATE_2022 = {"htm": (76_169.0 - 91_327.0) / 91_327.0, "afs": (26_069.0 - 28_602.0) / 28_602.0}
 DURATION_2021 = {"htm": 4.1, "afs": 3.5}
 DURATION_2022 = {"htm": 6.2, "afs": 3.6}
+MBS_TERM_YEARS = 25
 
 _AGENCY = {"name": "US agencies", "issuer_type": "PSE", "credit_rating": "AA_PLUS"}
 _TREASURY = {"name": "US Government", "issuer_type": "SOVEREIGN", "credit_rating": "AA_PLUS"}
@@ -110,6 +112,19 @@ def bank_file(htm_duration: float, afs_duration: float) -> dict:
     }
 
 
+def bank_file_mbs() -> dict:
+    """Return the end-2021 bank with the HTM book as an agency pass-through pool (AFS as reported at the start)."""
+    data = bank_file(DURATION_2021["htm"], DURATION_2021["afs"])
+    pool = {
+        "id": "htm", "type": "mortgage_backed_security", "name": "HTM agency MBS pool",
+        "face_value": HTM_2021["amortized_cost"], "coupon_rate": HTM_2021["yield"], "issue_date": AS_OF.isoformat(),
+        "maturity": f"{MBS_TERM_YEARS}Y", "issuer": _AGENCY, "basis": "AMORTIZED_COST",
+        "amortized_cost": HTM_2021["amortized_cost"], "fair_value": HTM_2021["fair_value"],
+    }
+    data["positions"] = [pool if p["id"] == "htm" else p for p in data["positions"]]
+    return data
+
+
 @dataclass(frozen=True)
 class Outcome:
     """Engine and reported unrealised loss rates at the end of 2022."""
@@ -131,8 +146,13 @@ class Outcome:
 
 def run_case(label: str, durations: dict[str, float], workdir: Path) -> Outcome:
     """Build the bank with *durations*, run 2022 and return the loss rates."""
+    return run_bank_case(label, bank_file(durations["htm"], durations["afs"]), workdir)
+
+
+def run_bank_case(label: str, bank: dict, workdir: Path) -> Outcome:
+    """Build *bank*, run 2022 and return the loss rates."""
     path = workdir / f"{label}.json"
-    path.write_text(json.dumps(bank_file(durations["htm"], durations["afs"])))
+    path.write_text(json.dumps(bank))
     frames = {
         "yields": pd.read_csv(DEFAULT_DATA_FOLDER / "treasury_yields.csv", index_col="date", parse_dates=True),
         "benchmarks": pd.read_csv(DEFAULT_DATA_FOLDER / "prime_rates.csv", index_col="date", parse_dates=True),
@@ -150,6 +170,7 @@ def main() -> int:
         outcomes = [
             run_case("durations-end-2021", DURATION_2021, Path(tmp)),
             run_case("durations-end-2022", DURATION_2022, Path(tmp)),
+            run_bank_case("htm-as-mbs-pool", bank_file_mbs(), Path(tmp)),
         ]
     sys.stdout.write(f"{'case':<22}{'HTM engine':>12}{'HTM SVB':>10}{'AFS engine':>12}{'AFS SVB':>10}\n")
     for o in outcomes:

@@ -1,11 +1,13 @@
 """Economic value of equity under the Basel standardised interest-rate shocks (SRP31).
 
 Each open long bond or loan position is revalued by discounting its remaining cash flows on the
-day's curve shifted by the scenario's zero-rate shock. Floating-rate coupons are forecast from the
-engine's shared forwarding handle, which is relinked to the shocked curve for the scenario and
-restored afterwards. Only banking-book positions count (SRP31). Cash, deposits and interest
-payable count at book value: deposits are treated as repricing overnight, so they carry no
-duration, which makes rising-rate scenarios look worse than a behavioural deposit model would.
+day's curve shifted by the scenario's zero-rate shock. Mortgage-backed securities re-project their
+cash flows on each shocked curve, so prepayments speed up as rates fall (negative convexity).
+Floating-rate coupons are forecast from the engine's shared forwarding handle, which is relinked to
+the shocked curve for the scenario and restored afterwards. Only banking-book positions count
+(SRP31). Cash, deposits and interest payable count at book value: deposits are treated as
+repricing overnight, so they carry no duration, which makes rising-rate scenarios look worse than
+a behavioural deposit model would.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ import QuantLib as ql  # noqa: N813
 
 from brms.core.enums import BookType, MeasurementBasis, PositionSide
 from brms.core.exceptions import ValuationError
-from brms.core.services.spreads import spreaded_handle
+from brms.core.services.spreads import spreaded_handle, valuation_leg
 from brms.core.utils import pydate_to_qldate
 
 if TYPE_CHECKING:
@@ -116,7 +118,7 @@ def eve_scenarios(bank: Bank, yield_handle: ql.RelinkableYieldTermStructureHandl
         raise ValuationError(msg) from exc
     base = ql.YieldTermStructureHandle(base_curve)
     qd = pydate_to_qldate(date)
-    legs = _position_legs(bank)
+    legs = _position_legs(bank, date)
     spreads = {p.id: p.spread for p in bank.positions.open_positions() if p.spread is not None}
     other = _cash_less_deposits(bank)
 
@@ -129,7 +131,7 @@ def eve_scenarios(bank: Bank, yield_handle: ql.RelinkableYieldTermStructureHandl
             spread = spreads.get(position_id)
             handle = discount if spread is None else spreaded_handle(discount, spread)
             try:
-                values[position_id] = Decimal(str(ql.CashFlows.npv(leg(), handle, False, qd, qd)))  # noqa: FBT003
+                values[position_id] = Decimal(str(ql.CashFlows.npv(leg(discount), handle, False, qd, qd)))  # noqa: FBT003
             except RuntimeError as exc:
                 msg = f"Cannot revalue position {position_id} on {date}: {exc}"
                 raise ValuationError(msg) from exc
@@ -156,16 +158,16 @@ def eve_scenarios(bank: Bank, yield_handle: ql.RelinkableYieldTermStructureHandl
     )
 
 
-def _position_legs(bank: Bank) -> dict[str, Callable[[], object]]:
-    """Return a cash-flow leg getter per open long bond or loan position (re-read per scenario)."""
-    legs: dict[str, Callable[[], object]] = {}
+def _position_legs(bank: Bank, date: datetime.date) -> dict[str, Callable[[ql.YieldTermStructureHandle], object]]:
+    """Return a cash-flow leg getter per open long bond or loan position, called with each scenario's curve."""
+    legs: dict[str, Callable[[ql.YieldTermStructureHandle], object]] = {}
     for position in bank.positions.open_positions():
         if position.side != PositionSide.LONG or position.measurement_basis == MeasurementBasis.NA:
             continue
         if position.book_type != BookType.BANKING:
             continue  # IRRBB covers the banking book (SRP31)
         instrument = bank.instruments.get(position.instrument_id)
-        legs[position.id] = instrument.ql_instrument.cashflows  # type: ignore[attr-defined]
+        legs[position.id] = lambda curve, instrument=instrument: valuation_leg(instrument, curve, date)
     return legs
 
 

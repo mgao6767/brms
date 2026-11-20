@@ -37,6 +37,7 @@ def default_instrument_registry() -> InstrumentRegistry:
         Mortgage,
         ResidentialMortgage,
     )
+    from brms.core.models.instruments.mbs import MortgageBackedSecurity
 
     registry = InstrumentRegistry()
     for type_id, cls in [
@@ -51,6 +52,7 @@ def default_instrument_registry() -> InstrumentRegistry:
         ("mortgage", Mortgage),
         ("residential_mortgage", ResidentialMortgage),
         ("commercial_mortgage", CommercialMortgage),
+        ("mortgage_backed_security", MortgageBackedSecurity),
     ]:
         registry.register(type_id, cls)
     return registry

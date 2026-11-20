@@ -113,3 +113,30 @@ def test_cli_builds_a_bank(tmp_path: Path) -> None:
     cmd = [sys.executable, "-m", "brms.lab", "build-bank", str(_write(tmp_path, _bank())), "--out", str(out)]
     subprocess.run(cmd, check=True, capture_output=True)  # noqa: S603
     assert build_core_services(simulation_zip=out).simulation_service.start_date == datetime.date(2021, 7, 1)  # noqa: S101
+
+
+def _mbs_bank() -> dict:
+    bank = _bank()
+    bank["positions"].append({
+        "id": "mbs", "type": "mortgage_backed_security", "face_value": 600_000.0, "coupon_rate": 0.02,
+        "issue_date": _AS_OF, "maturity": "25Y",
+        "issuer": {"name": "Agency", "issuer_type": "PSE", "credit_rating": "AA_PLUS"},
+        "basis": "FVOCI", "amortized_cost": 600_000.0, "fair_value": 590_000.0,
+    })
+    return bank
+
+
+def test_mbs_pricing_speed_defaults_to_the_model_speed_on_the_as_of_date(tmp_path: Path) -> None:
+    out = tmp_path / "bank.zip"
+    build_bank(_write(tmp_path, _mbs_bank()), {"yields": _yields()}, out)
+    services = build_core_services(simulation_zip=out)
+    mbs = services.bank.instruments.get("mbs")
+    incentive = mbs.wac - (0.015 + mbs.prepayment.mortgage_spread)  # flat 1.5% CMT
+    assert mbs.pricing_cpr == pytest.approx(mbs.prepayment.cpr(incentive))  # noqa: S101
+    sim = services.simulation_service
+    sim.advance()
+    fair = services.valuation_store.get("pos-mbs", sim.current_date, ValuationType.FAIR_VALUE)
+    assert float(fair) == pytest.approx(590_000, abs=200)  # noqa: S101
+    for _ in range(40):
+        sim.advance()
+        assert_books_reconcile(sim, sim.current_date)

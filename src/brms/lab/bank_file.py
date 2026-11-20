@@ -31,6 +31,7 @@ import json
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
+import pandas as pd
 import QuantLib as ql  # noqa: N813
 
 from brms.core.enums import BookType, MeasurementBasis, PositionSide
@@ -47,8 +48,6 @@ from brms.core.services.snapshot_writer import save_snapshot
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    import pandas as pd
 
 _POSITION_KEYS = frozenset({"id", "basis", "book", "amortized_cost", "fair_value", "side"})
 
@@ -79,6 +78,34 @@ def _registry(market_frames: dict[str, pd.DataFrame], needs_prime: bool) -> tupl
     return registry, service
 
 
+def _instrument(
+    instrument_id: str, spec: dict[str, Any], registry: Any, market_frames: dict[str, pd.DataFrame],  # noqa: ANN401
+    as_of: datetime.date,
+) -> Any:  # noqa: ANN401
+    """Create the instrument in *spec*; an MBS without ``pricing_cpr`` gets the model speed (written to *spec*)."""
+    kwargs = {k: v for k, v in spec.items() if k not in {"type", "name"}}
+    if spec["type"] == "mortgage_backed_security" and spec.get("pricing_cpr") is None:
+        spec["pricing_cpr"] = kwargs["pricing_cpr"] = _model_speed(kwargs, registry, market_frames, as_of)
+    instrument = registry.create(spec["type"], **_convert_kwargs(dict(kwargs)))
+    instrument.id = instrument_id
+    if "name" in spec:
+        instrument.name = spec["name"]
+    return instrument
+
+
+def _model_speed(
+    kwargs: dict[str, Any], registry: Any, market_frames: dict[str, pd.DataFrame], as_of: datetime.date,  # noqa: ANN401
+) -> float:
+    """Return the prepayment model's CPR for an MBS on *as_of*, from that day's 10-year CMT yield."""
+    probe = registry.create("mortgage_backed_security", **_convert_kwargs(dict(kwargs)))
+    ten_year = market_frames["yields"]["10 Yr"].loc[: pd.Timestamp(as_of)].dropna()
+    if ten_year.empty:
+        msg = f"No 10-year yield on or before {as_of} to set the MBS pricing speed; give 'pricing_cpr'"
+        raise SimulationDataError(msg)
+    mortgage_rate = float(ten_year.iloc[-1]) / 100 + probe.prepayment.mortgage_spread
+    return probe.prepayment.cpr(probe.wac - mortgage_rate)
+
+
 def build_bank(bank_file: Path, market_frames: dict[str, pd.DataFrame], out: Path) -> Path:
     """Read *bank_file*, build its snapshot with *market_frames* and write the simulation zip to *out*."""
     data = json.loads(bank_file.read_text())
@@ -93,11 +120,7 @@ def build_bank(bank_file: Path, market_frames: dict[str, pd.DataFrame], out: Pat
     for entry in entries:
         basis = MeasurementBasis[entry.get("basis", "AMORTIZED_COST")]
         spec = {k: v for k, v in entry.items() if k not in _POSITION_KEYS}
-        kwargs = {k: v for k, v in spec.items() if k not in {"type", "name"}}
-        instrument = registry.create(spec["type"], **_convert_kwargs(dict(kwargs)))
-        instrument.id = entry["id"]
-        if "name" in spec:
-            instrument.name = spec["name"]
+        instrument = _instrument(entry["id"], spec, registry, market_frames, as_of)
         book_key = "fair_value" if basis == MeasurementBasis.FVTPL else "amortized_cost"
         book_value = _require(entry, book_key)
         if basis == MeasurementBasis.FVOCI:

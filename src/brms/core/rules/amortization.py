@@ -6,7 +6,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import PositionSide, TxMeta
+from brms.core.enums import InstrumentType, PositionSide, TxMeta
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
@@ -42,8 +42,11 @@ class AmortizationRule:
         principal = _principal_payments(instrument)
         amount = next(Decimal(str(a)) for d, a in principal if d == context.date)
         metadata: tuple[tuple[TxMeta, object], ...] = ()
+        if getattr(instrument, "instrument_type", None) == InstrumentType.MORTGAGE_BACKED_SECURITY:
+            # A security's paydown reduces its investment account, not Loans and Advances.
+            metadata = ((TxMeta.MEASUREMENT_BASIS, position.measurement_basis),)
         if principal[-1][0] == context.date:
-            metadata = ((TxMeta.FINAL_PAYMENT, True),)
+            metadata = (*metadata, (TxMeta.FINAL_PAYMENT, True))
         return [
             Transaction(
                 id=str(uuid.uuid4()),

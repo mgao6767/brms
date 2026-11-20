@@ -126,6 +126,7 @@ def run_bank(  # noqa: PLR0913
     with_funding: bool = True,
     regulatory: RegulatoryConfig | None = None,
     reinvest_maturities: bool = False,
+    calibrate_spreads: bool = False,
 ) -> SimulationService:
     """Replay the bank day by day through *until*, reconciling after every advance."""
     if with_funding:
@@ -146,5 +147,6 @@ def run_bank(  # noqa: PLR0913
         market_frames={"yields": yields},
         regulatory=regulatory or RegulatoryConfig(),
         reinvest_maturities=reinvest_maturities,
+        calibrate_spreads=calibrate_spreads,
     )
     return SimulationBuilder().replay(config, until=until, on_advance=on_advance)

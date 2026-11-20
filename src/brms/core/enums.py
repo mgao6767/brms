@@ -18,6 +18,7 @@ class InstrumentType(Enum):
     COMMERCIAL_MORTGAGE = auto()
     AMORTIZING_FIXED_RATE_LOAN = auto()
     VARIABLE_RATE_LOAN = auto()
+    MORTGAGE_BACKED_SECURITY = auto()
 
 
 class BookType(Enum):
