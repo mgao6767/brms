@@ -31,6 +31,8 @@ class ReportingService:
     def __init__(self) -> None:
         """Start with an empty balance-sheet memo."""
         self._balance_sheets: dict[tuple[int, datetime.date | None, int], dict[str, Any]] = {}
+        # The last windowed movement scan: several trailing-year metrics ask for the same window daily.
+        self._last_movements: tuple[tuple[int, object, object, int], dict[int, tuple[float, float]]] | None = None
 
     def trial_balance(self, ledger: Ledger) -> list[dict[str, Any]]:
         """Return a trial balance for all accounts in the ledger.
@@ -111,7 +113,7 @@ class ReportingService:
         closing entries are excluded.
         """
         windowed = start is not None or end is not None
-        movements = self._movements(ledger, start, end) if windowed else {}
+        movements = self._windowed_movements(ledger, start, end) if windowed else {}
         income: list[dict[str, Any]] = []
         expenses: list[dict[str, Any]] = []
 
@@ -135,6 +137,17 @@ class ReportingService:
             "total_expenses": total_expenses,
             "net_income": net_income,
         }
+
+    def _windowed_movements(
+        self, ledger: Ledger, start: datetime.date | None, end: datetime.date | None,
+    ) -> dict[int, tuple[float, float]]:
+        """Return :meth:`_movements`, reusing the last scan for the same ledger, window and journal length."""
+        key = (id(ledger), start, end, len(ledger.journal.entries))
+        if self._last_movements is not None and self._last_movements[0] == key:
+            return self._last_movements[1]
+        movements = self._movements(ledger, start, end)
+        self._last_movements = (key, movements)
+        return movements
 
     @staticmethod
     def _movements(

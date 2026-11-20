@@ -8,18 +8,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import pandas as pd
 from dateutil.relativedelta import relativedelta
 
-from brms.core.enums import MetricName, ValuationType
+from brms.core.enums import EntryKind, MetricName, ValuationType
 from brms.core.results import metrics_frame, valuations_frame
 from brms.core.services import build_core_services
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-    import pandas as pd
-
     from brms.core.models.regulatory import RegulatoryConfig
+    from brms.core.services import CoreServices
     from brms.lab.scenarios import Historical, Shock
 
 
@@ -37,6 +37,15 @@ class RunResult:
     balance_sheet: dict[str, Any]
     income_statement: dict[str, Any]
     transactions: int
+    # Long form, one row per line item and market day: date, section (assets, liabilities, equity,
+    # income, expenses, totals), account, balance. Income and expenses run from the start date.
+    statements: pd.DataFrame
+    # One row per journal line from the start date: date, entry, kind, description, account, debit, credit.
+    journal: pd.DataFrame
+    # Every position held during the run: id, instrument, name, type, basis, book, side, status.
+    positions: pd.DataFrame
+    # The scenario's Treasury CMT yields (percent) on market days from the start date.
+    yields: pd.DataFrame
 
     def unrealised(self, position_id: str) -> float | None:
         """Fair value less amortised cost of a position on the last day both are recorded."""
@@ -95,8 +104,11 @@ def run(  # noqa: PLR0913
     for name, frame in scenario.frames(services.market_data, start, end).items():
         services.market_data.add_frame(name, frame)
     sim.end_date = end
+    statements: list[pd.DataFrame] = []
     while sim.current_date < end:
         sim.advance()
+        if sim.market_data.has_data(sim.current_date):
+            statements.append(_statements(services, sim.current_date))
     reporting = services.reporting_service
     return RunResult(
         name=scenario.name,
@@ -109,7 +121,61 @@ def run(  # noqa: PLR0913
         balance_sheet=reporting.balance_sheet(services.bank.ledger, date=end),
         income_statement=reporting.income_statement(services.bank.ledger, start=start, end=end),
         transactions=len(services.transaction_log.all()),
+        statements=pd.concat(statements, ignore_index=True) if statements else _statements(services, start),
+        journal=_journal(services, start),
+        positions=_positions(services),
+        yields=services.market_data.get_frame("yields").loc[pd.Timestamp(start): pd.Timestamp(end)].copy(),
     )
+
+
+_TOTALS = ("total_assets", "total_liabilities", "total_equity", "total_income", "total_expenses", "net_income")
+
+
+def _statements(services: CoreServices, day: datetime.date) -> pd.DataFrame:
+    """Return the balance sheet on *day* and the income statement since *start*, in long form."""
+    reporting = services.reporting_service
+    sheet = reporting.balance_sheet(services.bank.ledger, date=day)
+    # The builder closes the books the day before the start and a run never closes them again, so
+    # the current income and expense balances are the profit since the start (and far cheaper to
+    # read daily than a windowed statement).
+    income = reporting.income_statement(services.bank.ledger)
+    rows = [
+        (day, section, line["account"], float(line["balance"]))
+        for source, sections in ((sheet, ("assets", "liabilities", "equity")), (income, ("income", "expenses")))
+        for section in sections
+        for line in source[section]
+    ]
+    merged = {**sheet, **income}
+    rows += [(day, "totals", key, float(merged[key])) for key in _TOTALS]
+    return pd.DataFrame(rows, columns=["date", "section", "account", "balance"])
+
+
+def _journal(services: CoreServices, start: datetime.date) -> pd.DataFrame:
+    """Return every journal line posted from *start* (opening entries excluded)."""
+    rows = []
+    for number, entry in enumerate(services.bank.ledger.journal.entries):
+        if entry.date is None or entry.date < start or entry.kind == EntryKind.OPENING:
+            continue
+        for side, legs in (("debit", entry.debit_account_value_pairs()), ("credit", entry.credit_account_value_pairs())):
+            for account, value in legs:
+                rows.append((entry.date, number, entry.kind.name, entry.description, account.name,
+                             float(value) if side == "debit" else 0.0, float(value) if side == "credit" else 0.0))
+    columns = ["date", "entry", "kind", "description", "account", "debit", "credit"]
+    return pd.DataFrame(rows, columns=columns)
+
+
+def _positions(services: CoreServices) -> pd.DataFrame:
+    """Return static facts about every position (open or closed)."""
+    rows = []
+    for position in services.bank.positions.query():
+        instrument = services.bank.instruments.get(position.instrument_id)
+        kind = getattr(instrument, "instrument_type", None)
+        rows.append({
+            "id": position.id, "instrument": position.instrument_id, "name": instrument.name,
+            "type": kind.name if kind is not None else "", "basis": position.measurement_basis.name,
+            "book": position.book_type.name, "side": position.side.name, "status": position.status.name,
+        })
+    return pd.DataFrame(rows, columns=["id", "instrument", "name", "type", "basis", "book", "side", "status"])
 
 
 def _run_one(args: tuple[Path, Historical | Shock, dict[str, Any]]) -> RunResult:

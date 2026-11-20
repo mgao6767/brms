@@ -76,3 +76,32 @@ def test_custom_shape_and_floor() -> None:
 ])
 def test_parse_scenario(text: str, expected: str) -> None:
     assert parse_scenario(text).name == expected  # noqa: S101
+
+
+def test_key_rate_shift_interpolates_and_is_flat_beyond_the_ends() -> None:
+    import pickle
+
+    from brms.lab.scenarios import KeyRateShift
+
+    shape = KeyRateShift(((0.25, 100.0), (10.0, 300.0)))
+    assert shape(0.25) == 100.0  # noqa: S101, PLR2004
+    assert shape(5.125) == pytest.approx(200.0)  # noqa: S101
+    assert shape(0.0) == 100.0  # noqa: S101, PLR2004
+    assert shape(30.0) == 300.0  # noqa: S101, PLR2004
+    assert pickle.loads(pickle.dumps(shape))(10.0) == 300.0  # noqa: S101, S301, PLR2004
+    assert Shock(shape, label="custom").name == "custom"  # noqa: S101
+
+
+def test_key_rate_shift_needs_points() -> None:
+    from brms.lab.scenarios import KeyRateShift
+
+    with pytest.raises(ValueError, match="at least one"):
+        KeyRateShift(())
+
+
+@pytest.mark.parametrize("text", ["parallel+150", "parallel-25"])
+def test_parsed_parallel_shocks_pickle(text: str) -> None:
+    import pickle
+
+    scenario = parse_scenario(text)
+    assert pickle.loads(pickle.dumps(scenario)).name == scenario.name  # noqa: S101, S301
