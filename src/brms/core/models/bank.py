@@ -45,20 +45,27 @@ class BookView:
 class Bank:
     """Holds instruments, positions, and ledger. No business logic."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         name: str,
         instruments: InstrumentStore,
         positions: PositionStore,
         ledger: Ledger,
         regulatory: RegulatoryConfig | None = None,
+        *,
+        reinvest_maturities: bool = False,
     ) -> None:
-        """Initialize a bank with its stores, ledger and regulatory inputs."""
+        """Initialize a bank with its stores, ledger and regulatory inputs.
+
+        With *reinvest_maturities*, each maturing bond is replaced by a new par bond of the same
+        term (the static-balance-sheet assumption); otherwise its face stays in cash.
+        """
         self.name = name
         self.instruments = instruments
         self.positions = positions
         self.ledger = ledger
         self.regulatory = regulatory or RegulatoryConfig()
+        self.reinvest_maturities = reinvest_maturities
 
     @property
     def banking_book(self) -> BookView:

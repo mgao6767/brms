@@ -65,17 +65,20 @@ def run(  # noqa: PLR0913
     end: datetime.date | None = None,
     regulatory: RegulatoryConfig | None = None,
     sales: Mapping[str, datetime.date] | None = None,
+    reinvest_maturities: bool = False,
 ) -> RunResult:
     """Run *simulation* (a snapshot zip) through *scenario* from its start date.
 
     The horizon ends at *end*, else *months* after the start, else the archive's end date.
     *regulatory* overrides the archive's regulatory inputs. *sales* maps position ids to the
     market day on which to sell them at fair value (FVOCI and FVTPL positions).
+    With *reinvest_maturities*, maturing bonds roll into new par bonds of the same term.
     """
     services = build_core_services(simulation_zip=Path(simulation))
     sim = services.simulation_service
     if regulatory is not None:
         services.bank.regulatory = regulatory
+    services.bank.reinvest_maturities = reinvest_maturities
     for position_id, day in (sales or {}).items():
         services.bank.positions.get(position_id).sale_date = day
     start = sim.start_date

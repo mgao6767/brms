@@ -168,6 +168,19 @@ class SimulationService:
                 day += timedelta(days=1)
         self._advance_one(date)
 
+    def _reinvest(self, transactions: list, date: datetime.date, *, has_market_data: bool) -> list:  # type: ignore[name-defined]
+        """Replace the day's matured bonds and record the replacements' opening values."""
+        from brms.core.services.reinvestment import reinvest
+
+        purchases = reinvest(self.bank, transactions, self.valuation_service.yield_handle, date)
+        if purchases:
+            self.accounting_service.post_all(purchases, self.bank.ledger, self.bank.positions)
+            self.transaction_log.record_batch(purchases)
+            self.valuation_service.value_all(
+                self.bank, self.market_data, date, self.valuation_store, has_market_data=has_market_data,
+            )
+        return purchases
+
     def _advance_one(self, date: datetime.date) -> None:  # type: ignore[name-defined]
         """Process exactly one calendar day."""
         previous_date = self._current_date
@@ -184,6 +197,8 @@ class SimulationService:
         )
         self.accounting_service.post_all(transactions, self.bank.ledger, self.bank.positions)
         self.transaction_log.record_batch(transactions)
+        if self.bank.reinvest_maturities:
+            transactions = [*transactions, *self._reinvest(transactions, date, has_market_data=has_market)]
         # The day counts as processed only once its transactions are posted.
         self._current_date = date
 
