@@ -156,10 +156,9 @@ def _journal(services: CoreServices, start: datetime.date) -> pd.DataFrame:
     for number, entry in enumerate(services.bank.ledger.journal.entries):
         if entry.date is None or entry.date < start or entry.kind == EntryKind.OPENING:
             continue
-        for side, legs in (("debit", entry.debit_account_value_pairs()), ("credit", entry.credit_account_value_pairs())):
-            for account, value in legs:
-                rows.append((entry.date, number, entry.kind.name, entry.description, account.name,
-                             float(value) if side == "debit" else 0.0, float(value) if side == "credit" else 0.0))
+        head = (entry.date, number, entry.kind.name, entry.description)
+        rows += [(*head, account.name, float(value), 0.0) for account, value in entry.debit_account_value_pairs()]
+        rows += [(*head, account.name, 0.0, float(value)) for account, value in entry.credit_account_value_pairs()]
     columns = ["date", "entry", "kind", "description", "account", "debit", "credit"]
     return pd.DataFrame(rows, columns=columns)
 
