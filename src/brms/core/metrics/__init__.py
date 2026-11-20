@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from brms.core.metrics.capital import (
-    CET1RatioMetric,
+    EquityToAssetsMetric,
     TotalAssetsMetric,
     TotalEquityMetric,
     TotalLiabilitiesMetric,
@@ -22,7 +22,7 @@ def default_metrics(reporting_service: ReportingService) -> tuple:
         TotalAssetsMetric(reporting_service),
         TotalLiabilitiesMetric(reporting_service),
         TotalEquityMetric(reporting_service),
-        CET1RatioMetric(reporting_service),
+        EquityToAssetsMetric(reporting_service),
         ROAMetric(reporting_service),
         ROEMetric(reporting_service),
     )

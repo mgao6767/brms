@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from brms.core.services.accounting_service import AccountingService
     from brms.core.services.data_service import DataService
     from brms.core.services.reporting_service import ReportingService
-    from brms.core.services.risk_service import RiskService
     from brms.core.services.simulation_service import SimulationService
     from brms.core.stores.metric_store import MetricStore
     from brms.core.stores.transaction_log import TransactionLog
@@ -32,7 +31,6 @@ class CoreServices:
     metric_store: MetricStore
     transaction_log: TransactionLog
     reporting_service: ReportingService
-    risk_service: RiskService
     data_service: DataService
     accounting_service: AccountingService
 
@@ -57,7 +55,6 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     from brms.core.services.loaders import ZipLoader
     from brms.core.services.metrics_service import MetricsService
     from brms.core.services.reporting_service import ReportingService
-    from brms.core.services.risk_service import RiskService
     from brms.core.services.rule_engine import RuleEngine
     from brms.core.services.simulation_service import SimulationService
     from brms.core.services.valuation_service import ValuationService
@@ -92,7 +89,6 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
 
     accounting_service = AccountingService()
     metrics_service = MetricsService(metric_registry)
-    risk_service = RiskService()
     data_service = DataService()
 
     valuation_store = ValuationStore()
@@ -147,7 +143,6 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
         metric_store=metric_store,
         transaction_log=transaction_log,
         reporting_service=reporting_service,
-        risk_service=risk_service,
         data_service=data_service,
         accounting_service=accounting_service,
     )

@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond
     from brms.core.models.instruments.deposits import Cash, Deposit
     from brms.core.models.instruments.equity import CommonEquity
-    from brms.core.models.instruments.loans import AmortizingFixedRateLoan, CreditCard, PersonalLoan, VariableRateLoan
+    from brms.core.models.instruments.loans import AmortizingFixedRateLoan, VariableRateLoan
 
 
 class Visitor(ABC):
@@ -36,14 +36,6 @@ class Visitor(ABC):
     @abstractmethod
     def visit_covered_bond(self, instrument: "CoveredBond") -> None:
         """Visit a covered bond."""
-
-    @abstractmethod
-    def visit_personal_loan(self, instrument: "PersonalLoan") -> None:
-        """Visit a personal loan."""
-
-    @abstractmethod
-    def visit_credit_card(self, instrument: "CreditCard") -> None:
-        """Visit a credit card."""
 
     @abstractmethod
     def visit_variable_rate_loan(self, instrument: "VariableRateLoan") -> None:

@@ -185,32 +185,6 @@ class CommercialMortgage(Mortgage):
     _instrument_type_enum = InstrumentType.COMMERCIAL_MORTGAGE
 
 
-class PersonalLoan(Instrument):
-    """A class to represent personal loan instruments."""
-
-    def __init__(self, **kwargs: object) -> None:
-        """Initialize a personal loan."""
-        super().__init__(**kwargs)  # type: ignore[arg-type]
-        self.instrument_type = InstrumentType.PERSONAL_LOAN
-
-    def accept(self, visitor: Visitor) -> None:
-        """Accept a visitor."""
-        visitor.visit_personal_loan(self)  # type: ignore[union-attr]
-
-
-class CreditCard(Instrument):
-    """A class to represent credit card instruments."""
-
-    def __init__(self, **kwargs: object) -> None:
-        """Initialize a credit card."""
-        super().__init__(**kwargs)  # type: ignore[arg-type]
-        self.instrument_type = InstrumentType.CREDIT_CARD
-
-    def accept(self, visitor: Visitor) -> None:
-        """Accept a visitor."""
-        visitor.visit_credit_card(self)  # type: ignore[union-attr]
-
-
 # ---------------------------------------------------------------------------
 # Variable-rate loans
 # ---------------------------------------------------------------------------

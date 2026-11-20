@@ -56,7 +56,6 @@ _RULE_PRIORITY: dict[str, int] = {
     "DepositInterestAccrualRule": 10,
     "MarkToMarketRule": 20,
     "CouponPaymentRule": 60,
-    "InterestPaymentRule": 60,
     "LoanInterestSettlementRule": 60,
     "DepositInterestSettlementRule": 60,
     "AmortizationRule": 60,

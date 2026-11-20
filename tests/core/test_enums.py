@@ -11,14 +11,14 @@ from brms.core.enums import (
     ValuationType,
 )
 
-EXPECTED_INSTRUMENT_TYPE_COUNT = 17
+EXPECTED_INSTRUMENT_TYPE_COUNT = 12
 EXPECTED_BOOK_TYPE_COUNT = 2
 EXPECTED_POSITION_SIDE_COUNT = 2
 EXPECTED_POSITION_STATUS_COUNT = 2
 EXPECTED_MEASUREMENT_BASIS_COUNT = 4
 EXPECTED_VALUATION_TYPE_COUNT = 4
 EXPECTED_TRANSACTION_TYPE_COUNT = 18
-EXPECTED_METRIC_NAME_COUNT = 11
+EXPECTED_METRIC_NAME_COUNT = 10
 
 
 class TestInstrumentType:
@@ -38,11 +38,6 @@ class TestInstrumentType:
             "RESIDENTIAL_MORTGAGE",
             "COMMERCIAL_MORTGAGE",
             "AMORTIZING_FIXED_RATE_LOAN",
-            "PERSONAL_LOAN",
-            "CREDIT_CARD",
-            "COMMITMENT",
-            "REPURCHASE_AGREEMENT",
-            "LETTER_OF_CREDIT",
             "VARIABLE_RATE_LOAN",
         }
         actual_members = {member.name for member in InstrumentType}
@@ -166,9 +161,8 @@ class TestMetricName:
             "TOTAL_LIABILITIES",
             "TOTAL_EQUITY",
             "CET1_CAPITAL",
-            "CET1_RATIO",
+            "EQUITY_TO_ASSETS",
             "CREDIT_RWA",
-            "OPERATIONAL_RWA",
             "LEVERAGE_RATIO",
             "NET_INTEREST_MARGIN",
             "ROA",

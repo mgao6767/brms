@@ -77,10 +77,10 @@ class TotalEquityMetric:
         return bs["total_equity"]
 
 
-class CET1RatioMetric:
-    """CET1 capital ratio from the closed balance sheet (simplified)."""
+class EquityToAssetsMetric:
+    """Total equity divided by total assets, from the closed balance sheet."""
 
-    name = MetricName.CET1_RATIO
+    name = MetricName.EQUITY_TO_ASSETS
 
     def __init__(self, reporting_service: ReportingService) -> None:
         """Initialize with a ReportingService reference."""
@@ -93,7 +93,7 @@ class CET1RatioMetric:
         valuation_store: ValuationStore,  # noqa: ARG002
         date: datetime.date | None = None,
     ) -> float:
-        """CET1 (equity) / total assets from the closed balance sheet."""
+        """Total equity / total assets from the closed balance sheet."""
         bs = self._reporting.balance_sheet(bank.ledger, date=date)
         assets = bs["total_assets"]
         if assets == 0:

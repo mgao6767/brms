@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from brms.core.models.instruments.bonds import CoveredBond, FixedRateBond
     from brms.core.models.instruments.deposits import Cash, Deposit
     from brms.core.models.instruments.equity import CommonEquity
-    from brms.core.models.instruments.loans import AmortizingFixedRateLoan, CreditCard, PersonalLoan, VariableRateLoan
+    from brms.core.models.instruments.loans import AmortizingFixedRateLoan, VariableRateLoan
     from brms.core.models.transaction import Transaction
 
 
@@ -91,14 +91,6 @@ class InstrumentInspectionVisitor(InspectionVisitor, Visitor):
 
     def visit_covered_bond(self, instrument: CoveredBond) -> None:
         """Inspect a covered bond."""
-        raise NotImplementedError
-
-    def visit_personal_loan(self, instrument: PersonalLoan) -> None:
-        """Inspect a personal loan."""
-        raise NotImplementedError
-
-    def visit_credit_card(self, instrument: CreditCard) -> None:
-        """Inspect a credit card."""
         raise NotImplementedError
 
     def visit_variable_rate_loan(self, instrument: VariableRateLoan) -> None:

@@ -17,11 +17,6 @@ class InstrumentType(Enum):
     RESIDENTIAL_MORTGAGE = auto()
     COMMERCIAL_MORTGAGE = auto()
     AMORTIZING_FIXED_RATE_LOAN = auto()
-    PERSONAL_LOAN = auto()
-    CREDIT_CARD = auto()
-    COMMITMENT = auto()
-    REPURCHASE_AGREEMENT = auto()
-    LETTER_OF_CREDIT = auto()
     VARIABLE_RATE_LOAN = auto()
 
 
@@ -94,9 +89,8 @@ class MetricName(Enum):
     TOTAL_LIABILITIES = auto()
     TOTAL_EQUITY = auto()
     CET1_CAPITAL = auto()
-    CET1_RATIO = auto()
+    EQUITY_TO_ASSETS = auto()
     CREDIT_RWA = auto()
-    OPERATIONAL_RWA = auto()
     LEVERAGE_RATIO = auto()
     NET_INTEREST_MARGIN = auto()
     ROA = auto()
