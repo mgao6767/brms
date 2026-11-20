@@ -88,3 +88,16 @@ def test_engine_shares_one_handle_for_discounting_and_prime_forecasts() -> None:
 
     handle = ql.RelinkableYieldTermStructureHandle()
     assert ValuationService(yield_handle=handle)._yield_handle is handle  # noqa: S101, SLF001
+
+
+def test_loaded_simulation_has_a_curve_before_its_first_market_day() -> None:
+    """A floater must accrue on a holiday start date: the snapshot day's curve is linked at load."""
+    import datetime
+    from pathlib import Path
+
+    from brms.core.services import build_core_services
+
+    services = build_core_services(simulation_zip=Path("src/brms/data/ci_loan_prime.zip"))
+    handle = services.simulation_service.valuation_service.yield_handle
+    assert handle.referenceDate() is not None  # noqa: S101
+    assert services.simulation_service.current_date == datetime.date(2022, 1, 3)  # noqa: S101

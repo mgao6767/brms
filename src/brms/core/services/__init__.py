@@ -130,6 +130,7 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
         raise SimulationDataError(msg)
     loader = ZipLoader(path=simulation_zip, instrument_registry=instrument_registry)
     data_service.load_and_initialize(loader, simulation_service)
+    valuation_service.prepare(simulation_service.current_date, market_data)
 
 
     return CoreServices(

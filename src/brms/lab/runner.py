@@ -33,9 +33,17 @@ class RunResult:
     metrics: pd.DataFrame
     carrying_value: pd.DataFrame
     fair_value: pd.DataFrame
+    amortized_cost: pd.DataFrame
     balance_sheet: dict[str, Any]
     income_statement: dict[str, Any]
     transactions: int
+
+    def unrealised(self, position_id: str) -> float | None:
+        """Fair value less amortised cost of a position on the last day both are recorded."""
+        if position_id not in self.fair_value or position_id not in self.amortized_cost:
+            return None
+        both = (self.fair_value[position_id] - self.amortized_cost[position_id]).dropna()
+        return None if both.empty else float(both.iloc[-1])
 
     @property
     def summary(self) -> dict[str, Any]:
@@ -97,6 +105,7 @@ def run(  # noqa: PLR0913
         metrics=metrics_frame(services.metric_store),
         carrying_value=valuations_frame(services.valuation_store, ValuationType.CARRYING_VALUE),
         fair_value=valuations_frame(services.valuation_store, ValuationType.FAIR_VALUE),
+        amortized_cost=valuations_frame(services.valuation_store, ValuationType.AMORTIZED_COST),
         balance_sheet=reporting.balance_sheet(services.bank.ledger, date=end),
         income_statement=reporting.income_statement(services.bank.ledger, start=start, end=end),
         transactions=len(services.transaction_log.all()),
