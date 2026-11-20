@@ -19,7 +19,7 @@ Run::
 
 Yields are extracted from the existing ``htm_treasury.zip``.
 Market data is read from ``treasury_yields.csv`` and ``prime_rates.csv`` in the data folder
-(default ``temp/data``).
+(default ``src/brms/data/market``).
 """
 
 from __future__ import annotations

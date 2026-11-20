@@ -27,8 +27,7 @@ Run::
     uv run python src/brms/data/create_diversified_bank.py [data_folder]
 
 Where ``data_folder`` contains ``treasury_yields.csv`` and ``prime_rates.csv``.
-If omitted, yields are extracted from ``htm_treasury.zip`` and prime rates
-from ``temp/data/prime_rates.csv``.
+If omitted, ``src/brms/data/market`` is used.
 """
 
 from __future__ import annotations

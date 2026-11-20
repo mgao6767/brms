@@ -23,6 +23,9 @@ jobs:
       run: |
         uv sync --all-extras --dev
         uv pip install .
+    - name: Build the default simulations
+      run: |
+        uv run python -m brms.data.build_all
     - name: Build
       run: |
         uv build

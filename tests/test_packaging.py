@@ -64,3 +64,31 @@ def test_missing_simulation_zip_raises(tmp_path: Path) -> None:
     """A missing simulation file is an error, not a silently empty bank."""
     with pytest.raises(SimulationDataError, match="not found"):
         build_core_services(simulation_zip=tmp_path / "nope.zip")
+
+
+def _hatch_hook_module():  # noqa: ANN202
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("hatch_build", _REPO / "hatch_build.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_raw_market_data_is_versioned() -> None:
+    """The default simulations can be rebuilt from a clean checkout."""
+    from brms.data import DEFAULT_DATA_FOLDER
+
+    tracked = subprocess.run(  # noqa: S603
+        ["git", "ls-files", str(DEFAULT_DATA_FOLDER)],  # noqa: S607
+        cwd=_REPO, check=True, capture_output=True, text=True,
+    ).stdout.split()
+    assert {Path(p).name for p in tracked} >= {"treasury_yields.csv", "prime_rates.csv"}  # noqa: S101
+
+
+def test_build_fails_without_simulation_zips(tmp_path: Path) -> None:
+    """A distribution build refuses to produce a package without its default simulations."""
+    hook = _hatch_hook_module()
+    (tmp_path / "src" / "brms" / "data").mkdir(parents=True)
+    with pytest.raises(RuntimeError, match=r"python -m brms\.data\.build_all"):
+        hook.require_simulation_zips(tmp_path)
