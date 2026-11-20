@@ -20,6 +20,8 @@ from brms.core.metrics.risk.credit_risk.standardised_approach import (
     RiskWeightTableForCommercialRealEstateNotDependentOnCashFlows,
     RiskWeightTableForCorporateExposures,
     RiskWeightTableForExposuresToBanks,
+    RiskWeightTableForMDBExposures,
+    RiskWeightTableForPSEBasedOnExternalRatingOfPSE,
     RiskWeightTableForRatedCoveredBondExposures,
     RiskWeightTableForResidentialRealEstateNotDependentOnCashFlows,
     RiskWeightTableForSovereignExposures,
@@ -39,6 +41,8 @@ class ExposureClass(Enum):
     """Standardised-approach exposure classes the lab supports."""
 
     SOVEREIGN = auto()
+    PSE = auto()
+    MDB = auto()
     BANK = auto()
     COVERED_BOND = auto()
     RESIDENTIAL_REAL_ESTATE = auto()
@@ -85,6 +89,7 @@ _CORPORATE_ISSUERS = (
 )
 _RESIDENTIAL = frozenset({InstrumentType.MORTGAGE, InstrumentType.RESIDENTIAL_MORTGAGE})
 _RETAIL_WEIGHT = Decimal("0.75")  # regulatory retail, CRE20.65
+_MAX_LTV = 2.0  # loan-to-value is a fraction; anything larger is almost certainly a percentage
 
 # Balance-sheet asset accounts weighted directly. Accounts holding positions (investments, loans,
 # FVTPL assets, accrued interest) are covered by the position lines; intangibles are deducted
@@ -114,11 +119,13 @@ def classify(instrument: Instrument, position: Position) -> tuple[ExposureClass,
     return outcome
 
 
-def _classify(instrument: Instrument) -> tuple[ExposureClass, Decimal] | str:  # noqa: PLR0911
+def _classify(instrument: Instrument) -> tuple[ExposureClass, Decimal] | str:  # noqa: C901, PLR0911
     """Return (class, weight), or the reason the instrument cannot be classified."""
     inst_type = getattr(instrument, "instrument_type", None)
     issuer = getattr(instrument, "issuer", None)
     if inst_type == InstrumentType.COVERED_BOND:
+        if getattr(instrument, "credit_rating", CreditRating.UNRATED) == CreditRating.UNRATED:
+            return "unrated covered bonds are not supported"
         table = RiskWeightTableForRatedCoveredBondExposures
         return ExposureClass.COVERED_BOND, _weight(table.get_risk_weight(instrument))
     if inst_type in _RESIDENTIAL or inst_type == InstrumentType.COMMERCIAL_MORTGAGE:
@@ -126,14 +133,27 @@ def _classify(instrument: Instrument) -> tuple[ExposureClass, Decimal] | str:  #
     if issuer is None:
         return "the instrument has no issuer"
     kind = issuer.issuer_type
+    # CRE21: an issue-specific rating takes precedence over the issuer's rating.
+    issue_rated = getattr(instrument, "credit_rating", CreditRating.UNRATED) not in (None, CreditRating.UNRATED)
+    by_issuer = not issue_rated
+    rating = instrument.credit_rating if issue_rated else issuer.credit_rating
     if kind == IssuerType.SOVEREIGN:
-        return ExposureClass.SOVEREIGN, _weight(RiskWeightTableForSovereignExposures.get_risk_weight(instrument))
+        table = RiskWeightTableForSovereignExposures
+        return ExposureClass.SOVEREIGN, _weight(table.get_risk_weight(instrument, use_issuer_rating=by_issuer))
+    if kind == IssuerType.PSE:
+        table = RiskWeightTableForPSEBasedOnExternalRatingOfPSE
+        return ExposureClass.PSE, _weight(table.get_risk_weight(instrument, use_issuer_rating=by_issuer))
+    if kind == IssuerType.MDB:
+        table = RiskWeightTableForMDBExposures
+        return ExposureClass.MDB, _weight(table.get_risk_weight(instrument, use_issuer_rating=by_issuer))
     if kind == IssuerType.BANK:
-        if issuer.credit_rating == CreditRating.UNRATED:
+        if rating == CreditRating.UNRATED:
             return "unrated bank exposures need SCRA grades, which are not modelled"
-        return ExposureClass.BANK, _weight(RiskWeightTableForExposuresToBanks.get_risk_weight(instrument))
+        table = RiskWeightTableForExposuresToBanks
+        return ExposureClass.BANK, _weight(table.get_risk_weight(instrument, use_issuer_rating=by_issuer))
     if kind in _CORPORATE_ISSUERS:
-        return ExposureClass.CORPORATE, _weight(RiskWeightTableForCorporateExposures.get_risk_weight(instrument))
+        table = RiskWeightTableForCorporateExposures
+        return ExposureClass.CORPORATE, _weight(table.get_risk_weight(instrument, use_issuer_rating=by_issuer))
     if kind == IssuerType.INDIVIDUAL:
         return ExposureClass.RETAIL, _RETAIL_WEIGHT
     return f"issuer type {kind.name} is not supported"
@@ -142,8 +162,11 @@ def _classify(instrument: Instrument) -> tuple[ExposureClass, Decimal] | str:  #
 def _classify_real_estate(
     instrument: Instrument, inst_type: InstrumentType, issuer: object,
 ) -> tuple[ExposureClass, Decimal] | str:
-    if getattr(instrument, "ltv", None) is None:
+    ltv = getattr(instrument, "ltv", None)
+    if ltv is None:
         return "the mortgage has no loan-to-value ratio (ltv)"
+    if not 0 < ltv <= _MAX_LTV:
+        return f"ltv {ltv} is not a fraction in (0, {_MAX_LTV}] (give 0.8 for 80%)"
     if inst_type == InstrumentType.COMMERCIAL_MORTGAGE:
         if issuer is None:
             return "the commercial mortgage has no issuer"
@@ -151,6 +174,13 @@ def _classify_real_estate(
         return ExposureClass.COMMERCIAL_REAL_ESTATE, _weight(table.get_risk_weight(instrument))
     table = RiskWeightTableForResidentialRealEstateNotDependentOnCashFlows
     return ExposureClass.RESIDENTIAL_REAL_ESTATE, _weight(table.get_risk_weight(instrument))
+
+
+def validate_exposures(bank: Bank) -> None:
+    """Classify every open long valued position, raising for the first one that cannot be weighted."""
+    for position in bank.positions.open_positions():
+        if position.side == PositionSide.LONG and position.measurement_basis != MeasurementBasis.NA:
+            classify(bank.instruments.get(position.instrument_id), position)
 
 
 def credit_rwa(

@@ -188,8 +188,8 @@ class RiskWeightTableForCorporateExposures(RiskWeightTableByCreditRating):
         (CreditRating.AAA, CreditRating.AA_MINUS): 0.2,
         (CreditRating.A_PLUS, CreditRating.A_MINUS): 0.5,
         (CreditRating.BBB_PLUS, CreditRating.BBB_MINUS): 0.75,
-        (CreditRating.BB_PLUS, CreditRating.B_MINUS): 1.0,
-        (CreditRating.B_PLUS, CreditRating.D): 1.5,
+        (CreditRating.BB_PLUS, CreditRating.BB_MINUS): 1.0,  # Table 10: BB+ to BB- 100%
+        (CreditRating.B_PLUS, CreditRating.D): 1.5,  # below BB- 150%
         (CreditRating.UNRATED, CreditRating.UNRATED): 1.0,
     }
 

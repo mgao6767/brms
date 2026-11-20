@@ -14,6 +14,7 @@ from brms.core.exceptions import UnsupportedPositionError, ValuationError
 from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal
 from brms.core.models.accounting.ledger import Ledger
+from brms.core.models.instruments.base import CreditRating
 from brms.core.models.instruments.bonds import CoveredBond
 from brms.core.models.instruments.deposits import Deposit
 from brms.core.models.transaction import Transaction
@@ -81,6 +82,7 @@ def test_sub_cent_catch_up_clears_exactly_the_accrued_portion() -> None:
 def test_position_without_quantlib_instrument_is_not_silently_unvalued() -> None:
     bond = CoveredBond(name="covered")
     bond.id = "CB"
+    bond.credit_rating = CreditRating.AAA  # classifiable, so the run reaches valuation
     pos = make_position(
         id="pos-CB", instrument_id="CB", basis=MeasurementBasis.FVTPL, acquired=datetime.date(2021, 1, 4),
         cost=Decimal(1000),

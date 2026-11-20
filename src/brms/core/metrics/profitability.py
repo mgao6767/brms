@@ -2,6 +2,7 @@
 
 The window is the 365 days ending on the metric date, clipped to the first day with an ordinary
 (NORMAL) journal entry; flows are the windowed income statement scaled by 365 / days in window.
+With fewer than 30 days of history the metrics are undefined (None).
 Denominators are averages of the day's recorded metrics over the window's market days, so
 TOTAL_ASSETS, TOTAL_EQUITY and INTEREST_EARNING_ASSETS must be computed before these metrics.
 """
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     from brms.core.stores.valuation_store import ValuationStore
 
 _YEAR = 365
+_MIN_DAYS = 30
 
 
 class InterestEarningAssetsMetric:
@@ -77,6 +79,8 @@ class _TrailingYearMetric:
     ) -> float | None:
         """Annualised flow over the trailing year divided by the window's average denominator."""
         start = self._window_start(bank.ledger, date)  # type: ignore[arg-type]
+        if (date - start).days + 1 < _MIN_DAYS:  # type: ignore[operator]
+            return None  # annualising a few days of marks is noise, not a return
         statement = self._reporting.income_statement(bank.ledger, start=start, end=date)
         flow = self.flow(statement) * Decimal(_YEAR) / Decimal((date - start).days + 1)  # type: ignore[operator]
         values = [Decimal(str(v)) for _d, v in self._metrics.series(self.denominator, start=start, end=date)]

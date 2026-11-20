@@ -3,8 +3,9 @@
 Each open long bond or loan position is revalued by discounting its remaining cash flows on the
 day's curve shifted by the scenario's zero-rate shock. Floating-rate coupons are forecast from the
 engine's shared forwarding handle, which is relinked to the shocked curve for the scenario and
-restored afterwards. Cash counts at its balance and deposits are treated as repricing overnight
-(present value = balance, insensitive to the shocks).
+restored afterwards. Only banking-book positions count (SRP31). Cash, deposits and interest
+payable count at book value: deposits are treated as repricing overnight, so they carry no
+duration, which makes rising-rate scenarios look worse than a behavioural deposit model would.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from typing import TYPE_CHECKING
 
 import QuantLib as ql  # noqa: N813
 
-from brms.core.enums import InstrumentType, MeasurementBasis, PositionSide
+from brms.core.enums import BookType, MeasurementBasis, PositionSide
 from brms.core.exceptions import ValuationError
 from brms.core.utils import pydate_to_qldate
 
@@ -29,7 +30,7 @@ if TYPE_CHECKING:
 
 _PARALLEL, _SHORT, _LONG = 200.0, 300.0, 150.0  # USD shock sizes in bp (SRP31.90 Annex)
 _DECAY_YEARS = 4.0
-_NODES = (0.0, 1 / 12, 0.25, 0.5, *range(1, 11), 15.0, 20.0, 25.0, 30.0, 40.0)
+_NODES = (0.0, 1 / 12, 0.25, 0.5, *range(1, 21), 25.0, 30.0, 40.0)
 _BP = 1e-4
 
 
@@ -107,7 +108,11 @@ def eve_scenarios(bank: Bank, yield_handle: ql.RelinkableYieldTermStructureHandl
     *yield_handle* is the engine's shared discount and forwarding handle, linked to the day's
     curve. It is relinked for each scenario and restored before returning.
     """
-    base_curve = yield_handle.currentLink()
+    try:
+        base_curve = yield_handle.currentLink()
+    except RuntimeError as exc:
+        msg = f"No discount curve is linked on {date}; EVE needs a market-data day"
+        raise ValuationError(msg) from exc
     base = ql.YieldTermStructureHandle(base_curve)
     qd = pydate_to_qldate(date)
     legs = _position_legs(bank)
@@ -153,20 +158,14 @@ def _position_legs(bank: Bank) -> dict[str, Callable[[], object]]:
     for position in bank.positions.open_positions():
         if position.side != PositionSide.LONG or position.measurement_basis == MeasurementBasis.NA:
             continue
+        if position.book_type != BookType.BANKING:
+            continue  # IRRBB covers the banking book (SRP31)
         instrument = bank.instruments.get(position.instrument_id)
         legs[position.id] = instrument.ql_instrument.cashflows  # type: ignore[attr-defined]
     return legs
 
 
 def _cash_less_deposits(bank: Bank) -> Decimal:
-    accounts = {a.name: a for a in bank.ledger.chart_of_accounts.all_accounts()}
-    cash = Decimal(str(accounts["Cash and Cash Equivalents"].balance()))
-    deposits = sum(
-        (
-            Decimal(str(p.acquisition_cost))
-            for p in bank.positions.open_positions()
-            if bank.instruments.get(p.instrument_id).instrument_type == InstrumentType.DEPOSIT
-        ),
-        Decimal(0),
-    )
-    return cash - deposits
+    """Cash less deposits and interest payable, at book value (treated as repricing overnight)."""
+    accounts = {a.name: Decimal(str(a.balance())) for a in bank.ledger.chart_of_accounts.all_accounts()}
+    return accounts["Cash and Cash Equivalents"] - accounts["Deposits"] - accounts["Interest Payable"]

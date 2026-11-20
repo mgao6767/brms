@@ -41,17 +41,17 @@ class CapitalFigures:
 
 
 class CapitalCalculator:
-    """Computes :class:`CapitalFigures`, memoised per (ledger, date, journal length)."""
+    """Computes :class:`CapitalFigures`, memoised per (ledger, date, journal length, regulatory inputs)."""
 
     def __init__(self, reporting_service: ReportingService) -> None:
         """Use *reporting_service* for the as-if-closed balance sheet."""
         self._reporting = reporting_service
-        self._key: tuple[int, datetime.date, int] | None = None
+        self._key: tuple[object, ...] | None = None
         self._figures: CapitalFigures | None = None
 
     def figures(self, bank: Bank, valuation_store: ValuationStore, date: datetime.date) -> CapitalFigures:
         """Return the capital figures of *bank* on *date*."""
-        key = (id(bank.ledger), date, len(bank.ledger.journal.entries))
+        key = (id(bank.ledger), date, len(bank.ledger.journal.entries), bank.regulatory)
         if key == self._key and self._figures is not None:
             return self._figures
         bs = self._reporting.balance_sheet(bank.ledger, date=date)

@@ -317,6 +317,14 @@ class VariableRateLoan(Instrument):
         """Outstanding notional as of *date*."""
         return self.instrument.notional(pydate_to_qldate(date))
 
+    def repricing_date(self, as_of: datetime.date) -> datetime.date | None:
+        """Return the next scheduled rate reset after *as_of* (None once the last period has started)."""
+        for ql_date in self._schedule:
+            day = qldate_to_pydate(ql_date)
+            if day > as_of:
+                return day
+        return None
+
     def payment_schedule(
         self,
     ) -> tuple[list[tuple[datetime.date, float]], list[tuple[datetime.date, float]], list[tuple[datetime.date, float]]]:
