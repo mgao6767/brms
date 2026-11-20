@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import QuantLib as ql  # noqa: N813
 
+from brms.core.exceptions import ValuationError
 from brms.core.services.yield_curve_service import YieldCurveService
 
 if TYPE_CHECKING:
@@ -28,16 +29,25 @@ class ValuationContext:
         self._benchmark_service = benchmark_service
         self.market_data: MarketDataStore | None = None
         self.date: datetime.date | None = None
+        self.has_market_data: bool = False
 
-    def update(self, date: datetime.date, market_data: MarketDataStore) -> None:
-        """Advance the context to *date* and rebuild the term structure from *market_data*.
+    @property
+    def yield_handle(self) -> ql.RelinkableYieldTermStructureHandle:
+        """The shared discounting handle, relinked to each market day's curve."""
+        return self._yield_handle
 
-        Sets the QuantLib global evaluation date, builds a new term structure from the
-        market data yields, and relinks the shared handle so all downstream engines
-        reprice automatically.
+    def update(self, date: datetime.date, market_data: MarketDataStore, *, has_market_data: bool = True) -> None:
+        """Advance the context to *date*; on market-data days rebuild the term structure.
+
+        On a market-data day this sets the QuantLib global evaluation date, builds the
+        curve from the day's yields and relinks the shared handle so that downstream
+        engines reprice. A curve that cannot be built is an error, never a stale curve.
         """
         self.date = date
         self.market_data = market_data
+        self.has_market_data = has_market_data
+        if not has_market_data:
+            return
 
         ql_date = ql.Date(date.day, date.month, date.year)
         ql.Settings.instance().evaluationDate = ql_date
@@ -46,17 +56,13 @@ class ValuationContext:
             self._benchmark_service.sync_up_to(date, market_data)
 
         try:
-            # market_data can be MarketDataStore or MarketState
-            # Get yields: try .get_state(date).yields first, then .yields directly
-            if hasattr(market_data, "get_state"):
-                market_state = market_data.get_state(date)
-                yields = market_state.yields
-            else:
-                yields = market_data.yields  # type: ignore[union-attr]
-            maturity_labels = list(yields.index)
-            rates = list(yields.values)
-            term_structure = YieldCurveService.build_yield_curve(date, maturity_labels, rates)
-            if term_structure is not None:
-                self._yield_handle.linkTo(term_structure)
-        except (AttributeError, KeyError):
-            pass
+            state = market_data.get_state(date) if hasattr(market_data, "get_state") else market_data
+            yields = state.yields  # type: ignore[union-attr]
+            term_structure = YieldCurveService.build_yield_curve(date, list(yields.index), list(yields.values))
+        except (AttributeError, KeyError, ValueError, RuntimeError) as exc:
+            msg = f"Cannot build the yield curve for {date}: {exc}"
+            raise ValuationError(msg) from exc
+        if term_structure is None:
+            msg = f"No yields to build the curve for {date}"
+            raise ValuationError(msg)
+        self._yield_handle.linkTo(term_structure)

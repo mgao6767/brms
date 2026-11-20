@@ -16,7 +16,7 @@ EXPECTED_BOOK_TYPE_COUNT = 2
 EXPECTED_POSITION_SIDE_COUNT = 2
 EXPECTED_POSITION_STATUS_COUNT = 2
 EXPECTED_MEASUREMENT_BASIS_COUNT = 4
-EXPECTED_VALUATION_TYPE_COUNT = 4
+EXPECTED_VALUATION_TYPE_COUNT = 5
 EXPECTED_TRANSACTION_TYPE_COUNT = 18
 EXPECTED_METRIC_NAME_COUNT = 10
 
@@ -109,7 +109,7 @@ class TestValuationType:
 
     def test_valuation_type_members(self) -> None:
         """Test that ValuationType has all expected members."""
-        expected_members = {"FAIR_VALUE", "CARRYING_VALUE", "ACCRUED_INTEREST", "NOTIONAL"}
+        expected_members = {"FAIR_VALUE", "CARRYING_VALUE", "ACCRUED_INTEREST", "NOTIONAL", "AMORTIZED_COST"}
         actual_members = {member.name for member in ValuationType}
         assert actual_members == expected_members  # noqa: S101
 

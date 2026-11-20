@@ -159,6 +159,7 @@ class SimulationBuilder:
         from brms.core.stores.transaction_log import TransactionLog
         from brms.core.stores.valuation_store import ValuationStore
 
+        calculator = AmortizedCostCalculator()
         coa = BankChartOfAccounts()
         ledger = Ledger(chart_of_accounts=coa, journal=Journal())
         bank = Bank(name=config.name, instruments=InstrumentStore(), positions=PositionStore(), ledger=ledger)
@@ -179,7 +180,7 @@ class SimulationBuilder:
             bank=bank,
             market_data=market_data,
             valuation_service=ValuationService(
-                default_valuation_strategies(),
+                default_valuation_strategies(calculator),
                 benchmark_service=benchmark_service,
                 yield_handle=shared_yield_handle,
             ),
@@ -191,7 +192,7 @@ class SimulationBuilder:
             transaction_log=TransactionLog(),
             event_bus=EventBus(),
         )
-        return sim, AmortizedCostCalculator()
+        return sim, calculator
 
     @staticmethod
     def _group_by_date(config: BuildConfig) -> dict[datetime.date, list[tuple[Instrument, Position]]]:

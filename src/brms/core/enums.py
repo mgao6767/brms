@@ -57,6 +57,7 @@ class ValuationType(Enum):
     CARRYING_VALUE = auto()
     ACCRUED_INTEREST = auto()
     NOTIONAL = auto()
+    AMORTIZED_COST = auto()
 
 
 class TransactionType(Enum):

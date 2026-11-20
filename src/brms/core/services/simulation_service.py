@@ -141,7 +141,7 @@ class SimulationService:
         Steps performed (in order):
         1. Determine the target date (next calendar day or explicit).
         2. Fetch market state if available for this date.
-        3. Value all positions (only on market-data days).
+        3. Value all positions (every day; the curve is rebuilt on market-data days).
         4. Apply rules via the rule engine to obtain transactions.
         5. Post all transactions to the ledger via the accounting service.
         6. Record the transaction batch in the transaction log.
@@ -155,8 +155,9 @@ class SimulationService:
         has_market = self.market_data.has_data(date)
         market_state = self.market_data.get_state_or_none(date)
 
-        if has_market:
-            self.valuation_service.value_all(self.bank, self.market_data, date, self.valuation_store)
+        self.valuation_service.value_all(
+            self.bank, self.market_data, date, self.valuation_store, has_market_data=has_market,
+        )
 
         transactions = self.rule_engine.apply(
             self.bank, self.valuation_store, market_state, date, previous_date,

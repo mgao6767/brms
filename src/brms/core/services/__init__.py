@@ -51,6 +51,7 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     from brms.core.models.market_data import MarketDataStore
     from brms.core.rules import default_rules
     from brms.core.services.accounting_service import AccountingService
+    from brms.core.services.amortized_cost import AmortizedCostCalculator
     from brms.core.services.benchmark_service import BenchmarkService
     from brms.core.services.data_service import DataService
     from brms.core.services.loaders import ZipLoader
@@ -83,7 +84,7 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     reporting_service = ReportingService()
     metric_registry = MetricRegistry(default_metrics(reporting_service))
     valuation_service = ValuationService(
-        default_valuation_strategies(),
+        default_valuation_strategies(AmortizedCostCalculator()),
         benchmark_service=benchmark_service,
         yield_handle=shared_yield_handle,
     )
@@ -132,7 +133,10 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
 
     # Seed the valuation store so initial tree values match the BS
     if simulation_service.start_date is not None:
-        valuation_service.value_all(bank, market_data, simulation_service.start_date, valuation_store)
+        start = simulation_service.start_date
+        valuation_service.value_all(
+            bank, market_data, start, valuation_store, has_market_data=market_data.has_data(start),
+        )
 
     return CoreServices(
         event_bus=event_bus,

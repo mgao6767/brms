@@ -5,13 +5,14 @@
 from __future__ import annotations
 
 import datetime
-from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from brms.core.enums import MeasurementBasis, PositionStatus, ValuationType
+import pytest
+
+from brms.core.enums import MeasurementBasis, PositionStatus
+from brms.core.exceptions import ValuationError
 from brms.core.services.valuation_context import ValuationContext
 from brms.core.services.valuation_service import ValuationService
-from brms.core.services.valuation_strategies import CarryingValueStrategy, FairValueStrategy
 from brms.core.stores.valuation_store import ValuationStore
 
 DATE = datetime.date(2024, 1, 1)
@@ -35,7 +36,7 @@ def test_valuation_context_update_sets_date_and_market_data() -> None:
     handle = MagicMock()
     ctx = ValuationContext(handle)
     market_data = MagicMock()
-    ctx.update(DATE, market_data)
+    ctx.update(DATE, market_data, has_market_data=False)
     assert ctx.date == DATE
     assert ctx.market_data is market_data
 
@@ -67,134 +68,24 @@ def test_valuation_context_update_sets_ql_evaluation_date() -> None:
     market_data.yields.values = []
 
     with (
-        patch("brms.core.services.valuation_context.YieldCurveService.build_yield_curve", return_value=None),
+        patch("brms.core.services.valuation_context.YieldCurveService.build_yield_curve", return_value=MagicMock()),
         patch("brms.core.services.valuation_context.ql") as mock_ql,
     ):
         ctx.update(DATE, market_data)
         mock_ql.Settings.instance().evaluationDate = mock_ql.Date(DATE.day, DATE.month, DATE.year)
 
 
-# ---------------------------------------------------------------------------
-# FairValueStrategy
-# ---------------------------------------------------------------------------
-
-
-def test_fair_value_strategy_uses_npv_when_ql_instrument_present() -> None:
-    """FairValueStrategy records NPV() when ql_instrument is not None."""
-    strategy = FairValueStrategy()
-    # Pre-populate engines_set so it doesn't try to create a real QL engine with mocks
-    strategy._engines_set.add("inst-1")  # noqa: SLF001
-    store = ValuationStore()
-    context = MagicMock()
-    context.date = DATE
-
-    ql_inst = MagicMock()
-    ql_inst.NPV.return_value = 1050.0
-
-    inst = MagicMock()
-    inst.id = "inst-1"
-    inst.ql_instrument = ql_inst
-
-    instruments = MagicMock()
-    instruments.get.return_value = inst
-
-    pos = MagicMock()
-    pos.id = "pos-1"
-    pos.instrument_id = "inst-1"
-
-    strategy.value_batch([pos], instruments, context, store)
-
-    result = store.get("pos-1", DATE, ValuationType.FAIR_VALUE)
-    assert result == Decimal("1050.0")
-
-
-def test_fair_value_strategy_uses_face_value_when_no_ql_instrument() -> None:
-    """FairValueStrategy records face_value when ql_instrument is None."""
-    strategy = FairValueStrategy()
-    store = ValuationStore()
-    context = MagicMock()
-    context.date = DATE
-
-    inst = MagicMock()
-    inst.ql_instrument = None
-    inst.face_value = Decimal("1000")
-
-    instruments = MagicMock()
-    instruments.get.return_value = inst
-
-    pos = MagicMock()
-    pos.id = "pos-2"
-    pos.instrument_id = "inst-2"
-
-    strategy.value_batch([pos], instruments, context, store)
-
-    result = store.get("pos-2", DATE, ValuationType.FAIR_VALUE)
-    assert result == Decimal("1000")
-
-
-def test_fair_value_strategy_handles_multiple_positions() -> None:
-    """FairValueStrategy records a value for each position in the batch."""
-    strategy = FairValueStrategy()
-    strategy._engines_set.update({"p1", "p2"})  # noqa: SLF001
-    store = ValuationStore()
-    context = MagicMock()
-    context.date = DATE
-
-    def make_pos_inst(pos_id: str, npv: float) -> tuple[MagicMock, MagicMock]:
-        ql_inst = MagicMock()
-        ql_inst.NPV.return_value = npv
-        inst = MagicMock()
-        inst.id = pos_id
-        inst.ql_instrument = ql_inst
-        pos = MagicMock()
-        pos.id = pos_id
-        pos.instrument_id = pos_id
-        return pos, inst
-
-    pos1, inst1 = make_pos_inst("p1", 100.0)
-    pos2, inst2 = make_pos_inst("p2", 200.0)
-
-    instruments = MagicMock()
-    instruments.get.side_effect = lambda iid: {"p1": inst1, "p2": inst2}[iid]
-
-    strategy.value_batch([pos1, pos2], instruments, context, store)
-
-    assert store.get("p1", DATE, ValuationType.FAIR_VALUE) == Decimal("100.0")
-    assert store.get("p2", DATE, ValuationType.FAIR_VALUE) == Decimal("200.0")
-
-
-# ---------------------------------------------------------------------------
-# CarryingValueStrategy
-# ---------------------------------------------------------------------------
-
-
-def test_carrying_value_strategy_records_clean_acquisition_cost() -> None:
-    """CarryingValueStrategy records CARRYING_VALUE using clean acquisition cost.
-
-    For instruments without QuantLib (no ql_instrument), this equals
-    pos.acquisition_cost unchanged.
-    """
-    strategy = CarryingValueStrategy()
-    store = ValuationStore()
-    context = MagicMock()
-    context.date = DATE
-
-    inst = MagicMock()
-    inst.face_value = Decimal("950")
-    inst.ql_instrument = None  # no QL → clean cost = acquisition_cost
-
-    instruments = MagicMock()
-    instruments.get.return_value = inst
-
-    pos = MagicMock()
-    pos.id = "pos-ac"
-    pos.instrument_id = "inst-ac"
-    pos.acquisition_cost = Decimal("950")
-
-    strategy.value_batch([pos], instruments, context, store)
-
-    result = store.get("pos-ac", DATE, ValuationType.CARRYING_VALUE)
-    assert result == Decimal("950")
+def test_valuation_context_raises_when_curve_cannot_be_built() -> None:
+    """A market day whose curve cannot be built is an error, not a stale curve."""
+    ctx = ValuationContext(MagicMock())
+    market_data = MagicMock()
+    market_data.yields.index = []
+    market_data.yields.values = []
+    with (
+        patch("brms.core.services.valuation_context.YieldCurveService.build_yield_curve", return_value=None),
+        pytest.raises(ValuationError, match="curve"),
+    ):
+        ctx.update(DATE, market_data)
 
 
 # ---------------------------------------------------------------------------

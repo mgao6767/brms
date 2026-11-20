@@ -57,30 +57,8 @@ def _is_loan(instrument: Instrument) -> bool:
     return getattr(instrument, "instrument_type", None) in LOAN_TYPES
 
 
-def _interim_value(
-    sim: SimulationService, position: Position, date: datetime.date, vtype: ValuationType,
-) -> Decimal | None:
-    """Values valuation does not record daily yet (removed once it does)."""
-    from brms.core.rules.interest_accrual import scaled_accrued_amount
-    from brms.core.services.amortized_cost import AmortizedCostCalculator
-    from brms.core.utils import pydate_to_qldate
-
-    instrument = sim.bank.instruments.get(position.instrument_id)
-    if vtype == ValuationType.ACCRUED_INTEREST:
-        return scaled_accrued_amount(instrument.ql_instrument, pydate_to_qldate(date))
-    if vtype == ValuationType.CARRYING_VALUE and _is_loan(instrument):
-        _interest, principal, _outstanding = instrument.payment_schedule()
-        repaid = sum(
-            (Decimal(str(a)) for d, a in principal if position.acquisition_date < d <= date), Decimal(0),
-        )
-        return AmortizedCostCalculator().clean_cost(instrument, position) - repaid
-    return None
-
-
 def _value(sim: SimulationService, position: Position, date: datetime.date, vtype: ValuationType) -> Decimal:
     value = sim.valuation_store.get(position.id, date, vtype)
-    if value is None:
-        value = _interim_value(sim, position, date, vtype)
     if value is None:
         msg = f"{position.id} has no {vtype.name} on {date}"
         raise AssertionError(msg)
