@@ -56,9 +56,12 @@ export function seg(options, current, onChange) {
  * columns: [{key, label, num?, render?(row) -> Node|string, sort?(row) -> value, cls?(row) -> string, title?}]
  */
 export function dataTable(columns, rows, { onRow, sortKey, sortDir = "desc", empty = "Nothing to show", rowKey,
-  selected, short = false } = {}) {
-  let key = sortKey;
-  let dir = sortDir;
+  selected, short = false, state } = {}) {
+  // Pass the same *state* object to keep the user's sort when a polling page redraws the table.
+  const sort = state || {};
+  if (sort.key === undefined) { sort.key = sortKey; sort.dir = sortDir; }
+  let key = sort.key;
+  let dir = sort.dir;
   const wrap = h("div", { class: `table-wrap${short ? " short" : ""}` });
 
   function draw() {
@@ -81,6 +84,8 @@ export function dataTable(columns, rows, { onRow, sortKey, sortDir = "desc", emp
       th.addEventListener("click", () => {
         if (key === c.key) dir = dir === "asc" ? "desc" : "asc";
         else { key = c.key; dir = c.num ? "desc" : "asc"; }
+        sort.key = key;
+        sort.dir = dir;
         draw();
       });
       return th;

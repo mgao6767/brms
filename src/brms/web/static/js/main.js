@@ -82,12 +82,12 @@ async function route() {
     return;
   }
   const [m, view] = match;
-  const ctx = {
-    setTitle,
-    alive: () => mine === generation,
-    params: m.slice(1).map((p) => (p === undefined ? p : decodeURIComponent(p))),
-  };
   try {
+    const ctx = {
+      setTitle,
+      alive: () => mine === generation,
+      params: m.slice(1).map((p) => (p === undefined ? p : decodeURIComponent(p))),
+    };
     cleanup = (await view.render(main, ctx)) || null;
     if (mine !== generation && cleanup) { cleanup(); cleanup = null; }
   } catch (error) {

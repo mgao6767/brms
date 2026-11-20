@@ -2,7 +2,7 @@
 
 import { api } from "../api.js";
 import { SERIES, chartBox, lineChart } from "../charts.js";
-import { money, pct, setUnit, signClass } from "../format.js";
+import { money, pct, signClass } from "../format.js";
 import { chip, dataTable, errorBox, h, loading, panel } from "../ui.js";
 
 const MAX_RUNS = SERIES.length;
@@ -48,7 +48,6 @@ export async function render(main, ctx) {
       main.replaceChildren(headNode, errorBox("None of these runs finished successfully"));
       return;
     }
-    setUnit(done[0].meta.unit);
     main.replaceChildren(headNode, ...view(done, runs.filter((r) => r.meta.status === "failed")));
   }
 
@@ -74,7 +73,10 @@ function view(runs, failed) {
   const sumBooks = (r) => {
     const books = Object.values(r.unrealised || {});
     if (!books.length) return null;
-    return r.dates.map((_, j) => books.reduce((acc, values) => (values[j] === null ? acc : (acc ?? 0) + values[j]), null));
+    // In currency: runs of banks reported in different units (Call Reports are in thousands) can be compared.
+    const unit = r.meta.unit || 1;
+    return r.dates.map((_, j) => books.reduce((acc, values) => (values[j] === null ? acc : (acc ?? 0) + values[j] * unit),
+      null));
   };
   const specs = [
     ["CET1 ratio", (r) => r.metrics.CET1_RATIO, (v) => pct(v), "% of RWA"],
@@ -118,13 +120,13 @@ function view(runs, failed) {
     { key: "eve", label: "Worst ΔEVE/T1", num: true, sort: (r) => r.summary.worst_delta_eve_to_tier1,
       render: (r) => pct(r.summary.worst_delta_eve_to_tier1), cls: (r) => signClass(r.summary.worst_delta_eve_to_tier1) },
     { key: "ni", label: "Net income", num: true, sort: (r) => r.summary.net_income,
-      render: (r) => money(r.summary.net_income, { sign: true }), cls: (r) => signClass(r.summary.net_income) },
+      render: (r) => money(r.summary.net_income, { sign: true, unit: r.meta.unit }), cls: (r) => signClass(r.summary.net_income) },
     { key: "htm", label: "HTM unrealised", num: true, sort: (r) => r.summary.unrealised_end?.htm,
-      render: (r) => money(r.summary.unrealised_end?.htm, { sign: true }), cls: (r) => signClass(r.summary.unrealised_end?.htm) },
+      render: (r) => money(r.summary.unrealised_end?.htm, { sign: true, unit: r.meta.unit }), cls: (r) => signClass(r.summary.unrealised_end?.htm) },
     { key: "afs", label: "AFS unrealised", num: true, sort: (r) => r.summary.unrealised_end?.afs,
-      render: (r) => money(r.summary.unrealised_end?.afs, { sign: true }), cls: (r) => signClass(r.summary.unrealised_end?.afs) },
+      render: (r) => money(r.summary.unrealised_end?.afs, { sign: true, unit: r.meta.unit }), cls: (r) => signClass(r.summary.unrealised_end?.afs) },
     { key: "assets", label: "Total assets, end", num: true, sort: (r) => r.summary.total_assets_end,
-      render: (r) => money(r.summary.total_assets_end) },
+      render: (r) => money(r.summary.total_assets_end, { unit: r.meta.unit }) },
   ], runs, { sortKey: "cet1_min", sortDir: "asc" });
 
   return [

@@ -8,7 +8,7 @@ import json
 import pickle
 import threading
 from collections import OrderedDict
-from concurrent.futures import Executor, Future, ProcessPoolExecutor
+from concurrent.futures import BrokenExecutor, Executor, Future, ProcessPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -61,11 +61,16 @@ class BankFileRequest(BaseModel):
 
 
 class JobManager:
-    """Runs jobs in worker processes, one process per job, and records the outcome."""
+    """Runs jobs in worker processes, one process per job, and records the outcome.
 
-    def __init__(self, executor: Executor) -> None:
-        """Use *executor* for every job."""
-        self._executor = executor
+    A worker that dies abruptly (killed for memory, a crash in native code) breaks a process pool
+    for good; the next submission replaces the pool with a fresh one from *factory*.
+    """
+
+    def __init__(self, factory: Callable[[], Executor]) -> None:
+        """Create executors with *factory*."""
+        self._factory = factory
+        self._executor = factory()
         self._futures: dict[str, Future[Any]] = {}
         self._lock = threading.Lock()
 
@@ -73,8 +78,13 @@ class JobManager:
         self, key: str, fn: Callable[..., Any], args: tuple[Any, ...], on_done: Callable[[Future[Any]], None],
     ) -> None:
         """Run ``fn(*args)`` in a worker; call *on_done* with the future when it finishes."""
-        future = self._executor.submit(fn, *args)
         with self._lock:
+            try:
+                future = self._executor.submit(fn, *args)
+            except BrokenExecutor:
+                self._executor.shutdown(wait=False, cancel_futures=True)
+                self._executor = self._factory()
+                future = self._executor.submit(fn, *args)
             self._futures[key] = future
 
         def finished(f: Future[Any]) -> None:
@@ -85,14 +95,16 @@ class JobManager:
         future.add_done_callback(finished)
 
     def shutdown(self) -> None:
-        """Stop accepting jobs and cancel queued ones."""
-        self._executor.shutdown(wait=False, cancel_futures=True)
+        """Cancel queued jobs and wait for running ones (Python 3.11's pool races if not waited for)."""
+        self._executor.shutdown(wait=True, cancel_futures=True)
 
 
 _MAX_ERROR = 2000
 
 
 def _error_text(exc: BaseException) -> str:
+    if isinstance(exc, BrokenExecutor):
+        return "The worker process stopped unexpectedly (out of memory or a crash); try again or a shorter horizon"
     text = str(exc).strip() or type(exc).__name__
     return text if len(text) < _MAX_ERROR else text[:_MAX_ERROR] + "..."
 
@@ -103,10 +115,12 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
     """Return the web application storing its banks and runs under *data_dir*."""
     workspace = Workspace(data_dir or default_data_dir())
     workspace.recover()
-    manager = JobManager(executor or ProcessPoolExecutor(max_workers=workers, max_tasks_per_child=1))
+    manager = JobManager((lambda: executor) if executor is not None
+                         else (lambda: ProcessPoolExecutor(max_workers=workers, max_tasks_per_child=1)))
     results: OrderedDict[str, RunResult] = OrderedDict()
     results_lock = threading.Lock()
     summarising: set[str] = set()
+    summarising_lock = threading.Lock()
 
     @contextlib.asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -120,16 +134,26 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
     # -- helpers ---------------------------------------------------------------------------
 
     def ensure_demo_summary(bank_id: str) -> None:
-        if workspace.bank_summary(bank_id) is not None or bank_id in summarising:
-            return
-        summarising.add(bank_id)
+        with summarising_lock:
+            if workspace.bank_summary(bank_id) is not None or workspace.demo_error(bank_id) or bank_id in summarising:
+                return
+            summarising.add(bank_id)
         zip_path = workspace.bank_zip(bank_id)
         out = workspace.bank_dir(bank_id) / "summary.json"
 
-        def done(_f: Future[Any]) -> None:
-            summarising.discard(bank_id)
+        def done(f: Future[Any]) -> None:
+            exc = f.exception()
+            if exc is not None:
+                workspace.set_demo_error(bank_id, _error_text(exc))
+            with summarising_lock:
+                summarising.discard(bank_id)
 
-        manager.submit(f"summary:{bank_id}", jobs.summarise_bank, (str(zip_path), str(out)), done)
+        try:
+            manager.submit(f"summary:{bank_id}", jobs.summarise_bank, (str(zip_path), str(out)), done)
+        except Exception as exc:  # noqa: BLE001 (any failure to start is recorded, not raised into a page poll)
+            workspace.set_demo_error(bank_id, _error_text(exc))
+            with summarising_lock:
+                summarising.discard(bank_id)
 
     def bank_or_404(bank_id: str) -> dict[str, Any]:
         meta = workspace.bank_meta(bank_id)
@@ -171,7 +195,11 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
             workspace.update_bank(meta["id"], status="ready", name=summary.get("name", meta["name"]),
                                   start_date=summary.get("start_date"))
 
-        manager.submit(f"bank:{meta['id']}", fn, (payload, str(folder)), done)
+        try:
+            manager.submit(f"bank:{meta['id']}", fn, (payload, str(folder)), done)
+        except Exception as exc:
+            workspace.update_bank(meta["id"], status="failed", error=_error_text(exc))
+            raise HTTPException(503, f"Could not start the build: {_error_text(exc)}") from exc
 
     def bank_view(meta: dict[str, Any]) -> dict[str, Any]:
         summary = workspace.bank_summary(meta["id"]) if meta.get("status") in {"ready", "pending"} else None
@@ -226,6 +254,8 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
         bank_or_404(bank_id)
         if bank_id.startswith(DEMO_PREFIX):
             raise HTTPException(400, "Demo banks cannot be deleted")
+        if (workspace.bank_meta(bank_id) or {}).get("status") == "building":
+            raise HTTPException(409, "The bank is still being built")
         if not workspace.delete_bank(bank_id):
             raise HTTPException(404, f"No bank {bank_id!r}")
 
@@ -270,7 +300,12 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
             else:
                 workspace.update_run(run_id, status="done", summary=f.result(), finished=now())
 
-        manager.submit(f"run:{run_id}", jobs.run_scenario, (str(zip_path), spec, str(workspace.run_dir(run_id))), done)
+        try:
+            args = (str(zip_path), spec, str(workspace.run_dir(run_id)))
+            manager.submit(f"run:{run_id}", jobs.run_scenario, args, done)
+        except Exception as exc:
+            workspace.update_run(run_id, status="failed", error=_error_text(exc), finished=now())
+            raise HTTPException(503, f"Could not start the run: {_error_text(exc)}") from exc
         return workspace.run_meta(run_id) or meta
 
     @app.get("/api/runs")

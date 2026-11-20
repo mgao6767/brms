@@ -17,6 +17,7 @@ export async function render(main, ctx) {
   );
 
   let timer = null;
+  const sortState = {};
   async function refresh() {
     try {
       const banks = await api.banks();
@@ -35,6 +36,7 @@ export async function render(main, ctx) {
         { key: "status", label: "Status", render: (b) => (b.status === "failed"
           ? h("span", { title: b.error || "" }, chip("failed")) : chip(b.status)) },
       ], banks, {
+        state: sortState,
         onRow: (b) => { location.hash = `#/banks/${encodeURIComponent(b.id)}`; },
         empty: "No banks yet",
       }));

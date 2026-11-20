@@ -1,5 +1,5 @@
 """JSON payload helpers."""
-# ruff: noqa: D103, S101
+# ruff: noqa: D103, S101, PLR2004
 
 from __future__ import annotations
 

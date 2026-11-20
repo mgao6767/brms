@@ -105,9 +105,25 @@ class Workspace:
             return None
         if bank_id in self.demo_banks():
             summary = self.bank_summary(bank_id) or {}
+            error = self.demo_error(bank_id)
+            status = "ready" if summary else "failed" if error else "pending"
             return {"id": bank_id, "name": summary.get("name", bank_id[len(DEMO_PREFIX):]), "source": "demo",
-                    "status": "ready" if summary else "pending", "created": None}
+                    "status": status, "error": error, "created": None}
         return _read(self.banks_dir / bank_id / "meta.json")
+
+    def demo_error(self, bank_id: str) -> str | None:
+        """Return why a demo bank could not be summarised, if it could not."""
+        marker = _read(self.bank_dir(bank_id) / "error.json")
+        return marker.get("error") if marker else None
+
+    def set_demo_error(self, bank_id: str, error: str) -> None:
+        """Record that a demo bank could not be summarised (it is not retried until restart)."""
+        _write(self.bank_dir(bank_id) / "error.json", {"error": error, "at": now()})
+
+    def clear_demo_errors(self) -> None:
+        """Forget summary failures, so a restart (perhaps after regenerating the data) tries again."""
+        for marker in self.cache_dir.glob("*/error.json"):
+            marker.unlink(missing_ok=True)
 
     def bank_summary(self, bank_id: str) -> dict[str, Any] | None:
         """Return the cached summary of a bank, if computed."""
@@ -117,7 +133,7 @@ class Workspace:
         """Return metadata of every bank, demo banks first, then user banks newest first."""
         demos = [self.bank_meta(b) for b in self.demo_banks()]
         users = [_read(p / "meta.json") for p in self.banks_dir.iterdir() if p.is_dir()]
-        users = sorted((m for m in users if m), key=lambda m: m.get("created") or "", reverse=True)
+        users = sorted((m for m in users if m and m.get("id")), key=lambda m: m.get("created") or "", reverse=True)
         return [m for m in (*demos, *users) if m]
 
     def create_bank(self, name: str, source: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -130,11 +146,14 @@ class Workspace:
         _write(folder / "meta.json", meta)
         return meta
 
-    def update_bank(self, bank_id: str, **changes: Any) -> dict[str, Any]:  # noqa: ANN401
-        """Update a user bank's metadata."""
+    def update_bank(self, bank_id: str, **changes: Any) -> dict[str, Any] | None:  # noqa: ANN401
+        """Update a user bank's metadata (nothing happens if the bank was deleted)."""
         with self._lock:
             path = self.banks_dir / bank_id / "meta.json"
-            meta = {**(_read(path) or {}), **changes}
+            current = _read(path)
+            if current is None:
+                return None
+            meta = {**current, **changes}
             _write(path, meta)
             return meta
 
@@ -170,18 +189,21 @@ class Workspace:
             return None
         return _read(self.runs_dir / run_id / "meta.json")
 
-    def update_run(self, run_id: str, **changes: Any) -> dict[str, Any]:  # noqa: ANN401
-        """Update a run's metadata."""
+    def update_run(self, run_id: str, **changes: Any) -> dict[str, Any] | None:  # noqa: ANN401
+        """Update a run's metadata (nothing happens if the run was deleted)."""
         with self._lock:
             path = self.runs_dir / run_id / "meta.json"
-            meta = {**(_read(path) or {}), **changes}
+            current = _read(path)
+            if current is None:
+                return None
+            meta = {**current, **changes}
             _write(path, meta)
             return meta
 
     def runs(self) -> list[dict[str, Any]]:
         """Return every run's metadata, newest first."""
         metas = [_read(p / "meta.json") for p in self.runs_dir.iterdir() if p.is_dir()]
-        return sorted((m for m in metas if m), key=lambda m: m.get("created") or "", reverse=True)
+        return sorted((m for m in metas if m and m.get("id")), key=lambda m: m.get("created") or "", reverse=True)
 
     def delete_run(self, run_id: str) -> bool:
         """Delete a run and its results."""
@@ -193,6 +215,7 @@ class Workspace:
 
     def recover(self) -> None:
         """Mark runs and bank builds that were in progress when the server stopped as failed."""
+        self.clear_demo_errors()
         for meta in self.runs():
             if meta.get("status") in {"queued", "running"}:
                 self.update_run(meta["id"], status="failed", error="Interrupted: the server stopped")

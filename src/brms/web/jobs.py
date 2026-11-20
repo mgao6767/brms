@@ -129,8 +129,15 @@ def summarise_bank(zip_path: str, out: str, unit: float = 1.0) -> dict[str, Any]
         "positions": positions,
         "regulatory": {"aoci_filter": regulatory.aoci_filter, "operational_rwa": float(regulatory.operational_rwa)},
     }
-    Path(out).write_text(json.dumps(summary, default=str))
+    _atomic_write(Path(out), json.dumps(summary, default=str))
     return summary
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    """Write *text* so that a concurrent reader sees the old file or the new one, never half of it."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text)
+    tmp.replace(path)
 
 
 def _zip_name(zip_path: str) -> str:
@@ -177,9 +184,7 @@ def _mark_running(folder: Path) -> None:
         return
     if meta.get("status") == "queued":
         meta["status"] = "running"
-        tmp = path.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps(meta, indent=1, default=str))
-        tmp.replace(path)
+        _atomic_write(path, json.dumps(meta, indent=1, default=str))
 
 
 def run_scenario(zip_path: str, spec: dict[str, Any], folder: str) -> dict[str, Any]:
@@ -203,5 +208,5 @@ def run_scenario(zip_path: str, spec: dict[str, Any], folder: str) -> dict[str, 
     with (out / "result.pkl").open("wb") as handle:
         pickle.dump(result, handle, protocol=pickle.HIGHEST_PROTOCOL)
     payload = run_payload(result)
-    (out / "payload.json").write_text(json.dumps(payload, allow_nan=False, default=str))
+    _atomic_write(out / "payload.json", json.dumps(payload, allow_nan=False, default=str))
     return payload["summary"]

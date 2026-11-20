@@ -25,6 +25,7 @@ export async function render(main, ctx) {
   syncCompare();
 
   let timer = null;
+  const sortState = {};
   async function refresh() {
     try {
       const runs = await api.runs();
@@ -62,6 +63,7 @@ export async function render(main, ctx) {
           render: (r) => money(s(r).unrealised_end?.afs, { unit: r.unit }), cls: (r) => signClass(s(r).unrealised_end?.afs) },
       ], runs, {
         sortKey: "created",
+        state: sortState,
         onRow: (r) => { location.hash = `#/runs/${encodeURIComponent(r.id)}`; },
         empty: "No runs yet. Open a bank and run a scenario.",
       }));

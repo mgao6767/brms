@@ -7,6 +7,11 @@ import { legend } from "./ui.js";
 export const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"];
 const INK = { text: "#e4e7eb", text2: "#b3b9c2", muted: "#7f8792", grid: "#24282e", axis: "#3a3f47", panel: "#171a1e" };
 
+// Tooltips are HTML: everything interpolated into them (series names come from user labels) is escaped.
+export function escapeHtml(text) {
+  return String(text ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
 const live = new Set();
 const observers = new Set();
 
@@ -39,12 +44,13 @@ function tooltipBase(format) {
     formatter(params) {
       const rows = (Array.isArray(params) ? params : [params]).filter((p) => p.value !== null && p.value !== undefined);
       if (!rows.length) return "";
-      const head = `<div style="color:${INK.muted};margin-bottom:3px">${rows[0].axisValueLabel}</div>`;
+      const head = `<div style="color:${INK.muted};margin-bottom:3px">${escapeHtml(rows[0].axisValueLabel)}</div>`;
       return head + rows.map((p) => {
         const value = Array.isArray(p.value) ? p.value[1] : p.value;
         return `<div style="display:flex;gap:14px;justify-content:space-between"><span>`
           + `<span style="display:inline-block;width:8px;height:2px;background:${p.color};margin-right:6px;vertical-align:middle"></span>`
-          + `${p.seriesName}</span><span style="font-variant-numeric:tabular-nums">${format(value)}</span></div>`;
+          + `${escapeHtml(p.seriesName)}</span><span style="font-variant-numeric:tabular-nums">`
+          + `${escapeHtml(format(value))}</span></div>`;
       }).join("");
     },
   };
@@ -120,7 +126,7 @@ export function barChart(container, { labels, values, format, color = SERIES[0] 
     animation: false,
     grid: { left: 8, right: 60, top: 6, bottom: 4, containLabel: true },
     tooltip: { ...tooltipBase(format), trigger: "item", axisPointer: undefined,
-      formatter: (p) => `${p.name}: <b>${format(p.value)}</b>` },
+      formatter: (p) => `${escapeHtml(p.name)}: <b>${escapeHtml(format(p.value))}</b>` },
     xAxis: { type: "value", splitLine: { lineStyle: { color: INK.grid } }, axisLabel: axisLabel(format) },
     yAxis: { type: "category", data: labels, inverse: true, axisTick: { show: false },
       axisLine: { lineStyle: { color: INK.axis } }, axisLabel: { color: INK.text2, fontSize: 11 } },
