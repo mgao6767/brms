@@ -101,6 +101,7 @@ main { flex: 1; overflow: auto; padding: 8px; outline: none; min-width: 0; }
   .cols-2, .cols-3 { grid-template-columns: minmax(0, 1fr); }
   .span-2 { grid-column: auto; }
   .rail { width: 48px; } .rail span { display: none; }
+  .brand-sub { display: none; }
   main { padding: 6px; }
 }
 
@@ -111,7 +112,8 @@ main { flex: 1; overflow: auto; padding: 8px; outline: none; min-width: 0; }
   background: var(--panel-head); border-bottom: 1px solid var(--border); flex: none; }
 .panel-head h2 { margin: 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
   color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.panel-head .note { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.panel-head .note { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0; }
 .panel-head .tools { margin-left: auto; display: flex; gap: 4px; align-items: center; }
 .panel-body { padding: 8px 10px; min-width: 0; }
 .panel-body.flush { padding: 0; }

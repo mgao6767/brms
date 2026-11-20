@@ -3,7 +3,7 @@
 import { api } from "../api.js";
 import { chartBox, lineChart, setMarker } from "../charts.js";
 import { BASIS, GROUP, date, full, humanType, last, money, pct, setUnit, signAt, signClass, unitNote, years } from "../format.js";
-import { chip, dataTable, errorBox, h, kpi, loading, panel, seg, toast } from "../ui.js";
+import { chip, dataTable, errorBox, errorPage, h, kpi, loading, panel, seg, toast } from "../ui.js";
 
 const RATE_TENORS = [["3 Mo", "3M"], ["2 Yr", "2Y"], ["10 Yr", "10Y"]];
 const MAX_STACK = 6;
@@ -19,7 +19,7 @@ export async function render(main, ctx) {
     try {
       data = await api.run(id);
     } catch (error) {
-      if (ctx.alive()) main.replaceChildren(errorBox(error));
+      if (ctx.alive()) main.replaceChildren(errorPage(error));
       return;
     }
     if (!ctx.alive()) return;

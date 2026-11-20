@@ -2,7 +2,7 @@
 
 import { api } from "../api.js";
 import { BASIS, date, datetime, full, humanType, money, pct, setUnit, signAt, signClass, unitNote } from "../format.js";
-import { chip, dataTable, errorBox, h, kpi, loading, panel, toast } from "../ui.js";
+import { chip, dataTable, errorBox, errorPage, h, kpi, loading, panel, toast } from "../ui.js";
 
 const KEY_TENORS = [["3M", 0.25], ["1Y", 1], ["2Y", 2], ["5Y", 5], ["10Y", 10], ["30Y", 30]];
 
@@ -16,7 +16,7 @@ export async function render(main, ctx) {
     try {
       bank = await api.bank(id);
     } catch (error) {
-      if (ctx.alive()) main.replaceChildren(errorBox(error));
+      if (ctx.alive()) main.replaceChildren(errorPage(error));
       return;
     }
     if (!ctx.alive()) return;
@@ -69,7 +69,7 @@ function kpis(bank) {
   const sheet = bank.summary.balance_sheet;
   const equityRatio = sheet.total_assets ? sheet.total_equity / sheet.total_assets : null;
   return h("div", { class: "kpis" },
-    kpi("Total assets", money(sheet.total_assets), { sub: full(sheet.total_assets, 0) }),
+    kpi("Total assets", money(sheet.total_assets), { sub: [full(sheet.total_assets, 0), unitNote()].filter(Boolean).join(" ") }),
     kpi("Total liabilities", money(sheet.total_liabilities)),
     kpi("Equity", money(sheet.total_equity), { sub: `${pct(equityRatio)} of assets` }),
     kpi("Positions", String(bank.summary.positions.filter((p) => p.side === "LONG" && p.basis !== "NA").length),

@@ -168,8 +168,23 @@ def build_from_call_report(request: dict[str, Any], folder: str) -> dict[str, An
 # -- runs --------------------------------------------------------------------------------------------
 
 
+def _mark_running(folder: Path) -> None:
+    """Record in the run's metadata that a worker has started it (the server records the outcome)."""
+    path = folder / "meta.json"
+    try:
+        meta = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return
+    if meta.get("status") == "queued":
+        meta["status"] = "running"
+        tmp = path.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(meta, indent=1, default=str))
+        tmp.replace(path)
+
+
 def run_scenario(zip_path: str, spec: dict[str, Any], folder: str) -> dict[str, Any]:
     """Run a scenario; write ``result.pkl`` and ``payload.json``; return the run summary."""
+    _mark_running(Path(folder))
     import dataclasses
 
     from brms.lab.runner import run

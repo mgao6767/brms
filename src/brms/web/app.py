@@ -84,12 +84,6 @@ class JobManager:
 
         future.add_done_callback(finished)
 
-    def running(self, key: str) -> bool:
-        """Return True while the job *key* has started and not finished."""
-        with self._lock:
-            future = self._futures.get(key)
-        return future is not None and future.running()
-
     def shutdown(self) -> None:
         """Stop accepting jobs and cancel queued ones."""
         self._executor.shutdown(wait=False, cancel_futures=True)
@@ -279,18 +273,13 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
         manager.submit(f"run:{run_id}", jobs.run_scenario, (str(zip_path), spec, str(workspace.run_dir(run_id))), done)
         return workspace.run_meta(run_id) or meta
 
-    def live(meta: dict[str, Any]) -> dict[str, Any]:
-        if meta.get("status") == "queued" and manager.running(f"run:{meta['id']}"):
-            return {**meta, "status": "running"}
-        return meta
-
     @app.get("/api/runs")
     def list_runs() -> list[dict[str, Any]]:
-        return [live(m) for m in workspace.runs()]
+        return workspace.runs()
 
     @app.get("/api/runs/{run_id}")
     def get_run(run_id: str) -> dict[str, Any]:
-        meta = live(run_or_404(run_id))
+        meta = run_or_404(run_id)
         out: dict[str, Any] = {"meta": meta}
         payload_path = workspace.run_dir(run_id) / "payload.json"
         if meta.get("status") == "done" and payload_path.exists():

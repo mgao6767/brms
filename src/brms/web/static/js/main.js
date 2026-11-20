@@ -91,7 +91,10 @@ async function route() {
     cleanup = (await view.render(main, ctx)) || null;
     if (mine !== generation && cleanup) { cleanup(); cleanup = null; }
   } catch (error) {
-    if (mine === generation) main.replaceChildren(errorBox(error));
+    if (mine === generation) {
+      main.replaceChildren(errorBox(error), h("p", {}, h("a", { href: "#/banks" }, "Back to banks"), " \u00B7 ",
+        h("a", { href: "#/runs" }, "All runs")));
+    }
   }
   drawTabs();
 }

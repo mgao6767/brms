@@ -119,6 +119,12 @@ export function errorBox(error) {
   return h("div", { class: "error" }, error instanceof Error ? error.message : String(error));
 }
 
+/** An error with links back to the lists (for pages whose subject could not be loaded). */
+export function errorPage(error) {
+  return h("div", {}, errorBox(error), h("p", {}, h("a", { href: "#/banks" }, "Back to banks"), " \u00B7 ",
+    h("a", { href: "#/runs" }, "All runs")));
+}
+
 export function legend(items) {
   return h("div", { class: "legend" }, items.map(({ name, color }) =>
     h("span", {}, h("i", { style: { background: color } }), name)));

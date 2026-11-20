@@ -39,3 +39,15 @@ def test_describe(spec: dict, label: str) -> None:
 def test_negative_ramp_is_rejected() -> None:
     with pytest.raises(jobs.SpecError, match="ramp_days"):
         jobs.scenario_from_spec({"kind": "parallel", "bp": 100, "ramp_days": -1})
+
+
+def test_worker_marks_its_run_as_started(tmp_path: Path) -> None:
+    from brms.web.workspace import Workspace
+
+    workspace = Workspace(tmp_path)
+    meta = workspace.create_run({"id": "demo-x", "name": "x"}, {"kind": "historical"})
+    jobs._mark_running(workspace.run_dir(meta["id"]))  # noqa: SLF001
+    assert workspace.run_meta(meta["id"])["status"] == "running"
+    workspace.update_run(meta["id"], status="done")
+    jobs._mark_running(workspace.run_dir(meta["id"]))  # noqa: SLF001
+    assert workspace.run_meta(meta["id"])["status"] == "done"  # never overwrites an outcome

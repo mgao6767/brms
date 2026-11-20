@@ -19,6 +19,7 @@ LOAN_TYPES = frozenset({
 })
 _SECTIONS = ("assets", "liabilities", "equity")
 _HALF_CENT = 0.005
+_NOISE = 1e-9
 
 
 def _clean(value: Any) -> Any:  # noqa: ANN401
@@ -31,7 +32,11 @@ def _clean(value: Any) -> Any:  # noqa: ANN401
         number = float(value)
     except (TypeError, ValueError):
         return value
-    return None if math.isnan(number) or math.isinf(number) else number
+    if math.isnan(number) or math.isinf(number):
+        return None
+    # Amounts that cancel to within rounding noise (an emptied receivable at -1e-11) are zero; a
+    # negative speck would otherwise be stacked on the wrong side of a chart's axis.
+    return 0.0 if abs(number) < _NOISE else number
 
 
 def _series(frame: pd.DataFrame | pd.Series, index: pd.DatetimeIndex) -> list[Any]:
