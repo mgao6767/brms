@@ -41,7 +41,27 @@ def main(argv: list[str] | None = None) -> int:
     build_cmd.add_argument("--benchmarks", type=Path, default=DEFAULT_DATA_FOLDER / "prime_rates.csv",
                            help="Prime rate CSV (DPRIME), used for variable-rate loans")
     build_cmd.add_argument("--out", type=Path, required=True, help="simulation zip to write")
+    report_cmd = commands.add_parser("call-report", help="write a bank file from a US bank's Call Report (FDIC)")
+    report_cmd.add_argument("--cert", type=int, required=True, help="FDIC certificate number (e.g. 24735)")
+    report_cmd.add_argument("--date", required=True, help="quarter-end report date, e.g. 2021-12-31")
+    report_cmd.add_argument("--ltv", type=float, default=0.8, help="loan-to-value assumed for 1-4 family loans")
+    report_cmd.add_argument("--no-aoci-filter", action="store_true", help="include AOCI in CET1")
+    report_cmd.add_argument("--out", type=Path, required=True, help="bank.json to write")
     args = parser.parse_args(argv)
+
+    if args.command == "call-report":
+        import datetime
+
+        from brms.lab import call_report
+        from brms.lab.bank_file import default_market_frames, prime_on
+
+        items = call_report.fetch_call_report(args.cert, args.date)
+        prime = prime_on(default_market_frames(), datetime.date.fromisoformat(args.date))
+        bank = call_report.bank_file_from_call_report(items, prime=prime, ltv=args.ltv,
+                                                      aoci_filter=not args.no_aoci_filter)
+        args.out.write_text(json.dumps(bank, indent=2))
+        sys.stdout.write(f"Wrote {args.out} ({bank['name']})\n")
+        return 0
 
     if args.command == "build-bank":
         import pandas as pd

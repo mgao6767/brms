@@ -52,6 +52,25 @@ if TYPE_CHECKING:
 _POSITION_KEYS = frozenset({"id", "basis", "book", "amortized_cost", "fair_value", "side"})
 
 
+def default_market_frames() -> dict[str, pd.DataFrame]:
+    """Return the packaged market data: Treasury CMT yields and the Prime rate."""
+    from brms.data import DEFAULT_DATA_FOLDER
+
+    return {
+        "yields": pd.read_csv(DEFAULT_DATA_FOLDER / "treasury_yields.csv", index_col="date", parse_dates=True),
+        "benchmarks": pd.read_csv(DEFAULT_DATA_FOLDER / "prime_rates.csv", index_col="date", parse_dates=True),
+    }
+
+
+def prime_on(market_frames: dict[str, pd.DataFrame], date: datetime.date) -> float:
+    """Return the Prime rate (decimal) in force on *date*."""
+    series = market_frames["benchmarks"]["DPRIME"].loc[: pd.Timestamp(date)].dropna()
+    if series.empty:
+        msg = f"No Prime rate on or before {date}"
+        raise SimulationDataError(msg)
+    return float(series.iloc[-1]) / 100
+
+
 def _require(entry: dict[str, Any], key: str) -> Decimal:
     if entry.get(key) is None:
         msg = f"Position {entry.get('id')!r} ({entry.get('basis')}) needs {key!r}"

@@ -73,4 +73,5 @@ result.metrics["CET1_RATIO"].plot()
   AT1 and Tier 2 are inputs.
 - Deposits reprice overnight for EVE and NII sensitivity.
 
-See [the SVB case](svb.md) for how close this gets on a real bank.
+See [the SVB case](svb.md) for how close this gets on a real bank, and [Call Reports](call_report.md)
+to load any US bank from its regulatory filing.
