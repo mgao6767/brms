@@ -1,5 +1,5 @@
-"""Credit risk RWA: standardised approach risk-weight tables (rebuilt on current stores in step 3)."""
+"""Credit risk RWA: standardised-approach risk-weight tables and the exposure classifier."""
 
-from .standardised_approach import StandardisedApproach
+from .exposures import CreditRWA, ExposureClass, RWALine, classify, credit_rwa
 
-__all__ = ["StandardisedApproach"]
+__all__ = ["CreditRWA", "ExposureClass", "RWALine", "classify", "credit_rwa"]

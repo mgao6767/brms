@@ -166,9 +166,17 @@ class Mortgage(AmortizingFixedRateLoan):
     _instrument_type_enum = InstrumentType.MORTGAGE
     _default_frequency = ql.Monthly
 
-    def __init__(self, *, frequency: int = ql.Monthly, **kwargs: object) -> None:  # type: ignore[assignment]
-        """Initialize a mortgage with monthly payment frequency by default."""
+    def __init__(self, *, frequency: int = ql.Monthly, ltv: float | None = None, **kwargs: object) -> None:  # type: ignore[assignment]
+        """Initialize a mortgage with monthly payment frequency by default.
+
+        Args:
+            frequency: Payment frequency (QuantLib frequency), monthly by default.
+            ltv: Loan-to-value ratio at origination, as a fraction; used for the credit risk weight.
+            **kwargs: Passed to :class:`AmortizingFixedRateLoan`.
+
+        """
         super().__init__(frequency=frequency, **kwargs)  # type: ignore[arg-type]
+        self.ltv = ltv
 
 
 class ResidentialMortgage(Mortgage):

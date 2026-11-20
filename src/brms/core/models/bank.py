@@ -45,7 +45,7 @@ class BookView:
 class Bank:
     """Holds instruments, positions, and ledger. No business logic."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         name: str,
         instruments: InstrumentStore,

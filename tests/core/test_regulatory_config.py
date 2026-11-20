@@ -5,13 +5,16 @@ from __future__ import annotations
 
 import datetime
 from decimal import Decimal
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from brms.core.models.regulatory import RegulatoryConfig
 from brms.core.services import build_core_services
 from brms.core.services.simulation_builder import BuildConfig, SimulationBuilder
 from brms.core.services.snapshot_writer import save_snapshot
 from tests.support.engine import flat_yields, funding
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_default_regulatory_config() -> None:

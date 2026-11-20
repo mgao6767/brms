@@ -36,12 +36,7 @@ def default_instrument_registry() -> InstrumentRegistry:
         CommercialMortgage,
         Mortgage,
         ResidentialMortgage,
-        VariableRateLoan,
     )
-    from brms.core.models.instruments.registry import CorporateInstrumentRegistry, LoanInstrumentRegistry
-
-    LoanInstrumentRegistry.register(VariableRateLoan)
-    CorporateInstrumentRegistry.register(VariableRateLoan)
 
     registry = InstrumentRegistry()
     for type_id, cls in [
