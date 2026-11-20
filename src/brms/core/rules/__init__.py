@@ -2,7 +2,7 @@
 
 from brms.core.rules.amortization import AmortizationRule
 from brms.core.rules.coupon import CouponPaymentRule
-from brms.core.rules.deposit_interest import DepositInterestAccrualRule, DepositInterestSettlementRule
+from brms.core.rules.deposit_interest import DepositFlowRule, DepositInterestAccrualRule, DepositInterestSettlementRule
 from brms.core.rules.effective_interest import EffectiveInterestRule
 from brms.core.rules.interest_accrual import InterestIncomeAccrualRule
 from brms.core.rules.loan_interest_settlement import LoanInterestSettlementRule
@@ -24,6 +24,7 @@ def default_rules() -> dict[type, object]:
         AmortizationRule: AmortizationRule(),
         DepositInterestAccrualRule: DepositInterestAccrualRule(),
         DepositInterestSettlementRule: DepositInterestSettlementRule(),
+        DepositFlowRule: DepositFlowRule(),
         InterestIncomeAccrualRule: InterestIncomeAccrualRule(),
         EffectiveInterestRule: EffectiveInterestRule(),
         LoanInterestSettlementRule: LoanInterestSettlementRule(),

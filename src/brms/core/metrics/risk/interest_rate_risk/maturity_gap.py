@@ -73,7 +73,8 @@ class MaturityGapModel:
 
             # Bonds and loans carry a valuation; deposits and other unvalued holdings sit at their balance.
             if position.measurement_basis == MeasurementBasis.NA:
-                value = float(position.acquisition_cost)
+                balance = valuation_store.get(position.id, date, ValuationType.CARRYING_VALUE)
+                value = float(balance if balance is not None else position.acquisition_cost)
             else:
                 cv = valuation_store.get(position.id, date, ValuationType.CARRYING_VALUE)
                 if cv is None:
