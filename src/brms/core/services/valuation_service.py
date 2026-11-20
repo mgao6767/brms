@@ -43,6 +43,17 @@ class ValuationService:
         """The shared discount and forwarding handle, linked to the latest market day's curve."""
         return self._yield_handle
 
+    def prepare(self, date: datetime.date, market_data: MarketDataStore) -> None:
+        """Link the curve of the last market day on or before *date* (and sync fixings), recording nothing.
+
+        Used after loading a snapshot so that a first simulated day without market data (a weekend
+        or holiday) still has a curve for floating-rate forecasts.
+        """
+        days = [d for d in market_data.available_dates() if d <= date]
+        if days:
+            self._context.update(days[-1], market_data, has_market_data=True)
+        self._context.update(date, market_data, has_market_data=False)
+
     def register_strategy(self, measurement_basis: MeasurementBasis, strategy: ValuationStrategy) -> None:
         """Register *strategy* for positions of *measurement_basis*."""
         self._strategies[measurement_basis] = strategy
