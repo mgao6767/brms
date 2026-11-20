@@ -26,6 +26,7 @@ def _position_record(position: Position) -> dict[str, object]:
         "acquisition_date": position.acquisition_date.isoformat(),
         "acquisition_cost": str(position.acquisition_cost),
         "status": position.status.name,
+        "spread": None if position.spread is None else str(position.spread),
     }
 
 

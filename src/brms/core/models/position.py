@@ -24,3 +24,5 @@ class Position:
     acquisition_date: datetime.date
     acquisition_cost: Decimal
     status: PositionStatus = field(default=PositionStatus.OPEN)
+    # Credit spread over the discount curve (continuous zero-rate, decimal); None values on the curve itself.
+    spread: Decimal | None = None

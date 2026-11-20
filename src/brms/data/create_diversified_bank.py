@@ -479,6 +479,7 @@ def create_diversified_zip(data_folder: Path, out_path: Path | None = None) -> P
             instruments=instruments,
             positions=positions,
             market_frames={"yields": yields_df, "benchmarks": prime_df},
+            calibrate_spreads=True,
             benchmark_service=benchmark_service,
         ),
     )

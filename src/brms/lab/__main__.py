@@ -7,6 +7,8 @@ import json
 import sys
 from pathlib import Path
 
+from brms.data import DEFAULT_DATA_FOLDER
+from brms.lab.bank_file import build_bank
 from brms.lab.runner import run_many
 from brms.lab.scenarios import parse_scenario
 
@@ -32,7 +34,24 @@ def main(argv: list[str] | None = None) -> int:
     run_cmd.add_argument("--months", type=int, default=None, help="horizon in months from the start date")
     run_cmd.add_argument("--workers", type=int, default=None, help="worker processes")
     run_cmd.add_argument("--out", type=Path, default=Path("results"), help="output folder")
+    build_cmd = commands.add_parser("build-bank", help="build a simulation zip from a point-in-time bank file")
+    build_cmd.add_argument("bank_file", type=Path, help="bank.json")
+    build_cmd.add_argument("--yields", type=Path, default=DEFAULT_DATA_FOLDER / "treasury_yields.csv",
+                           help="Treasury CMT yields CSV (percent, date-indexed)")
+    build_cmd.add_argument("--benchmarks", type=Path, default=DEFAULT_DATA_FOLDER / "prime_rates.csv",
+                           help="Prime rate CSV (DPRIME), used for variable-rate loans")
+    build_cmd.add_argument("--out", type=Path, required=True, help="simulation zip to write")
     args = parser.parse_args(argv)
+
+    if args.command == "build-bank":
+        import pandas as pd
+
+        frames = {"yields": pd.read_csv(args.yields, index_col="date", parse_dates=True)}
+        if args.benchmarks and args.benchmarks.exists():
+            frames["benchmarks"] = pd.read_csv(args.benchmarks, index_col="date", parse_dates=True)
+        build_bank(args.bank_file, frames, args.out)
+        sys.stdout.write(f"Created {args.out}\n")
+        return 0
 
     scenarios = [parse_scenario(s) for s in (args.scenario or ["historical"])]
     results = run_many(args.simulation, scenarios, workers=args.workers, months=args.months)
