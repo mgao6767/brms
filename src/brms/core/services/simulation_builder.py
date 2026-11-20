@@ -61,6 +61,9 @@ class BuildConfig:
     # Calibrate each bond and loan position's credit spread on its acquisition date so that it is
     # worth what was paid (removes the first-mark jump of non-Treasury instruments).
     calibrate_spreads: bool = False
+    # Optional dirty value per position id to calibrate to instead of the acquisition cost
+    # (e.g. a reported fair value plus accrued interest).
+    spread_targets: dict[str, Decimal] = field(default_factory=dict)
 
 
 @dataclass
@@ -149,7 +152,8 @@ class SimulationBuilder:
         for inst, pos in self._group_by_date(config).get(day, []):
             if pos.measurement_basis == MeasurementBasis.NA or pos.spread is not None:
                 continue
-            pos.spread = calibrate_spread(inst.ql_instrument.cashflows(), handle, day, Decimal(pos.acquisition_cost))
+            target = config.spread_targets.get(pos.id, Decimal(pos.acquisition_cost))
+            pos.spread = calibrate_spread(inst.ql_instrument.cashflows(), handle, day, target)
 
     def _add_positions_on(
         self,
