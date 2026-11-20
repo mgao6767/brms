@@ -23,6 +23,7 @@ def _make_instrument(maturity_date: datetime.date | None) -> MagicMock:
     inst.id = "bond-1"
     inst.maturity_date = maturity_date
     inst.face_value = Decimal("1000000")
+    inst.payment_schedule.return_value = [] if maturity_date is None else [(maturity_date, 1000000.0)]
     return inst
 
 
@@ -79,9 +80,9 @@ def test_applies_with_exact_match() -> None:
     assert rule.applies_to(inst, MagicMock(), ctx)
 
 
-def test_applies_when_already_matured() -> None:
-    """Rule should apply when maturity date is before the current date (catch-up)."""
+def test_does_not_apply_after_redemption_date() -> None:
+    """Rule fires only on the redemption payment date, never again afterwards."""
     rule = MaturityRule()
     inst = _make_instrument(datetime.date(2024, 6, 15))
     ctx = _ctx(datetime.date(2024, 6, 17), previous_date=datetime.date(2024, 6, 14))
-    assert rule.applies_to(inst, MagicMock(), ctx)
+    assert not rule.applies_to(inst, MagicMock(), ctx)

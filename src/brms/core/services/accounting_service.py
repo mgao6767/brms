@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar
 
 from brms.core.enums import InterestSide, MeasurementBasis, TransactionType, TxMeta
+from brms.core.exceptions import ValuationError
 from brms.core.models.accounting.journal import CompoundEntry, SimpleEntry
 
 if TYPE_CHECKING:
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
     from brms.core.models.accounting.ledger import Ledger
     from brms.core.models.transaction import Transaction
     from brms.core.stores.position_store import PositionStore
+
+_CENT = 0.01
 
 
 class AccountingService:
@@ -58,8 +61,11 @@ class AccountingService:
             ledger.post(entry)
 
     def _update_positions(self, tx: Transaction, position_store: PositionStore) -> None:
-        """Close positions on maturity or sale transactions."""
-        if tx.type in (TransactionType.MATURITY_SETTLEMENT, TransactionType.SECURITY_SALE) and tx.position_id:
+        """Close positions on maturity, sale, or a loan's final principal payment."""
+        if not tx.position_id:
+            return
+        closing = tx.type in (TransactionType.MATURITY_SETTLEMENT, TransactionType.SECURITY_SALE)
+        if closing or dict(tx.metadata).get(TxMeta.FINAL_PAYMENT):
             position_store.close(tx.position_id)
 
     def _map_to_entries(self, transaction: Transaction, ledger: Ledger) -> list[JournalEntry]:  # noqa: C901, PLR0911, PLR0912
@@ -367,85 +373,31 @@ class AccountingService:
         )
         return [entry]
 
-    # Unrealized/realized account pairs per measurement basis
-    _UNREALIZED_GAIN: ClassVar[dict[MeasurementBasis, str]] = {
-        MeasurementBasis.FVTPL: "Unrealized Trading Gain",
-        MeasurementBasis.FVOCI: "Unrealized OCI Gain",
-    }
-    _UNREALIZED_LOSS: ClassVar[dict[MeasurementBasis, str]] = {
-        MeasurementBasis.FVTPL: "Unrealized Trading Loss",
-        MeasurementBasis.FVOCI: "Unrealized OCI Loss",
-    }
-    _REALIZED_GAIN: ClassVar[dict[MeasurementBasis, str]] = {
-        MeasurementBasis.FVTPL: "Realized Trading Gain",
-        MeasurementBasis.FVOCI: "Realized OCI Gain",
-    }
-    _REALIZED_LOSS: ClassVar[dict[MeasurementBasis, str]] = {
-        MeasurementBasis.FVTPL: "Realized Trading Loss",
-        MeasurementBasis.FVOCI: "Realized OCI Loss",
-    }
-
     def _maturity_settlement(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
-        """MATURITY_SETTLEMENT: settle at face value and reclassify unrealized to realized.
+        """MATURITY_SETTLEMENT: Dr Cash face, Cr the position's investment account face.
 
-        For HTM/amortized cost: simple Dr Cash / Cr Investment at face value.
+        By the maturity date the position's carrying value has been brought to face value for
+        every measurement basis (amortisation and the final mark), so no gain or loss arises.
 
-        For FVTPL/FVOCI (carrying value = fair value ≠ face value):
+        Raises:
+            ValuationError: the carrying value in the transaction is not face value.
 
-        Entry 1 - Settlement: Dr Cash (face), Cr Investment (carrying).
-        Entry 2 - Reclassify gross unrealized gain to realized.
-        Entry 3 - Reclassify gross unrealized loss to realized.
-
-        After all entries, the total realized gain/loss = face - acquisition
-        (the true economic result), and the unrealized accounts no longer
-        contain this position's contributions.
         """
-        cash = self._lookup(ledger, "Cash and Cash Equivalents")
-        investment = self._resolve_investment_account(tx, ledger)
-        face_value = float(tx.amount)
-        carrying_value = investment.balance()
-
-        basis = dict(tx.metadata).get(TxMeta.MEASUREMENT_BASIS)
-
-        # HTM / amortized cost — simple entry
-        if basis not in self._REALIZED_GAIN:
-            return [SimpleEntry(
-                debit_account=cash,
-                credit_account=investment,
-                value=face_value,
-                date=tx.date,
-                description=f"Maturity settlement (tx={tx.id})",
-            )]
-
-        entries: list[JournalEntry] = []
-        _tol = 0.01
-
-        # Entry 1: Settlement — Dr Cash (face), Cr Investment (carrying)
-        if abs(face_value - carrying_value) < _tol:
-            entries.append(SimpleEntry(
-                debit_account=cash,
-                credit_account=investment,
-                value=face_value,
-                date=tx.date,
-                description=f"Maturity settlement (tx={tx.id})",
-            ))
-        else:
-            diff = face_value - carrying_value
-            debit_accounts: dict = {cash: face_value}
-            credit_accounts: dict = {investment: carrying_value}
-            # The residual goes to realized gain/loss
-            if diff > 0:
-                credit_accounts[self._lookup(ledger, self._REALIZED_GAIN[basis])] = diff
-            else:
-                debit_accounts[self._lookup(ledger, self._REALIZED_LOSS[basis])] = -diff
-            entries.append(CompoundEntry(
-                debit_accounts=debit_accounts,
-                credit_accounts=credit_accounts,
-                date=tx.date,
-                description=f"Maturity settlement (tx={tx.id})",
-            ))
-
-        return entries
+        face = float(tx.amount)
+        carrying_str = dict(tx.metadata).get(TxMeta.CARRYING_VALUE)
+        if carrying_str is None or abs(float(carrying_str) - face) > _CENT:
+            msg = (
+                f"Position {tx.position_id} matures at face {face:.2f} but its carrying value is "
+                f"{carrying_str} (tx={tx.id})"
+            )
+            raise ValuationError(msg)
+        return [SimpleEntry(
+            debit_account=self._lookup(ledger, "Cash and Cash Equivalents"),
+            credit_account=self._resolve_investment_account(tx, ledger),
+            value=face,
+            date=tx.date,
+            description=f"Maturity settlement (tx={tx.id})",
+        )]
 
     def _interest_accrual(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
         """INTEREST_ACCRUAL: accrue interest without cash movement.

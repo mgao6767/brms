@@ -48,7 +48,7 @@ def test_post_all_closes_position_on_maturity() -> None:
         date=datetime.date(2024, 1, 1),
         amount=Decimal("100000"),
         position_id="pos-1",
-        metadata=[(TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST)],
+        metadata=[(TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST), (TxMeta.CARRYING_VALUE, "100000")],
     )
     service.post_all([tx], ledger, positions)
     positions.close.assert_called_with("pos-1")

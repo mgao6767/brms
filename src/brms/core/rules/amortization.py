@@ -6,7 +6,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import PositionSide
+from brms.core.enums import PositionSide, TxMeta
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
@@ -63,6 +63,9 @@ class AmortizationRule:
         if amount == 0:
             amount = Decimal(str(getattr(instrument, "periodic_payment", "0")))
 
+        metadata: tuple[tuple[TxMeta, object], ...] = ()
+        if callable(schedule) and _last_principal_date(instrument) == context.date:
+            metadata = ((TxMeta.FINAL_PAYMENT, True),)
         return [
             Transaction(
                 id=str(uuid.uuid4()),
@@ -71,5 +74,13 @@ class AmortizationRule:
                 amount=amount,
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
+                metadata=metadata,
             ),
         ]
+
+
+def _last_principal_date(instrument: Instrument) -> object:
+    result = instrument.payment_schedule()  # type: ignore[attr-defined]
+    if isinstance(result, tuple) and len(result) == 3 and result[1]:  # noqa: PLR2004
+        return result[1][-1][0]
+    return None

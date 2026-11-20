@@ -7,6 +7,7 @@ from decimal import Decimal
 import pytest
 
 from brms.core.enums import MeasurementBasis, TxMeta
+from brms.core.exceptions import ValuationError
 
 from brms.core.models.accounting.accounts import (
     AccountType,
@@ -535,12 +536,27 @@ def test_maturity_settlement_htm() -> None:
         type=TransactionType.MATURITY_SETTLEMENT,
         date=datetime.date(2025, 1, 1),
         amount=Decimal("100000"),
-        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST), (TxMeta.CARRYING_VALUE, "100000")),
     )
     service.post(purchase_tx, ledger)
     service.post(maturity_tx, ledger)
     assert coa.investment_htm_account.balance() == 0.0
     assert coa.cash_account.balance() == 500_000.0
+
+
+def test_maturity_settlement_rejects_carrying_value_away_from_face() -> None:
+    """A maturing position whose carrying value is not face value is an error, not a balancing entry."""
+    ledger, _coa = _make_full_ledger()
+    tx = Transaction(
+        id="tx-mat-bad",
+        type=TransactionType.MATURITY_SETTLEMENT,
+        date=datetime.date(2025, 1, 1),
+        amount=Decimal("100000"),
+        position_id="pos-x",
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVTPL), (TxMeta.CARRYING_VALUE, "99000")),
+    )
+    with pytest.raises(ValuationError, match="pos-x"):
+        AccountingService().post(tx, ledger)
 
 
 def test_maturity_settlement_fvoci() -> None:
@@ -559,7 +575,7 @@ def test_maturity_settlement_fvoci() -> None:
         type=TransactionType.MATURITY_SETTLEMENT,
         date=datetime.date(2025, 1, 1),
         amount=Decimal("70000"),
-        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVOCI),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVOCI), (TxMeta.CARRYING_VALUE, "70000")),
     )
     service.post(purchase_tx, ledger)
     service.post(maturity_tx, ledger)
@@ -598,7 +614,7 @@ ROUND_TRIP_CASES = [
     ("sec_buy_fvtpl", TransactionType.SECURITY_PURCHASE, Decimal("10000"), _TPL),
     ("principal", TransactionType.PRINCIPAL_PAYMENT, Decimal("5000"), ()),
     ("amortization", TransactionType.AMORTIZATION, Decimal("3000"), ()),
-    ("maturity_htm", TransactionType.MATURITY_SETTLEMENT, Decimal("100000"), _AC),
+    ("maturity_htm", TransactionType.MATURITY_SETTLEMENT, Decimal("100000"), (*_AC, (TxMeta.CARRYING_VALUE, "100000"))),
 ]
 
 
