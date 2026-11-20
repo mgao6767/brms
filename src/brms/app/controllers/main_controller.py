@@ -167,7 +167,8 @@ class MainController(BRMSController):
         self.dashboard_ctrl.init()
         self.yield_curve_ctrl.init()
         self.interest_rate_tab_ctrl.init()
-        self.interest_rate_risk_ctrl.init(start_date)
+        # The loaded snapshot is valued as of the day before the start date (the current date).
+        self.interest_rate_risk_ctrl.init(services.simulation_service.current_date)
 
         # Advance first day so dashboard metrics and plots are populated
         self.on_advance()

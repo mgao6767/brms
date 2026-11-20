@@ -205,7 +205,9 @@ class SimulationBuilder:
             ),
             rule_engine=RuleEngine(default_rules()),
             accounting_service=accounting_service,
-            metrics_service=MetricsService(MetricRegistry(default_metrics(ReportingService(), metric_store))),
+            metrics_service=MetricsService(
+                MetricRegistry(default_metrics(ReportingService(), metric_store, shared_yield_handle)),
+            ),
             valuation_store=ValuationStore(),
             metric_store=metric_store,
             transaction_log=TransactionLog(),

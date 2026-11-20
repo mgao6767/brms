@@ -93,7 +93,7 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
 
     valuation_store = ValuationStore()
     metric_store = MetricStore()
-    metric_registry = MetricRegistry(default_metrics(reporting_service, metric_store))
+    metric_registry = MetricRegistry(default_metrics(reporting_service, metric_store, shared_yield_handle))
     metrics_service = MetricsService(metric_registry)
     transaction_log = TransactionLog()
 

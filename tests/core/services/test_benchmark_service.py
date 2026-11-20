@@ -63,3 +63,28 @@ class TestBenchmarkServiceSync:
         benchmark_service.sync_up_to(datetime.date(2024, 1, 5), market_data_with_prime)
         benchmark_service.reset()
         assert benchmark_service._last_synced_date is None
+
+
+def test_prime_index_forwards_on_a_handle_linked_after_construction() -> None:
+    """An empty relinkable handle is falsy in QuantLib; the index must still keep it."""
+    import QuantLib as ql  # noqa: N813
+
+    from brms.core.models.benchmarks import PrimeIndex
+
+    handle = ql.RelinkableYieldTermStructureHandle()
+    index = PrimeIndex(forwarding=handle)
+    today = ql.Date(15, 3, 2021)
+    ql.Settings.instance().evaluationDate = today
+    handle.linkTo(ql.FlatForward(today, 0.03, ql.Actual365Fixed()))
+    future = ql.Date(15, 6, 2021)
+    assert index.fixing(future) > 0  # noqa: S101
+
+
+def test_engine_shares_one_handle_for_discounting_and_prime_forecasts() -> None:
+    """The valuation service must keep the shared (initially empty, so falsy) handle it is given."""
+    import QuantLib as ql  # noqa: N813
+
+    from brms.core.services.valuation_service import ValuationService
+
+    handle = ql.RelinkableYieldTermStructureHandle()
+    assert ValuationService(yield_handle=handle)._yield_handle is handle  # noqa: S101, SLF001

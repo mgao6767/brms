@@ -33,7 +33,8 @@ class ValuationService:
         yield_handle: ql.RelinkableYieldTermStructureHandle | None = None,
     ) -> None:
         """Initialise with an optional strategy mapping and a shared context."""
-        self._yield_handle = yield_handle or ql.RelinkableYieldTermStructureHandle()
+        # An empty handle is falsy in QuantLib, so test for None explicitly.
+        self._yield_handle = yield_handle if yield_handle is not None else ql.RelinkableYieldTermStructureHandle()
         self._strategies: dict[MeasurementBasis, ValuationStrategy] = dict(strategies) if strategies else {}
         self._context: ValuationContext = ValuationContext(self._yield_handle, benchmark_service=benchmark_service)
 

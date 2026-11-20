@@ -54,5 +54,5 @@ class PrimeIndex(ql.IborIndex):
             ql.ModifiedFollowing,
             end_of_month,
             ql.Actual365Fixed(),
-            forwarding or ql.YieldTermStructureHandle(),
+            forwarding if forwarding is not None else ql.YieldTermStructureHandle(),
         )

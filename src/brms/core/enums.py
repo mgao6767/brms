@@ -105,6 +105,12 @@ class MetricName(Enum):
     NET_INTEREST_MARGIN = auto()
     ROA = auto()
     ROE = auto()
+    EVE = auto()
+    DELTA_EVE_WORST = auto()
+    DELTA_EVE_WORST_TO_TIER1 = auto()
+    ASSET_DURATION = auto()
+    NII_SENSITIVITY_UP = auto()
+    NII_SENSITIVITY_DOWN = auto()
 
 
 class TxMeta(Enum):

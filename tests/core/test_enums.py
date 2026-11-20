@@ -18,7 +18,7 @@ EXPECTED_POSITION_STATUS_COUNT = 2
 EXPECTED_MEASUREMENT_BASIS_COUNT = 4
 EXPECTED_VALUATION_TYPE_COUNT = 5
 EXPECTED_TRANSACTION_TYPE_COUNT = 19
-EXPECTED_METRIC_NAME_COUNT = 18
+EXPECTED_METRIC_NAME_COUNT = 24
 
 
 class TestInstrumentType:
@@ -176,6 +176,12 @@ class TestMetricName:
             "NET_INTEREST_MARGIN",
             "ROA",
             "ROE",
+            "EVE",
+            "DELTA_EVE_WORST",
+            "DELTA_EVE_WORST_TO_TIER1",
+            "ASSET_DURATION",
+            "NII_SENSITIVITY_UP",
+            "NII_SENSITIVITY_DOWN",
         }
         actual_members = {member.name for member in MetricName}
         assert actual_members == expected_members  # noqa: S101
