@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import InstrumentType, MeasurementBasis, TransactionType, TxMeta
+from brms.core.enums import InstrumentType, MeasurementBasis, TransactionType, TxMeta, ValuationType
 from brms.core.exceptions import UnsupportedPositionError
 from brms.core.models.transaction import Transaction
 from brms.core.services.amortized_cost import AmortizedCostCalculator
@@ -25,6 +25,14 @@ if TYPE_CHECKING:
     from brms.core.services.simulation_service import SimulationService
 
 _ZERO_THRESHOLD = 1e-10
+
+# Snapshot valuation keys (balances.json "valuations") and the valuation types they hold.
+_SNAPSHOT_VALUATIONS = {
+    "carrying_value": ValuationType.CARRYING_VALUE,
+    "fair_value": ValuationType.FAIR_VALUE,
+    "amortized_cost": ValuationType.AMORTIZED_COST,
+    "accrued_interest": ValuationType.ACCRUED_INTEREST,
+}
 
 _LOAN_TYPES = frozenset({
     InstrumentType.RESIDENTIAL_MORTGAGE,
@@ -68,7 +76,11 @@ class SimulationBuilder:
         if late:
             msg = f"Positions acquired after the start date {config.start_date} are not supported: {late}"
             raise UnsupportedPositionError(msg)
-        sim, calculator = self._replay(config, config.start_date - datetime.timedelta(days=1), None)
+        snapshot_date = config.start_date - datetime.timedelta(days=1)
+        sim, calculator = self._replay(config, snapshot_date, None)
+        # Close the books so the snapshot holds only permanent accounts: the loaded
+        # simulation's income statement then starts from zero on the start date.
+        sim.bank.ledger.close_ledger(snapshot_date)
         self._add_positions_on(config.start_date, config, sim, calculator)
         coa = sim.bank.ledger.chart_of_accounts
         balances = self._extract_balances(coa)
@@ -209,31 +221,19 @@ class SimulationBuilder:
         bank: Bank,
         start_date: datetime.date,
     ) -> dict[str, dict[str, float]]:
-        """Extract per-position valuations at the snapshot date (start_date - 1).
+        """Extract each open position's valuations at the snapshot date (start_date - 1).
 
-        Returns {position_id: {"fair_value": X, "carrying_value": Y}} for each open position.
+        Returns ``{position_id: {"carrying_value", "fair_value", "amortized_cost",
+        "accrued_interest"}}`` with the keys valuation recorded for that position.
         """
-        from brms.core.enums import ValuationType
-
         snapshot_date = start_date - datetime.timedelta(days=1)
         result: dict[str, dict[str, float]] = {}
         for pos in bank.positions.open_positions():
             entry: dict[str, float] = {}
-            fv = sim.valuation_store.get(pos.id, snapshot_date, ValuationType.FAIR_VALUE)
-            if fv is not None:
-                entry["fair_value"] = float(fv)
-            cv = sim.valuation_store.get(pos.id, snapshot_date, ValuationType.CARRYING_VALUE)
-            if cv is not None:
-                entry["carrying_value"] = float(cv)
-            # Fall back to most recent value if snapshot_date has no data
-            if "fair_value" not in entry:
-                fv = sim.valuation_store.get_previous(pos.id, start_date, ValuationType.FAIR_VALUE)
-                if fv is not None:
-                    entry["fair_value"] = float(fv)
-            if "carrying_value" not in entry:
-                cv = sim.valuation_store.get_previous(pos.id, start_date, ValuationType.CARRYING_VALUE)
-                if cv is not None:
-                    entry["carrying_value"] = float(cv)
+            for key, vtype in _SNAPSHOT_VALUATIONS.items():
+                value = sim.valuation_store.get(pos.id, snapshot_date, vtype)
+                if value is not None:
+                    entry[key] = float(value)
             if entry:
                 result[pos.id] = entry
         return result

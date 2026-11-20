@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import datetime
 
+from brms.core.enums import EntryKind
 from brms.core.models.accounting.accounts import (
     AccountBalances,
     AccountNormalBalance,
@@ -184,6 +185,7 @@ class Ledger:
                     credit_accounts=credit_accounts,
                     date=date,
                     description=f"Close contra accounts of {account.name}",
+                    kind=EntryKind.CLOSING,
                 )
             )
 
@@ -224,6 +226,7 @@ class Ledger:
                 value=balance,
                 date=date,
                 description="Close Income Summary to Retained Earnings",
+                kind=EntryKind.CLOSING,
             )
         )
 
@@ -292,4 +295,5 @@ class Ledger:
             credit_accounts=to_credit,
             date=date,
             description=f"Close account: {account.name}",
+            kind=EntryKind.CLOSING,
         )

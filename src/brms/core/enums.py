@@ -116,3 +116,11 @@ class InterestSide(Enum):
 
     INCOME = auto()
     EXPENSE = auto()
+
+
+class EntryKind(Enum):
+    """Why a journal entry was posted: ordinary business, opening balances, or period-end closing."""
+
+    NORMAL = auto()
+    OPENING = auto()
+    CLOSING = auto()

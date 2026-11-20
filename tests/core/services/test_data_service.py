@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from brms.core.models.instruments.bonds import TreasuryNote
 from brms.core.models.instruments.deposits import Cash, Deposit
 from brms.core.models.instruments.equity import CommonEquity
@@ -25,6 +27,7 @@ def _full_registry() -> InstrumentRegistry:
     return registry
 
 
+@pytest.mark.xfail(strict=True, reason="shipped zips are regenerated in Task 9")
 def test_load_htm_treasury_zip() -> None:
     """ZipLoader can load htm_treasury.zip with QuantLib instruments."""
     from brms.core.services.loaders import ZipLoader

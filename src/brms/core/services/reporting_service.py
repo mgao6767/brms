@@ -13,9 +13,11 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import datetime
 
+    from brms.core.models.accounting.accounts import TAccount
     from brms.core.models.accounting.ledger import Ledger
 
-from brms.core.models.accounting.accounts import AccountType
+from brms.core.enums import EntryKind
+from brms.core.models.accounting.accounts import AccountNormalBalance, AccountType
 
 
 class ReportingService:
@@ -83,22 +85,32 @@ class ReportingService:
             "total_equity": total_equity,
         }
 
-    def income_statement(self, ledger: Ledger) -> dict[str, Any]:
-        """Return a structured income statement (before closing).
+    def income_statement(
+        self,
+        ledger: Ledger,
+        start: datetime.date | None = None,
+        end: datetime.date | None = None,
+    ) -> dict[str, Any]:
+        """Return a structured income statement.
 
-        Shows income and expense account balances and net income.
+        Without a window, shows the current income and expense account balances (profit
+        since the books were last closed). With *start* and/or *end*, shows the profit and
+        loss posted by ordinary journal entries dated within ``[start, end]``; opening and
+        closing entries are excluded.
         """
+        windowed = start is not None or end is not None
+        movements = self._movements(ledger, start, end) if windowed else {}
         income: list[dict[str, Any]] = []
         expenses: list[dict[str, Any]] = []
 
         for account in ledger.chart_of_accounts:
             if account.is_temporary_account:
                 continue
-            entry = {"account": account.name, "balance": account.balance()}
-            if account.type == AccountType.INCOME:
-                income.append(entry)
-            elif account.type == AccountType.EXPENSE:
-                expenses.append(entry)
+            if account.type not in (AccountType.INCOME, AccountType.EXPENSE):
+                continue
+            balance = self._window_balance(account, movements) if windowed else account.balance()
+            entry = {"account": account.name, "balance": balance}
+            (income if account.type == AccountType.INCOME else expenses).append(entry)
 
         total_income = sum(row["balance"] for row in income)
         total_expenses = sum(row["balance"] for row in expenses)
@@ -111,3 +123,34 @@ class ReportingService:
             "total_expenses": total_expenses,
             "net_income": net_income,
         }
+
+    @staticmethod
+    def _movements(
+        ledger: Ledger, start: datetime.date | None, end: datetime.date | None,
+    ) -> dict[int, tuple[float, float]]:
+        """Return {id(account): (debits, credits)} posted by NORMAL entries within the window."""
+        totals: dict[int, tuple[float, float]] = {}
+        for entry in ledger.journal.entries:
+            if entry.kind != EntryKind.NORMAL or entry.date is None:
+                continue
+            if (start is not None and entry.date < start) or (end is not None and entry.date > end):
+                continue
+            for account, value in entry.debit_account_value_pairs():
+                debit, credit = totals.get(id(account), (0.0, 0.0))
+                totals[id(account)] = (debit + value, credit)
+            for account, value in entry.credit_account_value_pairs():
+                debit, credit = totals.get(id(account), (0.0, 0.0))
+                totals[id(account)] = (debit, credit + value)
+        return totals
+
+    @staticmethod
+    def _window_balance(account: TAccount, movements: dict[int, tuple[float, float]]) -> float:
+        """Net window movement of *account* (summed over its posting leaves) in its normal direction."""
+        debits = credits_ = 0.0
+        for leaf in account.posting_accounts():
+            debit, credit = movements.get(id(leaf), (0.0, 0.0))
+            debits += debit
+            credits_ += credit
+        if account.normal_balance == AccountNormalBalance.DEBIT_NORMAL:
+            return debits - credits_
+        return credits_ - debits

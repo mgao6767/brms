@@ -125,7 +125,7 @@ class DataService:
         import uuid
         from decimal import Decimal
 
-        from brms.core.enums import TransactionType
+        from brms.core.enums import EntryKind, TransactionType
         from brms.core.models.accounting.accounts import AccountNormalBalance
         from brms.core.models.accounting.journal import CompoundEntry
         from brms.core.models.transaction import Transaction
@@ -177,8 +177,9 @@ class DataService:
             entry = CompoundEntry(
                 debit_accounts=debit_accounts,
                 credit_accounts=credit_accounts,
-                date=data.start_date,
+                date=snapshot_date,
                 description="Opening Balance",
+                kind=EntryKind.OPENING,
             )
             ledger.post(entry)
 
@@ -203,9 +204,14 @@ class DataService:
 
         snapshot_date = data.start_date - datetime.timedelta(days=1)
         vs = simulation_service.valuation_store
+        types = {
+            "carrying_value": ValuationType.CARRYING_VALUE,
+            "fair_value": ValuationType.FAIR_VALUE,
+            "amortized_cost": ValuationType.AMORTIZED_COST,
+            "accrued_interest": ValuationType.ACCRUED_INTEREST,
+        }
         for pos_id, vals in data.valuations.items():
-            if "fair_value" in vals:
-                vs.record(pos_id, snapshot_date, ValuationType.FAIR_VALUE, Decimal(str(vals["fair_value"])))
-            if "carrying_value" in vals:
-                vs.record(pos_id, snapshot_date, ValuationType.CARRYING_VALUE, Decimal(str(vals["carrying_value"])))
+            for key, vtype in types.items():
+                if key in vals:
+                    vs.record(pos_id, snapshot_date, vtype, Decimal(str(vals[key])))
 
