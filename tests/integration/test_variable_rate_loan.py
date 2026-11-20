@@ -132,7 +132,6 @@ class TestVariableRateLoanIntegration:
 
 
 class TestRegressionExistingFixedRate:
-    @pytest.mark.xfail(strict=True, reason="shipped zips are regenerated in Task 9")
     def test_default_htm_treasury_still_loads(self) -> None:
         from brms.core.services import build_core_services
 

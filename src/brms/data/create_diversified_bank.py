@@ -33,11 +33,8 @@ from ``temp/data/prime_rates.csv``.
 
 from __future__ import annotations
 
-import contextlib
 import copy
-import json
 import sys
-import zipfile
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -45,7 +42,6 @@ from pathlib import Path
 _DATA_DIR = Path(__file__).resolve().parent
 _OUT_PATH = _DATA_DIR / "diversified_bank.zip"
 _START_DATE = "2022-01-04"
-_PRIME_CSV_DEFAULT = Path(__file__).resolve().parents[3] / "temp" / "data" / "prime_rates.csv"
 
 # -- Instrument & position definitions -----------------------------------------------
 
@@ -353,8 +349,7 @@ def _set_bond_fair_values(
         if ql_inst is None:
             continue
         ql_inst.setPricingEngine(ql.DiscountingBondEngine(yield_handle))
-        with contextlib.suppress(RuntimeError):
-            p["acquisition_cost"] = round(ql_inst.NPV(), 2)
+        p["acquisition_cost"] = round(ql_inst.NPV(), 2)
 
 
 def _set_loan_acquisition_costs(instruments: list, positions_data: list[dict]) -> None:
@@ -462,16 +457,12 @@ def create_diversified_zip(data_folder: Path, out_path: Path | None = None) -> P
     import pandas as pd
 
     from brms.core.services.simulation_builder import BuildConfig, SimulationBuilder
+    from brms.core.services.snapshot_writer import save_snapshot
+    from brms.data import END_DATE
 
     out_path = out_path or _OUT_PATH
     yields_csv = data_folder / "treasury_yields.csv"
     prime_csv = data_folder / "prime_rates.csv"
-
-    if not prime_csv.exists():
-        prime_csv = _PRIME_CSV_DEFAULT
-    if not prime_csv.exists():
-        msg = f"Prime rate CSV not found at {prime_csv}"
-        raise FileNotFoundError(msg)
 
     instruments_data = copy.deepcopy(INSTRUMENTS)
     positions_data = copy.deepcopy(POSITIONS)
@@ -490,60 +481,13 @@ def create_diversified_zip(data_folder: Path, out_path: Path | None = None) -> P
         ),
     )
 
-    with zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr(
-            "config.json",
-            json.dumps(
-                {
-                    "name": snapshot.name,
-                    "start_date": snapshot.start_date.isoformat(),
-                    "end_date": "2025-12-31",
-                },
-                indent=2,
-            ),
-        )
-        zf.writestr("instruments.json", json.dumps(instruments_data, indent=2))
-        zf.writestr("positions.json", json.dumps(positions_data, indent=2))
-        zf.writestr(
-            "balances.json",
-            json.dumps(
-                {
-                    "snapshot_date": snapshot.start_date.isoformat(),
-                    "balances": snapshot.balances,
-                    "valuations": snapshot.valuations,
-                },
-                indent=2,
-            ),
-        )
-        if not yields_csv.exists():
-            msg = f"Treasury yields CSV not found at {yields_csv}"
-            raise FileNotFoundError(msg)
-        zf.write(yields_csv, "yields.csv")
-        zf.writestr("benchmarks.csv", prime_df.to_csv())
-
+    save_snapshot(snapshot, instruments_data, out_path, end_date=date.fromisoformat(END_DATE))
     return out_path
 
 
-def _extract_yields_from_existing_zip() -> Path:
-    """Extract yields.csv from htm_treasury.zip to a temp dir and return the folder path."""
-    import tempfile
-
-    existing = _DATA_DIR / "htm_treasury.zip"
-    if not existing.exists():
-        msg = f"Cannot find {existing} -- needed for yield curve data"
-        raise FileNotFoundError(msg)
-    tmp_dir = Path(tempfile.mkdtemp())
-    with zipfile.ZipFile(existing) as zf:
-        zf.extract("yields.csv", tmp_dir)
-    (tmp_dir / "yields.csv").rename(tmp_dir / "treasury_yields.csv")
-    return tmp_dir
-
-
 if __name__ == "__main__":
-    if len(sys.argv) >= 2:  # noqa: PLR2004
-        folder = Path(sys.argv[1])
-    else:
-        folder = _extract_yields_from_existing_zip()
-        print(f"Extracted yields from htm_treasury.zip to {folder}")  # noqa: T201
+    from brms.data import DEFAULT_DATA_FOLDER
+
+    folder = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_DATA_FOLDER
     path = create_diversified_zip(data_folder=folder)
     print(f"Created {path}")  # noqa: T201

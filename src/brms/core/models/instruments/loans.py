@@ -330,7 +330,11 @@ class VariableRateLoan(Instrument):
                 try:
                     interest.append((d, cf.amount()))
                 except RuntimeError:
-                    pass
+                    # Safe to skip: only coupons whose rate cannot be forecast yet (no forwarding
+                    # curve linked) fail here. A coupon due today has a past fixing and prices; if
+                    # one were ever skipped, its accrued interest would stay in the receivable and
+                    # the ledger reconciliation would fail.
+                    continue
             else:
                 amt = cf.amount()
                 principal.append((d, amt))

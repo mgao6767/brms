@@ -23,9 +23,7 @@ Where <data_folder> contains ``treasury_yields.csv``.
 from __future__ import annotations
 
 import copy
-import json
 import sys
-import zipfile
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -176,6 +174,8 @@ def create_mortgage_zip(data_folder: Path, out_path: Path | None = None) -> Path
     import pandas as pd
 
     from brms.core.services.simulation_builder import BuildConfig, SimulationBuilder
+    from brms.core.services.snapshot_writer import save_snapshot
+    from brms.data import END_DATE
 
     out_path = out_path or _OUT_PATH
     yields_csv = data_folder / "treasury_yields.csv"
@@ -195,42 +195,13 @@ def create_mortgage_zip(data_folder: Path, out_path: Path | None = None) -> Path
         ),
     )
 
-    with zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr(
-            "config.json",
-            json.dumps(
-                {
-                    "name": snapshot.name,
-                    "start_date": snapshot.start_date.isoformat(),
-                    "end_date": "2025-12-31",
-                },
-                indent=2,
-            ),
-        )
-        zf.writestr("instruments.json", json.dumps(instruments_data, indent=2))
-        zf.writestr("positions.json", json.dumps(positions_data, indent=2))
-        zf.writestr(
-            "balances.json",
-            json.dumps(
-                {
-                    "snapshot_date": snapshot.start_date.isoformat(),
-                    "balances": snapshot.balances,
-                    "valuations": snapshot.valuations,
-                },
-                indent=2,
-            ),
-        )
-        if not yields_csv.exists():
-            msg = f"Treasury yields CSV not found at {yields_csv}"
-            raise FileNotFoundError(msg)
-        zf.write(yields_csv, "yields.csv")
-
+    save_snapshot(snapshot, instruments_data, out_path, end_date=date.fromisoformat(END_DATE))
     return out_path
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:  # noqa: PLR2004
-        print("Usage: python create_mortgage.py <data_folder>", file=sys.stderr)  # noqa: T201
-        sys.exit(1)
-    path = create_mortgage_zip(data_folder=Path(sys.argv[1]))
+    from brms.data import DEFAULT_DATA_FOLDER
+
+    folder = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_DATA_FOLDER
+    path = create_mortgage_zip(data_folder=folder)
     print(f"Created {path}")  # noqa: T201

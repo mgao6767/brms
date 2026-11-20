@@ -76,7 +76,7 @@ class _BaseStrategy:
             self._engines_set.add(inst.id)
         try:
             npv = Decimal(str(inst.ql_instrument.NPV()))  # type: ignore[attr-defined]
-        except Exception as exc:
+        except RuntimeError as exc:
             msg = f"Cannot price position {pos.id} on {date}: {exc}"
             raise ValuationError(msg) from exc
         return npv - accrued

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from brms.core.events import (
@@ -147,9 +148,20 @@ class SimulationService:
         6. Record the transaction batch in the transaction log.
         7. Compute metrics (only on market-data days).
         8. Emit granular events and :class:`DateAdvanced`.
+
+        An explicit *date* more than one day after the current date processes every
+        intervening calendar day in order, so no accrual, coupon or amortisation is skipped.
         """
         date = self._resolve_date(date)
+        if self._current_date is not None and date > self._current_date + timedelta(days=1):
+            day = self._current_date + timedelta(days=1)
+            while day < date:
+                self._advance_one(day)
+                day += timedelta(days=1)
+        self._advance_one(date)
 
+    def _advance_one(self, date: datetime.date) -> None:  # type: ignore[name-defined]
+        """Process exactly one calendar day."""
         previous_date = self._current_date
         self._current_date = date
         has_market = self.market_data.has_data(date)

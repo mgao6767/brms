@@ -23,6 +23,7 @@ class InstrumentStore:
         """Register an instrument. Overwrites any existing entry with the same id."""
         existing = self._by_id.get(instrument.id)
         if existing is not None:
+            # Index bookkeeping only: the replaced instrument may already be absent from the type index.
             with contextlib.suppress(ValueError):
                 self._by_type[existing.instrument_type].remove(existing)
         self._by_id[instrument.id] = instrument
