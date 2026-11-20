@@ -62,6 +62,7 @@ _RULE_PRIORITY: dict[str, int] = {
     "DepositFlowRule": 60,
     "AmortizationRule": 60,
     "MaturityRule": 90,
+    "SaleRule": 95,
 }
 
 _DEFAULT_PRIORITY = 50

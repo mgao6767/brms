@@ -15,6 +15,7 @@ from brms.core.rules.effective_interest import EffectiveInterestRule
 from brms.core.rules.interest_accrual import InterestIncomeAccrualRule
 from brms.core.rules.mark_to_market import MarkToMarketRule
 from brms.core.rules.maturity import MaturityRule
+from brms.core.rules.sale import SaleRule
 from brms.core.utils import pydate_to_qldate, qldate_to_pydate, qldate_to_string
 
 if TYPE_CHECKING:
@@ -27,6 +28,7 @@ class FixedRateBond(Instrument):
 
     applicable_rules = frozenset({
         InterestIncomeAccrualRule, EffectiveInterestRule, CouponPaymentRule, MaturityRule, MarkToMarketRule,
+        SaleRule,
     })
     _instrument_type_label = "Fixed Rate Bond"
     _instrument_type_enum = InstrumentType.FIXED_RATE_BOND

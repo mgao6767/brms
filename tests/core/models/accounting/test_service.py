@@ -223,7 +223,8 @@ def test_security_sale_htm() -> None:
         type=TransactionType.SECURITY_SALE,
         date=datetime.date(2024, 3, 15),
         amount=Decimal("40000"),
-        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST),),
+        metadata=((TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST), (TxMeta.CARRYING_VALUE, "40000"),
+                  (TxMeta.ACCRUED_PORTION, "0")),
     )
     service.post(purchase_tx, ledger)
     service.post(sale_tx, ledger)

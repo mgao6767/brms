@@ -26,3 +26,5 @@ class Position:
     status: PositionStatus = field(default=PositionStatus.OPEN)
     # Credit spread over the discount curve (continuous zero-rate, decimal); None values on the curve itself.
     spread: Decimal | None = None
+    # Date to sell the whole position at fair value (FVOCI and FVTPL only); None = hold.
+    sale_date: datetime.date | None = None

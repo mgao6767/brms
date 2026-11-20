@@ -15,7 +15,7 @@ from brms.core.results import metrics_frame, valuations_frame
 from brms.core.services import build_core_services
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
     import pandas as pd
 
@@ -57,23 +57,27 @@ class RunResult:
         }
 
 
-def run(
+def run(  # noqa: PLR0913
     simulation: Path | str,
     scenario: Historical | Shock,
     *,
     months: int | None = None,
     end: datetime.date | None = None,
     regulatory: RegulatoryConfig | None = None,
+    sales: Mapping[str, datetime.date] | None = None,
 ) -> RunResult:
     """Run *simulation* (a snapshot zip) through *scenario* from its start date.
 
     The horizon ends at *end*, else *months* after the start, else the archive's end date.
-    *regulatory* overrides the archive's regulatory inputs.
+    *regulatory* overrides the archive's regulatory inputs. *sales* maps position ids to the
+    market day on which to sell them at fair value (FVOCI and FVTPL positions).
     """
     services = build_core_services(simulation_zip=Path(simulation))
     sim = services.simulation_service
     if regulatory is not None:
         services.bank.regulatory = regulatory
+    for position_id, day in (sales or {}).items():
+        services.bank.positions.get(position_id).sale_date = day
     start = sim.start_date
     if end is None:
         end = start + relativedelta(months=months) - datetime.timedelta(days=1) if months else sim.end_date

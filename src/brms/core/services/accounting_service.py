@@ -211,17 +211,49 @@ class AccountingService:
         )]
 
     def _security_sale(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
-        """SECURITY_SALE: debit Cash, credit Investment account."""
-        cash = self._lookup(ledger, "Cash and Cash Equivalents")
-        investment = self._resolve_investment_account(tx, ledger)
-        entry = SimpleEntry(
-            debit_account=cash,
-            credit_account=investment,
-            value=float(tx.amount),
+        """SECURITY_SALE at dirty fair value.
+
+        Dr Cash (proceeds); Cr investment (carrying value); Cr Accrued Interest Receivable (accrued
+        interest sold). For FVOCI, the position's unrealised gain or loss is then recycled from
+        accumulated OCI to Realized OCI Gain / Loss, netting at account level like the marks.
+        """
+        meta = dict(tx.metadata)
+        carrying = float(meta[TxMeta.CARRYING_VALUE])
+        accrued = float(meta[TxMeta.ACCRUED_PORTION])
+        credit_legs: dict[TAccount, float] = {self._resolve_investment_account(tx, ledger): carrying}
+        if accrued:
+            credit_legs[self._lookup(ledger, "Accrued Interest Receivable")] = accrued
+        entries: list[JournalEntry] = [CompoundEntry(
+            debit_accounts={self._lookup(ledger, "Cash and Cash Equivalents"): float(tx.amount)},
+            credit_accounts=credit_legs,
             date=tx.date,
             description=f"Security sale (tx={tx.id})",
+        )]
+        recycled = float(meta.get(TxMeta.RECYCLED_OCI, 0.0))
+        if recycled:
+            entries.append(self._recycle_oci(tx, ledger, recycled))
+        return entries
+
+    def _recycle_oci(self, tx: Transaction, ledger: Ledger, unrealised: float) -> JournalEntry:
+        """Move a sold FVOCI position's unrealised gain (+) or loss (-) from OCI to profit or loss."""
+        gain = self._lookup(ledger, "Unrealized OCI Gain")
+        loss = self._lookup(ledger, "Unrealized OCI Loss")
+        size = abs(unrealised)
+        if unrealised < 0:
+            # Removing a loss raises AOCI: first reduce Unrealized OCI Loss, then credit Gain.
+            reduce = min(size, max(loss.balance(), 0.0))
+            debits = {self._lookup(ledger, "Realized OCI Loss"): size}
+            credit_legs = {loss: reduce, gain: size - reduce}
+        else:
+            reduce = min(size, max(gain.balance(), 0.0))
+            debits = {gain: reduce, loss: size - reduce}
+            credit_legs = {self._lookup(ledger, "Realized OCI Gain"): size}
+        return CompoundEntry(
+            debit_accounts={k: v for k, v in debits.items() if v > 0},
+            credit_accounts={k: v for k, v in credit_legs.items() if v > 0},
+            date=tx.date,
+            description=f"Recycle OCI on sale (tx={tx.id})",
         )
-        return [entry]
 
     def _deposit_withdrawal(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
         """DEPOSIT_WITHDRAWAL: debit Deposits, credit Cash."""
