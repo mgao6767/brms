@@ -64,6 +64,8 @@ class BuildConfig:
     # Optional dirty value per position id to calibrate to instead of the acquisition cost
     # (e.g. a reported fair value plus accrued interest).
     spread_targets: dict[str, Decimal] = field(default_factory=dict)
+    # Roll maturing bonds into new par bonds during the replay (see Bank.reinvest_maturities).
+    reinvest_maturities: bool = False
 
 
 @dataclass
@@ -85,6 +87,10 @@ class SimulationBuilder:
 
     def build(self, config: BuildConfig) -> SimulationSnapshot:
         """Build a simulation snapshot by replaying from earliest acquisition to start_date."""
+        if config.reinvest_maturities:
+            # Rolled-over bonds are created during the run and have no instrument specs to save.
+            msg = "Snapshots are built without reinvestment; set reinvest_maturities when running instead"
+            raise UnsupportedPositionError(msg)
         late = [p.id for p in config.positions if p.acquisition_date > config.start_date]
         if late:
             msg = f"Positions acquired after the start date {config.start_date} are not supported: {late}"
@@ -205,7 +211,7 @@ class SimulationBuilder:
         ledger = Ledger(chart_of_accounts=coa, journal=Journal())
         bank = Bank(
             name=config.name, instruments=InstrumentStore(), positions=PositionStore(), ledger=ledger,
-            regulatory=config.regulatory,
+            regulatory=config.regulatory, reinvest_maturities=config.reinvest_maturities,
         )
         market_data = MarketDataStore()
         accounting_service = AccountingService()

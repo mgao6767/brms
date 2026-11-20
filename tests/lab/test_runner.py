@@ -74,3 +74,13 @@ def test_cli_writes_results(tmp_path: Path) -> None:
         for file in ("metrics.csv", "carrying_value.csv", "fair_value.csv", "summary.json"):
             assert (folder / file).exists(), folder / file  # noqa: S101
         assert json.loads((folder / "summary.json").read_text())["scenario"] == name  # noqa: S101
+
+
+def test_run_can_schedule_a_sale() -> None:
+    services = build_core_services(simulation_zip=_DIVERSIFIED)
+    fvoci = next(p.id for p in services.bank.positions.open_positions() if p.measurement_basis.name == "FVOCI")
+    day = datetime.date(2022, 2, 15)
+    result = run(_DIVERSIFIED, Shock(Scenario.PARALLEL_UP), months=2, sales={fvoci: day})
+    assert fvoci not in result.carrying_value.columns[result.carrying_value.iloc[-1].notna()]  # noqa: S101
+    sold = result.carrying_value[fvoci].dropna()
+    assert sold.index.max().date() == day  # noqa: S101  (last valued on the sale date)

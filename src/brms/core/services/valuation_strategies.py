@@ -15,10 +15,11 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
+import pandas as pd
 import QuantLib as ql  # noqa: N813
 
 from brms.core.enums import MeasurementBasis, ValuationType
-from brms.core.exceptions import ValuationError
+from brms.core.exceptions import UnsupportedPositionError, ValuationError
 from brms.core.services.amortized_cost import is_loan, scaled_accrued
 from brms.core.services.spreads import dirty_value, spreaded_handle
 
@@ -184,6 +185,70 @@ class FairValueStrategy(_BaseStrategy):
         return previous + (amortized - previous_amortized)
 
 
+class DepositStrategy:
+    """Deposits: the balance (``CARRYING_VALUE``) and interest payable (``ACCRUED_INTEREST``).
+
+    The balance is the acquired balance times the deposit's run-off and withdrawal factor. The
+    day's interest is balance x rate / 365, where the rate moves from its acquisition value by
+    ``beta`` times the change in the reference yield, floored at zero. Payable restarts on each
+    settlement day (the 1st). Other positions without a measurement basis are not valued.
+    """
+
+    def __init__(self) -> None:
+        self._reference: dict[str, float] = {}
+
+    @staticmethod
+    def _yield(context: ValuationContext, tenor: str, date: datetime.date) -> float:
+        frame = context.market_data.get_frame("yields")  # type: ignore[union-attr]
+        series = frame[tenor].loc[: pd.Timestamp(date)].dropna()
+        if series.empty:
+            msg = f"No {tenor} yield on or before {date} for the deposit rate"
+            raise ValuationError(msg)
+        return float(series.iloc[-1]) / 100
+
+    def _rate(self, inst: Instrument, pos: Position, context: ValuationContext) -> float:
+        base = inst.interest_rate  # type: ignore[attr-defined]
+        if base is None:
+            msg = f"Deposit position {pos.id} has no interest rate"
+            raise UnsupportedPositionError(msg)
+        if inst.beta == 0:  # type: ignore[attr-defined]
+            return float(base)
+        tenor = inst.reference_tenor  # type: ignore[attr-defined]
+        if pos.id not in self._reference:
+            self._reference[pos.id] = self._yield(context, tenor, pos.acquisition_date)
+        move = self._yield(context, tenor, context.date) - self._reference[pos.id]
+        return max(0.0, float(base) + inst.beta * move)  # type: ignore[attr-defined]
+
+    def value_batch(
+        self,
+        positions: list[Position],
+        instruments: InstrumentStore,
+        context: ValuationContext,
+        output: ValuationStore,
+    ) -> None:
+        """Record each deposit's balance and interest payable."""
+        from brms.core.enums import InstrumentType
+        from brms.core.rules.deposit_interest import is_settlement_day
+
+        date = context.date
+        for pos in positions:
+            inst = instruments.get(pos.instrument_id)
+            if getattr(inst, "instrument_type", None) != InstrumentType.DEPOSIT:
+                continue
+            balance = Decimal(str(pos.acquisition_cost)) * Decimal(str(inst.balance_factor(pos.acquisition_date, date)))
+            output.record(pos.id, date, ValuationType.CARRYING_VALUE, balance)
+            if date <= pos.acquisition_date:
+                output.record(pos.id, date, ValuationType.ACCRUED_INTEREST, Decimal(0))
+                continue
+            accrual = balance * Decimal(str(self._rate(inst, pos, context))) / Decimal(365)
+            previous = output.get_previous(pos.id, date, ValuationType.ACCRUED_INTEREST)
+            if previous is None:
+                msg = f"Deposit position {pos.id} has no interest payable before {date}"
+                raise ValuationError(msg)
+            payable = accrual if is_settlement_day(date) else Decimal(previous) + accrual
+            output.record(pos.id, date, ValuationType.ACCRUED_INTEREST, payable)
+
+
 def default_valuation_strategies(calculator: AmortizedCostCalculator) -> dict[MeasurementBasis, ValuationStrategy]:
     """Return the default MeasurementBasis → ValuationStrategy mapping."""
     fair_value = FairValueStrategy(calculator)
@@ -191,4 +256,5 @@ def default_valuation_strategies(calculator: AmortizedCostCalculator) -> dict[Me
         MeasurementBasis.AMORTIZED_COST: CarryingValueStrategy(calculator),
         MeasurementBasis.FVOCI: fair_value,
         MeasurementBasis.FVTPL: fair_value,
+        MeasurementBasis.NA: DepositStrategy(),
     }

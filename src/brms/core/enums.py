@@ -123,6 +123,7 @@ class TxMeta(Enum):
     DIRECTION = auto()  # value: "gain" | "loss"
     CARRYING_VALUE = auto()  # value: str(Decimal), carrying value of a maturing position
     FINAL_PAYMENT = auto()  # value: bool, last scheduled principal payment of a loan
+    RECYCLED_OCI = auto()  # value: str(Decimal), unrealised gain (+) or loss (-) moved from OCI to profit
 
 
 class InterestSide(Enum):

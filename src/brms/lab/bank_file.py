@@ -6,7 +6,8 @@
       "name": "...", "as_of": "2021-12-31",
       "regulatory": {"aoci_filter": false, "operational_rwa": "...", ...},   # optional
       "cash": 1000000,
-      "deposits": [{"id": "dep", "name": "Savings", "balance": 2500000, "interest_rate": 0.001}],
+      "deposits": [{"id": "dep", "name": "Savings", "balance": 2500000, "interest_rate": 0.001,
+                    "beta": 0.3, "runoff_rate": 0.05, "withdrawals": [["2022-03-09", 0.25]]}],   # optional
       "positions": [
         {"id": "ust", "type": "treasury_note", <instrument terms>, "issuer": {...},
          "basis": "AMORTIZED_COST" | "FVOCI" | "FVTPL", "book": "BANKING" | "TRADING",
@@ -116,7 +117,8 @@ def build_bank(bank_file: Path, market_frames: dict[str, pd.DataFrame], out: Pat
 
     deposits_total = Decimal(0)
     for dep in data.get("deposits", []):
-        instrument = Deposit(name=dep.get("name", "Deposit"), interest_rate=dep["interest_rate"])
+        behaviour = {k: dep[k] for k in ("beta", "runoff_rate", "withdrawals", "reference_tenor") if k in dep}
+        instrument = Deposit(name=dep.get("name", "Deposit"), interest_rate=dep["interest_rate"], **behaviour)
         instrument.id = dep["id"]
         balance = Decimal(str(dep["balance"]))
         deposits_total += balance
@@ -126,9 +128,10 @@ def build_bank(bank_file: Path, market_frames: dict[str, pd.DataFrame], out: Pat
             measurement_basis=MeasurementBasis.NA, side=PositionSide.SHORT, acquisition_date=as_of,
             acquisition_cost=balance,
         ))
-        specs.append(
-            {"id": dep["id"], "type": "deposit", "name": instrument.name, "interest_rate": dep["interest_rate"]},
-        )
+        specs.append({
+            "id": dep["id"], "type": "deposit", "name": instrument.name, "interest_rate": dep["interest_rate"],
+            **behaviour,
+        })
 
     equity = Decimal(str(data["cash"])) + total_cost - deposits_total
     if equity <= 0:

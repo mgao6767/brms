@@ -63,9 +63,13 @@ def test_post_all_closes_position_on_sale() -> None:
         id="t1",
         type=TransactionType.SECURITY_SALE,
         date=datetime.date(2024, 1, 1),
-        amount=Decimal("50000"),
+        amount=Decimal("50000"),  # sold at carrying value, no accrued interest
         position_id="pos-2",
-        metadata=[(TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST)],
+        metadata=[
+            (TxMeta.MEASUREMENT_BASIS, MeasurementBasis.FVOCI),
+            (TxMeta.CARRYING_VALUE, "50000"),
+            (TxMeta.ACCRUED_PORTION, "0"),
+        ],
     )
     service.post_all([tx], ledger, positions)
     positions.close.assert_called_with("pos-2")

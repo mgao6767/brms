@@ -19,7 +19,6 @@ from brms.core.models.instruments.bonds import CoveredBond
 from brms.core.models.instruments.deposits import Deposit
 from brms.core.models.transaction import Transaction
 from brms.core.rules.context import RuleContext
-from brms.core.rules.deposit_interest import DepositInterestAccrualRule, DepositInterestSettlementRule
 from brms.core.rules.interest_accrual import InterestIncomeAccrualRule
 from brms.core.services.accounting_service import AccountingService
 from tests.support.engine import flat_yields, make_position, run_bank
@@ -39,10 +38,14 @@ def _deposit_position() -> object:
     )
 
 
-@pytest.mark.parametrize("rule", [DepositInterestAccrualRule(), DepositInterestSettlementRule()])
-def test_deposit_without_rate_raises(rule: object) -> None:
+def test_deposit_without_rate_raises() -> None:
+    deposit = Deposit()
+    deposit.id = "dep"
+    yields = flat_yields(datetime.date(2021, 1, 4), datetime.date(2021, 1, 31))
+    pos = make_position(id="pos-dep", instrument_id="dep", basis=MeasurementBasis.NA,
+                        acquired=datetime.date(2021, 1, 4), cost=Decimal(1000), side=PositionSide.SHORT)
     with pytest.raises(UnsupportedPositionError, match="pos-dep"):
-        rule.generate(Deposit(), _deposit_position(), _ctx())
+        run_bank([deposit], [pos], yields=yields, until=datetime.date(2021, 1, 8), checks=frozenset())
 
 
 def test_interest_accrual_without_quantlib_instrument_raises() -> None:
