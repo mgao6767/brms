@@ -107,6 +107,11 @@ class SimulationService:
         """The last available simulation date."""
         return self._end_date
 
+    @end_date.setter
+    def end_date(self, value: datetime.date) -> None:  # type: ignore[name-defined]
+        """Set the last simulation date (a scenario may run past the archive's stored end)."""
+        self._end_date = value
+
     def _resolve_date(self, date: datetime.date | None) -> datetime.date:  # type: ignore[name-defined]
         """Resolve the next simulation date, raising IndexError if past end."""
         from datetime import timedelta

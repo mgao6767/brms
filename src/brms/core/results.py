@@ -16,12 +16,12 @@ if TYPE_CHECKING:
 
 def _frame(columns: dict[str, dict]) -> pd.DataFrame:
     frame = pd.DataFrame(columns, dtype="float64").sort_index()
-    frame.index.name = "date"
+    frame.index = pd.DatetimeIndex(frame.index, name="date")
     return frame
 
 
 def metrics_frame(metric_store: MetricStore) -> pd.DataFrame:
-    """One row per metric date, one float column per metric (``MetricName`` names); undefined is NaN."""
+    """One row per metric date (a DatetimeIndex), one float column per metric; undefined is NaN."""
     columns: dict[str, dict] = {}
     for name in MetricName:
         series = metric_store.series(name)
