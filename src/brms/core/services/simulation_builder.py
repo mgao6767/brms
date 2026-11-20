@@ -284,6 +284,7 @@ class SimulationBuilder:
         elif inst_type == InstrumentType.DEPOSIT:
             tx_type = TransactionType.DEPOSIT_RECEIVED
         else:
+            _check_acquired_before_final_payment(inst, pos)
             accrued = calculator.accrued_at_acquisition(inst, pos).quantize(Decimal("0.01"))
             if basis == MeasurementBasis.AMORTIZED_COST and inst_type in _LOAN_TYPES:
                 tx_type = TransactionType.LOAN_DISBURSEMENT
@@ -325,3 +326,22 @@ def _check_loan_at_par(instrument: Instrument, position: Position, clean_cost: D
             f"(clean cost {clean_cost:.2f}, outstanding principal {outstanding:.2f} on {position.acquisition_date})"
         )
         raise UnsupportedPositionError(msg)
+
+
+def _check_acquired_before_final_payment(instrument: Instrument, position: Position) -> None:
+    """Reject a position acquired on or after its instrument's last scheduled cash flow.
+
+    Such a position would never receive the redemption (no rule fires on the acquisition date),
+    so it would sit in the books forever.
+    """
+    schedule = instrument.payment_schedule() if callable(getattr(instrument, "payment_schedule", None)) else None
+    if not schedule:
+        return
+    flows = schedule[1] if isinstance(schedule, tuple) else schedule  # loans: (interest, principal, outstanding)
+    if flows and position.acquisition_date >= flows[-1][0]:
+        msg = (
+            f"Position {position.id} is acquired on {position.acquisition_date}, on or after the last "
+            f"scheduled payment of {instrument.id} ({flows[-1][0]})"
+        )
+        raise UnsupportedPositionError(msg)
+

@@ -39,21 +39,22 @@ class ValuationContext:
     def update(self, date: datetime.date, market_data: MarketDataStore, *, has_market_data: bool = True) -> None:
         """Advance the context to *date*; on market-data days rebuild the term structure.
 
-        On a market-data day this sets the QuantLib global evaluation date, builds the
-        curve from the day's yields and relinks the shared handle so that downstream
-        engines reprice. A curve that cannot be built is an error, never a stale curve.
+        Every day this sets the QuantLib global evaluation date and syncs benchmark fixings.
+        On a market-data day it also builds the curve from the day's yields and relinks the
+        shared handle so that downstream engines reprice. A curve that cannot be built is an
+        error, never a stale curve.
         """
         self.date = date
         self.market_data = market_data
         self.has_market_data = has_market_data
-        if not has_market_data:
-            return
 
-        ql_date = ql.Date(date.day, date.month, date.year)
-        ql.Settings.instance().evaluationDate = ql_date
-
+        # Every day, market data or not: floating-rate coupons need the evaluation date and
+        # the benchmark fixings (which come from their own frame, not from the yields).
+        ql.Settings.instance().evaluationDate = ql.Date(date.day, date.month, date.year)
         if self._benchmark_service is not None:
             self._benchmark_service.sync_up_to(date, market_data)
+        if not has_market_data:
+            return
 
         try:
             state = market_data.get_state(date) if hasattr(market_data, "get_state") else market_data

@@ -120,13 +120,14 @@ class ZipLoader:
         positions = self._load_positions(zf)
         market_frames = self._load_market_data(zf)
 
-        balances: dict[str, float] = {}
-        valuations: dict[str, dict[str, float]] = {}
-        if "balances.json" in zf.namelist():
-            bal_data = json.loads(zf.read("balances.json"))
-            balances = bal_data.get("balances", {})
-            valuations = bal_data.get("valuations", {})
-            _reject_profit_and_loss_balances(balances, self._path)
+        if "balances.json" not in zf.namelist():
+            name = self._path.name if self._path is not None else "The simulation archive"
+            msg = f"{name} has no balances.json, so its opening ledger is unknown; regenerate it with save_snapshot"
+            raise SimulationDataError(msg)
+        bal_data = json.loads(zf.read("balances.json"))
+        balances: dict[str, float] = bal_data.get("balances", {})
+        valuations: dict[str, dict[str, float]] = bal_data.get("valuations", {})
+        _reject_profit_and_loss_balances(balances, self._path)
 
         start_date = datetime.date.fromisoformat(cfg["start_date"])
         # end_date from config; fall back to last market data date
