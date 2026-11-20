@@ -25,12 +25,6 @@ class AccountingService:
     that callers do not need to pass account references explicitly.
     """
 
-    def __init__(self) -> None:
-        """Initialize with empty per-position unrealized tracking."""
-        # Per-position cumulative unrealized gain and loss (gross, always positive)
-        self._unrealized_gain: dict[str, float] = {}
-        self._unrealized_loss: dict[str, float] = {}
-
     def post_all(self, transactions: list[Transaction], ledger: Ledger, position_store: PositionStore) -> None:
         """Post all transactions to ledger and update positions as needed."""
         for tx in transactions:
@@ -280,56 +274,54 @@ class AccountingService:
         return [entry]
 
     def _mark_to_market(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
-        """MARK_TO_MARKET / REVALUATION: debit/credit asset vs income account.
+        """MARK_TO_MARKET / REVALUATION: move the investment by the change in fair value.
 
-        FVTPL: asset is 'Assets at FVTPL'; gain uses 'Unrealized Trading Gain',
-        loss uses 'Unrealized Trading Loss'.
-        FVOCI: asset is 'Investment Securities at FVOCI'; gain uses 'Unrealized OCI Gain',
-        loss uses 'Unrealized OCI Loss'.
-
-        A positive amount represents a gain (debit asset, credit income/equity).
-        A negative amount represents a loss (debit expense/contra-equity, credit asset).
+        FVTPL: gains credit Unrealized Trading Gain, losses debit Unrealized Trading Loss.
+        FVOCI: netted at account level, so at most one of Unrealized OCI Gain and Unrealized
+        OCI Loss carries a balance. A loss first reduces Unrealized OCI Gain and only the
+        remainder goes to Unrealized OCI Loss; a gain first reduces Unrealized OCI Loss.
         """
-        measurement_basis = dict(tx.metadata).get(TxMeta.MEASUREMENT_BASIS)
+        basis = dict(tx.metadata).get(TxMeta.MEASUREMENT_BASIS)
         amount = float(tx.amount)
-        if measurement_basis == MeasurementBasis.FVTPL:
+        if basis == MeasurementBasis.FVTPL:
             asset = self._lookup(ledger, "Assets at FVTPL")
             if amount >= 0:
-                debit_account = asset
-                credit_account = self._lookup(ledger, "Unrealized Trading Gain")
-                value = amount
+                debit, credit = asset, self._lookup(ledger, "Unrealized Trading Gain")
             else:
-                debit_account = self._lookup(ledger, "Unrealized Trading Loss")
-                credit_account = asset
-                value = -amount
-        elif measurement_basis == MeasurementBasis.FVOCI:
-            asset = self._lookup(ledger, "Investment Securities at FVOCI")
-            if amount >= 0:
-                debit_account = asset
-                credit_account = self._lookup(ledger, "Unrealized OCI Gain")
-                value = amount
-            else:
-                debit_account = self._lookup(ledger, "Unrealized OCI Loss")
-                credit_account = asset
-                value = -amount
-        else:
-            msg = f"Unknown measurement_basis '{measurement_basis}' for mark-to-market in tx={tx.id}"
-            raise ValueError(msg)
-        # Track per-position gross unrealized for reclassification at maturity
-        pos_id = tx.position_id or ""
-        if amount >= 0:
-            self._unrealized_gain[pos_id] = self._unrealized_gain.get(pos_id, 0.0) + amount
-        else:
-            self._unrealized_loss[pos_id] = self._unrealized_loss.get(pos_id, 0.0) + (-amount)
+                debit, credit = self._lookup(ledger, "Unrealized Trading Loss"), asset
+            return [SimpleEntry(
+                debit_account=debit,
+                credit_account=credit,
+                value=abs(amount),
+                date=tx.date,
+                description=f"Mark-to-market (tx={tx.id})",
+            )]
+        if basis == MeasurementBasis.FVOCI:
+            return [self._fvoci_mark(tx, ledger, amount)]
+        msg = f"Unknown measurement_basis {basis!r} for mark-to-market in tx={tx.id}"
+        raise ValueError(msg)
 
-        entry = SimpleEntry(
-            debit_account=debit_account,
-            credit_account=credit_account,
-            value=value,
+    def _fvoci_mark(self, tx: Transaction, ledger: Ledger, amount: float) -> JournalEntry:
+        asset = self._lookup(ledger, "Investment Securities at FVOCI")
+        gain = self._lookup(ledger, "Unrealized OCI Gain")
+        loss = self._lookup(ledger, "Unrealized OCI Loss")
+        size = abs(amount)
+        if amount >= 0:
+            # Gain: Dr asset; Cr Unrealized OCI Loss (down to zero), then Cr Unrealized OCI Gain.
+            reduce = min(size, max(loss.balance(), 0.0))
+            debits: dict[TAccount, float] = {asset: size}
+            credit_legs = {loss: reduce, gain: size - reduce}
+        else:
+            # Loss: Dr Unrealized OCI Gain (down to zero), then Dr Unrealized OCI Loss; Cr asset.
+            reduce = min(size, max(gain.balance(), 0.0))
+            debits = {gain: reduce, loss: size - reduce}
+            credit_legs = {asset: size}
+        return CompoundEntry(
+            debit_accounts={k: v for k, v in debits.items() if v > 0},
+            credit_accounts={k: v for k, v in credit_legs.items() if v > 0},
             date=tx.date,
-            description=f"Mark-to-market / revaluation (tx={tx.id})",
+            description=f"Mark-to-market (tx={tx.id})",
         )
-        return [entry]
 
     def _premium_discount_amortization(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
         """PREMIUM_DISCOUNT_AMORTIZATION: move the investment toward face through interest income.
@@ -451,29 +443,6 @@ class AccountingService:
                 credit_accounts=credit_accounts,
                 date=tx.date,
                 description=f"Maturity settlement (tx={tx.id})",
-            ))
-
-        # Entry 2 & 3: Reclassify gross unrealized → realized for this position.
-        # Reverse the exact gross gain and loss amounts tracked during MTM.
-        pos_id = tx.position_id or ""
-        gross_gain = self._unrealized_gain.pop(pos_id, 0.0)
-        gross_loss = self._unrealized_loss.pop(pos_id, 0.0)
-
-        if gross_gain > _tol:
-            entries.append(SimpleEntry(
-                debit_account=self._lookup(ledger, self._UNREALIZED_GAIN[basis]),
-                credit_account=self._lookup(ledger, self._REALIZED_GAIN[basis]),
-                value=gross_gain,
-                date=tx.date,
-                description=f"Reclassify unrealized gain to realized on maturity (tx={tx.id})",
-            ))
-        if gross_loss > _tol:
-            entries.append(SimpleEntry(
-                debit_account=self._lookup(ledger, self._REALIZED_LOSS[basis]),
-                credit_account=self._lookup(ledger, self._UNREALIZED_LOSS[basis]),
-                value=gross_loss,
-                date=tx.date,
-                description=f"Reclassify unrealized loss to realized on maturity (tx={tx.id})",
             ))
 
         return entries

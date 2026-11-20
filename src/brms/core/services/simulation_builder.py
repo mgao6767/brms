@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from brms.core.models.bank import Bank
     from brms.core.models.instruments.base import Instrument
     from brms.core.models.position import Position
-    from brms.core.services.accounting_service import AccountingService
     from brms.core.services.simulation_service import SimulationService
 
 _ZERO_THRESHOLD = 1e-10
@@ -73,7 +72,7 @@ class SimulationBuilder:
         self._add_positions_on(config.start_date, config, sim, calculator)
         coa = sim.bank.ledger.chart_of_accounts
         balances = self._extract_balances(coa)
-        valuations = self._extract_valuations(sim, sim.bank, sim.accounting_service, config.start_date)
+        valuations = self._extract_valuations(sim, sim.bank, config.start_date)
         return SimulationSnapshot(
             name=config.name,
             start_date=config.start_date,
@@ -208,13 +207,11 @@ class SimulationBuilder:
     def _extract_valuations(
         sim: SimulationService,
         bank: Bank,
-        accounting_service: AccountingService,
         start_date: datetime.date,
     ) -> dict[str, dict[str, float]]:
         """Extract per-position valuations at the snapshot date (start_date - 1).
 
-        Returns {position_id: {"fair_value": X, "carrying_value": Y,
-        "unrealized_gain": G, "unrealized_loss": L}} for each open position.
+        Returns {position_id: {"fair_value": X, "carrying_value": Y}} for each open position.
         """
         from brms.core.enums import ValuationType
 
@@ -237,13 +234,6 @@ class SimulationBuilder:
                 cv = sim.valuation_store.get_previous(pos.id, start_date, ValuationType.CARRYING_VALUE)
                 if cv is not None:
                     entry["carrying_value"] = float(cv)
-            # Per-position gross unrealized gain/loss from MTM tracking
-            ug = accounting_service._unrealized_gain.get(pos.id, 0.0)  # noqa: SLF001
-            ul = accounting_service._unrealized_loss.get(pos.id, 0.0)  # noqa: SLF001
-            if ug > 0:
-                entry["unrealized_gain"] = ug
-            if ul > 0:
-                entry["unrealized_loss"] = ul
             if entry:
                 result[pos.id] = entry
         return result
