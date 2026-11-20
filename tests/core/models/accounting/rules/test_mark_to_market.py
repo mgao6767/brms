@@ -7,7 +7,7 @@ import datetime
 from decimal import Decimal
 from unittest.mock import MagicMock
 
-from brms.core.enums import MeasurementBasis, ValuationType
+from brms.core.enums import MeasurementBasis, TxMeta, ValuationType
 from brms.core.rules.context import RuleContext
 from brms.core.rules.mark_to_market import MarkToMarketRule
 from brms.core.models.transaction import TransactionType
@@ -116,4 +116,4 @@ def test_generate_includes_measurement_basis_in_metadata() -> None:
     txs = rule.generate(inst, pos, _ctx(date, valuation_store=vs))
     assert len(txs) >= 1
     metadata_dict = dict(txs[0].metadata)
-    assert metadata_dict.get("measurement_basis") == "FVOCI"
+    assert metadata_dict.get(TxMeta.MEASUREMENT_BASIS) == MeasurementBasis.FVOCI

@@ -6,7 +6,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import TransactionType
+from brms.core.enums import InterestSide, TransactionType, TxMeta
 from brms.core.models.transaction import Transaction
 
 if TYPE_CHECKING:
@@ -75,7 +75,7 @@ class DepositInterestAccrualRule:
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
                 description="Deposit interest accrual (1d)",
-                metadata=(("side", "expense"),),
+                metadata=((TxMeta.SIDE, InterestSide.EXPENSE),),
             ),
         ]
 
@@ -140,8 +140,9 @@ class DepositInterestSettlementRule:
         # Number of days in previous month
         _, month_days = calendar.monthrange(prev.year, prev.month)
 
-        if acq_date is not None and acq_date.year == prev.year and acq_date.month == prev.month and acq_date.day > 1:
-            days = month_days - acq_date.day + 1
+        if acq_date is not None and acq_date.year == prev.year and acq_date.month == prev.month:
+            # Acquired at close of business: interest accrues from the following day.
+            days = month_days - acq_date.day
         else:
             days = month_days
 
@@ -159,6 +160,6 @@ class DepositInterestSettlementRule:
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
                 description=f"Monthly deposit interest settlement ({days}d)",
-                metadata=(("side", "expense"),),
+                metadata=((TxMeta.SIDE, InterestSide.EXPENSE),),
             ),
         ]

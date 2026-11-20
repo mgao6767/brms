@@ -358,9 +358,11 @@ def _set_bond_fair_values(
 
 
 def _set_loan_acquisition_costs(instruments: list, positions_data: list[dict]) -> None:
-    """Replace acquisition_cost with QL outstanding balance at acquisition date."""
+    """Replace acquisition_cost with the cash paid for the loan: outstanding principal plus accrued interest."""
     import QuantLib as ql  # noqa: N813
 
+    from brms.core.rules.interest_accrual import scaled_accrued_amount
+    from brms.core.services.simulation_builder import outstanding_principal
     from brms.core.utils import pydate_to_qldate
 
     inst_lookup = {inst.id: inst for inst in instruments}
@@ -372,7 +374,8 @@ def _set_loan_acquisition_costs(instruments: list, positions_data: list[dict]) -
         if ql_inst is None or not isinstance(ql_inst, ql.AmortizingFixedRateBond):
             continue
         acq_date = date.fromisoformat(p["acquisition_date"])
-        p["acquisition_cost"] = round(ql_inst.notional(pydate_to_qldate(acq_date)), 2)
+        accrued = scaled_accrued_amount(ql_inst, pydate_to_qldate(acq_date))
+        p["acquisition_cost"] = round(float(outstanding_principal(inst, acq_date) + accrued), 2)
 
 
 def _build_objects(

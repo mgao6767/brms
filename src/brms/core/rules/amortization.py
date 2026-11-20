@@ -27,11 +27,8 @@ class AmortizationRule:
         """Return True for LONG positions on a principal payment date.
 
         LONG: bank receives principal (Dr Cash / Cr Loans).
-        Skips dates on or before acquisition (pre-acquisition payments).
         """
         if getattr(position, "side", None) != PositionSide.LONG:
-            return False
-        if context.date <= position.acquisition_date:
             return False
         schedule = getattr(instrument, "payment_schedule", None)
         if callable(schedule):

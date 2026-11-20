@@ -5,7 +5,7 @@ import datetime
 from decimal import Decimal
 from unittest.mock import MagicMock
 
-from brms.core.enums import PositionStatus, TransactionType  # noqa: F401
+from brms.core.enums import InterestSide, MeasurementBasis, PositionStatus, TransactionType, TxMeta  # noqa: F401
 from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
 from brms.core.models.accounting.journal import Journal
 from brms.core.models.accounting.ledger import Ledger
@@ -48,7 +48,7 @@ def test_post_all_closes_position_on_maturity() -> None:
         date=datetime.date(2024, 1, 1),
         amount=Decimal("100000"),
         position_id="pos-1",
-        metadata=[("measurement_basis", "HTM")],
+        metadata=[(TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST)],
     )
     service.post_all([tx], ledger, positions)
     positions.close.assert_called_with("pos-1")
@@ -65,7 +65,7 @@ def test_post_all_closes_position_on_sale() -> None:
         date=datetime.date(2024, 1, 1),
         amount=Decimal("50000"),
         position_id="pos-2",
-        metadata=[("measurement_basis", "HTM")],
+        metadata=[(TxMeta.MEASUREMENT_BASIS, MeasurementBasis.AMORTIZED_COST)],
     )
     service.post_all([tx], ledger, positions)
     positions.close.assert_called_with("pos-2")

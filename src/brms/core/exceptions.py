@@ -27,3 +27,11 @@ class ScenarioNotAvailableError(BRMSError):
 
 class SimulationDataError(DataLoadError):
     """A simulation file is missing, malformed, or written in an unsupported format."""
+
+
+class ValuationError(BRMSError):
+    """A position could not be valued (pricing, curve or schedule failure)."""
+
+
+class UnsupportedPositionError(BRMSError):
+    """A position uses terms the engine does not support yet."""

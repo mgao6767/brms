@@ -95,3 +95,22 @@ class MetricName(Enum):
     NET_INTEREST_MARGIN = auto()
     ROA = auto()
     ROE = auto()
+
+
+class TxMeta(Enum):
+    """Keys of the metadata pairs carried by a Transaction."""
+
+    MEASUREMENT_BASIS = auto()  # value: MeasurementBasis
+    SIDE = auto()  # value: InterestSide
+    ACCRUED_INTEREST = auto()  # value: str(Decimal), accrued interest bought with a position
+    ACCRUED_PORTION = auto()  # value: str(Decimal), receivable cleared by a settlement
+    DIRECTION = auto()  # value: "gain" | "loss"
+    CARRYING_VALUE = auto()  # value: str(Decimal), carrying value of a maturing position
+    FINAL_PAYMENT = auto()  # value: bool, last scheduled principal payment of a loan
+
+
+class InterestSide(Enum):
+    """Whether an interest transaction is income to the bank or an expense."""
+
+    INCOME = auto()
+    EXPENSE = auto()

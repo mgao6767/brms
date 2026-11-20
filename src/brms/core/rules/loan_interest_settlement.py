@@ -18,10 +18,9 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import PositionSide
+from brms.core.enums import InterestSide, PositionSide, TxMeta
 from brms.core.models.transaction import Transaction, TransactionType
-from brms.core.rules.interest_accrual import scaled_accrued_amount
-from brms.core.utils import pydate_to_qldate
+from brms.core.services.amortized_cost import scaled_accrued
 
 if TYPE_CHECKING:
     from brms.core.models.instruments.base import Instrument
@@ -45,11 +44,8 @@ class LoanInterestSettlementRule:
         """Return True for LONG positions on a scheduled interest payment date.
 
         Income-side settlement: Dr Cash / Cr AIR / Cr Interest Income.
-        Skips dates on or before acquisition (no AIR to settle yet).
         """
         if getattr(position, "side", None) != PositionSide.LONG:
-            return False
-        if context.date <= position.acquisition_date:
             return False
         schedule = getattr(instrument, "payment_schedule", None)
         if not callable(schedule):
@@ -82,18 +78,11 @@ class LoanInterestSettlementRule:
         if interest_amount is None:
             return []
 
-        accrued_portion = self._compute_accrued_portion(instrument, context)
+        accrued_portion = self._compute_accrued_portion(instrument, position, context)
 
-        # Cap accrued_portion at interest_amount: the settlement cannot clear
-        # more AIR than cash received.  Day count convention differences between
-        # QL's accruedAmount and the scheduled interest can cause a small
-        # overshoot; capping prevents the AIR from going negative.
-        if accrued_portion is not None and accrued_portion > interest_amount:
-            accrued_portion = interest_amount
-
-        metadata: tuple[tuple[str, object], ...] = (("side", "income"),)
+        metadata: tuple[tuple[TxMeta, object], ...] = ((TxMeta.SIDE, InterestSide.INCOME),)
         if accrued_portion is not None:
-            metadata = (*metadata, ("accrued_portion", str(accrued_portion)))
+            metadata = (*metadata, (TxMeta.ACCRUED_PORTION, str(accrued_portion)))
 
         return [
             Transaction(
@@ -109,20 +98,9 @@ class LoanInterestSettlementRule:
         ]
 
     @staticmethod
-    def _compute_accrued_portion(instrument: Instrument, context: RuleContext) -> Decimal | None:
-        """Compute accrued interest as of the previous simulation date.
-
-        Uses :func:`scaled_accrued_amount` which correctly handles the
-        date-varying notional of amortizing instruments.
-        """
+    def _compute_accrued_portion(instrument: Instrument, position: Position, context: RuleContext) -> Decimal | None:
+        """Return the receivable to clear: the position's accrued interest at its previous date."""
         ql_inst = getattr(instrument, "ql_instrument", None)
         if ql_inst is None or not hasattr(ql_inst, "accruedAmount"):
             return None
-
-        if context.previous_date is not None:
-            ql_prev = pydate_to_qldate(context.previous_date)
-            try:
-                return scaled_accrued_amount(ql_inst, ql_prev)
-            except Exception:  # noqa: BLE001
-                return None
-        return None
+        return scaled_accrued(instrument, position, context.position_previous_date(position))

@@ -7,7 +7,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import MeasurementBasis, ValuationType
+from brms.core.enums import MeasurementBasis, TxMeta, ValuationType
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
@@ -78,8 +78,8 @@ class MarkToMarketRule:
                 instrument_id=instrument_id,
                 description=f"Mark-to-market {direction} ({basis_name})",
                 metadata=(
-                    ("measurement_basis", basis_name),
-                    ("direction", direction),
+                    (TxMeta.MEASUREMENT_BASIS, basis),
+                    (TxMeta.DIRECTION, direction),
                 ),
             ),
         ]

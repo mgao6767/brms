@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from brms.core.enums import TransactionType
+from brms.core.enums import InterestSide, MeasurementBasis, TransactionType, TxMeta
 from brms.core.models.accounting.journal import CompoundEntry, SimpleEntry
 
 if TYPE_CHECKING:
@@ -156,18 +156,16 @@ class AccountingService:
         )
         return [entry]
 
-    _MEASUREMENT_BASIS_TO_ACCOUNT: ClassVar[dict[str, str]] = {
-        "HTM": "Investment Securities at Amortized Cost",
-        "AMORTIZED_COST": "Investment Securities at Amortized Cost",
-        "FVOCI": "Investment Securities at FVOCI",
-        "FVTPL": "Assets at FVTPL",
+    _MEASUREMENT_BASIS_TO_ACCOUNT: ClassVar[dict[MeasurementBasis, str]] = {
+        MeasurementBasis.AMORTIZED_COST: "Investment Securities at Amortized Cost",
+        MeasurementBasis.FVOCI: "Investment Securities at FVOCI",
+        MeasurementBasis.FVTPL: "Assets at FVTPL",
     }
 
     def _resolve_investment_account(self, tx: Transaction, ledger: Ledger) -> TAccount:
         """Return the investment account for the measurement_basis in *tx* metadata."""
-        meta = dict(tx.metadata)
-        measurement_basis = meta.get("measurement_basis", "")
-        account_name = self._MEASUREMENT_BASIS_TO_ACCOUNT.get(measurement_basis)
+        measurement_basis = dict(tx.metadata).get(TxMeta.MEASUREMENT_BASIS)
+        account_name = self._MEASUREMENT_BASIS_TO_ACCOUNT.get(measurement_basis)  # type: ignore[arg-type]
         if account_name is None:
             msg = f"Unknown measurement_basis '{measurement_basis}' in metadata for tx={tx.id}"
             raise ValueError(msg)
@@ -186,28 +184,28 @@ class AccountingService:
         This keeps the Receivable in sync with QuantLib's ``accruedAmount``
         so that coupon settlement clears the correct amount.
         """
-        meta = dict(tx.metadata)
-        accrued_str = meta.get("accrued_interest")
-
-        cash = self._lookup(ledger, "Cash and Cash Equivalents")
         investment = self._resolve_investment_account(tx, ledger)
+        return self._purchase_entries(tx, ledger, investment, "Security purchase")
 
+    def _purchase_entries(self, tx: Transaction, ledger: Ledger, asset: TAccount, label: str) -> list[JournalEntry]:
+        """Dr *asset* (clean cost), Dr Accrued Interest Receivable (accrued bought), Cr Cash (total paid)."""
+        cash = self._lookup(ledger, "Cash and Cash Equivalents")
+        accrued_str = dict(tx.metadata).get(TxMeta.ACCRUED_INTEREST)
         if accrued_str is not None:
             accrued = float(accrued_str)
             receivable = self._lookup(ledger, "Accrued Interest Receivable")
             return [CompoundEntry(
-                debit_accounts={investment: float(tx.amount) - accrued, receivable: accrued},
+                debit_accounts={asset: float(tx.amount) - accrued, receivable: accrued},
                 credit_accounts={cash: float(tx.amount)},
                 date=tx.date,
-                description=f"Security purchase with accrued interest (tx={tx.id})",
+                description=f"{label} with accrued interest (tx={tx.id})",
             )]
-
         return [SimpleEntry(
-            debit_account=investment,
+            debit_account=asset,
             credit_account=cash,
             value=float(tx.amount),
             date=tx.date,
-            description=f"Security purchase (tx={tx.id})",
+            description=f"{label} (tx={tx.id})",
         )]
 
     def _security_sale(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
@@ -237,17 +235,8 @@ class AccountingService:
         return [entry]
 
     def _loan_disbursement(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
-        """LOAN_DISBURSEMENT: debit Loans, credit Cash."""
-        cash = self._lookup(ledger, "Cash and Cash Equivalents")
-        loans = self._lookup(ledger, "Loans and Advances")
-        entry = SimpleEntry(
-            debit_account=loans,
-            credit_account=cash,
-            value=float(tx.amount),
-            date=tx.date,
-            description=f"Loan disbursement (tx={tx.id})",
-        )
-        return [entry]
+        """LOAN_DISBURSEMENT: Dr Loans (clean), Dr Accrued Interest Receivable (accrued bought), Cr Cash."""
+        return self._purchase_entries(tx, ledger, self._lookup(ledger, "Loans and Advances"), "Loan disbursement")
 
     def _loan_repayment(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
         """LOAN_REPAYMENT: debit Cash, credit Loans."""
@@ -299,10 +288,9 @@ class AccountingService:
         A positive amount represents a gain (debit asset, credit income/equity).
         A negative amount represents a loss (debit expense/contra-equity, credit asset).
         """
-        meta = dict(tx.metadata)
-        measurement_basis = meta.get("measurement_basis", "")
+        measurement_basis = dict(tx.metadata).get(TxMeta.MEASUREMENT_BASIS)
         amount = float(tx.amount)
-        if measurement_basis == "FVTPL":
+        if measurement_basis == MeasurementBasis.FVTPL:
             asset = self._lookup(ledger, "Assets at FVTPL")
             if amount >= 0:
                 debit_account = asset
@@ -312,7 +300,7 @@ class AccountingService:
                 debit_account = self._lookup(ledger, "Unrealized Trading Loss")
                 credit_account = asset
                 value = -amount
-        elif measurement_basis == "FVOCI":
+        elif measurement_basis == MeasurementBasis.FVOCI:
             asset = self._lookup(ledger, "Investment Securities at FVOCI")
             if amount >= 0:
                 debit_account = asset
@@ -368,21 +356,21 @@ class AccountingService:
         return [entry]
 
     # Unrealized/realized account pairs per measurement basis
-    _UNREALIZED_GAIN: ClassVar[dict[str, str]] = {
-        "FVTPL": "Unrealized Trading Gain",
-        "FVOCI": "Unrealized OCI Gain",
+    _UNREALIZED_GAIN: ClassVar[dict[MeasurementBasis, str]] = {
+        MeasurementBasis.FVTPL: "Unrealized Trading Gain",
+        MeasurementBasis.FVOCI: "Unrealized OCI Gain",
     }
-    _UNREALIZED_LOSS: ClassVar[dict[str, str]] = {
-        "FVTPL": "Unrealized Trading Loss",
-        "FVOCI": "Unrealized OCI Loss",
+    _UNREALIZED_LOSS: ClassVar[dict[MeasurementBasis, str]] = {
+        MeasurementBasis.FVTPL: "Unrealized Trading Loss",
+        MeasurementBasis.FVOCI: "Unrealized OCI Loss",
     }
-    _REALIZED_GAIN: ClassVar[dict[str, str]] = {
-        "FVTPL": "Realized Trading Gain",
-        "FVOCI": "Realized OCI Gain",
+    _REALIZED_GAIN: ClassVar[dict[MeasurementBasis, str]] = {
+        MeasurementBasis.FVTPL: "Realized Trading Gain",
+        MeasurementBasis.FVOCI: "Realized OCI Gain",
     }
-    _REALIZED_LOSS: ClassVar[dict[str, str]] = {
-        "FVTPL": "Realized Trading Loss",
-        "FVOCI": "Realized OCI Loss",
+    _REALIZED_LOSS: ClassVar[dict[MeasurementBasis, str]] = {
+        MeasurementBasis.FVTPL: "Realized Trading Loss",
+        MeasurementBasis.FVOCI: "Realized OCI Loss",
     }
 
     def _maturity_settlement(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
@@ -405,8 +393,7 @@ class AccountingService:
         face_value = float(tx.amount)
         carrying_value = investment.balance()
 
-        meta = dict(tx.metadata)
-        basis = meta.get("measurement_basis", "")
+        basis = dict(tx.metadata).get(TxMeta.MEASUREMENT_BASIS)
 
         # HTM / amortized cost — simple entry
         if basis not in self._REALIZED_GAIN:
@@ -477,13 +464,12 @@ class AccountingService:
         side=income:  Dr Accrued Interest Receivable / Cr Interest Income
         side=expense: Dr Interest Expense / Cr Interest Payable
         """
-        meta = dict(tx.metadata)
-        side = meta.get("side", "")
-        if side == "income":
+        side = dict(tx.metadata).get(TxMeta.SIDE)
+        if side == InterestSide.INCOME:
             debit = self._lookup(ledger, "Accrued Interest Receivable")
             credit = self._lookup(ledger, "Interest Income")
             desc = "Interest income accrual"
-        elif side == "expense":
+        elif side == InterestSide.EXPENSE:
             debit = self._lookup(ledger, "Interest Expense")
             credit = self._lookup(ledger, "Interest Payable")
             desc = "Interest expense accrual"
@@ -520,10 +506,10 @@ class AccountingService:
             Cr  Cash                         amount
         """
         meta = dict(tx.metadata)
-        side = meta.get("side", "")
+        side = meta.get(TxMeta.SIDE)
         cash = self._lookup(ledger, "Cash and Cash Equivalents")
 
-        if side == "expense":
+        if side == InterestSide.EXPENSE:
             return [SimpleEntry(
                 debit_account=self._lookup(ledger, "Interest Payable"),
                 credit_account=cash,
@@ -532,11 +518,11 @@ class AccountingService:
                 description=f"Interest expense settlement (tx={tx.id})",
             )]
 
-        if side == "income":
+        if side == InterestSide.INCOME:
             receivable = self._lookup(ledger, "Accrued Interest Receivable")
             coupon_amount = float(tx.amount)
 
-            accrued_str = meta.get("accrued_portion")
+            accrued_str = meta.get(TxMeta.ACCRUED_PORTION)
             accrued_portion = float(accrued_str) if accrued_str is not None else coupon_amount
 
             catch_up = coupon_amount - accrued_portion
@@ -552,14 +538,18 @@ class AccountingService:
                 )]
 
             # Three-leg compound entry
-            from brms.core.models.accounting.journal import CompoundEntry
-
             interest_income = self._lookup(ledger, "Interest Income")
+            debits: dict[TAccount, float] = {cash: coupon_amount}
+            credit_legs: dict[TAccount, float] = {receivable: accrued_portion}
+            if catch_up > 0:
+                credit_legs[interest_income] = catch_up
+            else:
+                debits[interest_income] = -catch_up
             return [CompoundEntry(
-                debit_accounts={cash: coupon_amount},
-                credit_accounts={receivable: accrued_portion, interest_income: catch_up},
+                debit_accounts=debits,
+                credit_accounts=credit_legs,
                 date=tx.date,
-                description=f"Coupon settlement with day count catch-up (tx={tx.id})",
+                description=f"Interest settlement with day count catch-up (tx={tx.id})",
             )]
 
         msg = f"Unknown side '{side}' for INTEREST_SETTLEMENT in tx={tx.id}"

@@ -8,10 +8,14 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from brms.core.enums import InstrumentType, MeasurementBasis, TransactionType
+from brms.core.enums import InstrumentType, MeasurementBasis, TransactionType, TxMeta
+from brms.core.exceptions import UnsupportedPositionError
 from brms.core.models.transaction import Transaction
+from brms.core.services.amortized_cost import AmortizedCostCalculator
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import pandas as pd
 
     from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
@@ -61,10 +65,15 @@ class SimulationBuilder:
 
     def build(self, config: BuildConfig) -> SimulationSnapshot:
         """Build a simulation snapshot by replaying from earliest acquisition to start_date."""
-        coa, sim, bank, accounting_service = self._create_engine(config)
-        self._replay(config, sim, bank, accounting_service)
+        late = [p.id for p in config.positions if p.acquisition_date > config.start_date]
+        if late:
+            msg = f"Positions acquired after the start date {config.start_date} are not supported: {late}"
+            raise UnsupportedPositionError(msg)
+        sim, calculator = self._replay(config, config.start_date - datetime.timedelta(days=1), None)
+        self._add_positions_on(config.start_date, config, sim, calculator)
+        coa = sim.bank.ledger.chart_of_accounts
         balances = self._extract_balances(coa)
-        valuations = self._extract_valuations(sim, bank, accounting_service, config.start_date)
+        valuations = self._extract_valuations(sim, sim.bank, sim.accounting_service, config.start_date)
         return SimulationSnapshot(
             name=config.name,
             start_date=config.start_date,
@@ -75,10 +84,56 @@ class SimulationBuilder:
             market_frames=config.market_frames,
         )
 
-    @staticmethod
-    def _create_engine(
+    def replay(
+        self,
         config: BuildConfig,
-    ) -> tuple[BankChartOfAccounts, SimulationService, Bank, AccountingService]:
+        until: datetime.date | None = None,
+        *,
+        on_advance: Callable[[SimulationService, datetime.date], None] | None = None,
+    ) -> SimulationService:
+        """Wire an engine and replay every calendar day from the earliest acquisition through *until*.
+
+        Positions are added (with their acquisition transactions) on their acquisition date,
+        before that day's advance. *until* defaults to the day before ``config.start_date``.
+        *on_advance* is called after each day's advance.
+        """
+        sim, _calculator = self._replay(config, until or config.start_date - datetime.timedelta(days=1), on_advance)
+        return sim
+
+    def _replay(
+        self,
+        config: BuildConfig,
+        until: datetime.date,
+        on_advance: Callable[[SimulationService, datetime.date], None] | None,
+    ) -> tuple[SimulationService, AmortizedCostCalculator]:
+        sim, calculator = self._create_engine(config)
+        earliest = min((p.acquisition_date for p in config.positions), default=until)
+        current = earliest
+        while current <= until:
+            self._add_positions_on(current, config, sim, calculator)
+            sim.advance(current)
+            if on_advance is not None:
+                on_advance(sim, current)
+            current += datetime.timedelta(days=1)
+        return sim, calculator
+
+    def _add_positions_on(
+        self,
+        day: datetime.date,
+        config: BuildConfig,
+        sim: SimulationService,
+        calculator: AmortizedCostCalculator,
+    ) -> None:
+        """Add the positions acquired on *day* and post their acquisition transactions."""
+        for inst, pos in self._group_by_date(config).get(day, []):
+            sim.bank.instruments.add(inst)
+            sim.bank.positions.add(pos)
+            txns = self._make_acquisition_transactions(inst, pos, calculator)
+            sim.accounting_service.post_all(txns, sim.bank.ledger, sim.bank.positions)
+            sim.transaction_log.record_batch(txns)
+
+    @staticmethod
+    def _create_engine(config: BuildConfig) -> tuple[SimulationService, AmortizedCostCalculator]:
         """Instantiate and wire the full simulation engine."""
         import QuantLib as ql  # noqa: N813
 
@@ -136,36 +191,7 @@ class SimulationBuilder:
             transaction_log=TransactionLog(),
             event_bus=EventBus(),
         )
-        return coa, sim, bank, accounting_service
-
-    def _replay(
-        self,
-        config: BuildConfig,
-        sim: SimulationService,
-        bank: Bank,
-        accounting_service: AccountingService,
-    ) -> None:
-        """Walk calendar days from earliest acquisition to start_date.
-
-        Positions are added (with acquisition transactions) on their acquisition date,
-        up to and including start_date. The advance() loop runs only up to start_date - 1
-        (exclusive) so the first user-visible advance at start_date is not double-counted.
-        """
-        positions_by_date = self._group_by_date(config)
-        earliest = config.start_date if not config.positions else min(p.acquisition_date for p in config.positions)
-
-        has_prior_advance = False
-        current = earliest
-        while current <= config.start_date:
-            if current in positions_by_date:
-                self._add_positions(
-                    positions_by_date[current], sim, bank, accounting_service,
-                    has_prior_advance=has_prior_advance,
-                )
-            if current < config.start_date:
-                sim.advance(current)
-                has_prior_advance = True
-            current += datetime.timedelta(days=1)
+        return sim, AmortizedCostCalculator()
 
     @staticmethod
     def _group_by_date(config: BuildConfig) -> dict[datetime.date, list[tuple[Instrument, Position]]]:
@@ -176,23 +202,6 @@ class SimulationBuilder:
             bucket = result.setdefault(pos.acquisition_date, [])
             bucket.append((inst_lookup[pos.instrument_id], pos))
         return result
-
-    def _add_positions(
-        self,
-        entries: list[tuple[Instrument, Position]],
-        sim: SimulationService,
-        bank: Bank,
-        accounting_service: AccountingService,
-        *,
-        has_prior_advance: bool,
-    ) -> None:
-        """Add positions to the bank and post their acquisition transactions."""
-        for inst, pos in entries:
-            bank.instruments.add(inst)
-            bank.positions.add(pos)
-            txns = self._make_acquisition_transactions(inst, pos, has_prior_advance=has_prior_advance)
-            accounting_service.post_all(txns, bank.ledger, bank.positions)
-            sim.transaction_log.record_batch(txns)
 
     @staticmethod
     def _extract_valuations(
@@ -260,44 +269,39 @@ class SimulationBuilder:
                 balances[account.name] = bal
         return balances
 
+    @staticmethod
     def _make_acquisition_transactions(
-        self, inst: Instrument, pos: Position, *, has_prior_advance: bool,
+        inst: Instrument, pos: Position, calculator: AmortizedCostCalculator,
     ) -> list[Transaction]:
         """Generate the acquisition transaction for a single position.
 
-        For bond purchases, includes ``accrued_interest`` metadata so the
-        accounting service can split the entry into a clean-price investment
-        debit and an Accrued Interest Receivable debit.  See
-        :meth:`_compute_accrued_interest_at_acquisition` for details.
+        ``acquisition_cost`` is the total cash paid at close of business on the acquisition
+        date. For bonds and loans the accrued interest bought with the position goes under
+        ``TxMeta.ACCRUED_INTEREST`` so that the accounting service books the clean cost to the
+        asset and the accrued interest to the receivable.
+
+        Raises:
+            UnsupportedPositionError: a loan whose clean cost is not its outstanding principal.
+
         """
         inst_type = getattr(inst, "instrument_type", None)
         basis = pos.measurement_basis
+        metadata: tuple[tuple[TxMeta, object], ...] = ()
 
         if inst_type == InstrumentType.COMMON_EQUITY:
             tx_type = TransactionType.EQUITY_ISSUANCE
-            metadata: tuple[tuple[str, object], ...] = ()
         elif inst_type == InstrumentType.DEPOSIT:
             tx_type = TransactionType.DEPOSIT_RECEIVED
-            metadata = ()
-        elif basis == MeasurementBasis.AMORTIZED_COST and inst_type in _LOAN_TYPES:
-            tx_type = TransactionType.LOAN_DISBURSEMENT
-            metadata = ()
         else:
-            tx_type = TransactionType.SECURITY_PURCHASE
-            class_name = ""
-            if basis == MeasurementBasis.AMORTIZED_COST:
-                class_name = "HTM"
-            elif basis == MeasurementBasis.FVOCI:
-                class_name = "FVOCI"
-            elif basis == MeasurementBasis.FVTPL:
-                class_name = "FVTPL"
-            metadata = (("measurement_basis", class_name),)
-
-            accrued = self._compute_accrued_interest_at_acquisition(
-                inst, pos, has_prior_advance=has_prior_advance,
-            )
+            accrued = calculator.accrued_at_acquisition(inst, pos).quantize(Decimal("0.01"))
+            if basis == MeasurementBasis.AMORTIZED_COST and inst_type in _LOAN_TYPES:
+                tx_type = TransactionType.LOAN_DISBURSEMENT
+                _check_loan_at_par(inst, pos, Decimal(str(pos.acquisition_cost)) - accrued)
+            else:
+                tx_type = TransactionType.SECURITY_PURCHASE
+                metadata = ((TxMeta.MEASUREMENT_BASIS, basis),)
             if accrued > 0:
-                metadata = (*metadata, ("accrued_interest", str(accrued)))
+                metadata = (*metadata, (TxMeta.ACCRUED_INTEREST, str(accrued)))
 
         desc = tx_type.name.replace("_", " ").title()
 
@@ -314,52 +318,19 @@ class SimulationBuilder:
             ),
         ]
 
-    @staticmethod
-    def _compute_accrued_interest_at_acquisition(
-        inst: Instrument, pos: Position, *, has_prior_advance: bool,
-    ) -> Decimal:
-        """Return pre-acquisition accrued interest to book at purchase.
 
-        When a bond is bought between coupon dates, the buyer pays the seller
-        for accrued interest since the last coupon (the "dirty price" includes
-        this).  We split this out so the Accrued Interest Receivable account
-        stays in sync with QuantLib's ``accruedAmount`` from day one.
+def outstanding_principal(instrument: Instrument, date: datetime.date) -> Decimal:
+    """Return a loan's scheduled principal outstanding at close of business on *date*."""
+    _interest, principal, _outstanding = instrument.payment_schedule()  # type: ignore[attr-defined]
+    paid = sum((Decimal(str(amount)) for d, amount in principal if d <= date), Decimal(0))
+    return Decimal(str(instrument.face_value)) - paid  # type: ignore[attr-defined]
 
-        We use ``accruedAmount(acquisition_date - 1 day)`` because:
 
-        * On the acquisition date, ``_add_positions`` posts the acquisition
-          transaction **before** ``sim.advance()`` runs.
-        * ``advance()`` then runs the ``InterestIncomeAccrualRule``, which
-          computes: ``accruedAmount(today) - accruedAmount(previous_date)``.
-        * ``previous_date`` equals the last advance date = acquisition_date - 1
-          (since advance runs every calendar day).
-        * So after both the acquisition entry and the first accrual, the
-          Receivable balance equals:
-          ``accruedAmount(acq-1) + [accruedAmount(acq) - accruedAmount(acq-1)]``
-          = ``accruedAmount(acq)``, which is exactly what QuantLib tracks.
-
-        **Edge case — no prior advance (bond is the earliest position):**
-
-        When no ``advance()`` has run before the bond is added, the accrual
-        rule sees ``previous_date = None`` and falls back to ``ai_prev = 0``.
-        That means the first accrual posts the full ``accruedAmount(today)``
-        — effectively booking all pre-acquisition accrual in one go.  If we
-        *also* booked accrued interest at acquisition, the Receivable would
-        be double-counted.  So we return 0 in this case and let the accrual
-        rule handle it.
-        """
-        if not has_prior_advance:
-            return Decimal("0")
-
-        ql_inst = getattr(inst, "ql_instrument", None)
-        if ql_inst is None or not hasattr(ql_inst, "accruedAmount"):
-            return Decimal("0")
-
-        from brms.core.rules.interest_accrual import scaled_accrued_amount
-        from brms.core.utils import pydate_to_qldate
-
-        day_before = pos.acquisition_date - datetime.timedelta(days=1)
-        try:
-            return scaled_accrued_amount(ql_inst, pydate_to_qldate(day_before)).quantize(Decimal("0.01"))
-        except RuntimeError:
-            return Decimal("0")
+def _check_loan_at_par(instrument: Instrument, position: Position, clean_cost: Decimal) -> None:
+    outstanding = outstanding_principal(instrument, position.acquisition_date)
+    if abs(clean_cost - outstanding) > Decimal("0.01"):
+        msg = (
+            f"Position {position.id}: loans bought at a premium or discount are not supported yet "
+            f"(clean cost {clean_cost:.2f}, outstanding principal {outstanding:.2f} on {position.acquisition_date})"
+        )
+        raise UnsupportedPositionError(msg)

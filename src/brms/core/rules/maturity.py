@@ -6,6 +6,7 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
+from brms.core.enums import TxMeta
 from brms.core.models.transaction import Transaction, TransactionType
 
 if TYPE_CHECKING:
@@ -36,8 +37,6 @@ class MaturityRule:
         context: RuleContext,
     ) -> list[Transaction]:
         """Generate a single maturity settlement transaction for the face value."""
-        measurement_basis = getattr(position, "measurement_basis", None)
-        measurement_basis_name = measurement_basis.name if measurement_basis is not None else ""
         # At maturity, the bond pays back face value, not acquisition cost
         face_value = getattr(instrument, "face_value", None)
         amount = Decimal(str(face_value)) if face_value is not None else position.acquisition_cost
@@ -50,9 +49,6 @@ class MaturityRule:
                 position_id=getattr(position, "id", None),
                 instrument_id=getattr(position, "instrument_id", None),
                 description="Instrument matured — settlement",
-                metadata=(
-                    ("measurement_basis", measurement_basis_name),
-                    ("acquisition_cost", str(position.acquisition_cost)),
-                ),
+                metadata=((TxMeta.MEASUREMENT_BASIS, position.measurement_basis),),
             ),
         ]

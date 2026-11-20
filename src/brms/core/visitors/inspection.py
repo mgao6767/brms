@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import locale
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from brms.core.visitors.base import Visitor
@@ -138,7 +139,7 @@ class TransactionInspectionVisitor(InspectionVisitor):
         if transaction.description:
             details["Description"] = transaction.description
         if transaction.metadata:
-            details["Metadata"] = {k: str(v) for k, v in transaction.metadata}
+            details["Metadata"] = {_label(k): _label(v) for k, v in transaction.metadata}
         return details
 
     def _inspect_position(self, position_id: str) -> dict[str, Any]:
@@ -185,3 +186,10 @@ class TransactionInspectionVisitor(InspectionVisitor):
                 entry_dict[f"Cr {acct.name}"] = f"{amt:,.2f}"
             je_details[entry_key] = entry_dict
         return je_details
+
+
+def _label(value: object) -> str:
+    """Readable text for a metadata key or value (enum members as lower-case names)."""
+    if isinstance(value, Enum):
+        return value.name.lower()
+    return str(value)

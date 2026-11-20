@@ -170,7 +170,9 @@ class CarryingValueStrategy:
 
         Derived from ``payment_schedule()`` to stay independent of ledger state.
         """
-        cost = Decimal(str(pos.acquisition_cost))
+        from brms.core.services.amortized_cost import AmortizedCostCalculator
+
+        cost = AmortizedCostCalculator().clean_cost(inst, pos)
         schedule = getattr(inst, "payment_schedule", None)
         if not callable(schedule):
             return cost
