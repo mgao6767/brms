@@ -40,6 +40,7 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
     import QuantLib as ql_  # noqa: N813
 
     from brms.core.events import EventBus
+    from brms.core.exceptions import SimulationDataError
     from brms.core.metrics import default_metrics
     from brms.core.metrics.base import MetricRegistry
     from brms.core.models.accounting.bank_accounts import BankChartOfAccounts
@@ -123,16 +124,15 @@ def build_core_services(*, simulation_zip: Path | None = None) -> CoreServices:
         import importlib.resources as pkg_resources
 
         simulation_zip = Path(str(pkg_resources.files("brms.data").joinpath("htm_treasury.zip")))
-    if simulation_zip.exists():
-        loader = ZipLoader(path=simulation_zip, instrument_registry=instrument_registry)
-        data_service.load_and_initialize(loader, simulation_service)
+    if not simulation_zip.exists():
+        msg = f"Simulation file not found: {simulation_zip}"
+        raise SimulationDataError(msg)
+    loader = ZipLoader(path=simulation_zip, instrument_registry=instrument_registry)
+    data_service.load_and_initialize(loader, simulation_service)
 
     # Seed the valuation store so initial tree values match the BS
     if simulation_service.start_date is not None:
-        import contextlib
-
-        with contextlib.suppress(Exception):
-            valuation_service.value_all(bank, market_data, simulation_service.start_date, valuation_store)
+        valuation_service.value_all(bank, market_data, simulation_service.start_date, valuation_store)
 
     return CoreServices(
         event_bus=event_bus,

@@ -23,3 +23,7 @@ class InstrumentNotFoundError(BRMSError):
 
 class ScenarioNotAvailableError(BRMSError):
     """No market data available for the requested date."""
+
+
+class SimulationDataError(DataLoadError):
+    """A simulation file is missing, malformed, or written in an unsupported format."""
