@@ -12,13 +12,14 @@ from concurrent.futures import BrokenExecutor, Executor, Future, ProcessPoolExec
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from dateutil.relativedelta import relativedelta
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from brms.web import jobs
-from brms.web.payloads import day_payload
+from brms.web.payloads import day_payload, valuations_long
 from brms.web.workspace import DEMO_PREFIX, Workspace, default_data_dir, now
 
 if TYPE_CHECKING:
@@ -41,6 +42,10 @@ class RunRequest(BaseModel):
     months: int = Field(default=12, ge=1, le=jobs.MAX_MONTHS)
     aoci_filter: bool | None = None
     reinvest: bool = False
+    deposit_runoff: float = Field(default=0.0, ge=0, le=10)
+    withdrawal: float = Field(default=0.0, ge=0, lt=1)
+    withdrawal_date: datetime.date | None = None
+    sell_afs_on: datetime.date | None = None
     label: str | None = Field(default=None, max_length=120)
 
 
@@ -52,6 +57,7 @@ class CallReportRequest(BaseModel):
     ltv: float = Field(default=0.8, gt=0, le=1.5)
     aoci_filter: bool = True
     deposit_beta: float = Field(default=0.35, ge=0, le=1)
+    core_deposits: bool = True
     afs: dict[str, float] | None = None
 
 
@@ -108,6 +114,21 @@ def _error_text(exc: BaseException) -> str:
         return "The worker process stopped unexpectedly (out of memory or a crash); try again or a shorter horizon"
     text = str(exc).strip() or type(exc).__name__
     return text if len(text) < _MAX_ERROR else text[:_MAX_ERROR] + "..."
+
+
+def _check_stress_dates(request: RunRequest, bank: dict[str, Any]) -> None:
+    """Reject stress dates outside the run, and a withdrawal without a date."""
+    if request.withdrawal and request.withdrawal_date is None:
+        raise HTTPException(400, "A withdrawal needs a withdrawal date")
+    if not bank.get("start_date"):
+        return
+    start = datetime.date.fromisoformat(bank["start_date"])
+    end = start + relativedelta(months=request.months) - datetime.timedelta(days=1)
+    for key in ("withdrawal_date", "sell_afs_on"):
+        day = getattr(request, key)
+        if day is not None and not start <= day <= end:
+            label = key.replace("_", " ").capitalize()
+            raise HTTPException(400, f"{label} {day} is outside the run ({start} to {end})")
 
 
 def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a closure over its state)
@@ -278,7 +299,7 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
             raise HTTPException(409, f"Bank {request.bank_id!r} is not ready ({bank.get('status')})")
         if zip_path is None:
             raise HTTPException(409, f"Bank {request.bank_id!r} has no simulation yet")
-        spec = request.model_dump(exclude={"bank_id"}, exclude_none=True)
+        spec = request.model_dump(mode="json", exclude={"bank_id"}, exclude_none=True)
         try:
             jobs.scenario_from_spec(spec)
         except jobs.SpecError as exc:
@@ -290,6 +311,8 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
             if request.months > months_available:
                 raise HTTPException(400, f"Historical rates for this bank run to {last}: at most "
                                          f"{months_available} months; use a shock scenario to go further")
+        _check_stress_dates(request, bank)
+        spec = request.model_dump(mode="json", exclude={"bank_id"}, exclude_none=True)
         spec["description"] = jobs.describe(spec)
         meta = workspace.create_run(bank, spec)
         run_id = meta["id"]
@@ -333,6 +356,16 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
         csv = load_result(run_id).metrics.to_csv(index_label="date")
         headers = {"Content-Disposition": f'attachment; filename="{run_id}-metrics.csv"'}
         return PlainTextResponse(csv, media_type="text/csv", headers=headers)
+
+    @app.get("/api/runs/{run_id}/{table}.csv", response_class=PlainTextResponse)
+    def table_csv(run_id: str, table: str) -> PlainTextResponse:
+        run_or_404(run_id)
+        if table not in {"statements", "journal", "valuations"}:
+            raise HTTPException(404, f"No table {table!r}; use statements, journal, valuations or metrics")
+        result = load_result(run_id)
+        frame = valuations_long(result) if table == "valuations" else getattr(result, table)
+        headers = {"Content-Disposition": f'attachment; filename="{run_id}-{table}.csv"'}
+        return PlainTextResponse(frame.to_csv(index=False), media_type="text/csv", headers=headers)
 
     @app.delete("/api/runs/{run_id}", status_code=204)
     def delete_run(run_id: str) -> None:

@@ -106,6 +106,14 @@ def test_historical_run_end_to_end(client: TestClient) -> None:
     csv = client.get(f"/api/runs/{run_id}/metrics.csv")
     assert csv.status_code == 200
     assert csv.text.startswith("date,")
+    for table, header in (("statements", "date,section,account,balance"),
+                          ("journal", "date,entry,kind,description,position,account,debit,credit"),
+                          ("valuations", "date,position,carrying_value,fair_value,amortized_cost")):
+        response = client.get(f"/api/runs/{run_id}/{table}.csv")
+        assert response.status_code == 200, table
+        assert response.text.splitlines()[0] == header
+        assert "attachment" in response.headers["content-disposition"]
+    assert client.get(f"/api/runs/{run_id}/nonsense.csv").status_code == 404
 
     assert any(r["id"] == run_id for r in client.get("/api/runs").json())
     assert client.delete(f"/api/runs/{run_id}").status_code == 204
@@ -174,3 +182,20 @@ def test_interrupted_work_is_marked_failed_on_restart(tmp_path: Path) -> None:
     with TestClient(app) as test_client:
         assert test_client.get(f"/api/runs/{run['id']}").json()["meta"]["status"] == "failed"
         assert test_client.get(f"/api/banks/{bank['id']}").json()["status"] == "failed"
+
+
+def test_stress_options_are_validated_and_described(client: TestClient) -> None:
+    ready_bank(client, _DEMO)
+    bad = client.post("/api/runs", json={"bank_id": _DEMO, "months": 1, "withdrawal": 0.2})
+    assert bad.status_code == 400
+    assert "withdrawal date" in bad.text
+    late = client.post("/api/runs", json={"bank_id": _DEMO, "months": 1, "sell_afs_on": "2030-01-01"})
+    assert late.status_code == 400
+    assert "outside the run" in late.text
+    ok = client.post("/api/runs", json={"bank_id": _DEMO, "months": 1, "deposit_runoff": 0.5, "withdrawal": 0.25,
+                                        "withdrawal_date": "2022-01-20"})
+    assert ok.status_code == 202, ok.text
+    run = finished_run(client, ok.json()["id"])
+    assert run["meta"]["status"] == "done", run["meta"]["error"]
+    assert run["meta"]["spec"]["description"] == (
+        "Historical rates; deposits run off 50% a year; 25% of deposits withdrawn on 2022-01-20")

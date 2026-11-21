@@ -33,7 +33,8 @@ export async function render(main, ctx) {
     main.replaceChildren(head(bank), bank.story ? h("p", { class: "story" }, bank.story) : null, kpis(bank),
       h("div", { class: "grid cols-3" },
         h("div", { class: "span-2 grid" }, balanceSheet(bank), positions(bank)),
-        h("div", { class: "grid", style: { alignContent: "start" } }, launcher(bank, scenarios), recentRuns(runs))));
+        h("div", { class: "grid", style: { alignContent: "start" } }, launcher(bank, scenarios),
+          reportedPanel(bank), recentRuns(runs))));
   }
 
   await refresh();
@@ -145,6 +146,10 @@ function launcher(bank, scenarios) {
     (bank.summary.regulatory.aoci_filter ? "on" : "off") + ")"), h("option", { value: "on" }, "On"),
   h("option", { value: "off" }, "Off"));
   const reinvest = h("input", { type: "checkbox", id: "sc-reinvest" });
+  const runoff = h("input", { type: "number", id: "st-runoff", value: "0", min: "0", max: "1000", step: "5" });
+  const withdrawal = h("input", { type: "number", id: "st-withdrawal", value: "0", min: "0", max: "99", step: "5" });
+  const withdrawalDate = h("input", { type: "date", id: "st-withdrawal-date", min: bank.start_date });
+  const sellAfs = h("input", { type: "date", id: "st-sell", min: bank.start_date });
   const label = h("input", { type: "text", id: "sc-label", maxlength: "120", placeholder: "Optional" });
   const bpField = h("div", { class: "field" }, h("label", { for: "sc-bp" }, "Shift (bp, all maturities)"), bp);
   const keyField = h("div", { class: "field" }, h("span", { class: "label" }, "Shift by maturity (bp)"),
@@ -160,9 +165,20 @@ function launcher(bank, scenarios) {
   kind.addEventListener("change", sync);
   sync();
 
+  function stress() {
+    const out = {};
+    if (Number(runoff.value) > 0) out.deposit_runoff = Number(runoff.value) / 100;
+    if (Number(withdrawal.value) > 0) {
+      out.withdrawal = Number(withdrawal.value) / 100;
+      out.withdrawal_date = withdrawalDate.value || undefined;
+    }
+    if (sellAfs.value) out.sell_afs_on = sellAfs.value;
+    return out;
+  }
+
   function spec() {
     const base = { bank_id: bank.id, months: Number(months.value), reinvest: reinvest.checked,
-      label: label.value.trim() || undefined };
+      label: label.value.trim() || undefined, ...stress() };
     if (aoci.value) base.aoci_filter = aoci.value === "on";
     if (kind.value === "historical") return { ...base, kind: "historical" };
     base.ramp_days = Number(ramp.value) || 0;
@@ -182,6 +198,17 @@ function launcher(bank, scenarios) {
     h("div", { class: "row" },
       h("div", { class: "field" }, h("label", { for: "sc-aoci" }, "AOCI filter"), aoci)),
     h("label", { class: "check" }, reinvest, "Roll maturing bonds into new par bonds"),
+    h("details", { class: "stress" },
+      h("summary", {}, "Liquidity stress (optional)"),
+      h("div", { class: "form", style: { marginTop: "8px" } },
+        h("div", { class: "row" },
+          h("div", { class: "field" }, h("label", { for: "st-runoff" }, "Deposit run-off (% a year)"), runoff)),
+        h("div", { class: "row" },
+          h("div", { class: "field" }, h("label", { for: "st-withdrawal" }, "Withdrawal (% of deposits)"), withdrawal),
+          h("div", { class: "field" }, h("label", { for: "st-withdrawal-date" }, "on"), withdrawalDate)),
+        h("div", { class: "field" }, h("label", { for: "st-sell" }, "Sell all AFS securities on"), sellAfs),
+        h("span", { class: "hint muted" }, "Borrowings are not withdrawn. A sale on a non-market day happens "
+          + "on the next market day. Negative cash shows the funding the bank would need."))),
     h("div", { class: "field" }, h("label", { for: "sc-label" }, "Label"), label),
     h("div", { class: "row" }, submit, basel), status);
 
@@ -201,7 +228,7 @@ function launcher(bank, scenarios) {
     basel.disabled = true;
     status.replaceChildren();
     const common = { bank_id: bank.id, months: Number(months.value), reinvest: reinvest.checked,
-      ramp_days: Number(ramp.value) || 0 };
+      ramp_days: Number(ramp.value) || 0, ...stress() };
     if (aoci.value) common.aoci_filter = aoci.value === "on";
     try {
       const ids = [];
@@ -215,6 +242,27 @@ function launcher(bank, scenarios) {
   });
 
   return panel("Run a scenario", form);
+}
+
+function reportedPanel(bank) {
+  const reported = bank.summary.reported;
+  if (!reported) return null;
+  const lab = bank.summary.first_day || {};
+  const ratio = (v) => (v === null || v === undefined ? "\u2013" : pct(v));
+  const rows = [
+    ["Total assets", money(reported.ASSET), money(lab.total_assets)],
+    ["Equity", money(reported.EQ), money(lab.total_equity)],
+    ["CET1 capital", money(reported.RBCT1C), money(lab.cet1_capital)],
+    ["Risk-weighted assets", money(reported.RWAJ), money(lab.total_rwa)],
+    ["CET1 ratio", reported.RBCT1CER === null || reported.RBCT1CER === undefined ? "\u2013"
+      : pct(reported.RBCT1CER / 100), ratio(lab.cet1_ratio)],
+  ];
+  return panel("Filing and lab", h("table", { class: "data" },
+    h("thead", {}, h("tr", {}, h("th", {}, ""), h("th", { class: "num" }, "Call Report"),
+      h("th", { class: "num" }, `Lab, ${date(lab.date)}`))),
+    h("tbody", {}, rows.map(([label, filed, value]) => h("tr", {}, h("td", {}, label),
+      h("td", { class: "num" }, filed), h("td", { class: "num" }, value))))),
+  { flush: true, note: "the lab's first market day, after the first fair-value marks" });
 }
 
 function recentRuns(runs) {

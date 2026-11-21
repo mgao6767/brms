@@ -38,6 +38,23 @@ class MaturityGapResult:
     total_delta_nii_down: float = 0.0
 
 
+def _repricing_amount(position: object, instrument: object, date: datetime.date, store: ValuationStore) -> float:
+    """Return the amount of *position* that reprices: carrying value, or beta x balance for a deposit."""
+    from brms.core.enums import ValuationType
+
+    carrying = store.get(position.id, date, ValuationType.CARRYING_VALUE)  # type: ignore[attr-defined]
+    if position.measurement_basis != MeasurementBasis.NA:  # type: ignore[attr-defined]
+        if carrying is None:
+            msg = f"Position {position.id} has no carrying value on {date}"  # type: ignore[attr-defined]
+            raise ValuationError(msg)
+        return float(carrying)
+    # Deposits and other unvalued holdings sit at their balance.
+    value = float(carrying if carrying is not None else position.acquisition_cost)  # type: ignore[attr-defined]
+    if instrument.instrument_type == InstrumentType.DEPOSIT:  # type: ignore[attr-defined]
+        value *= instrument.beta  # the rate moves by beta x the market move: only that share reprices
+    return value
+
+
 class MaturityGapModel:
     """Computes the maturity gap for banking book positions across 19 Basel IRRBB buckets."""
 
@@ -48,10 +65,12 @@ class MaturityGapModel:
         valuation_store: ValuationStore,
     ) -> MaturityGapResult:
         """Classify banking book positions into buckets and compute gap/ΔNII."""
-        from brms.core.enums import PositionSide, ValuationType
+        from brms.core.enums import PositionSide
 
         rsa = [0.0] * len(IRRBB_BUCKETS)
         rsl = [0.0] * len(IRRBB_BUCKETS)
+        # Each amount repricing in t years earns (or pays) the shock for the rest of the year, 1 - t.
+        nii_exposure = [0.0] * len(IRRBB_BUCKETS)
 
         for position in bank.positions.open_positions():
             if position.book_type != BookType.BANKING:
@@ -71,21 +90,14 @@ class MaturityGapModel:
 
             bucket_idx = assign_bucket(remaining_years)
 
-            # Bonds and loans carry a valuation; deposits and other unvalued holdings sit at their balance.
-            if position.measurement_basis == MeasurementBasis.NA:
-                balance = valuation_store.get(position.id, date, ValuationType.CARRYING_VALUE)
-                value = float(balance if balance is not None else position.acquisition_cost)
-            else:
-                cv = valuation_store.get(position.id, date, ValuationType.CARRYING_VALUE)
-                if cv is None:
-                    msg = f"Position {position.id} has no carrying value on {date}"
-                    raise ValuationError(msg)
-                value = float(cv)
+            value = _repricing_amount(position, instrument, date, valuation_store)
 
-            if position.side == PositionSide.LONG:
+            sign = 1.0 if position.side == PositionSide.LONG else -1.0
+            if sign > 0:
                 rsa[bucket_idx] += value
             else:
                 rsl[bucket_idx] += value
+            nii_exposure[bucket_idx] += sign * value * max(0.0, 1.0 - remaining_years)
 
         # Compute derived columns
         gap = [rsa[i] - rsl[i] for i in range(len(IRRBB_BUCKETS))]
@@ -94,11 +106,10 @@ class MaturityGapModel:
         for g in gap:
             running += g
             cumulative_gap.append(running)
-        # A gap repricing at the bucket midpoint m earns the shock for the rest of the year, (1 - m);
-        # buckets repricing after one year do not affect 12-month NII.
-        exposure = [max(0.0, 1.0 - b.midpoint) for b in IRRBB_BUCKETS]
-        delta_nii_up = [g * _PARALLEL_SHOCK * w for g, w in zip(gap, exposure, strict=True)]
-        delta_nii_down = [g * -_PARALLEL_SHOCK * w for g, w in zip(gap, exposure, strict=True)]
+        # Weighted by each item's exact time to repricing (not the bucket midpoint), so a floater's
+        # contribution does not jump on its reset date; items repricing after a year contribute nothing.
+        delta_nii_up = [e * _PARALLEL_SHOCK for e in nii_exposure]
+        delta_nii_down = [e * -_PARALLEL_SHOCK for e in nii_exposure]
 
         return MaturityGapResult(
             rsa=rsa,

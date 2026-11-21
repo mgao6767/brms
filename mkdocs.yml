@@ -142,7 +142,7 @@ nav:
     - Tutorials:
       - SVB through 2022: lab/tutorials/svb-2022.md
       - The Basel shocks: lab/tutorials/basel-shocks.md
-      - SVB's last week, in Python: lab/tutorials/svb-last-week.md
+      - SVB's last week: lab/tutorials/svb-last-week.md
       - A bank from its Call Report: lab/tutorials/call-report.md
       - Build a bank from scratch: lab/tutorials/bank-file.md
       - Python and the command line: lab/tutorials/python.md

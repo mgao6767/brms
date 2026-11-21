@@ -6,7 +6,7 @@
 >>> result.metrics["CET1_RATIO"].plot()  # doctest: +SKIP
 """
 
-from brms.lab.runner import RunResult, run, run_many
+from brms.lab.runner import DepositStress, RunResult, run, run_many
 from brms.lab.scenarios import Historical, KeyRateShift, Shock, parse_scenario
 
-__all__ = ["Historical", "KeyRateShift", "RunResult", "Shock", "parse_scenario", "run", "run_many"]
+__all__ = ["DepositStress", "Historical", "KeyRateShift", "RunResult", "Shock", "parse_scenario", "run", "run_many"]

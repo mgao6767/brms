@@ -63,6 +63,7 @@ class SimulationService:
         from brms.core.services.operating_service import OperatingService
 
         self.operating_service = OperatingService()
+        self.operating_enabled = True
         self._current_date: datetime.date | None = None  # type: ignore[name-defined]
         self._start_date: datetime.date | None = None  # type: ignore[name-defined]
         self._end_date: datetime.date | None = None  # type: ignore[name-defined]
@@ -203,7 +204,8 @@ class SimulationService:
         if self.bank.reinvest_maturities:
             transactions = [*transactions, *self._reinvest(transactions, date, has_market_data=has_market)]
         # Bank-level flows after the positions' postings: costs and fees, then tax on the profit so far.
-        for step in (self.operating_service.flows, self.operating_service.tax, self.operating_service.dividends):
+        steps = (self.operating_service.flows, self.operating_service.tax, self.operating_service.dividends)
+        for step in steps if self.operating_enabled else ():
             operating = step(self.bank, date)
             if operating:
                 self.accounting_service.post_all(operating, self.bank.ledger, self.bank.positions)

@@ -38,4 +38,5 @@ export const api = {
   deleteRun: (id) => request("DELETE", `/api/runs/${encodeURIComponent(id)}`),
   day: (id, date) => request("GET", `/api/runs/${encodeURIComponent(id)}/day?date=${encodeURIComponent(date)}`),
   metricsCsvUrl: (id) => `/api/runs/${encodeURIComponent(id)}/metrics.csv`,
+  tableCsvUrl: (id, table) => `/api/runs/${encodeURIComponent(id)}/${table}.csv`,
 };

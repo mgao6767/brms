@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 
-from brms.core.enums import EntryKind, MetricName, ValuationType
+from brms.core.enums import EntryKind, MeasurementBasis, MetricName, ValuationType
 from brms.core.results import metrics_frame, valuations_frame
 from brms.core.services import build_core_services
 
@@ -104,6 +104,8 @@ def run(  # noqa: PLR0913
     operating: OperatingConfig | None = None,
     sales: Mapping[str, datetime.date] | None = None,
     reinvest_maturities: bool = False,
+    deposit_stress: DepositStress | None = None,
+    sell_afs_on: datetime.date | None = None,
 ) -> RunResult:
     """Run *simulation* (a snapshot zip) through *scenario* from its start date.
 
@@ -112,6 +114,8 @@ def run(  # noqa: PLR0913
     *sales* maps position ids to the
     market day on which to sell them at fair value (FVOCI and FVTPL positions).
     With *reinvest_maturities*, maturing bonds roll into new par bonds of the same term.
+    *deposit_stress* adds run-off or a withdrawal to every deposit except borrowings.
+    *sell_afs_on* sells every AFS (FVOCI) security on that date, or the next market day.
     """
     services = build_core_services(simulation_zip=Path(simulation))
     sim = services.simulation_service
@@ -127,6 +131,7 @@ def run(  # noqa: PLR0913
         end = start + relativedelta(months=months) - datetime.timedelta(days=1) if months else sim.end_date
     for name, frame in scenario.frames(services.market_data, start, end).items():
         services.market_data.add_frame(name, frame)
+    _apply_stress(services, start, end, deposit_stress, sell_afs_on)
     sim.end_date = end
     statements: list[pd.DataFrame] = []
     while sim.current_date < end:
@@ -164,6 +169,80 @@ def book_of(side: str, instrument_type: str, basis: str) -> str | None:
     if instrument_type in LOAN_TYPES:
         return "loans"
     return {"AMORTIZED_COST": "htm", "FVOCI": "afs"}.get(basis)
+
+
+@dataclass(frozen=True)
+class DepositStress:
+    """A run's deposit stress, applied to every deposit except borrowings.
+
+    ``runoff_rate``: an extra continuous annual run-off from the run's start date (0.5 = half the
+    balance in a year). ``withdrawal``: a fraction of the balance then outstanding that leaves on
+    ``withdrawal_date``.
+    """
+
+    runoff_rate: float = 0.0
+    withdrawal: float = 0.0
+    withdrawal_date: datetime.date | None = None
+
+    def __post_init__(self) -> None:
+        """Validate the inputs."""
+        if self.runoff_rate < 0:
+            msg = f"runoff_rate must be zero or positive, got {self.runoff_rate}"
+            raise ValueError(msg)
+        if not 0 <= self.withdrawal < 1:
+            msg = f"withdrawal must be a fraction in [0, 1), got {self.withdrawal}"
+            raise ValueError(msg)
+        if self.withdrawal and self.withdrawal_date is None:
+            msg = "A withdrawal needs a withdrawal_date"
+            raise ValueError(msg)
+
+    def apply(self, services: CoreServices, start: datetime.date, end: datetime.date) -> None:
+        """Set the stress on the deposits of a loaded simulation (each deposit instrument once)."""
+        from brms.core.enums import InstrumentType
+
+        if self.withdrawal_date is not None and not start <= self.withdrawal_date <= end:
+            msg = f"The withdrawal date {self.withdrawal_date} is outside the run ({start} to {end})"
+            raise ValueError(msg)
+        seen: set[str] = set()
+        for position in services.bank.positions.open_positions():
+            deposit = services.bank.instruments.get(position.instrument_id)
+            if getattr(deposit, "instrument_type", None) != InstrumentType.DEPOSIT or deposit.borrowing:
+                continue
+            if deposit.id in seen:
+                continue
+            seen.add(deposit.id)
+            deposit.stress_runoff = self.runoff_rate
+            deposit.stress_from = start
+            if self.withdrawal:
+                deposit.withdrawals = (*deposit.withdrawals, (self.withdrawal_date, self.withdrawal))
+
+
+def _apply_stress(
+    services: CoreServices, start: datetime.date, end: datetime.date, deposit_stress: DepositStress | None,
+    sell_afs_on: datetime.date | None,
+) -> None:
+    """Set the run's deposit stress and the sale of the AFS book (on the first market day from *sell_afs_on*)."""
+    if deposit_stress is not None:
+        deposit_stress.apply(services, start, end)
+    if sell_afs_on is not None:
+        if not start <= sell_afs_on <= end:
+            msg = f"The sale date {sell_afs_on} is outside the run ({start} to {end})"
+            raise ValueError(msg)
+        day = _next_market_day(services, sell_afs_on, end)
+        for position in services.bank.positions.open_positions():
+            if position.measurement_basis == MeasurementBasis.FVOCI:
+                position.sale_date = day
+
+
+def _next_market_day(services: CoreServices, day: datetime.date, end: datetime.date) -> datetime.date:
+    """Return the first market day on or after *day* (no later than *end*)."""
+    current = day
+    while current <= end:
+        if services.market_data.has_data(current):
+            return current
+        current += datetime.timedelta(days=1)
+    msg = f"No market day between {day} and the end of the run ({end})"
+    raise ValueError(msg)
 
 
 _TOTALS = ("total_assets", "total_liabilities", "total_equity", "total_income", "total_expenses", "net_income")

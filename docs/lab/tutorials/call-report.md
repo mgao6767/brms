@@ -39,7 +39,9 @@ In the browser app, open **Import**. Under **From a US Call Report**:
    rate-sensitive depositors are higher.
 5. **AOCI filter:** tick it for banks that exclude AOCI from capital (most US banks below the
    largest size); untick it for the largest banks, or to apply Basel III.
-6. Click **Build from Call Report**.
+6. **Core deposits in EVE:** keep it ticked to treat the stable part of deposits as long-lived in
+   the economic-value measure, following the Basel caps weighted by the bank's insured share.
+7. Click **Build from Call Report**.
 
 The lab fetches the filing, builds the bank (a few seconds) and opens its page.
 
@@ -62,7 +64,7 @@ How each line of the Call Report becomes a position is set out in the
 |---|---|---|
 | HTM and AFS split in the bank's overall proportion within each security class | The filing does not say which securities sit in which book | If you know the AFS mix (10-K, FR Y-9C), use the Python `afs=` option (below) |
 | Each maturity bucket becomes one instrument at the bucket midpoint | Drives duration and therefore unrealised losses | Accept it for comparisons across banks |
-| Deposits do not run off | A deposit run is the key liquidity risk | Add `runoff_rate` or `withdrawals` to the bank file ([example](svb-last-week.md)) |
+| Deposits do not run off | A deposit run is the key liquidity risk | Add a **Liquidity stress** to the run, or `runoff_rate` and `withdrawals` to the bank file ([example](svb-last-week.md)) |
 | Operational-risk RWA is estimated | Affects the capital ratios' level | Compare with the reported RWA in the bank file's `reported` block |
 
 ## Step 4: run it

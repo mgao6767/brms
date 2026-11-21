@@ -44,13 +44,24 @@ provisions are **not** modelled.
   3-month Treasury yield since then, never below zero. Interest accrues daily and is paid on the
   first of each month.
 - **Balance.** `runoff_rate` removes a share of the balance continuously over the year, and
-  `withdrawals` remove a fraction on given dates. The cash leaves with them.
-- **In EVE and NII sensitivity, deposits reprice overnight.** The lab has no behavioural model of
-  core deposits. When it computes the economic value of equity and the 12-month NII sensitivity,
-  deposits are worth their balance and reprice at once. Real banks treat much of their deposit base
-  as long-lived, which offsets part of the loss in value of fixed-rate assets when rates rise. The
-  lab's ΔEVE is therefore closer to the exposure of the assets alone. Use it to compare banks, and
-  do not read it as the bank's own IRRBB disclosure.
+  `withdrawals` remove a fraction on given dates. The cash leaves with them. A run's **liquidity
+  stress** (browser: *Liquidity stress*; Python: `DepositStress`) adds run-off from the start date
+  and a one-off withdrawal to every deposit not marked as a `borrowing`.
+- **Core deposits in EVE.** Following the Basel standard (SRP31), part of a non-maturity deposit can
+  be treated as stable: its `core_share` runs off in equal monthly amounts over twice its
+  `core_maturity` (its average life), and EVE discounts that run-off on the curve. The rest
+  reprices overnight. When rates rise, the core deposits are worth less as a liability, which
+  offsets part of the loss on fixed-rate assets. Without a core share, a deposit reprices overnight
+  and offsets nothing.
+- **Call Report banks** get the Basel caps, weighted by how much of their deposits is insured:
+  insured deposits count as retail (90% core with a 5-year average life for noninterest-bearing,
+  transactional deposits; 70% and 4.5 years for interest-bearing), uninsured deposits as wholesale
+  (50%, 4 years). A bank funded by uninsured deposits, like SVB (95% uninsured), therefore has less
+  stable funding than one funded by insured retail deposits. These are the regulatory caps, so the
+  lab's ΔEVE is on the generous side for the bank. Untick **Core deposits** on import (or pass
+  `core_deposits=False`) to treat every deposit as repricing overnight.
+- **In NII sensitivity**, a deposit reprices by its `beta`: a +200bp shock raises its cost by
+  beta × 200bp over the part of the year left. Noninterest-bearing deposits (beta 0) do not reprice.
 
 ## Profit, tax and dividends
 

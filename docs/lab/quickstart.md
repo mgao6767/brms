@@ -92,4 +92,5 @@ The summary table is sorted by the lowest CET1 ratio each scenario reached.
 - [Tutorial: SVB through 2022](tutorials/svb-2022.md) explains these numbers and shows what
   happens when unrealised losses count in capital.
 - [Tutorial: the Basel shocks](tutorials/basel-shocks.md) compares four banks under the same shock.
+- [Tutorial: SVB's last week](tutorials/svb-last-week.md) adds a deposit run and a fire sale.
 - [Tutorial: a bank from its Call Report](tutorials/call-report.md) loads any US bank.

@@ -66,3 +66,9 @@ def test_summary_reads_unit_and_story_from_the_zip(tmp_path: Path) -> None:
     assert summary["story"] == case.story
     assert summary["name"] == "Silicon Valley Bank, end-2021"
     assert float(summary["operating"]["noninterest_expense"]) > 0
+    first = summary["first_day"]
+    assert first["date"] == "2022-01-03"  # the first market day of the run
+    reported = summary["reported"]
+    # After the first day's AFS mark, equity is close to the filing's.
+    assert first["total_equity"] == pytest.approx(reported["EQ"], rel=0.02)
+    assert 0.1 < first["cet1_ratio"] < 0.25

@@ -1,7 +1,9 @@
 """Economic value of equity under the Basel standardised interest-rate shocks (SRP31).
 
 Each open long bond or loan position is revalued by discounting its remaining cash flows on the
-day's curve shifted by the scenario's zero-rate shock. Mortgage-backed securities re-project their
+day's curve shifted by the scenario's zero-rate shock. Deposits with a core share (SRP31 stable
+non-maturity deposits) contribute the discounted run-off of their core balance; the rest reprices
+overnight. Mortgage-backed securities re-project their
 cash flows on each shocked curve, so prepayments speed up as rates fall (negative convexity).
 Floating-rate coupons are forecast from the engine's shared forwarding handle, which is relinked to
 the shocked curve for the scenario and restored afterwards. Only banking-book positions count
@@ -119,8 +121,11 @@ def eve_scenarios(bank: Bank, yield_handle: ql.RelinkableYieldTermStructureHandl
     base = ql.YieldTermStructureHandle(base_curve)
     qd = pydate_to_qldate(date)
     legs = _position_legs(bank, date)
+    assets = set(legs)
+    deposits, core_balance = _core_deposit_legs(bank, date)
+    legs.update(deposits)
     spreads = {p.id: p.spread for p in bank.positions.open_positions() if p.spread is not None}
-    other = _cash_less_deposits(bank)
+    other = _cash_less_deposits(bank) + core_balance
 
     def revalue(shift: Callable[[float], float] | None) -> dict[str, Decimal]:
         curve = base_curve if shift is None else _spreaded(base, qd, shift)
@@ -146,9 +151,10 @@ def eve_scenarios(bank: Bank, yield_handle: ql.RelinkableYieldTermStructureHandl
         yield_handle.linkTo(base_curve)
 
     total = sum(base_pv.values(), Decimal(0))
-    duration = 0.0 if total == 0 else float(
-        (sum(down.values(), Decimal(0)) - sum(up.values(), Decimal(0))) / (2 * total * Decimal(str(_BP))),
-    )
+    asset_value = sum((v for k, v in base_pv.items() if k in assets), Decimal(0))
+    asset_down = sum((v for k, v in down.items() if k in assets), Decimal(0))
+    asset_up = sum((v for k, v in up.items() if k in assets), Decimal(0))
+    duration = 0.0 if asset_value == 0 else float((asset_down - asset_up) / (2 * asset_value * Decimal(str(_BP))))
     return EVEResult(
         base=total + other,
         by_scenario={s: sum(pv.values(), Decimal(0)) + other for s, pv in scenario_pv.items()},
@@ -171,7 +177,32 @@ def _position_legs(bank: Bank, date: datetime.date) -> dict[str, Callable[[ql.Yi
     return legs
 
 
+def _core_deposit_legs(
+    bank: Bank, date: datetime.date,
+) -> tuple[dict[str, Callable[[ql.YieldTermStructureHandle], object]], Decimal]:
+    """Return a leg getter per deposit with a core share (its run-off, negative), and the core balance total.
+
+    The core balance is valued by discounting its principal run-off (SRP31 slotting of stable
+    non-maturity deposits, without commercial margins); the rest of the deposit reprices overnight.
+    """
+    from brms.core.enums import InstrumentType
+
+    legs: dict[str, Callable[[ql.YieldTermStructureHandle], object]] = {}
+    core_total = Decimal(0)
+    for position in bank.positions.open_positions():
+        instrument = bank.instruments.get(position.instrument_id)
+        if getattr(instrument, "instrument_type", None) != InstrumentType.DEPOSIT or not instrument.core_share:
+            continue
+        balance = float(position.acquisition_cost) * instrument.balance_factor(position.acquisition_date, date)
+        flows = [ql.SimpleCashFlow(-amount, pydate_to_qldate(day)) for day, amount in
+                 instrument.core_cash_flows(balance, date)]
+        legs[position.id] = lambda _curve, flows=flows: flows
+        core_total += Decimal(str(balance * instrument.core_share))
+    return legs, core_total
+
+
 def _cash_less_deposits(bank: Bank) -> Decimal:
-    """Cash less deposits and interest payable, at book value (treated as repricing overnight)."""
+    """Cash and other assets less deposits, interest payable and other liabilities, at book value."""
     accounts = {a.name: Decimal(str(a.balance())) for a in bank.ledger.chart_of_accounts.all_accounts()}
-    return accounts["Cash and Cash Equivalents"] - accounts["Deposits"] - accounts["Interest Payable"]
+    return (accounts["Cash and Cash Equivalents"] - accounts["Deposits"] - accounts["Interest Payable"]
+            + accounts["Other Assets"] - accounts["Other Liabilities"])

@@ -36,8 +36,8 @@ finish. The summary table is sorted by each run's lowest CET1 ratio. Look at:
 - **HTM unrealised**: the parallel-up shock costs SVB −$10.3bn on HTM securities, and the
   actual path of 2022 cost −$12.7bn. The real 2022 was worse than the regulatory +200bp shock,
   because the 10-year yield rose about 240bp.
-- **Worst ΔEVE/T1**: SVB's economic value falls by more than 100% of Tier 1 in the worst shock.
-  That makes it a clear outlier against the 15% threshold.
+- **Worst ΔEVE/T1**: SVB's economic value falls by more than half of its Tier 1 capital in the
+  worst shock. That makes it a clear outlier against the 15% threshold.
 
 ![Seven scenarios for SVB](../../images/lab/compare.jpg)
 
@@ -61,28 +61,30 @@ its bank:
 
 | Bank | Lowest CET1 ratio | Worst ΔEVE / Tier 1 | HTM unrealised | AFS unrealised |
 |---|---:|---:|---:|---:|
-| Signature Bank | **8.4%** | −49% | −$0.4bn | −$1.5bn |
-| Silicon Valley Bank | 12.2% | **−111%** | −$10.3bn | −$2.8bn |
-| JPMorgan Chase Bank | 13.6% | −38% | −$28.4bn | −$23.3bn |
-| First Republic Bank | 14.5% | −83% | −$3.4bn | −$0.7bn |
+| Signature Bank | **8.4%** | −20% | −$0.4bn | −$1.5bn |
+| Silicon Valley Bank | 12.2% | **−55%** | −$10.3bn | −$2.8bn |
+| JPMorgan Chase Bank | 13.6% | −10% | −$28.4bn | −$23.3bn |
+| First Republic Bank | 14.5% | −42% | −$3.4bn | −$0.7bn |
 
 How to read it:
 
 - **Capital.** With AOCI counted, the shock hits CET1 on day one through AFS losses. Signature
   starts with the thinnest capital and drops to 8.4%. All four then recover as profits accumulate.
-- **Economic value.** ΔEVE revalues every asset and liability at the shocked rates. SVB's long
-  securities make it the most exposed, losing more than its whole Tier 1 capital. First Republic's
-  exposure is in long fixed-rate mortgages, which are loans rather than securities: they show up in
-  EVE and in loan unrealised losses, not in HTM or AFS.
+- **Economic value.** ΔEVE revalues every asset and liability at the shocked rates, including the
+  stable (core) part of deposits. Three of the four banks are outliers against the 15% threshold;
+  JPMorgan is not. SVB is the most exposed: long securities, funded by deposits that were 95%
+  uninsured and so count as less stable. First Republic's exposure is in long fixed-rate mortgages,
+  which are loans rather than securities: they show up in EVE and in loan unrealised losses, not in
+  HTM or AFS.
 - **Size.** JPMorgan's dollar losses are the largest, but against its capital its economic-value
-  loss is the smallest. Its CET1 ratio is lower than First Republic's because $46bn of goodwill
-  and other intangibles is deducted from its capital.
+  loss is the smallest, and its larger share of insured retail deposits offsets more of it. Its
+  CET1 ratio is lower than First Republic's because $46bn of goodwill and other intangibles is
+  deducted from its capital.
 
-!!! warning "Deposits in ΔEVE"
-    The lab treats deposits as repricing overnight when it computes EVE, so deposits add no value
-    when rates rise. Real banks model core deposits as long-lived, which offsets part of the asset
-    loss. Read ΔEVE as the exposure of the assets, an upper bound. See
-    [assumptions](../guides/assumptions.md#deposits).
+!!! info "Deposits in ΔEVE"
+    Core deposits follow the Basel caps, weighted by each bank's insured share
+    ([assumptions](../guides/assumptions.md#deposits)). Untick **Core deposits** when importing a
+    bank to see the exposure of the assets alone.
 
 ## Part 3: phase a shock in
 
