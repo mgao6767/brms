@@ -1,78 +1,51 @@
-# Tutorial: SVB's last week, in Python
+# Tutorial: SVB's last week
 
-**Time:** 20 minutes · **You need:** Python 3.11+ and `pip install brms` · **You will learn:** how to
-script the lab, add a deposit run, sell securities on a chosen day, and read the books from pandas.
+**Time:** 20 minutes · **You need:** the browser app, or Python 3.11+ with `pip install brms` ·
+**You will learn:** how to add a deposit run and a sale of securities to a scenario, and how to
+read a liquidity gap from the books.
 
 ## The story
 
-On Wednesday 8 March 2023 SVB announced it had sold $21bn of AFS securities at a $1.8bn loss and
-needed to raise capital. On Thursday 9 March depositors withdrew $42bn, about a quarter of all
-deposits. On Friday the bank was closed.
+On Wednesday 8 March 2023 SVB announced it had sold $21bn of available-for-sale (AFS) securities at
+a $1.8bn loss and needed to raise capital. On Thursday 9 March depositors withdrew $42bn, about a
+quarter of all deposits. On Friday the bank was closed.
 
-You will replay that week on SVB's end-2022 balance sheet, twice: once holding everything, once
-selling the AFS book on 8 March.
+You will replay that week on SVB's balance sheet at the end of 2022, twice: once holding
+everything, once selling the AFS book on 8 March. Both times a quarter of deposits leaves on
+9 March.
 
-## Step 1: the bank
+## In the browser
 
-The lab ships SVB's Call Report for 31 December 2022. Turn it into a *bank file*, the lab's
-plain-JSON description of a balance sheet (see the [bank file reference](../reference/bank-file.md)):
+1. Open **Banks → Silicon Valley Bank, end-2022**.
+2. In **Run a scenario**: **Historical rates**, horizon **3** months.
+3. Open **Liquidity stress (optional)** and set:
+    - **Withdrawal (% of deposits):** `25`, **on** `2023-03-09`.
+4. **Label:** `Run, hold`. Click **Run scenario**.
+5. Back on the bank, run it again with the same withdrawal and also **Sell all AFS securities on**
+   `2023-03-08`. **Label:** `Run, sell AFS`.
+6. In **Runs**, tick both and click **Compare 2 selected**. Then open each run, drag the **Books**
+   slider to 7, 8 and 9 March 2023, and read **Cash and Cash Equivalents**, **Accumulated OCI** and
+   **Net income** in **Statements**.
+
+The withdrawal applies to deposits only; SVB's other borrowings stay.
+
+## In Python
+
+The same two runs, on the case study shipped with the package:
 
 ```python
 import datetime
-import json
-from pathlib import Path
 
-from brms.data.create_case_studies import CALL_REPORTS
-from brms.lab import Historical, run
-from brms.lab.bank_file import build_bank, default_market_frames, prime_on
-from brms.lab.call_report import bank_file_from_call_report
+from brms.data import DEFAULT_DATA_FOLDER
+from brms.lab import DepositStress, Historical, run
 
-items = json.loads((CALL_REPORTS / "svb_2022.json").read_text())
-frames = default_market_frames()          # Treasury yields and the Prime rate, shipped with the package
-bank = bank_file_from_call_report(items, prime=prime_on(frames, datetime.date(2022, 12, 31)))
-```
-
-`bank` is now a plain dictionary: `bank["deposits"]`, `bank["positions"]`, `bank["operating"]`
-and so on. Print `bank["deposits"]` to see the three funding lines: noninterest-bearing deposits
-(`nib`), interest-bearing deposits (`ib`) and other borrowings.
-
-!!! tip "Any bank"
-    Replace the first line with `items = fetch_call_report(24735, "2022-12-31")` (from
-    `brms.lab.call_report`) to fetch any bank's filing from the FDIC.
-
-## Step 2: the run on deposits
-
-A deposit can carry scheduled withdrawals: `[date, fraction of the balance then outstanding]`.
-Take a quarter of both deposit lines on 9 March:
-
-```python
-for deposit in bank["deposits"]:
-    if deposit["id"] in {"nib", "ib"}:
-        deposit["withdrawals"] = [["2023-03-09", 0.25]]
-```
-
-Build the simulation. This values every position on the as-of date and writes a self-contained zip:
-
-```python
-Path("svb_run.json").write_text(json.dumps(bank, indent=1))
-simulation = build_bank(Path("svb_run.json"), frames, Path("svb_run.zip"))
-```
-
-## Step 3: two runs
-
-`run` takes the simulation, a scenario and options; `sales` maps position ids to the day each
-position is sold at fair value. AFS positions are those with basis `FVOCI`:
-
-```python
-afs = [f"pos-{p['id']}" for p in bank["positions"] if p["basis"] == "FVOCI"]
+svb = DEFAULT_DATA_FOLDER.parent / "case_svb_2022.zip"
+run_on_deposits = DepositStress(withdrawal=0.25, withdrawal_date=datetime.date(2023, 3, 9))
 end = datetime.date(2023, 3, 10)
-hold = run(simulation, Historical(), end=end)
-sell = run(simulation, Historical(), end=end, sales=dict.fromkeys(afs, datetime.date(2023, 3, 8)))
+
+hold = run(svb, Historical(), end=end, deposit_stress=run_on_deposits)
+sell = run(svb, Historical(), end=end, deposit_stress=run_on_deposits, sell_afs_on=datetime.date(2023, 3, 8))
 ```
-
-Each run takes a few seconds and returns a `RunResult`.
-
-## Step 4: read the books
 
 `RunResult.statements` holds the balance sheet and income statement for every market day, one row
 per line (`date`, `section`, `account`, `balance`). A small helper reads one line, in billions:
@@ -89,13 +62,14 @@ for name, result in (("hold", hold), ("sell AFS", sell)):
               round(line(result, day, "Cash and Cash Equivalents"), 1),
               round(line(result, day, "Accumulated OCI"), 1),
               round(line(result, day, "net_income"), 1))
-    cet1 = result.metrics["CET1_RATIO"].dropna()
-    print(name, "CET1", f"{cet1.iloc[-1]:.1%}")
+    print(name, "CET1", f"{result.metrics['CET1_RATIO'].dropna().iloc[-1]:.1%}")
 ```
 
-Output (USD billions):
+## The results
 
-| Run | Day | Cash | Accumulated OCI | Net income since 1 Jan |
+USD billions; net income is for 2023 so far:
+
+| Run | Day | Cash | Accumulated OCI | Net income |
 |---|---|---:|---:|---:|
 | hold | 7 Mar | 15.5 | −2.7 | 0.4 |
 | hold | 9 Mar | **−28.4** | −2.6 | 0.4 |
@@ -114,20 +88,21 @@ CET1 ratio on 10 March: **17.7%** holding, **15.9%** after the sale.
   loss on the $21bn it sold.
 - **The cash was not enough.** A quarter of deposits is $43.8bn. Holding everything, cash goes to
   −$28.4bn: a hole the bank must borrow to fill. Even after selling the whole AFS book, cash is
-  −$2.7bn. The rest of the assets are loans and HTM securities, which carry losses of their own.
+  −$2.7bn. The rest of the assets are loans and held-to-maturity securities, and the HTM securities
+  were $14.1bn under water by then (`hold.summary["unrealised_end"]["htm"]`). Selling them would have
+  realised that loss, almost all of the bank's equity.
 - **Negative cash is the lab's signal of a funding gap.** The lab does not borrow for you; it shows
   how much the bank would have had to raise.
 
-## Look at it in the browser
+## Going further
 
-Everything you built can be opened in the browser app: start `brms-web`, go to **Import**, paste
-the contents of `svb_run.json` into **From a bank file**, and build. The withdrawal is part of the
-bank, so any run of it includes the deposit run.
-
-## Try next
-
-- Make the run gradual instead: drop the withdrawals and give the deposits `"runoff_rate": 0.5`
-  (half the balance leaves over a year, continuously).
-- Sell only some AFS positions: the ids are listed in `bank["positions"]`.
-- Plot `hold.metrics["CET1_RATIO"]` and `sell.metrics["CET1_RATIO"]` with pandas.
-- See [Python and the command line](python.md) for everything a `RunResult` holds.
+- **A slow run instead of a sudden one.** Use **Deposit run-off (% a year)** (Python:
+  `DepositStress(runoff_rate=0.5)`): the balance leaves continuously from the start date.
+- **Different behaviour per deposit.** Liquidity stress applies to every deposit. To give each its
+  own, write a bank file: each deposit takes `runoff_rate` and `withdrawals`
+  (`[["2023-03-09", 0.25]]`). Mark borrowings with `"borrowing": true` so a deposit stress leaves
+  them alone. See the [bank file reference](../reference/bank-file.md#deposits) and
+  [a bank from its Call Report](call-report.md#from-python-or-the-command-line), which shows how
+  to get SVB's bank file to edit.
+- **On the command line:** `python -m brms.lab run svb.zip --scenario historical --months 3
+  --withdrawal 0.25 --withdrawal-date 2023-03-09 --sell-afs-on 2023-03-08`.

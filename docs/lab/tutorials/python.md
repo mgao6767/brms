@@ -23,6 +23,8 @@ print(result.summary)
 | `operating` | an `OperatingConfig` (`brms.core.models.operating`) overriding costs, fees, tax rate and dividend payout; default: the bank's own |
 | `sales` | `{"pos-afs": date}`: sell positions at fair value on market days (AFS and trading positions only); default none |
 | `reinvest_maturities` | `True` rolls each maturing bond into a new par bond of the same term at the market rate; default `False` (maturities stay in cash) |
+| `deposit_stress` | a `DepositStress(runoff_rate=…, withdrawal=…, withdrawal_date=…)`: extra run-off from the start date and/or a one-off withdrawal, applied to every deposit except borrowings |
+| `sell_afs_on` | sell every AFS (FVOCI) security on that date, or the next market day |
 
 To switch the AOCI filter off while keeping the bank's other settings:
 
@@ -125,7 +127,8 @@ python -m brms.lab call-report --cert 24735 --date 2021-12-31 --out svb.json \
     [--ltv 0.8] [--deposit-beta 0.35] [--no-aoci-filter] [--no-core-deposits]
 python -m brms.lab build-bank svb.json --out svb.zip [--yields yields.csv] [--benchmarks prime.csv]
 python -m brms.lab run svb.zip --scenario historical --scenario parallel+200 \
-    [--months 12] [--workers 4] [--out results]
+    [--months 12] [--workers 4] [--out results] \
+    [--deposit-runoff 0.5] [--withdrawal 0.25 --withdrawal-date 2023-03-09] [--sell-afs-on 2023-03-08]
 ```
 
 Scenario names for `run`: `historical`, `parallel+200`, `parallel-200`, `steepener`, `flattener`,
@@ -133,7 +136,8 @@ Scenario names for `run`: `historical`, `parallel+200`, `parallel-200`, `steepen
 `run` prints a summary table and writes, for each scenario, a folder under `--out` named after the
 scenario (`historical`, `parallel_up`, `parallel_down`, `steepener`, `flattener`, `short_up`,
 `short_down`, `parallel+150bp`…) holding `metrics.csv`, `carrying_value.csv`, `fair_value.csv` and
-`summary.json`. Sales and reinvestment are available from Python, not from the command line.
+`summary.json`. Liquidity stress: `--deposit-runoff 0.5`, `--withdrawal 0.25 --withdrawal-date 2023-03-09` and
+`--sell-afs-on 2023-03-08`. Sales of single positions and reinvestment are available from Python.
 
 `brms-web [--port 8765] [--host 127.0.0.1] [--data-dir DIR] [--workers 2] [--no-browser]` starts the
 browser app.

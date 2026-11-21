@@ -37,6 +37,7 @@ liabilities`. It must be positive.
 | `runoff_rate` | no | continuous annual run-off (0.1 = 10% a year) |
 | `withdrawals` | no | `[["YYYY-MM-DD", fraction], …]`: a fraction of the balance then outstanding leaves on that date |
 | `core_share` | no | share of the balance that is stable for interest-rate risk (Basel SRP31); default 0 |
+| `borrowing` | no | `true` for wholesale borrowings carried as a funding line (FHLB advances, repos): a run's deposit stress leaves them alone |
 | `core_maturity` | with `core_share` | average life of the core balance in years (Basel caps: 5 retail transactional, 4.5 retail other, 4 wholesale) |
 
 Use a deposit with `beta: 1.0` for floating-rate borrowings.

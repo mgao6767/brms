@@ -386,5 +386,5 @@ def _funding(
     if borrowed > 0:
         cost = max(0.0, _n(items, "EINTEXP") * annualise - deposit_cost)
         out.append({"id": "borrowings", "name": "Other borrowings", "balance": borrowed,
-                    "interest_rate": cost / borrowed, "beta": 1.0})
+                    "interest_rate": cost / borrowed, "beta": 1.0, "borrowing": True})
     return out

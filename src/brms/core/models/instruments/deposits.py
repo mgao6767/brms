@@ -45,6 +45,7 @@ class Deposit(Instrument):
         reference_tenor: str = "3 Mo",
         core_share: float = 0.0,
         core_maturity: float = 0.0,
+        borrowing: bool = False,
     ) -> None:
         """Initialize a deposit.
 
@@ -60,6 +61,8 @@ class Deposit(Instrument):
                 (Basel SRP31): in EVE it runs off over time instead of repricing overnight.
             core_maturity: Average life of the core balance in years; it runs off in equal monthly
                 amounts over twice this period.
+            borrowing: True for wholesale borrowings (FHLB advances, repos) carried as a funding
+                line: deposit stress in a run leaves them alone.
 
         """
         super().__init__(name=name)
@@ -79,11 +82,18 @@ class Deposit(Instrument):
             raise ValueError(msg)
         self.core_share = float(core_share)
         self.core_maturity = float(core_maturity)
+        self.borrowing = bool(borrowing)
+        # A run's extra run-off (see brms.lab.runner.DepositStress), counted from stress_from.
+        self.stress_runoff = 0.0
+        self.stress_from: datetime.date | None = None
 
     def balance_factor(self, acquired: datetime.date, date: datetime.date) -> float:
         """Return the share of the acquired balance still deposited at close of business on *date*."""
         years = max(0, (date - acquired).days) / 365
         factor = math.exp(-self.runoff_rate * years)
+        if self.stress_runoff and self.stress_from is not None:
+            stressed = max(0, (date - max(acquired, self.stress_from - datetime.timedelta(days=1))).days) / 365
+            factor *= math.exp(-self.stress_runoff * stressed)
         for day, fraction in self.withdrawals:
             if acquired < day <= date:
                 factor *= 1 - fraction

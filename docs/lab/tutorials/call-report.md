@@ -64,7 +64,7 @@ How each line of the Call Report becomes a position is set out in the
 |---|---|---|
 | HTM and AFS split in the bank's overall proportion within each security class | The filing does not say which securities sit in which book | If you know the AFS mix (10-K, FR Y-9C), use the Python `afs=` option (below) |
 | Each maturity bucket becomes one instrument at the bucket midpoint | Drives duration and therefore unrealised losses | Accept it for comparisons across banks |
-| Deposits do not run off | A deposit run is the key liquidity risk | Add `runoff_rate` or `withdrawals` to the bank file ([example](svb-last-week.md)) |
+| Deposits do not run off | A deposit run is the key liquidity risk | Add a **Liquidity stress** to the run, or `runoff_rate` and `withdrawals` to the bank file ([example](svb-last-week.md)) |
 | Operational-risk RWA is estimated | Affects the capital ratios' level | Compare with the reported RWA in the bank file's `reported` block |
 
 ## Step 4: run it

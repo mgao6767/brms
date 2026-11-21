@@ -193,6 +193,9 @@ textarea { height: auto; min-height: 160px; padding: 6px 8px; font-family: var(-
 input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
 input[type=checkbox] { accent-color: var(--accent); }
 .check { display: flex; align-items: center; gap: 6px; color: var(--text-2); }
+.stress summary { cursor: pointer; color: var(--text-2); }
+.stress summary:hover { color: var(--text); }
+.hint { font-size: 11px; }
 .keyrates { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 6px; }
 .keyrates .field label { text-transform: none; letter-spacing: 0; }
 .error { color: #ff9a9a; background: rgba(208, 59, 59, .12); border: 1px solid rgba(208, 59, 59, .4);

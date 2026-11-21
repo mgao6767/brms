@@ -145,6 +145,10 @@ function launcher(bank, scenarios) {
     (bank.summary.regulatory.aoci_filter ? "on" : "off") + ")"), h("option", { value: "on" }, "On"),
   h("option", { value: "off" }, "Off"));
   const reinvest = h("input", { type: "checkbox", id: "sc-reinvest" });
+  const runoff = h("input", { type: "number", id: "st-runoff", value: "0", min: "0", max: "1000", step: "5" });
+  const withdrawal = h("input", { type: "number", id: "st-withdrawal", value: "0", min: "0", max: "99", step: "5" });
+  const withdrawalDate = h("input", { type: "date", id: "st-withdrawal-date", min: bank.start_date });
+  const sellAfs = h("input", { type: "date", id: "st-sell", min: bank.start_date });
   const label = h("input", { type: "text", id: "sc-label", maxlength: "120", placeholder: "Optional" });
   const bpField = h("div", { class: "field" }, h("label", { for: "sc-bp" }, "Shift (bp, all maturities)"), bp);
   const keyField = h("div", { class: "field" }, h("span", { class: "label" }, "Shift by maturity (bp)"),
@@ -160,9 +164,20 @@ function launcher(bank, scenarios) {
   kind.addEventListener("change", sync);
   sync();
 
+  function stress() {
+    const out = {};
+    if (Number(runoff.value) > 0) out.deposit_runoff = Number(runoff.value) / 100;
+    if (Number(withdrawal.value) > 0) {
+      out.withdrawal = Number(withdrawal.value) / 100;
+      out.withdrawal_date = withdrawalDate.value || undefined;
+    }
+    if (sellAfs.value) out.sell_afs_on = sellAfs.value;
+    return out;
+  }
+
   function spec() {
     const base = { bank_id: bank.id, months: Number(months.value), reinvest: reinvest.checked,
-      label: label.value.trim() || undefined };
+      label: label.value.trim() || undefined, ...stress() };
     if (aoci.value) base.aoci_filter = aoci.value === "on";
     if (kind.value === "historical") return { ...base, kind: "historical" };
     base.ramp_days = Number(ramp.value) || 0;
@@ -182,6 +197,17 @@ function launcher(bank, scenarios) {
     h("div", { class: "row" },
       h("div", { class: "field" }, h("label", { for: "sc-aoci" }, "AOCI filter"), aoci)),
     h("label", { class: "check" }, reinvest, "Roll maturing bonds into new par bonds"),
+    h("details", { class: "stress" },
+      h("summary", {}, "Liquidity stress (optional)"),
+      h("div", { class: "form", style: { marginTop: "8px" } },
+        h("div", { class: "row" },
+          h("div", { class: "field" }, h("label", { for: "st-runoff" }, "Deposit run-off (% a year)"), runoff)),
+        h("div", { class: "row" },
+          h("div", { class: "field" }, h("label", { for: "st-withdrawal" }, "Withdrawal (% of deposits)"), withdrawal),
+          h("div", { class: "field" }, h("label", { for: "st-withdrawal-date" }, "on"), withdrawalDate)),
+        h("div", { class: "field" }, h("label", { for: "st-sell" }, "Sell all AFS securities on"), sellAfs),
+        h("span", { class: "hint muted" }, "Borrowings are not withdrawn. A sale on a non-market day happens "
+          + "on the next market day. Negative cash shows the funding the bank would need."))),
     h("div", { class: "field" }, h("label", { for: "sc-label" }, "Label"), label),
     h("div", { class: "row" }, submit, basel), status);
 
@@ -201,7 +227,7 @@ function launcher(bank, scenarios) {
     basel.disabled = true;
     status.replaceChildren();
     const common = { bank_id: bank.id, months: Number(months.value), reinvest: reinvest.checked,
-      ramp_days: Number(ramp.value) || 0 };
+      ramp_days: Number(ramp.value) || 0, ...stress() };
     if (aoci.value) common.aoci_filter = aoci.value === "on";
     try {
       const ids = [];

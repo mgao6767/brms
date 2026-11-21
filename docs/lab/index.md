@@ -37,7 +37,8 @@ full double-entry accounting. For every day it reports:
 | Stress-test several banks with the Basel shocks | [Tutorial: the Basel shocks](tutorials/basel-shocks.md) |
 | Load any US bank | [Tutorial: a bank from its Call Report](tutorials/call-report.md) |
 | Describe your own bank | [Tutorial: build a bank from scratch](tutorials/bank-file.md) |
-| Script it | [Tutorial: SVB's last week, in Python](tutorials/svb-last-week.md) and [Python and the command line](tutorials/python.md) |
+| Add a deposit run and a fire sale | [Tutorial: SVB's last week](tutorials/svb-last-week.md) |
+| Script it | [Python and the command line](tutorials/python.md) |
 | Know exactly what the engine assumes | [How the engine works](reference/engine.md) |
 
 ## Install

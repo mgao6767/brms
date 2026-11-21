@@ -73,8 +73,30 @@ def scenario_from_spec(spec: dict[str, Any]) -> Any:  # noqa: ANN401
     raise SpecError(msg)
 
 
+def _date(value: Any) -> datetime.date | None:  # noqa: ANN401
+    return None if value in (None, "") else datetime.date.fromisoformat(str(value))
+
+
+def stress_notes(spec: dict[str, Any]) -> list[str]:
+    """Return short notes on a run specification's liquidity stress, for display."""
+    notes = []
+    if spec.get("deposit_runoff"):
+        notes.append(f"deposits run off {float(spec['deposit_runoff']):.0%} a year")
+    if spec.get("withdrawal"):
+        notes.append(f"{float(spec['withdrawal']):.0%} of deposits withdrawn on {spec.get('withdrawal_date')}")
+    if spec.get("sell_afs_on"):
+        notes.append(f"AFS book sold on {spec['sell_afs_on']}")
+    return notes
+
+
 def describe(spec: dict[str, Any]) -> str:
     """Return a short human label for a run specification."""
+    base = _describe_rates(spec)
+    notes = stress_notes(spec)
+    return f"{base}; {'; '.join(notes)}" if notes else base
+
+
+def _describe_rates(spec: dict[str, Any]) -> str:
     kind = spec.get("kind", "historical")
     ramp = int(spec.get("ramp_days") or 0)
     suffix = f", phased in over {ramp} days" if ramp else ""
@@ -210,8 +232,17 @@ def run_scenario(zip_path: str, spec: dict[str, Any], folder: str) -> dict[str, 
 
         current = build_core_services(simulation_zip=Path(zip_path)).bank.regulatory
         regulatory = dataclasses.replace(current, aoci_filter=bool(spec["aoci_filter"]))
+    from brms.lab.runner import DepositStress
+
+    stress = None
+    if spec.get("deposit_runoff") or spec.get("withdrawal"):
+        stress = DepositStress(
+            runoff_rate=float(spec.get("deposit_runoff") or 0), withdrawal=float(spec.get("withdrawal") or 0),
+            withdrawal_date=_date(spec.get("withdrawal_date")),
+        )
     result = run(Path(zip_path), scenario, months=int(spec.get("months") or 12), regulatory=regulatory,
-                 reinvest_maturities=bool(spec.get("reinvest")))
+                 reinvest_maturities=bool(spec.get("reinvest")), deposit_stress=stress,
+                 sell_afs_on=_date(spec.get("sell_afs_on")))
     out = Path(folder)
     with (out / "result.pkl").open("wb") as handle:
         pickle.dump(result, handle, protocol=pickle.HIGHEST_PROTOCOL)

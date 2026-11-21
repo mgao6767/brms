@@ -163,7 +163,7 @@ def build_bank(bank_file: Path, market_frames: dict[str, pd.DataFrame], out: Pat
 
     deposits_total = Decimal(0)
     for dep in data.get("deposits", []):
-        keys = ("beta", "runoff_rate", "withdrawals", "reference_tenor", "core_share", "core_maturity")
+        keys = ("beta", "runoff_rate", "withdrawals", "reference_tenor", "core_share", "core_maturity", "borrowing")
         behaviour = {k: dep[k] for k in keys if k in dep}
         instrument = Deposit(name=dep.get("name", "Deposit"), interest_rate=dep["interest_rate"], **behaviour)
         instrument.id = dep["id"]

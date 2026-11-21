@@ -44,7 +44,9 @@ provisions are **not** modelled.
   3-month Treasury yield since then, never below zero. Interest accrues daily and is paid on the
   first of each month.
 - **Balance.** `runoff_rate` removes a share of the balance continuously over the year, and
-  `withdrawals` remove a fraction on given dates. The cash leaves with them.
+  `withdrawals` remove a fraction on given dates. The cash leaves with them. A run's **liquidity
+  stress** (browser: *Liquidity stress*; Python: `DepositStress`) adds run-off from the start date
+  and a one-off withdrawal to every deposit not marked as a `borrowing`.
 - **Core deposits in EVE.** Following the Basel standard (SRP31), part of a non-maturity deposit can
   be treated as stable: its `core_share` runs off in equal monthly amounts over twice its
   `core_maturity` (its average life), and EVE discounts that run-off on the curve. The rest

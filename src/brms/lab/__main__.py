@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import sys
 from pathlib import Path
 
 from brms.data import DEFAULT_DATA_FOLDER
 from brms.lab.bank_file import build_bank
-from brms.lab.runner import run_many
+from brms.lab.runner import DepositStress, run_many
 from brms.lab.scenarios import parse_scenario
 
 
@@ -22,8 +23,7 @@ def _write(result: object, out: Path) -> None:
     (folder / "summary.json").write_text(json.dumps(result.summary, indent=2))  # type: ignore[attr-defined]
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Run the CLI."""
+def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m brms.lab", description="Run a bank through rate scenarios.")
     commands = parser.add_subparsers(dest="command", required=True)
     run_cmd = commands.add_parser("run", help="run scenarios and write results")
@@ -34,6 +34,13 @@ def main(argv: list[str] | None = None) -> int:
     run_cmd.add_argument("--months", type=int, default=None, help="horizon in months from the start date")
     run_cmd.add_argument("--workers", type=int, default=None, help="worker processes")
     run_cmd.add_argument("--out", type=Path, default=Path("results"), help="output folder")
+    run_cmd.add_argument("--deposit-runoff", type=float, default=0.0,
+                         help="extra annual run-off of deposits from the start date (0.5 = 50%% a year)")
+    run_cmd.add_argument("--withdrawal", type=float, default=0.0,
+                         help="fraction of deposits withdrawn on --withdrawal-date")
+    run_cmd.add_argument("--withdrawal-date", type=datetime.date.fromisoformat, default=None)
+    run_cmd.add_argument("--sell-afs-on", type=datetime.date.fromisoformat, default=None,
+                         help="sell every AFS security on this date (or the next market day)")
     build_cmd = commands.add_parser("build-bank", help="build a simulation zip from a point-in-time bank file")
     build_cmd.add_argument("bank_file", type=Path, help="bank.json")
     build_cmd.add_argument("--yields", type=Path, default=DEFAULT_DATA_FOLDER / "treasury_yields.csv",
@@ -51,11 +58,14 @@ def main(argv: list[str] | None = None) -> int:
     report_cmd.add_argument("--deposit-beta", type=float, default=0.35,
                             help="share of 3-month yield moves passed to interest-bearing deposits (default 0.35)")
     report_cmd.add_argument("--out", type=Path, required=True, help="bank.json to write")
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the CLI."""
+    args = _parser().parse_args(argv)
 
     if args.command == "call-report":
-        import datetime
-
         from brms.lab import call_report
         from brms.lab.bank_file import default_market_frames, prime_on
 
@@ -80,7 +90,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     scenarios = [parse_scenario(s) for s in (args.scenario or ["historical"])]
-    results = run_many(args.simulation, scenarios, workers=args.workers, months=args.months)
+    options: dict[str, object] = {"months": args.months, "sell_afs_on": args.sell_afs_on}
+    if args.deposit_runoff or args.withdrawal:
+        options["deposit_stress"] = DepositStress(runoff_rate=args.deposit_runoff, withdrawal=args.withdrawal,
+                                                  withdrawal_date=args.withdrawal_date)
+    results = run_many(args.simulation, scenarios, workers=args.workers, **options)
     for result in results:
         _write(result, args.out)
     header = f"{'scenario':<18}{'CET1 end':>10}{'CET1 min':>10}{'dEVE/T1':>10}{'net income':>15}"

@@ -6,7 +6,7 @@ What every part of a run's page shows, and how to read it.
 
 ## The header
 
-The scenario, the horizon and the options used (reinvestment, AOCI filter). **Metrics CSV**
+The scenario, any liquidity stress, the horizon and the options used (reinvestment, AOCI filter). **Metrics CSV**
 downloads every daily metric. **Run another** goes back to the bank.
 
 ## The tiles
