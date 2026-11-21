@@ -1,0 +1,41 @@
+{
+  "name": "Riverside Community Bank",
+  "as_of": "2021-12-31",
+  "regulatory": {"aoci_filter": true, "operational_rwa": 60000000},
+  "operating": {"noninterest_expense": 28000000, "noninterest_income": 6000000, "tax_rate": 0.21, "dividend_payout": 0.3},
+  "cash": 60000000,
+  "other_assets": 30000000,
+  "other_liabilities": 15000000,
+  "deposits": [
+    {"id": "checking", "name": "Checking accounts", "balance": 680000000, "interest_rate": 0.0, "runoff_rate": 0.05},
+    {"id": "savings", "name": "Savings and money market", "balance": 520000000, "interest_rate": 0.001, "beta": 0.3},
+    {"id": "time", "name": "Time deposits", "balance": 230000000, "interest_rate": 0.008, "beta": 0.6}
+  ],
+  "positions": [
+    {"id": "ust", "type": "treasury_note", "face_value": 150000000, "coupon_rate": 0.0125,
+     "issue_date": "2021-11-30", "maturity_date": "2026-11-30",
+     "issuer": {"name": "US Treasury", "issuer_type": "SOVEREIGN", "credit_rating": "AA_PLUS"},
+     "basis": "FVOCI", "amortized_cost": 149500000, "fair_value": 149000000},
+    {"id": "mbs", "type": "mortgage_backed_security", "face_value": 250000000, "coupon_rate": 0.02,
+     "issue_date": "2021-12-31", "maturity": "28Y",
+     "issuer": {"name": "Agency MBS", "issuer_type": "PSE", "credit_rating": "AA_PLUS"},
+     "basis": "AMORTIZED_COST", "amortized_cost": 250000000, "fair_value": 248000000},
+    {"id": "muni", "type": "fixed_rate_bond", "face_value": 60000000, "coupon_rate": 0.025,
+     "issue_date": "2020-06-01", "maturity_date": "2035-06-01",
+     "issuer": {"name": "State and municipal", "issuer_type": "PSE", "credit_rating": "AA"},
+     "basis": "AMORTIZED_COST", "amortized_cost": 61000000, "fair_value": 62000000},
+    {"id": "mortgages", "type": "residential_mortgage", "face_value": 500000000, "interest_rate": 0.031,
+     "issue_date": "2021-12-31", "maturity": "30Y", "ltv": 0.7,
+     "issuer": {"name": "Households", "issuer_type": "INDIVIDUAL"},
+     "basis": "AMORTIZED_COST", "amortized_cost": 500000000},
+    {"id": "business", "type": "variable_rate_loan", "face_value": 400000000, "spread": 0.015,
+     "issue_date": "2021-12-31", "maturity": "5Y", "benchmark_family": "prime",
+     "repricing_frequency": "1M", "payment_frequency": "1M", "principal_repayment_mode": "bullet",
+     "issuer": {"name": "Local businesses", "issuer_type": "CORPORATE"},
+     "basis": "AMORTIZED_COST", "amortized_cost": 400000000},
+    {"id": "consumer", "type": "amortizing_fixed_rate_loan", "face_value": 120000000, "interest_rate": 0.045,
+     "issue_date": "2021-12-31", "maturity": "5Y", "frequency": "1M",
+     "issuer": {"name": "Consumers", "issuer_type": "INDIVIDUAL"},
+     "basis": "AMORTIZED_COST", "amortized_cost": 120000000}
+  ]
+}

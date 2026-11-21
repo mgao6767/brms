@@ -34,7 +34,7 @@ def test_header(bank: dict, items: dict) -> None:
     assert "SILICON VALLEY BANK" in bank["name"]
     assert bank["cash"] == items["CHBAL"] + items["FREPO"]
     assert bank["reported"]["EQ"] == items["EQ"]
-    assert bank["regulatory"] == {"aoci_filter": True}
+    assert bank["regulatory"]["aoci_filter"] is True
     assert bank["unit"] == 1000
 
 
@@ -84,6 +84,8 @@ def test_deposits_and_borrowings(bank: dict, items: dict) -> None:
     assert by_id["nib"]["interest_rate"] == 0.0
     assert by_id["ib"]["balance"] == items["DEP"] - items["DEPNIDOM"]
     assert by_id["ib"]["interest_rate"] == pytest.approx(items["EDEP"] / (items["DEP"] - items["DEPNIDOM"]))
+    assert by_id["ib"]["beta"] == 0.35
+    assert "beta" not in by_id["nib"]
     borrowed = items["OTHBRF"] + items["FREPP"] + items["SUBND"]
     assert by_id["borrowings"]["balance"] == borrowed
     assert by_id["borrowings"]["beta"] == 1.0
@@ -163,3 +165,110 @@ def test_afs_composition_is_scaled_to_the_reported_afs_total(items: dict) -> Non
 def test_unknown_afs_class_is_rejected(items: dict) -> None:
     with pytest.raises(ValueError, match="munis"):
         bank_file_from_call_report(items, prime=_PRIME, afs={"munis": 1.0})
+
+
+def test_operating_flows_and_tax_rate(bank: dict, items: dict) -> None:
+    assert bank["operating"] == {
+        "noninterest_expense": items["NONIX"], "noninterest_income": items["NONII"],
+        "tax_rate": pytest.approx(items["ITAX"] / items["IBEFTAX"]),
+        "dividend_payout": pytest.approx(min(1.0, items.get("EQCDIV", 0) / items["NETINC"])),
+    }
+    june = bank_file_from_call_report({**items, "REPDTE": "20210630"}, prime=_PRIME)
+    assert june["operating"]["noninterest_expense"] == pytest.approx(2 * items["NONIX"])
+
+
+def test_tax_rate_falls_back_to_the_federal_rate_without_pretax_profit(items: dict) -> None:
+    bank = bank_file_from_call_report({**items, "IBEFTAX": -5.0, "ITAX": 0.0}, prime=_PRIME)
+    assert bank["operating"]["tax_rate"] == 0.21
+
+
+def test_operational_rwa_from_the_business_indicator() -> None:
+    from brms.lab.call_report import operational_rwa
+
+    # BI = min(|NII|, 2.25% of earning assets) + non-interest income (USD thousands)
+    #    = min(3,000,000, 0.0225 x 100,000,000) + 500,000 = 2,750,000 (USD 2.75bn)
+    # BIC = 12% x 1bn + 15% x 1.75bn = 382,500; RWA = 12.5 x BIC
+    rwa = operational_rwa(net_interest_income=3_000_000, earning_assets=100_000_000, noninterest_income=500_000,
+                          unit=1000)
+    assert rwa == pytest.approx(12.5 * (0.12 * 1_000_000 + 0.15 * 1_750_000))
+    big = operational_rwa(net_interest_income=40_000_000, earning_assets=4_000_000_000, noninterest_income=0,
+                          unit=1000)
+    assert big == pytest.approx(12.5 * (0.12 * 1e6 + 0.15 * 29e6 + 0.18 * 10e6))
+
+
+def test_call_report_bank_carries_an_operational_rwa_estimate(bank: dict) -> None:
+    assert bank["regulatory"]["operational_rwa"] > 0
+
+
+def test_other_assets_and_liabilities_close_the_gap_to_reported_equity(bank: dict, items: dict) -> None:
+    securities = sum(p["fair_value"] if p["basis"] == "FVOCI" else p["amortized_cost"]
+                     for p in bank["positions"] if p["id"].startswith(("nm-", "pt-", "omb-")))
+    loans = sum(p["amortized_cost"] for p in bank["positions"] if p["id"].startswith(("ln-", "rs-")))
+    deposits = sum(d["balance"] for d in bank["deposits"])
+    equity = (bank["cash"] + securities + loans + bank["other_assets"] + bank["intangible_assets"] - deposits
+              - bank["other_liabilities"])
+    assert bank["intangible_assets"] == items["INTAN"]
+    assert equity == pytest.approx(items["EQ"], rel=0.01)
+    assert bank["other_assets"] >= 0
+    assert bank["other_liabilities"] >= 0
+
+
+def test_a_weekend_report_date_is_described_as_of_the_friday(items: dict) -> None:
+    saturday = bank_file_from_call_report({**items, "REPDTE": "20221231"}, prime=_PRIME)
+    assert saturday["as_of"] == "2022-12-30"
+    assert saturday["source"]["report_date"] == "2022-12-31"
+    assert {p["issue_date"] for p in saturday["positions"]} == {"2022-12-30"}
+
+
+def test_deposit_beta_can_be_set(items: dict) -> None:
+    bank = bank_file_from_call_report(items, prime=_PRIME, deposit_beta=0.6)
+    assert next(d for d in bank["deposits"] if d["id"] == "ib")["beta"] == 0.6
+    with pytest.raises(ValueError, match="deposit_beta"):
+        bank_file_from_call_report(items, prime=_PRIME, deposit_beta=1.5)
+
+
+def test_payout_is_capped_and_zero_without_profit(items: dict) -> None:
+    rich = bank_file_from_call_report({**items, "EQCDIV": 3 * items["NETINC"]}, prime=_PRIME)
+    assert rich["operating"]["dividend_payout"] == 1.0
+    loss = bank_file_from_call_report({**items, "NETINC": -1.0, "EQCDIV": 10.0}, prime=_PRIME)
+    assert loss["operating"]["dividend_payout"] == 0.0
+
+
+def test_fetch_retries_when_the_api_is_busy(monkeypatch: pytest.MonkeyPatch) -> None:
+    import io
+    import urllib.error
+
+    import brms.lab.call_report as module
+
+    calls: list[str] = []
+
+    class Response(io.BytesIO):
+        def __enter__(self):  # noqa: ANN204
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+    def urlopen(request, timeout):  # noqa: ANN001, ANN202, ARG001
+        calls.append("x")
+        if len(calls) < 3:
+            raise urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", {}, None)
+        return Response(b"ok")
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", urlopen)
+    waits: list[float] = []
+    assert module._get("https://example.invalid", sleep=waits.append) == b"ok"  # noqa: SLF001
+    assert waits == [2.0, 5.0]
+
+
+def test_fetch_gives_up_with_a_clear_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    import urllib.error
+
+    import brms.lab.call_report as module
+
+    def urlopen(request, timeout):  # noqa: ANN001, ANN202, ARG001
+        raise urllib.error.HTTPError(request.full_url, 404, "Not Found", {}, None)
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", urlopen)
+    with pytest.raises(ConnectionError, match="404"):
+        module._get("https://example.invalid", sleep=lambda _s: None)  # noqa: SLF001

@@ -55,8 +55,11 @@ export async function render(main, ctx) {
   return () => clearTimeout(timer);
 }
 
+let multiBank = false;
+
 function name(run) {
-  return run.meta.label || run.meta.spec.description;
+  const scenario = run.meta.label || run.meta.spec.description;
+  return multiBank ? `${run.meta.bank_name} \u00B7 ${scenario}` : scenario;
 }
 
 function aligned(runs, pick) {
@@ -70,6 +73,7 @@ function aligned(runs, pick) {
 }
 
 function view(runs, failed) {
+  multiBank = new Set(runs.map((r) => r.meta.bank_id)).size > 1;
   const sumBooks = (r) => {
     const books = Object.values(r.unrealised || {});
     if (!books.length) return null;

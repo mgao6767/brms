@@ -36,11 +36,14 @@ def save_snapshot(
     path: Path,
     *,
     end_date: datetime.date | None = None,
+    info: dict[str, object] | None = None,
 ) -> None:
     """Write *snapshot* to *path*.
 
     *instrument_specs* are the JSON-ready instrument definitions the snapshot's instruments
     were built from (``type`` plus constructor arguments), written as ``instruments.json``.
+    *info* is descriptive metadata for front ends (e.g. ``unit``, ``story``), written to
+    ``config.json`` under ``"info"``; the engine ignores it.
     """
     files = ZipLoaderConfig()
     config: dict[str, object] = {
@@ -48,9 +51,12 @@ def save_snapshot(
         "name": snapshot.name,
         "start_date": snapshot.start_date.isoformat(),
         "regulatory": snapshot.regulatory.to_json(),
+        "operating": snapshot.operating.to_json(),
     }
     if end_date is not None:
         config["end_date"] = end_date.isoformat()
+    if info:
+        config["info"] = info
     balances = {
         "snapshot_date": (snapshot.start_date - datetime.timedelta(days=1)).isoformat(),
         "balances": snapshot.balances,

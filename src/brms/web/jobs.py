@@ -91,11 +91,15 @@ def describe(spec: dict[str, Any]) -> str:
 # -- bank jobs -------------------------------------------------------------------------------------
 
 
-def summarise_bank(zip_path: str, out: str, unit: float = 1.0) -> dict[str, Any]:
+def summarise_bank(zip_path: str, out: str, unit: float | None = None) -> dict[str, Any]:
     """Write ``summary.json`` for a simulation zip: dates, balance sheet and positions at the start.
 
-    *unit* is the currency amount one unit of the bank's figures stands for (1000 for a Call Report).
+    *unit* is the currency amount one unit of the bank's figures stands for (1000 for a Call
+    Report); by default it is read from the zip's ``info`` (1 if absent), as is its ``story``.
     """
+    config = _zip_config(zip_path)
+    info = config.get("info") or {}
+    unit = float(unit if unit is not None else info.get("unit", 1))
     from brms.core.enums import ValuationType
     from brms.core.services import build_core_services
 
@@ -121,13 +125,16 @@ def summarise_bank(zip_path: str, out: str, unit: float = 1.0) -> dict[str, Any]
         })
     regulatory = services.bank.regulatory
     summary = {
-        "name": _zip_name(zip_path),
+        "name": str(config.get("name") or Path(zip_path).stem),
         "unit": unit,
+        "story": info.get("story"),
+        "reported": info.get("reported"),
         "start_date": sim.start_date.isoformat(),
         "end_date": sim.end_date.isoformat() if sim.end_date else None,
         "balance_sheet": services.reporting_service.balance_sheet(services.bank.ledger, date=snapshot),
         "positions": positions,
         "regulatory": {"aoci_filter": regulatory.aoci_filter, "operational_rwa": float(regulatory.operational_rwa)},
+        "operating": services.bank.operating.to_json(),
     }
     _atomic_write(Path(out), json.dumps(summary, default=str))
     return summary
@@ -140,12 +147,11 @@ def _atomic_write(path: Path, text: str) -> None:
     tmp.replace(path)
 
 
-def _zip_name(zip_path: str) -> str:
+def _zip_config(zip_path: str) -> dict[str, Any]:
     import zipfile
 
     with zipfile.ZipFile(zip_path) as archive:
-        config = json.loads(archive.read("config.json"))
-    return str(config.get("name") or Path(zip_path).stem)
+        return json.loads(archive.read("config.json"))
 
 
 def build_from_bank_file(bank: dict[str, Any], folder: str) -> dict[str, Any]:
@@ -168,6 +174,7 @@ def build_from_call_report(request: dict[str, Any], folder: str) -> dict[str, An
     bank = bank_file_from_call_report(
         items, prime=prime_on(default_market_frames(), as_of), ltv=float(request.get("ltv", 0.8)),
         aoci_filter=bool(request.get("aoci_filter", True)), afs=request.get("afs") or None,
+        deposit_beta=float(request.get("deposit_beta", 0.35)),
     )
     return build_from_bank_file(bank, folder)
 

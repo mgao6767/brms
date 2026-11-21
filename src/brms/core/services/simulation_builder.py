@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 from brms.core.enums import InstrumentType, MeasurementBasis, PositionSide, TransactionType, TxMeta, ValuationType
 from brms.core.exceptions import UnsupportedPositionError
 from brms.core.metrics.risk.credit_risk.exposures import classify
+from brms.core.models.operating import OperatingConfig
 from brms.core.models.regulatory import RegulatoryConfig
 from brms.core.models.transaction import Transaction
 from brms.core.services.amortized_cost import AmortizedCostCalculator
@@ -55,6 +56,13 @@ class BuildConfig:
     positions: list[Position]
     market_frames: dict[str, pd.DataFrame]
     regulatory: RegulatoryConfig = field(default_factory=RegulatoryConfig)
+    operating: OperatingConfig = field(default_factory=OperatingConfig)
+    # Balances not modelled position by position (premises, trading and other assets; other
+    # liabilities), booked against cash on the first replay day and carried unchanged.
+    other_assets: Decimal = Decimal(0)
+    other_liabilities: Decimal = Decimal(0)
+    # Goodwill and other intangibles: carried unchanged and deducted from CET1.
+    intangible_assets: Decimal = Decimal(0)
     # The BenchmarkService whose Prime index the floating-rate instruments were built with, so the
     # engine discounts and forecasts on the same curve handle. Built by the engine when omitted.
     benchmark_service: Any = None
@@ -80,6 +88,7 @@ class SimulationSnapshot:
     valuations: dict[str, dict[str, float]] = field(default_factory=dict)
     market_frames: dict[str, pd.DataFrame] = field(default_factory=dict)
     regulatory: RegulatoryConfig = field(default_factory=RegulatoryConfig)
+    operating: OperatingConfig = field(default_factory=OperatingConfig)
 
 
 class SimulationBuilder:
@@ -113,6 +122,7 @@ class SimulationBuilder:
             valuations=valuations,
             market_frames=config.market_frames,
             regulatory=config.regulatory,
+            operating=config.operating,
         )
 
     def replay(
@@ -140,6 +150,7 @@ class SimulationBuilder:
         sim, calculator = self._create_engine(config)
         earliest = min((p.acquisition_date for p in config.positions), default=until)
         current = earliest
+        self._add_other_balances(earliest, config, sim)
         while current <= until:
             self._add_positions_on(current, config, sim, calculator)
             sim.advance(current)
@@ -149,6 +160,20 @@ class SimulationBuilder:
                 on_advance(sim, current)
             current += datetime.timedelta(days=1)
         return sim, calculator
+
+    @staticmethod
+    def _add_other_balances(day: datetime.date, config: BuildConfig, sim: SimulationService) -> None:
+        """Book the bank's other assets and liabilities (against cash) on the first replay day."""
+        txns = [
+            Transaction(id=str(uuid.uuid4()), type=tx_type, date=day, amount=amount, description=tx_type.name.title())
+            for tx_type, amount in ((TransactionType.OTHER_ASSETS, config.other_assets),
+                                    (TransactionType.INTANGIBLE_ASSETS, config.intangible_assets),
+                                    (TransactionType.OTHER_LIABILITIES, config.other_liabilities))
+            if amount
+        ]
+        if txns:
+            sim.accounting_service.post_all(txns, sim.bank.ledger, sim.bank.positions)
+            sim.transaction_log.record_batch(txns)
 
     def _calibrate_spreads_on(self, day: datetime.date, config: BuildConfig, sim: SimulationService) -> None:
         """Set the spread of positions acquired on *day* so that they are worth their cost on the day's curve."""
@@ -220,7 +245,7 @@ class SimulationBuilder:
         ledger = Ledger(chart_of_accounts=coa, journal=Journal())
         bank = Bank(
             name=config.name, instruments=InstrumentStore(), positions=PositionStore(), ledger=ledger,
-            regulatory=config.regulatory, reinvest_maturities=config.reinvest_maturities,
+            regulatory=config.regulatory, reinvest_maturities=config.reinvest_maturities, operating=config.operating,
         )
         market_data = MarketDataStore()
         accounting_service = AccountingService()

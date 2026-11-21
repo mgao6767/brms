@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { date, money, pct } from "../format.js";
 import { chip, dataTable, errorBox, h, loading, panel } from "../ui.js";
 
-const SOURCE = { demo: "Demo", bank_file: "Bank file", call_report: "Call Report" };
+const SOURCE = { case_study: "Case study", demo: "Example", bank_file: "Bank file", call_report: "Call Report" };
 
 export async function render(main, ctx) {
   ctx.setTitle("Banks");

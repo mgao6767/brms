@@ -1,4 +1,4 @@
-"""SVB built from its own Call Report alone, run through 2022 (docs/lab/call_report.md).
+"""SVB built from its own Call Report alone, run through 2022 (docs/lab/validation.md).
 
 HTM is within 3 percentage points of the end-2022 Call Report. AFS loses more than reported: the
 data does not give each book's maturity profile, so AFS gets the bank's overall (long) profile.

@@ -16,7 +16,7 @@ A simulation in BRMS begins with a predefined set of banking and trading books, 
 ## Stress-test lab
 
 The engine also runs as a stress-test lab: put a bank's balance sheet (from a bank file or a US bank's
-Call Report) through historical rates or the Basel interest-rate shocks, and read its statements,
+Call Report; SVB, Signature, First Republic and JPMorgan ship as case studies) through historical rates or the Basel interest-rate shocks, and read its statements,
 regulatory capital, unrealised losses and interest-rate risk day by day.
 
 ```bash
@@ -25,8 +25,9 @@ brms-web                      # the lab in your browser
 python -m brms.lab --help     # or from the command line
 ```
 
-See [the lab documentation](docs/lab/index.md), [the browser app](docs/lab/web.md) and
-[the SVB case study](docs/lab/svb.md).
+Start with the [quick start](docs/lab/quickstart.md), then the tutorials, e.g.
+[why SVB failed, step by step](docs/lab/tutorials/svb-2022.md). Everything is in
+[the Stress Lab documentation](docs/lab/index.md) (also at [bankrisk.org](https://bankrisk.org)).
 
 ## GUI Demo
 

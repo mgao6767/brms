@@ -560,32 +560,32 @@ class TestBankChartOfAccounts:
 
     def test_asset_accounts_populated(self) -> None:
         coa = BankChartOfAccounts()
-        assert len(coa.assets) == 8
+        assert len(coa.assets) == 9
         assert coa.cash_account in coa.assets
         assert coa.loan_account in coa.assets
         assert coa.investment_securities_account in coa.assets
 
     def test_liability_accounts_populated(self) -> None:
         coa = BankChartOfAccounts()
-        assert len(coa.liabilities) == 4
+        assert len(coa.liabilities) == 5
         assert coa.deposit_account in coa.liabilities
 
     def test_equity_accounts_populated(self) -> None:
         coa = BankChartOfAccounts()
-        assert len(coa.equities) == 3  # noqa: PLR2004
+        assert len(coa.equities) == 4  # noqa: PLR2004
         assert coa.equity_account in coa.equities
         assert coa.accumulated_oci_account in coa.equities
         assert coa.opening_balance_equity in coa.equities
 
     def test_income_accounts_populated(self) -> None:
         coa = BankChartOfAccounts()
-        assert len(coa.income) == 3
+        assert len(coa.income) == 4
         assert coa.interest_income_account in coa.income
         assert coa.trading_income_account in coa.income
 
     def test_expense_accounts_populated(self) -> None:
         coa = BankChartOfAccounts()
-        assert len(coa.expenses) == 2
+        assert len(coa.expenses) == 3
 
     def test_composite_sub_account_shortcuts(self) -> None:
         coa = BankChartOfAccounts()

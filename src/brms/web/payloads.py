@@ -11,12 +11,11 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from brms.lab.runner import book_of as _book_of
+
 if TYPE_CHECKING:
     from brms.lab.runner import RunResult
 
-LOAN_TYPES = frozenset({
-    "RESIDENTIAL_MORTGAGE", "COMMERCIAL_MORTGAGE", "MORTGAGE", "AMORTIZING_FIXED_RATE_LOAN", "VARIABLE_RATE_LOAN",
-})
 _SECTIONS = ("assets", "liabilities", "equity")
 _HALF_CENT = 0.005
 _NOISE = 1e-9
@@ -45,11 +44,7 @@ def _series(frame: pd.DataFrame | pd.Series, index: pd.DatetimeIndex) -> list[An
 
 def book_of(position: dict[str, Any]) -> str | None:
     """Return the unrealised-gain group of a position: loans, htm, afs, or None (not reported)."""
-    if position["side"] != "LONG":
-        return None
-    if position["type"] in LOAN_TYPES:
-        return "loans"
-    return {"AMORTIZED_COST": "htm", "FVOCI": "afs"}.get(position["basis"])
+    return _book_of(position["side"], position["type"], position["basis"])
 
 
 def unrealised_by_book(result: RunResult, index: pd.DatetimeIndex) -> dict[str, list[Any]]:

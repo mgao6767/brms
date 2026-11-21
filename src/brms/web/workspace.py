@@ -107,7 +107,8 @@ class Workspace:
             summary = self.bank_summary(bank_id) or {}
             error = self.demo_error(bank_id)
             status = "ready" if summary else "failed" if error else "pending"
-            return {"id": bank_id, "name": summary.get("name", bank_id[len(DEMO_PREFIX):]), "source": "demo",
+            source = "case_study" if bank_id.startswith(f"{DEMO_PREFIX}case_") else "demo"
+            return {"id": bank_id, "name": summary.get("name", bank_id[len(DEMO_PREFIX):]), "source": source,
                     "status": status, "error": error, "created": None}
         return _read(self.banks_dir / bank_id / "meta.json")
 
@@ -160,7 +161,7 @@ class Workspace:
     def delete_bank(self, bank_id: str) -> bool:
         """Delete a user bank (demo banks cannot be deleted)."""
         folder = self.banks_dir / bank_id
-        if not self.valid_id(bank_id) or bank_id.startswith(DEMO_PREFIX) or not folder.is_dir():
+        if not self.valid_id(bank_id) or bank_id.startswith(DEMO_PREFIX) or not folder.is_dir():  # demos and cases
             return False
         shutil.rmtree(folder)
         return True

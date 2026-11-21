@@ -83,6 +83,13 @@ class TransactionType(Enum):
     INTEREST_SETTLEMENT = auto()
     OPENING_BALANCE = auto()
     PREMIUM_DISCOUNT_AMORTIZATION = auto()
+    OPERATING_EXPENSE = auto()
+    NONINTEREST_INCOME = auto()
+    INCOME_TAX = auto()
+    OTHER_ASSETS = auto()
+    OTHER_LIABILITIES = auto()
+    DIVIDEND = auto()
+    INTANGIBLE_ASSETS = auto()
 
 
 class MetricName(Enum):

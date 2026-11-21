@@ -12,6 +12,7 @@ from brms.core.enums import BookType, MeasurementBasis, PositionSide
 from brms.core.models.instruments import default_instrument_registry
 from brms.core.models.instruments.base import CreditRating, Issuer, IssuerType
 from brms.core.models.instruments.equity import CommonEquity
+from brms.core.models.operating import OperatingConfig
 from brms.core.models.position import Position
 from brms.core.models.regulatory import RegulatoryConfig
 from brms.core.services.simulation_builder import BuildConfig, SimulationBuilder
@@ -127,6 +128,7 @@ def run_bank(  # noqa: PLR0913
     regulatory: RegulatoryConfig | None = None,
     reinvest_maturities: bool = False,
     calibrate_spreads: bool = False,
+    operating: OperatingConfig | None = None,
 ) -> SimulationService:
     """Replay the bank day by day through *until*, reconciling after every advance."""
     if with_funding:
@@ -148,5 +150,6 @@ def run_bank(  # noqa: PLR0913
         regulatory=regulatory or RegulatoryConfig(),
         reinvest_maturities=reinvest_maturities,
         calibrate_spreads=calibrate_spreads,
+        operating=operating or OperatingConfig(),
     )
     return SimulationBuilder().replay(config, until=until, on_advance=on_advance)

@@ -12,6 +12,7 @@ from brms.core.events import (
     TransactionsRecorded,
     ValuationsUpdated,
 )
+from brms.core.models.operating import OperatingConfig
 from brms.core.services.simulation_service import SimulationService
 
 
@@ -26,6 +27,8 @@ def _make_simulation_service() -> tuple[SimulationService, EventBus, list]:
     event_bus.subscribe(DateAdvanced, lambda e: received.append(e))
 
     bank = MagicMock()
+
+    bank.operating = OperatingConfig()  # no bank-level flows
     bank.positions.open_positions.return_value = []
     market_data = MagicMock()
     market_data.available_dates.return_value = [datetime.date(2024, 1, 1), datetime.date(2024, 1, 2)]

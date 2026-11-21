@@ -89,6 +89,7 @@ main { flex: 1; overflow: auto; padding: 8px; outline: none; min-width: 0; }
 .page-head .meta { color: var(--muted); }
 .page-head .actions { margin-left: auto; display: flex; gap: 6px; }
 .crumbs { color: var(--muted); }
+.story { margin: -4px 4px 10px; color: var(--text-2); max-width: 900px; }
 .crumbs a { color: var(--text-2); }
 
 .grid { display: grid; gap: 6px; }

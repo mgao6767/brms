@@ -108,6 +108,18 @@ class AccountingService:
                 return self._maturity_settlement(transaction, ledger)
             case TransactionType.PREMIUM_DISCOUNT_AMORTIZATION:
                 return self._premium_discount_amortization(transaction, ledger)
+            case TransactionType.OPERATING_EXPENSE | TransactionType.NONINTEREST_INCOME | TransactionType.INCOME_TAX:
+                return self._operating(transaction, ledger)
+            case TransactionType.DIVIDEND:
+                return [self._simple(ledger, "Dividends Paid", "Cash and Cash Equivalents", transaction, "Dividend")]
+            case TransactionType.INTANGIBLE_ASSETS:
+                return [self._simple(ledger, "Intangible Assets", "Cash and Cash Equivalents", transaction,
+                                     "Intangible assets")]
+            case TransactionType.OTHER_ASSETS:
+                return [self._simple(ledger, "Other Assets", "Cash and Cash Equivalents", transaction, "Other assets")]
+            case TransactionType.OTHER_LIABILITIES:
+                return [self._simple(ledger, "Cash and Cash Equivalents", "Other Liabilities", transaction,
+                                     "Other liabilities")]
             case TransactionType.OPENING_BALANCE:
                 return []  # informational — ledger already updated by compound entry
             case _:
@@ -391,6 +403,30 @@ class AccountingService:
             description=f"Principal payment (tx={tx.id})",
         )
         return [entry]
+
+    def _simple(self, ledger: Ledger, debit: str, credit: str, tx: Transaction, label: str) -> SimpleEntry:
+        return SimpleEntry(debit_account=self._lookup(ledger, debit), credit_account=self._lookup(ledger, credit),
+                           value=float(tx.amount), date=tx.date, description=f"{label} (tx={tx.id})")
+
+    _OPERATING_ACCOUNTS: ClassVar[dict[TransactionType, str]] = {
+        TransactionType.OPERATING_EXPENSE: "Operating Expense",
+        TransactionType.NONINTEREST_INCOME: "Non-interest Income",
+        TransactionType.INCOME_TAX: "Income Tax Expense",
+    }
+
+    def _operating(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
+        """Operating flows through cash.
+
+        OPERATING_EXPENSE and INCOME_TAX: Dr the expense / Cr Cash (a negative tax amount is a
+        reversal: Dr Cash / Cr Income Tax Expense). NONINTEREST_INCOME: Dr Cash / Cr Non-interest Income.
+        """
+        cash = self._lookup(ledger, "Cash and Cash Equivalents")
+        account = self._lookup(ledger, self._OPERATING_ACCOUNTS[tx.type])
+        amount = float(tx.amount)
+        outflow = tx.type != TransactionType.NONINTEREST_INCOME
+        debit, credit = (account, cash) if outflow == (amount > 0) else (cash, account)
+        return [SimpleEntry(debit_account=debit, credit_account=credit, value=abs(amount), date=tx.date,
+                            description=f"{tx.description or tx.type.name.title()} (tx={tx.id})")]
 
     def _amortization(self, tx: Transaction, ledger: Ledger) -> list[JournalEntry]:
         """AMORTIZATION: debit Cash, credit Loans (or, for a security's paydown, its investment account)."""

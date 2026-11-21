@@ -60,6 +60,9 @@ class SimulationService:
         self.metric_store = metric_store
         self.transaction_log = transaction_log
         self.event_bus = event_bus
+        from brms.core.services.operating_service import OperatingService
+
+        self.operating_service = OperatingService()
         self._current_date: datetime.date | None = None  # type: ignore[name-defined]
         self._start_date: datetime.date | None = None  # type: ignore[name-defined]
         self._end_date: datetime.date | None = None  # type: ignore[name-defined]
@@ -199,6 +202,13 @@ class SimulationService:
         self.transaction_log.record_batch(transactions)
         if self.bank.reinvest_maturities:
             transactions = [*transactions, *self._reinvest(transactions, date, has_market_data=has_market)]
+        # Bank-level flows after the positions' postings: costs and fees, then tax on the profit so far.
+        for step in (self.operating_service.flows, self.operating_service.tax, self.operating_service.dividends):
+            operating = step(self.bank, date)
+            if operating:
+                self.accounting_service.post_all(operating, self.bank.ledger, self.bank.positions)
+                self.transaction_log.record_batch(operating)
+                transactions = [*transactions, *operating]
         # The day counts as processed only once its transactions are posted.
         self._current_date = date
 

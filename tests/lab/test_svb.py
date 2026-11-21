@@ -1,6 +1,6 @@
 """SVB acceptance case: 2022 unrealised losses from the end-2021 balance sheet.
 
-This pins the documented outcome (docs/lab/svb.md): the AFS loss rate is matched to within 1.5
+This pins the documented outcome (docs/lab/validation.md): the AFS loss rate is matched to within 1.5
 percentage points. With the HTM book as a bullet bond its loss is understated (a bullet cannot extend
 as SVB's MBS did, from 4.1 to 6.2 years); as an agency pass-through pool it is matched to within
 1.5 points.

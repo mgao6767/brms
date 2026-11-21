@@ -98,6 +98,7 @@ ACCOUNT_WEIGHTS: dict[str, tuple[ExposureClass, Decimal]] = {
     "Cash and Cash Equivalents": (ExposureClass.CASH, Decimal(0)),
     "Receivables from Financial Institutions": (ExposureClass.OTHER_ASSETS, Decimal(1)),
     "Property, Plant and Equipment": (ExposureClass.OTHER_ASSETS, Decimal(1)),
+    "Other Assets": (ExposureClass.OTHER_ASSETS, Decimal(1)),
 }
 
 

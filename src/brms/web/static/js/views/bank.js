@@ -30,7 +30,7 @@ export async function render(main, ctx) {
     const scenarios = await api.scenarios();
     const runs = (await api.runs()).filter((r) => r.bank_id === bank.id);
     if (!ctx.alive()) return;
-    main.replaceChildren(head(bank), kpis(bank),
+    main.replaceChildren(head(bank), bank.story ? h("p", { class: "story" }, bank.story) : null, kpis(bank),
       h("div", { class: "grid cols-3" },
         h("div", { class: "span-2 grid" }, balanceSheet(bank), positions(bank)),
         h("div", { class: "grid", style: { alignContent: "start" } }, launcher(bank, scenarios), recentRuns(runs))));
@@ -41,7 +41,7 @@ export async function render(main, ctx) {
 }
 
 function head(bank) {
-  const del = bank.source !== "demo" ? h("button", { class: "btn ghost danger", type: "button" }, "Delete") : null;
+  const del = !["demo", "case_study"].includes(bank.source) ? h("button", { class: "btn ghost danger", type: "button" }, "Delete") : null;
   del?.addEventListener("click", async () => {
     if (!window.confirm(`Delete ${bank.name}? Its runs are kept.`)) return;
     try {
@@ -62,7 +62,8 @@ function pendingPanel(bank) {
     return panel("Build failed", h("div", { class: "form" }, errorBox(bank.error || "Unknown error"),
       h("div", {}, h("a", { class: "btn", href: "#/import" }, "Back to import"))));
   }
-  return panel("Preparing", loading(bank.source === "demo" ? "Summarising the bank" : "Building the bank"));
+  return panel("Preparing", loading(["demo", "case_study"].includes(bank.source) ? "Summarising the bank"
+    : "Building the bank"));
 }
 
 function kpis(bank) {
@@ -75,8 +76,19 @@ function kpis(bank) {
     kpi("Positions", String(bank.summary.positions.filter((p) => p.side === "LONG" && p.basis !== "NA").length),
       { sub: "securities and loans" }),
     kpi("Start date", date(bank.start_date), { sub: `data to ${date(bank.end_date)}` }),
+    operatingTile(bank.summary.operating),
     kpi("AOCI filter", bank.summary.regulatory.aoci_filter ? "On" : "Off",
       { sub: bank.summary.regulatory.aoci_filter ? "unrealised AFS excluded from CET1" : "AOCI counts in CET1" }));
+}
+
+function operatingTile(operating) {
+  const expense = Number(operating?.noninterest_expense || 0);
+  const income = Number(operating?.noninterest_income || 0);
+  const tax = Number(operating?.tax_rate || 0);
+  if (!expense && !income && !tax) {
+    return kpi("Operating costs", "None", { sub: "no costs, fees or tax modelled" });
+  }
+  return kpi("Operating costs / yr", money(expense), { sub: `fees ${money(income)} \u00B7 tax ${pct(tax, { digits: 0 })}` });
 }
 
 function balanceSheet(bank) {
