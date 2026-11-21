@@ -5,13 +5,15 @@ and see what happened to its securities and its capital.
 
 ## 1. Install and start
 
+The lab runs on your own computer. If you have not installed it yet, follow
+[Install on your computer](install.md) (about five minutes). Then, in a terminal:
+
 ```bash
-pip install "brms[web]"
 brms-web
 ```
 
 Your browser opens at <http://127.0.0.1:8765>. If it does not, open that address yourself.
-Keep the terminal open: it is the server. Press ++ctrl+c++ there to stop it.
+Keep the terminal open while you use the lab; press ++ctrl+c++ there to stop it.
 
 !!! tip "Port already in use?"
     Start it on another port: `brms-web --port 8800`.

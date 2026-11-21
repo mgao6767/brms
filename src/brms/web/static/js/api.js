@@ -6,7 +6,13 @@ async function request(method, url, body) {
     options.headers["Content-Type"] = "application/json";
     options.body = JSON.stringify(body);
   }
-  const response = await fetch(url, options);
+  let response;
+  try {
+    response = await fetch(url, options);
+  } catch {
+    // The browser could not reach the lab at all: its terminal was closed or the lab was stopped.
+    throw new Error("The lab is not running. Start it again with brms-web in a terminal, then reload this page.");
+  }
   if (response.status === 204) return null;
   const text = await response.text();
   let data = null;

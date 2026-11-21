@@ -47,7 +47,7 @@ wheels = [
 
 [[package]]
 name = "brms"
-version = "0.1.0.dev2"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "pandas" },
