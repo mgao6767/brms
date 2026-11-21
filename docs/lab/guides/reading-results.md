@@ -52,6 +52,8 @@ The **Books** panel shows the bank's accounts on any day of the run:
 - **Positions at end**: each security and loan with its carrying value, amortised cost, fair value
   and unrealised gain or loss on the last day it was held.
 
+![The journal on one day](../../images/lab/journal.jpg)
+
 Tables show amounts as filed: Call Report banks in **USD thousands** (the panel says so).
 
 ## Comparing runs

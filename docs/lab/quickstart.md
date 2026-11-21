@@ -54,7 +54,7 @@ The tiles summarise the year:
 
 | Tile | What it says for SVB in 2022 |
 |---|---|
-| CET1 ratio, end | 19.5%: regulatory capital looked strong… |
+| CET1 ratio, end | 19.2%: regulatory capital looked strong… |
 | HTM unrealised | −$12.7bn: …but its held-to-maturity securities had lost $12.7bn of value |
 | AFS unrealised | −$3.4bn more on available-for-sale securities |
 | Net income | +$2.2bn of profit after costs and tax |

@@ -84,7 +84,7 @@ An agency mortgage pass-through and a municipal bond:
 ```
 
 The MBS pool's prepayments speed up when mortgage rates fall and slow when they rise; see the
-[bank file reference](../reference/bank-file.md#mortgage-backed-security).
+[bank file reference](../reference/bank-file.md#mortgage_backed_security).
 
 ## Step 4: loans
 

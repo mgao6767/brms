@@ -36,8 +36,8 @@ finish. The summary table is sorted by each run's lowest CET1 ratio. Look at:
 - **HTM unrealised**: the parallel-up shock costs SVB −$10.3bn on HTM securities, and the
   actual path of 2022 cost −$12.7bn. The real 2022 was worse than the regulatory +200bp shock,
   because the 10-year yield rose about 240bp.
-- **Worst ΔEVE/T1**: SVB's economic value falls by about 100% of Tier 1 in the worst shock. That
-  makes it a clear outlier against the 15% threshold.
+- **Worst ΔEVE/T1**: SVB's economic value falls by more than 100% of Tier 1 in the worst shock.
+  That makes it a clear outlier against the 15% threshold.
 
 ![Seven scenarios for SVB](../../images/lab/compare.jpg)
 
@@ -62,9 +62,9 @@ its bank:
 | Bank | Lowest CET1 ratio | Worst ΔEVE / Tier 1 | HTM unrealised | AFS unrealised |
 |---|---:|---:|---:|---:|
 | Signature Bank | **8.4%** | −49% | −$0.4bn | −$1.5bn |
-| Silicon Valley Bank | 12.5% | **−108%** | −$10.3bn | −$2.8bn |
-| First Republic Bank | 14.7% | −81% | −$3.4bn | −$0.7bn |
-| JPMorgan Chase Bank | 15.9% | −32% | −$28.4bn | −$23.3bn |
+| Silicon Valley Bank | 12.2% | **−111%** | −$10.3bn | −$2.8bn |
+| JPMorgan Chase Bank | 13.6% | −38% | −$28.4bn | −$23.3bn |
+| First Republic Bank | 14.5% | −83% | −$3.4bn | −$0.7bn |
 
 How to read it:
 
@@ -74,8 +74,9 @@ How to read it:
   securities make it the most exposed, losing more than its whole Tier 1 capital. First Republic's
   exposure is in long fixed-rate mortgages, which are loans rather than securities: they show up in
   EVE and in loan unrealised losses, not in HTM or AFS.
-- **Size.** JPMorgan's dollar losses are the largest, but against its capital they are the
-  smallest.
+- **Size.** JPMorgan's dollar losses are the largest, but against its capital its economic-value
+  loss is the smallest. Its CET1 ratio is lower than First Republic's because $46bn of goodwill
+  and other intangibles is deducted from its capital.
 
 !!! warning "Deposits in ΔEVE"
     The lab treats deposits as repricing overnight when it computes EVE, so deposits add no value
