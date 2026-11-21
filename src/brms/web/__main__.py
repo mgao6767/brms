@@ -23,7 +23,14 @@ def default_workers(cpus: int | None = None) -> int:
 
 
 def _port_free(host: str, port: int) -> bool:
+    """Return True if the lab could listen on *port*: bound the way uvicorn binds it.
+
+    SO_REUSEADDR lets a restart reuse a port whose closed connections are still in TIME_WAIT. On
+    Windows that option would allow sharing a port in use, and TIME_WAIT does not block a bind there.
+    """
     with socket.socket(socket.AF_INET6 if ":" in host else socket.AF_INET) as probe:
+        if sys.platform != "win32":
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             probe.bind((host, port))
         except OSError:
