@@ -39,7 +39,9 @@ In the browser app, open **Import**. Under **From a US Call Report**:
    rate-sensitive depositors are higher.
 5. **AOCI filter:** tick it for banks that exclude AOCI from capital (most US banks below the
    largest size); untick it for the largest banks, or to apply Basel III.
-6. Click **Build from Call Report**.
+6. **Core deposits in EVE:** keep it ticked to treat the stable part of deposits as long-lived in
+   the economic-value measure, following the Basel caps weighted by the bank's insured share.
+7. Click **Build from Call Report**.
 
 The lab fetches the filing, builds the bank (a few seconds) and opens its page.
 

@@ -32,8 +32,10 @@ bonds, mortgages, business loans and consumer loans. The finished file is
 
 ```json
 "deposits": [
-  {"id": "checking", "name": "Checking accounts", "balance": 680000000, "interest_rate": 0.0, "runoff_rate": 0.05},
-  {"id": "savings", "name": "Savings and money market", "balance": 520000000, "interest_rate": 0.001, "beta": 0.3},
+  {"id": "checking", "name": "Checking accounts", "balance": 680000000, "interest_rate": 0.0, "runoff_rate": 0.05,
+   "core_share": 0.9, "core_maturity": 5},
+  {"id": "savings", "name": "Savings and money market", "balance": 520000000, "interest_rate": 0.001, "beta": 0.3,
+   "core_share": 0.7, "core_maturity": 4.5},
   {"id": "time", "name": "Time deposits", "balance": 230000000, "interest_rate": 0.008, "beta": 0.6}
 ]
 ```
@@ -45,6 +47,7 @@ bonds, mortgages, business loans and consumer loans. The finished file is
 | `beta` | share of each move in the 3-month Treasury yield passed on (0.3 = 30%); the rate never goes below zero |
 | `runoff_rate` | share of the balance that leaves per year, continuously (0.05 = 5% a year) |
 | `withdrawals` | one-off outflows: `[["2023-03-09", 0.25]]` takes 25% of the balance on 9 March 2023 |
+| `core_share`, `core_maturity` | for interest-rate risk: the share of the balance that is stable, and its average life in years. Here the Basel caps for retail checking (90%, 5 years) and savings (70%, 4.5 years); the time deposits get none |
 
 Interest is accrued daily and paid on the first of each month.
 
@@ -151,14 +154,17 @@ Output of the command line:
 
 ```
 scenario            CET1 end  CET1 min   dEVE/T1     net income
-historical            18.00%    15.88%  -134.15%     18,091,207
-parallel_up           18.12%    15.88%  -101.36%     19,417,565
-steepener             17.72%    15.88%  -113.47%     15,047,752
+historical            18.00%    15.88%   -69.98%     18,091,207
+parallel_up           18.12%    15.88%   -44.32%     19,417,565
+steepener             17.72%    15.88%   -51.87%     15,047,752
 ```
 
-Riverside starts with a CET1 ratio of 15.9% and builds capital through the year. The large ΔEVE
-numbers come from the lab treating deposits as repricing overnight in economic-value terms. See
-[assumptions](../guides/assumptions.md#deposits).
+Riverside starts with a CET1 ratio of 15.9% and builds capital through the year. Its economic value
+is still very exposed: 30-year mortgages and 28-year MBS funded by deposits, of which only the core
+part offsets the loss. The worst ΔEVE (−70%) is on the first day of the historical run, at the low
+rates of January 2022, when long fixed-rate assets are most sensitive. Under the +200bp shock the
+bank starts from higher rates, so the same Basel shocks cost less (−44%). By the end of 2022 both
+runs are at about −35%. See [assumptions](../guides/assumptions.md#deposits).
 
 ## When something is wrong
 

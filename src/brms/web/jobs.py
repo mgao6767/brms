@@ -175,6 +175,7 @@ def build_from_call_report(request: dict[str, Any], folder: str) -> dict[str, An
         items, prime=prime_on(default_market_frames(), as_of), ltv=float(request.get("ltv", 0.8)),
         aoci_filter=bool(request.get("aoci_filter", True)), afs=request.get("afs") or None,
         deposit_beta=float(request.get("deposit_beta", 0.35)),
+        core_deposits=bool(request.get("core_deposits", True)),
     )
     return build_from_bank_file(bank, folder)
 

@@ -43,6 +43,8 @@ class Deposit(Instrument):
         runoff_rate: float = 0.0,
         withdrawals: Sequence[tuple[datetime.date | str, float]] = (),
         reference_tenor: str = "3 Mo",
+        core_share: float = 0.0,
+        core_maturity: float = 0.0,
     ) -> None:
         """Initialize a deposit.
 
@@ -54,6 +56,10 @@ class Deposit(Instrument):
             runoff_rate: Continuous annual rate at which the balance leaves the bank.
             withdrawals: Scheduled outflows ``(date, fraction of the balance then outstanding)``.
             reference_tenor: Yield column the deposit rate follows (default 3-month Treasury).
+            core_share: Share of the balance that is stable ("core") for interest-rate risk
+                (Basel SRP31): in EVE it runs off over time instead of repricing overnight.
+            core_maturity: Average life of the core balance in years; it runs off in equal monthly
+                amounts over twice this period.
 
         """
         super().__init__(name=name)
@@ -65,6 +71,14 @@ class Deposit(Instrument):
             (datetime.date.fromisoformat(d) if isinstance(d, str) else d, float(f)) for d, f in withdrawals
         )
         self.reference_tenor = reference_tenor
+        if not 0 <= core_share <= 1:
+            msg = f"core_share must be in [0, 1], got {core_share}"
+            raise ValueError(msg)
+        if core_maturity < 0 or (core_share > 0 and core_maturity <= 0):
+            msg = f"core_maturity must be positive years when core_share is set, got {core_maturity}"
+            raise ValueError(msg)
+        self.core_share = float(core_share)
+        self.core_maturity = float(core_maturity)
 
     def balance_factor(self, acquired: datetime.date, date: datetime.date) -> float:
         """Return the share of the acquired balance still deposited at close of business on *date*."""
@@ -74,6 +88,20 @@ class Deposit(Instrument):
             if acquired < day <= date:
                 factor *= 1 - fraction
         return factor
+
+    def core_cash_flows(self, balance: float, date: datetime.date) -> list[tuple[datetime.date, float]]:
+        """Return the core balance's principal run-off after *date*.
+
+        Equal monthly amounts over twice the average life, so the average life is ``core_maturity``.
+        Empty without a core share.
+        """
+        core = balance * self.core_share
+        if core <= 0:
+            return []
+        months = max(1, round(24 * self.core_maturity))
+        from dateutil.relativedelta import relativedelta
+
+        return [(date + relativedelta(months=k), core / months) for k in range(1, months + 1)]
 
     def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""

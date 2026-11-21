@@ -122,7 +122,7 @@ From a Call Report: see [the Call Report tutorial](call-report.md#from-python-or
 
 ```bash
 python -m brms.lab call-report --cert 24735 --date 2021-12-31 --out svb.json \
-    [--ltv 0.8] [--deposit-beta 0.35] [--no-aoci-filter]
+    [--ltv 0.8] [--deposit-beta 0.35] [--no-aoci-filter] [--no-core-deposits]
 python -m brms.lab build-bank svb.json --out svb.zip [--yields yields.csv] [--benchmarks prime.csv]
 python -m brms.lab run svb.zip --scenario historical --scenario parallel+200 \
     [--months 12] [--workers 4] [--out results]

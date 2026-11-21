@@ -38,6 +38,23 @@ class MaturityGapResult:
     total_delta_nii_down: float = 0.0
 
 
+def _repricing_amount(position: object, instrument: object, date: datetime.date, store: ValuationStore) -> float:
+    """Return the amount of *position* that reprices: carrying value, or beta x balance for a deposit."""
+    from brms.core.enums import ValuationType
+
+    carrying = store.get(position.id, date, ValuationType.CARRYING_VALUE)  # type: ignore[attr-defined]
+    if position.measurement_basis != MeasurementBasis.NA:  # type: ignore[attr-defined]
+        if carrying is None:
+            msg = f"Position {position.id} has no carrying value on {date}"  # type: ignore[attr-defined]
+            raise ValuationError(msg)
+        return float(carrying)
+    # Deposits and other unvalued holdings sit at their balance.
+    value = float(carrying if carrying is not None else position.acquisition_cost)  # type: ignore[attr-defined]
+    if instrument.instrument_type == InstrumentType.DEPOSIT:  # type: ignore[attr-defined]
+        value *= instrument.beta  # the rate moves by beta x the market move: only that share reprices
+    return value
+
+
 class MaturityGapModel:
     """Computes the maturity gap for banking book positions across 19 Basel IRRBB buckets."""
 
@@ -48,7 +65,7 @@ class MaturityGapModel:
         valuation_store: ValuationStore,
     ) -> MaturityGapResult:
         """Classify banking book positions into buckets and compute gap/ΔNII."""
-        from brms.core.enums import PositionSide, ValuationType
+        from brms.core.enums import PositionSide
 
         rsa = [0.0] * len(IRRBB_BUCKETS)
         rsl = [0.0] * len(IRRBB_BUCKETS)
@@ -71,16 +88,7 @@ class MaturityGapModel:
 
             bucket_idx = assign_bucket(remaining_years)
 
-            # Bonds and loans carry a valuation; deposits and other unvalued holdings sit at their balance.
-            if position.measurement_basis == MeasurementBasis.NA:
-                balance = valuation_store.get(position.id, date, ValuationType.CARRYING_VALUE)
-                value = float(balance if balance is not None else position.acquisition_cost)
-            else:
-                cv = valuation_store.get(position.id, date, ValuationType.CARRYING_VALUE)
-                if cv is None:
-                    msg = f"Position {position.id} has no carrying value on {date}"
-                    raise ValuationError(msg)
-                value = float(cv)
+            value = _repricing_amount(position, instrument, date, valuation_store)
 
             if position.side == PositionSide.LONG:
                 rsa[bucket_idx] += value

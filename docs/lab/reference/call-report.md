@@ -44,6 +44,13 @@ pieces get fair value in the ratio `SCHF / SCHA`; AFS pieces get amortised cost 
 | Other borrowed money `OTHBRF` + fed funds purchased and repos `FREPP` + subordinated notes `SUBND` | one floating-rate liability (`beta` 1) at its cost, `(EINTEXP − EDEP)` annualised over the balance |
 | Total liabilities `LIAB` less the above | `other_liabilities` |
 
+**Core deposits.** With `core_deposits` on (the default), each deposit line gets a `core_share` and
+`core_maturity` from the Basel SRP31 caps, weighted by the uninsured share of domestic deposits
+`DEPUNINS / DEPDOM` (all uninsured when the filing does not give it). Insured deposits count as
+retail: 90% core with a 5-year average life for noninterest-bearing (transactional) deposits, 70%
+and 4.5 years for interest-bearing. Uninsured deposits count as wholesale: 50% and 4 years.
+Borrowings get no core share.
+
 ## Income
 
 | Call Report | Becomes |

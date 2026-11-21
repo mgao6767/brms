@@ -53,8 +53,8 @@ pandas data frames. Runs are deterministic: the same bank and scenario give the 
 - **Static balance sheet**: no new business; maturing assets become cash (or roll over, with
   reinvestment).
 - **No credit risk dynamics**: no defaults, provisions or spread changes.
-- **No behavioural deposit model** in EVE and NII sensitivity; deposit rates follow a constant
-  beta, and balances a constant run-off or scheduled withdrawals.
+- **Simple deposit behaviour**: rates follow a constant beta, balances a constant run-off or
+  scheduled withdrawals, and the core share in EVE is fixed (the Basel caps for Call Report banks).
 - **No liquidity metrics** (LCR, NSFR), derivatives or hedge accounting.
 - **US focus**: Treasury curve, Prime rate, US calendars; Basel standardised approaches.
 - **Mortgage-backed securities** pay down at a fixed speed; only their value responds to rates.

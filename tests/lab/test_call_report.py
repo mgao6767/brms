@@ -272,3 +272,22 @@ def test_fetch_gives_up_with_a_clear_error(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(module.urllib.request, "urlopen", urlopen)
     with pytest.raises(ConnectionError, match="404"):
         module._get("https://example.invalid", sleep=lambda _s: None)  # noqa: SLF001
+
+
+def test_core_deposits_follow_the_insured_share(items: dict) -> None:
+    uninsured = 0.25
+    sample = {**items, "DEPUNINS": uninsured * items["DEPDOM"]}
+    by_id = {d["id"]: d for d in bank_file_from_call_report(sample, prime=_PRIME)["deposits"]}
+    nib, ib = by_id["nib"], by_id["ib"]
+    assert nib["core_share"] == pytest.approx(0.75 * 0.9 + 0.25 * 0.5)
+    assert nib["core_maturity"] == pytest.approx((0.75 * 0.9 * 5 + 0.25 * 0.5 * 4) / nib["core_share"])
+    assert ib["core_share"] == pytest.approx(0.75 * 0.7 + 0.25 * 0.5)
+    assert "core_share" not in by_id["borrowings"]
+    off = bank_file_from_call_report(sample, prime=_PRIME, core_deposits=False)
+    assert all("core_share" not in d for d in off["deposits"])
+
+
+def test_a_mostly_uninsured_bank_has_less_core_funding(items: dict) -> None:
+    svb = {d["id"]: d for d in bank_file_from_call_report(items, prime=_PRIME)["deposits"]}
+    assert items["DEPUNINS"] / items["DEPDOM"] > 0.8  # SVB's deposits were mostly uninsured
+    assert svb["nib"]["core_share"] < 0.6

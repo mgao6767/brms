@@ -70,8 +70,9 @@ profits add to capital. Run with the AOCI filter off to see AFS losses in capita
 unrealised gains and losses chart for what the books do not show.
 
 **Why is ΔEVE so large?**
-In the EVE calculation deposits reprice overnight, so they do not offset the fall in asset values.
-See [assumptions](assumptions.md#deposits).
+Long fixed-rate assets lose value when rates rise, and only the stable (core) part of deposits
+offsets that. A bank funded by uninsured or rate-sensitive deposits has little core funding. See
+[assumptions](assumptions.md#deposits).
 
 **Why do some positions disappear?**
 They matured or were sold. **Positions at end** shows them as *Closed* with their last values.

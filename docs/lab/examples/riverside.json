@@ -7,8 +7,10 @@
   "other_assets": 30000000,
   "other_liabilities": 15000000,
   "deposits": [
-    {"id": "checking", "name": "Checking accounts", "balance": 680000000, "interest_rate": 0.0, "runoff_rate": 0.05},
-    {"id": "savings", "name": "Savings and money market", "balance": 520000000, "interest_rate": 0.001, "beta": 0.3},
+    {"id": "checking", "name": "Checking accounts", "balance": 680000000, "interest_rate": 0.0, "runoff_rate": 0.05,
+     "core_share": 0.9, "core_maturity": 5},
+    {"id": "savings", "name": "Savings and money market", "balance": 520000000, "interest_rate": 0.001, "beta": 0.3,
+     "core_share": 0.7, "core_maturity": 4.5},
     {"id": "time", "name": "Time deposits", "balance": 230000000, "interest_rate": 0.008, "beta": 0.6}
   ],
   "positions": [

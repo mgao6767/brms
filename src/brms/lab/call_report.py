@@ -66,7 +66,7 @@ FIELDS: tuple[str, ...] = (
     "LNLSNET", "LNLSGR", "LNLSGR5",
     *(f"LNRS{s}" for _k, s, *_ in _BUCKETS), *(f"LNOT{s}" for _k, s, *_ in _BUCKETS),
     "DEP", "DEPNIDOM", "OTHBRF", "FREPP", "SUBND", "EDEP", "EINTEXP", "ISC", "ILNLS",
-    "NONIX", "NONII", "ITAX", "IBEFTAX", "NETINC", "INTINC", "ERNAST", "EQCDIV",
+    "NONIX", "NONII", "ITAX", "IBEFTAX", "NETINC", "INTINC", "ERNAST", "EQCDIV", "DEPDOM", "DEPUNINS",
     "RBCT1C", "RBCT1CER", "RWAJ",
 )
 
@@ -140,6 +140,7 @@ def bank_file_from_call_report(  # noqa: PLR0913
     aoci_filter: bool = True,
     afs: dict[str, float] | None = None,
     deposit_beta: float = DEPOSIT_BETA,
+    core_deposits: bool = True,
 ) -> dict[str, Any]:
     """Return a bank file (see :mod:`brms.lab.bank_file`) built from Call Report *items*.
 
@@ -150,6 +151,8 @@ def bank_file_from_call_report(  # noqa: PLR0913
         aoci_filter: Whether AOCI is excluded from CET1 (true for most US banks below $700bn).
         deposit_beta: Share of the change in the 3-month Treasury yield passed to interest-bearing
             deposits (default 0.35, roughly the US average through the 2022-23 tightening).
+        core_deposits: Give deposits a stable core for EVE (SRP31 caps, weighted by the insured
+            share: insured deposits as retail, uninsured as wholesale).
         afs: AFS fair value by class (``treasury``, ``other_debt``, ``pass_through``, ``other_mbs``),
             e.g. from the 10-K or FR Y-9C, scaled to the reported AFS total. Each class is then
             AFS in that proportion and HTM for the rest. Without it every class splits in the
@@ -189,7 +192,7 @@ def bank_file_from_call_report(  # noqa: PLR0913
         "operating": _operating(items, annualise),
         "cash": _n(items, "CHBAL") + _n(items, "FREPO"),
         **_other_balances(items),
-        "deposits": _funding(items, annualise, deposit_beta),
+        "deposits": _funding(items, annualise, deposit_beta, core=core_deposits),
         "positions": positions,
     }
 
@@ -345,14 +348,40 @@ def _other_balances(items: dict[str, Any]) -> dict[str, float]:
     }
 
 
-def _funding(items: dict[str, Any], annualise: float, deposit_beta: float) -> list[dict[str, Any]]:
+# SRP31.112 caps on stable non-maturity deposits: (share of the balance that may be core, average
+# life of the core in years) for retail transactional, retail non-transactional and wholesale.
+_CORE_RETAIL_TRANSACTIONAL = (0.9, 5.0)
+_CORE_RETAIL_OTHER = (0.7, 4.5)
+_CORE_WHOLESALE = (0.5, 4.0)
+
+
+def _core(items: dict[str, Any], retail: tuple[float, float]) -> dict[str, float]:
+    """Return a deposit's core share and average life.
+
+    The retail cap applies to the insured share, the wholesale cap to the uninsured share (all
+    uninsured when the filing does not say).
+    """
+    domestic = _n(items, "DEPDOM")
+    known = domestic > 0 and items.get("DEPUNINS") is not None
+    uninsured = min(1.0, _n(items, "DEPUNINS") / domestic) if known else 1.0
+    insured = 1.0 - uninsured
+    share = insured * retail[0] + uninsured * _CORE_WHOLESALE[0]
+    life = (insured * retail[0] * retail[1] + uninsured * _CORE_WHOLESALE[0] * _CORE_WHOLESALE[1]) / share
+    return {"core_share": share, "core_maturity": life}
+
+
+def _funding(
+    items: dict[str, Any], annualise: float, deposit_beta: float, *, core: bool = True,
+) -> list[dict[str, Any]]:
     noninterest = _n(items, "DEPNIDOM")
     interest_bearing = _n(items, "DEP") - noninterest
     deposit_cost = _n(items, "EDEP") * annualise
-    out = [{"id": "nib", "name": "Noninterest-bearing deposits", "balance": noninterest, "interest_rate": 0.0}]
+    out = [{"id": "nib", "name": "Noninterest-bearing deposits", "balance": noninterest, "interest_rate": 0.0,
+            **(_core(items, _CORE_RETAIL_TRANSACTIONAL) if core else {})}]
     if interest_bearing > 0:
         out.append({"id": "ib", "name": "Interest-bearing deposits", "balance": interest_bearing,
-                    "interest_rate": deposit_cost / interest_bearing, "beta": deposit_beta})
+                    "interest_rate": deposit_cost / interest_bearing, "beta": deposit_beta,
+                    **(_core(items, _CORE_RETAIL_OTHER) if core else {})})
     borrowed = _n(items, "OTHBRF") + _n(items, "FREPP") + _n(items, "SUBND")
     if borrowed > 0:
         cost = max(0.0, _n(items, "EINTEXP") * annualise - deposit_cost)

@@ -107,10 +107,11 @@ def test_excludes_cash_and_equity() -> None:
 
 
 def test_deposit_short_is_rsl() -> None:
-    """A SHORT deposit in the banking book is RSL in the overnight bucket."""
+    """A SHORT deposit in the banking book is RSL in the overnight bucket (all of it at beta 1)."""
     as_of = datetime.date(2024, 1, 4)
     deposit = _make_instrument("dep-1", InstrumentType.DEPOSIT)
     deposit.maturity_date = None  # demand deposit, no maturity
+    deposit.beta = 1.0
     pos = _make_position(
         "pos-d", "dep-1", BookType.BANKING, PositionSide.SHORT, 6000000, measurement_basis=MeasurementBasis.NA,
     )

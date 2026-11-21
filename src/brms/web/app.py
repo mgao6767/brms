@@ -52,6 +52,7 @@ class CallReportRequest(BaseModel):
     ltv: float = Field(default=0.8, gt=0, le=1.5)
     aoci_filter: bool = True
     deposit_beta: float = Field(default=0.35, ge=0, le=1)
+    core_deposits: bool = True
     afs: dict[str, float] | None = None
 
 

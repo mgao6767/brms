@@ -41,13 +41,14 @@ Over the trailing year (or since the start, when shorter), annualised; empty for
 
 | Column | Definition |
 |---|---|
-| `EVE` | economic value of equity: present value of banking-book securities and loans on the day's curve (each with its credit spread), plus cash, less deposits and interest payable at book value |
+| `EVE` | economic value of equity: present value of banking-book securities and loans on the day's curve (each with its credit spread), plus cash, less the present value of core deposits' run-off, less the other deposits and interest payable at book value |
 | `DELTA_EVE_WORST` | the most negative change in EVE across the six Basel shocks, revaluing every cash flow on the shocked curve (MBS re-project their prepayments) |
 | `DELTA_EVE_WORST_TO_TIER1` | `DELTA_EVE_WORST` / Tier 1; supervisors flag below −15% |
 | `ASSET_DURATION` | effective duration of the securities and loans: the change in their value for a ±1bp parallel shift, per unit of value, in years |
 | `NII_SENSITIVITY_UP`, `NII_SENSITIVITY_DOWN` | change in the next 12 months' net interest income for a +200bp / −200bp parallel shift, from the repricing gap: each item reprices at its next reset or maturity, weighted by the time left in the year |
 
-Deposits are treated as repricing overnight in EVE and NII sensitivity (see
+In EVE, the core part of each deposit is the discounted run-off of its core balance; the rest
+reprices overnight. In NII sensitivity, deposits reprice by their beta (see
 [assumptions](../guides/assumptions.md#deposits)).
 
 ## Positions
