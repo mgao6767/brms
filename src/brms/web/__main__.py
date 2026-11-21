@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import socket
@@ -77,12 +78,22 @@ def main(argv: list[str] | None = None) -> int:
     from brms.web.workspace import default_data_dir
 
     data_dir = args.data_dir or default_data_dir()
-    app = create_app(data_dir, workers=args.workers or default_workers())
+    server: uvicorn.Server | None = None
+
+    def quit_lab() -> None:
+        if server is not None:
+            server.should_exit = True  # the same graceful stop as Ctrl+C
+
+    app = create_app(data_dir, workers=args.workers or default_workers(), on_quit=quit_lab)
+    server = uvicorn.Server(uvicorn.Config(app, host=args.host, port=args.port, log_level="warning",
+                                           timeout_graceful_shutdown=5))
     if not args.no_browser:
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
     _out(f"BRMS Stress Lab running at {url}\nYour banks and runs are saved in {data_dir}\n"
-         "Keep this window open while you use the lab; press Ctrl+C to stop it.")
-    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
+         "Keep this window open while you use the lab. To stop it, click Quit in the lab or press Ctrl+C here.")
+    with contextlib.suppress(KeyboardInterrupt):  # uvicorn re-raises Ctrl+C once it has shut down
+        server.run()
+    _out("The BRMS Stress Lab has stopped.")
     return 0
 
 

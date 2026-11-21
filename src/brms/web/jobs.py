@@ -9,6 +9,7 @@ from __future__ import annotations
 import datetime
 import json
 import pickle
+import signal
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +32,11 @@ BASEL_LABELS = {
     "short_down": "Short rates down (-300bp)",
 }
 MAX_MONTHS = 120
+
+
+def ignore_interrupts() -> None:
+    """Worker initialiser: leave Ctrl+C to the server, which stops the workers itself."""
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 class SpecError(ValueError):

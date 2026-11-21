@@ -13,7 +13,8 @@ brms-web
 ```
 
 Your browser opens at <http://127.0.0.1:8765>. If it does not, open that address yourself.
-Keep the terminal open while you use the lab; press ++ctrl+c++ there to stop it.
+Keep the terminal open while you use the lab. To stop it, click **Quit** at the top right of the lab,
+or press ++ctrl+c++ in the terminal.
 
 !!! tip "Port already in use?"
     Start it on another port: `brms-web --port 8800`.

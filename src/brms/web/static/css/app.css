@@ -67,6 +67,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tab button:hover { color: var(--text); }
 .appbar-right { display: flex; align-items: center; gap: 14px; padding: 0 12px; }
 .appbar-link { color: var(--text-2); }
+.appbar-quit { height: 22px; padding: 0 10px; border: 1px solid var(--border-strong); background: transparent;
+  color: var(--text-2); font: inherit; cursor: pointer; }
+.appbar-quit:hover { color: var(--text); border-color: var(--muted); }
+.stopped { max-width: 520px; margin: 18vh auto 0; padding: 24px 28px; background: var(--panel);
+  border: 1px solid var(--border); }
+.stopped h1 { margin: 0 0 10px; font-size: 16px; }
+.stopped p { color: var(--text-2); margin: 6px 0; }
 .jobs { color: var(--amber); display: flex; align-items: center; gap: 6px; }
 .jobs::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--amber);
   animation: pulse 1.2s ease-in-out infinite; }

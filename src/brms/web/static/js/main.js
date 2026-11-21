@@ -3,7 +3,7 @@
 import { api } from "./api.js";
 import { disposeAll } from "./charts.js";
 import { setUnit } from "./format.js";
-import { errorBox, h } from "./ui.js";
+import { errorBox, h, toast } from "./ui.js";
 import * as banks from "./views/banks.js";
 import * as bank from "./views/bank.js";
 import * as importer from "./views/import.js";
@@ -99,7 +99,10 @@ async function route() {
   drawTabs();
 }
 
+let stopped = false;
+
 async function pollJobs() {
+  if (stopped) return;
   const el = document.getElementById("jobs");
   try {
     const active = (await api.runs()).filter((r) => r.status === "queued" || r.status === "running");
@@ -110,6 +113,37 @@ async function pollJobs() {
   }
 }
 
+function showStopped(count) {
+  stopped = true;
+  disposeAll();
+  const note = count === 1 ? "1 job in progress was stopped and is marked failed."
+    : count > 1 ? `${count} jobs in progress were stopped and are marked failed.` : null;
+  document.body.replaceChildren(h("div", { class: "stopped" },
+    h("h1", {}, "The Stress Lab has stopped"),
+    h("p", {}, "Your banks and runs are saved. You can close this tab."),
+    note ? h("p", {}, note) : null,
+    h("p", {}, "To use the lab again, run ", h("code", {}, "brms-web"), " in a terminal.")));
+  document.title = "BRMS Stress Lab (stopped)";
+}
+
+async function quitLab() {
+  let active = 0;
+  try {
+    active = (await api.runs()).filter((r) => r.status === "queued" || r.status === "running").length;
+  } catch { /* the lab may already be gone: still ask */ }
+  const warning = active === 1 ? "\n\n1 run in progress will be stopped."
+    : active > 1 ? `\n\n${active} runs in progress will be stopped.` : "";
+  if (!window.confirm(`Quit the Stress Lab?${warning}`)) return;
+  try {
+    const { stopped: count } = await api.quit();
+    showStopped(count);
+  } catch (error) {
+    if (error.status === undefined) showStopped(0); // already stopped
+    else toast(error.message, { error: true });
+  }
+}
+
+document.getElementById("quit").addEventListener("click", quitLab);
 window.addEventListener("hashchange", route);
 route();
 pollJobs();
