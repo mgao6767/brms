@@ -56,6 +56,23 @@ class RunResult:
         both = (self.fair_value[position_id] - self.amortized_cost[position_id]).dropna()
         return None if both.empty else float(both.iloc[-1])
 
+    def unrealised_end(self) -> dict[str, float]:
+        """Unrealised gain (+) or loss (-) by book on the last market day: ``htm``, ``afs``, ``loans``.
+
+        HTM and AFS are long securities at amortised cost and FVOCI; loans are long loans with a
+        fair value. Books without such positions are left out.
+        """
+        gap = (self.fair_value - self.amortized_cost).dropna(how="all")
+        if gap.empty:
+            return {}
+        last = gap.iloc[-1]
+        books: dict[str, list[str]] = {}
+        for row in self.positions.itertuples():
+            book = book_of(row.side, row.type, row.basis)
+            if book is not None and row.id in last.index:
+                books.setdefault(book, []).append(row.id)
+        return {book: float(last[ids].dropna().sum()) for book, ids in books.items() if last[ids].notna().any()}
+
     @property
     def summary(self) -> dict[str, Any]:
         """Headline numbers: end and minimum CET1 ratio, worst ΔEVE/Tier 1, net income."""
@@ -73,6 +90,7 @@ class RunResult:
             "net_income": float(self.income_statement["net_income"]),
             "total_assets_end": float(self.balance_sheet["total_assets"]),
             "total_equity_end": float(self.balance_sheet["total_equity"]),
+            "unrealised_end": self.unrealised_end(),
         }
 
 
@@ -132,6 +150,20 @@ def run(  # noqa: PLR0913
         positions=_positions(services),
         yields=services.market_data.get_frame("yields").loc[pd.Timestamp(start): pd.Timestamp(end)].copy(),
     )
+
+
+LOAN_TYPES = frozenset({
+    "RESIDENTIAL_MORTGAGE", "COMMERCIAL_MORTGAGE", "MORTGAGE", "AMORTIZING_FIXED_RATE_LOAN", "VARIABLE_RATE_LOAN",
+})
+
+
+def book_of(side: str, instrument_type: str, basis: str) -> str | None:
+    """Return the unrealised-gain group of a position: ``loans``, ``htm``, ``afs``, or None (not reported)."""
+    if side != "LONG":
+        return None
+    if instrument_type in LOAN_TYPES:
+        return "loans"
+    return {"AMORTIZED_COST": "htm", "FVOCI": "afs"}.get(basis)
 
 
 _TOTALS = ("total_assets", "total_liabilities", "total_equity", "total_income", "total_expenses", "net_income")

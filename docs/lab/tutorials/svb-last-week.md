@@ -102,7 +102,7 @@ Output (USD billions):
 | sell AFS | 8 Mar | 41.1 | 0.0 | **−2.2** |
 | sell AFS | 9 Mar | **−2.7** | 0.0 | −2.2 |
 
-CET1 ratio on 10 March: **17.9%** holding, **16.1%** after the sale.
+CET1 ratio on 10 March: **17.7%** holding, **15.9%** after the sale.
 
 ## What happened
 

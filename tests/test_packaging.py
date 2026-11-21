@@ -47,6 +47,16 @@ def test_wheel_ships_simulation_zips(wheel: Path) -> None:
         assert f"brms/data/{name}.zip" in names  # noqa: S101
 
 
+def test_wheel_ships_what_building_banks_needs(wheel: Path) -> None:
+    """Building a bank from a bank file or Call Report reads the market data; the web app serves its front end."""
+    names = set(zipfile.ZipFile(wheel).namelist())
+    for name in ("brms/data/market/treasury_yields.csv", "brms/data/market/prime_rates.csv",
+                 "brms/data/call_reports/svb_2021.json", "brms/data/case_svb_2021.zip",
+                 "brms/web/static/index.html", "brms/web/static/vendor/echarts.min.js",
+                 "brms/lab/examples/svb_call_report_20211231.json"):
+        assert name in names, name  # noqa: S101
+
+
 def test_wheel_core_requirements_exclude_gui(wheel: Path) -> None:
     """Unconditional requirements are pandas and quantlib only."""
     with zipfile.ZipFile(wheel) as zf:

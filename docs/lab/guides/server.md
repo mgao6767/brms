@@ -68,4 +68,6 @@ Each bank and run is a folder under `--data-dir` (`banks/<id>/`, `runs/<id>/`). 
 would any folder; delete a folder to remove an item. The demo banks come from the installed
 package and are not copied.
 
-The JSON API behind the app is documented at `/docs` on the running server.
+The JSON API behind the app is documented at `/docs` on the running server. Right after start-up the
+demo banks are listed with status `pending` (and their file names) for a few seconds while they are
+summarised; they become `ready` with their display names.

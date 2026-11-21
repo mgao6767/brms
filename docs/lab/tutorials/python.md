@@ -18,11 +18,11 @@ print(result.summary)
 
 | Argument | Meaning |
 |---|---|
-| `months=12` | horizon from the start date; or `end=datetime.date(...)` |
-| `regulatory=RegulatoryConfig(...)` | override the AOCI filter, operational RWA, AT1, Tier 2 (`brms.core.models.regulatory`) |
-| `operating=OperatingConfig(...)` | override costs, fees, tax rate, dividend payout (`brms.core.models.operating`) |
-| `sales={"pos-afs": date}` | sell positions at fair value on market days (AFS and trading positions) |
-| `reinvest_maturities=True` | roll each maturing bond into a new par bond of the same term at the market rate |
+| `months` | horizon from the start date, e.g. `months=12`; or give `end=datetime.date(...)`. With neither, the run goes to the end of the simulation's market data |
+| `regulatory` | a `RegulatoryConfig` (`brms.core.models.regulatory`) overriding the AOCI filter, operational RWA, AT1 and Tier 2; default: the bank's own |
+| `operating` | an `OperatingConfig` (`brms.core.models.operating`) overriding costs, fees, tax rate and dividend payout; default: the bank's own |
+| `sales` | `{"pos-afs": date}`: sell positions at fair value on market days (AFS and trading positions only); default none |
+| `reinvest_maturities` | `True` rolls each maturing bond into a new par bond of the same term at the market rate; default `False` (maturities stay in cash) |
 
 To switch the AOCI filter off while keeping the bank's other settings:
 
@@ -76,8 +76,12 @@ A `RunResult` holds plain pandas data:
 | `positions` | every position: `id`, `instrument`, `name`, `type`, `basis`, `book`, `side`, `status` |
 | `yields` | the scenario's Treasury curve (percent) |
 | `balance_sheet`, `income_statement` | the statements on the last day, as dictionaries |
-| `summary` | headline numbers: CET1 at the end and its low point, worst ΔEVE/Tier 1, net income… |
+| `summary` | headline numbers: CET1 at the end and its low point, worst ΔEVE/Tier 1, net income, and `unrealised_end` (HTM, AFS and loans on the last market day) |
 | `unrealised(position_id)` | fair value less amortised cost on the last day both exist |
+
+Fair values exist only on market days (business days with a Treasury curve), while carrying value
+and amortised cost exist every calendar day. Take the last market day with
+`.dropna(how="all").iloc[-1]` when you combine them.
 
 Examples:
 
@@ -87,7 +91,8 @@ result.metrics["CET1_RATIO"].plot()                    # with matplotlib install
 # unrealised gain or loss of every HTM security on the last day
 securities = ["FIXED_RATE_BOND", "TREASURY_NOTE", "TREASURY_BOND", "MORTGAGE_BACKED_SECURITY"]
 held = result.positions[(result.positions["basis"] == "AMORTIZED_COST") & result.positions["type"].isin(securities)]
-gap = (result.fair_value - result.amortized_cost)[held["id"]].iloc[-1].dropna()
+gap = (result.fair_value - result.amortized_cost).dropna(how="all")[held["id"]].iloc[-1].dropna()
+print(gap.sum(), result.summary["unrealised_end"]["htm"])   # the same total
 
 # the balance sheet on 30 June 2022
 import datetime
@@ -125,8 +130,10 @@ python -m brms.lab run svb.zip --scenario historical --scenario parallel+200 \
 
 Scenario names for `run`: `historical`, `parallel+200`, `parallel-200`, `steepener`, `flattener`,
 `short+300`, `short-300`, or any parallel shift such as `parallel+150` or `parallel-50`.
-`run` prints a summary table and writes, for each scenario, `results/<scenario>/metrics.csv`,
-`carrying_value.csv`, `fair_value.csv` and `summary.json`.
+`run` prints a summary table and writes, for each scenario, a folder under `--out` named after the
+scenario (`historical`, `parallel_up`, `parallel_down`, `steepener`, `flattener`, `short_up`,
+`short_down`, `parallel+150bp`…) holding `metrics.csv`, `carrying_value.csv`, `fair_value.csv` and
+`summary.json`. Sales and reinvestment are available from Python, not from the command line.
 
 `brms-web [--port 8765] [--host 127.0.0.1] [--data-dir DIR] [--workers 2] [--no-browser]` starts the
 browser app.

@@ -52,3 +52,15 @@ def test_positions_and_yields(result) -> None:  # noqa: ANN001
     assert len(positions) > 3
     assert {"3 Mo", "10 Yr"} <= set(result.yields.columns)
     assert result.yields.index.min().date() >= result.start
+
+
+def test_summary_has_unrealised_totals_by_book(result) -> None:  # noqa: ANN001
+    totals = result.summary["unrealised_end"]
+    assert set(totals) <= {"htm", "afs", "loans"}
+    assert "htm" in totals
+    gap = (result.fair_value - result.amortized_cost).dropna(how="all").iloc[-1]
+    held = result.positions[(result.positions["basis"] == "AMORTIZED_COST")
+                            & ~result.positions["type"].isin(["RESIDENTIAL_MORTGAGE", "COMMERCIAL_MORTGAGE", "MORTGAGE",
+                                                              "AMORTIZING_FIXED_RATE_LOAN", "VARIABLE_RATE_LOAN"])
+                            & (result.positions["side"] == "LONG")]
+    assert totals["htm"] == pytest.approx(float(gap[held["id"]].dropna().sum()))

@@ -144,8 +144,8 @@ outstanding):
         --scenario steepener --months 12 --out results
     ```
 
-    `results/<scenario>/` then holds `metrics.csv` (every metric, every market day),
-    `carrying_value.csv`, `fair_value.csv` and `summary.json`.
+    `results/historical/`, `results/parallel_up/` and `results/steepener/` then hold `metrics.csv`
+    (every metric, every market day), `carrying_value.csv`, `fair_value.csv` and `summary.json`.
 
 Output of the command line:
 
