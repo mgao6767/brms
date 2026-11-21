@@ -39,7 +39,7 @@ Every chart covers the run day by day. Hover for exact values; click to choose t
 | **Asset duration** | Effective duration of the bond and loan book in years: how far its value moves for a 1% rate change |
 | **NII sensitivity, 12 months** | Change in the next year's net interest income if rates move ±200bp, from the repricing gap |
 | **Net interest margin** | Interest income less interest expense over interest-earning assets, trailing year, annualised (needs 30 days) |
-| **Cash and funding** | Cash against deposits and borrowings: with a liquidity stress, cash below zero is the funding the bank would need |
+| **Cash and funding** | Cash against funding (deposits and borrowings): with a liquidity stress, cash below zero is the funding the bank would need |
 
 ## Books
 

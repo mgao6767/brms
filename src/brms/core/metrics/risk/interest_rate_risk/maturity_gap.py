@@ -69,6 +69,8 @@ class MaturityGapModel:
 
         rsa = [0.0] * len(IRRBB_BUCKETS)
         rsl = [0.0] * len(IRRBB_BUCKETS)
+        # Each amount repricing in t years earns (or pays) the shock for the rest of the year, 1 - t.
+        nii_exposure = [0.0] * len(IRRBB_BUCKETS)
 
         for position in bank.positions.open_positions():
             if position.book_type != BookType.BANKING:
@@ -90,10 +92,12 @@ class MaturityGapModel:
 
             value = _repricing_amount(position, instrument, date, valuation_store)
 
-            if position.side == PositionSide.LONG:
+            sign = 1.0 if position.side == PositionSide.LONG else -1.0
+            if sign > 0:
                 rsa[bucket_idx] += value
             else:
                 rsl[bucket_idx] += value
+            nii_exposure[bucket_idx] += sign * value * max(0.0, 1.0 - remaining_years)
 
         # Compute derived columns
         gap = [rsa[i] - rsl[i] for i in range(len(IRRBB_BUCKETS))]
@@ -102,11 +106,10 @@ class MaturityGapModel:
         for g in gap:
             running += g
             cumulative_gap.append(running)
-        # A gap repricing at the bucket midpoint m earns the shock for the rest of the year, (1 - m);
-        # buckets repricing after one year do not affect 12-month NII.
-        exposure = [max(0.0, 1.0 - b.midpoint) for b in IRRBB_BUCKETS]
-        delta_nii_up = [g * _PARALLEL_SHOCK * w for g, w in zip(gap, exposure, strict=True)]
-        delta_nii_down = [g * -_PARALLEL_SHOCK * w for g, w in zip(gap, exposure, strict=True)]
+        # Weighted by each item's exact time to repricing (not the bucket midpoint), so a floater's
+        # contribution does not jump on its reset date; items repricing after a year contribute nothing.
+        delta_nii_up = [e * _PARALLEL_SHOCK for e in nii_exposure]
+        delta_nii_down = [e * -_PARALLEL_SHOCK for e in nii_exposure]
 
         return MaturityGapResult(
             rsa=rsa,

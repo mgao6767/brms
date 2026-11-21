@@ -154,16 +154,16 @@ Output of the command line:
 
 ```
 scenario            CET1 end  CET1 min   dEVE/T1     net income
-historical            18.00%    15.88%   -69.98%     18,091,207
-parallel_up           18.12%    15.88%   -44.32%     19,417,565
-steepener             17.72%    15.88%   -51.87%     15,047,752
+historical            18.01%    15.89%   -70.42%     18,091,207
+parallel_up           18.13%    15.88%   -44.70%     19,417,565
+steepener             17.73%    15.89%   -52.28%     15,047,752
 ```
 
 Riverside starts with a CET1 ratio of 15.9% and builds capital through the year. Its economic value
 is still very exposed: 30-year mortgages and 28-year MBS funded by deposits, of which only the core
 part offsets the loss. The worst ΔEVE (−70%) is on the first day of the historical run, at the low
 rates of January 2022, when long fixed-rate assets are most sensitive. Under the +200bp shock the
-bank starts from higher rates, so the same Basel shocks cost less (−44%). By the end of 2022 both
+bank starts from higher rates, so the same Basel shocks cost less (−45%). By the end of 2022 both
 runs are at about −35%. See [assumptions](../guides/assumptions.md#deposits).
 
 ## When something is wrong

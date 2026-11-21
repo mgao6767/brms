@@ -61,9 +61,9 @@ its bank:
 
 | Bank | Lowest CET1 ratio | Worst ΔEVE / Tier 1 | HTM unrealised | AFS unrealised |
 |---|---:|---:|---:|---:|
-| Signature Bank | **8.4%** | −21% | −$0.4bn | −$1.5bn |
-| Silicon Valley Bank | 12.2% | **−54%** | −$10.3bn | −$2.8bn |
-| JPMorgan Chase Bank | 13.6% | −12% | −$28.4bn | −$23.3bn |
+| Signature Bank | **8.4%** | −20% | −$0.4bn | −$1.5bn |
+| Silicon Valley Bank | 12.2% | **−55%** | −$10.3bn | −$2.8bn |
+| JPMorgan Chase Bank | 13.6% | −10% | −$28.4bn | −$23.3bn |
 | First Republic Bank | 14.5% | −42% | −$3.4bn | −$0.7bn |
 
 How to read it:

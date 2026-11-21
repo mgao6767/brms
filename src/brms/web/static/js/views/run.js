@@ -153,7 +153,7 @@ function dashboard(data) {
       const funding = composition.liabilities["Deposits and Other Public Borrowings"];
       if (!cash) return unavailable(box, "Not available");
       const series = [{ name: "Cash", values: cash }];
-      if (funding) series.push({ name: "Deposits and borrowings", values: funding });
+      if (funding) series.push({ name: "Funding", values: funding });
       return lineChart(box, { dates, zero: true, format: (v) => money(v), series });
     }, { note: "below zero: funding the bank would need" }),
   );

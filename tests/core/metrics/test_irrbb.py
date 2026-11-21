@@ -118,5 +118,6 @@ def test_nii_sensitivity_weights_by_time_in_year() -> None:
     result = MaturityGapModel().compute(sim.bank, _DAY, sim.valuation_store)
     index = next(i for i, b in enumerate(result.buckets) if b.label.startswith("9M"))
     near_cv = float(sim.valuation_store.get("pos-N", _DAY, ValuationType.CARRYING_VALUE))
-    assert result.delta_nii_up[index] == pytest.approx(near_cv * 0.02 * (1 - 0.875))  # noqa: S101
+    t = (near.maturity_date - _DAY).days / 365.25
+    assert result.delta_nii_up[index] == pytest.approx(near_cv * 0.02 * (1 - t))  # noqa: S101
     assert all(v == 0 for b, v in zip(result.buckets, result.delta_nii_up, strict=True) if b.midpoint >= 1)  # noqa: S101

@@ -7,6 +7,8 @@ import datetime
 from decimal import Decimal
 from unittest.mock import MagicMock
 
+import pytest
+
 from brms.core.enums import BookType, InstrumentType, MeasurementBasis, PositionSide
 from brms.core.metrics.risk.interest_rate_risk.maturity_gap import MaturityGapModel, MaturityGapResult
 from brms.core.models.position import Position
@@ -128,7 +130,7 @@ def test_deposit_short_is_rsl() -> None:
 
 
 def test_delta_nii_computation() -> None:
-    """ΔNII = gap * ΔR * (1 - bucket midpoint) within one year, 0 beyond it."""
+    """ΔNII = amount * ΔR * (1 - years to repricing) within one year, 0 beyond it."""
     as_of = datetime.date(2024, 1, 4)
     near = _make_instrument("bond-1", InstrumentType.FIXED_RATE_BOND, datetime.date(2024, 5, 4))  # 3M-6M
     far = _make_instrument("bond-2", InstrumentType.FIXED_RATE_BOND, datetime.date(2028, 1, 4))  # 3Y-4Y
@@ -144,8 +146,9 @@ def test_delta_nii_computation() -> None:
     model = MaturityGapModel()
     result = model.compute(bank, as_of, MagicMock(get=MagicMock(return_value=Decimal("1000000"))))
 
-    assert abs(result.delta_nii_up[3] - 1000000 * 0.02 * (1 - 0.375)) < 0.01
-    assert abs(result.delta_nii_down[3] - 1000000 * -0.02 * (1 - 0.375)) < 0.01
+    t = (datetime.date(2024, 5, 4) - as_of).days / 365.25
+    assert abs(result.delta_nii_up[3] - 1000000 * 0.02 * (1 - t)) < 0.01
+    assert abs(result.delta_nii_down[3] - 1000000 * -0.02 * (1 - t)) < 0.01
     assert result.delta_nii_up[9] == 0
 
 
@@ -172,3 +175,19 @@ def test_variable_rate_loan_in_short_bucket() -> None:
     assert result.rsa[1] == 10_000_000.0
     assert result.rsa[0] == 0.0
     assert result.total_rsa == 10_000_000.0
+
+
+def test_nii_sensitivity_moves_by_a_month_on_a_reset_date() -> None:
+    """On its reset date a monthly floater's next repricing moves a month out: its weight drops by a month's worth."""
+    loan = _make_instrument("l", InstrumentType.VARIABLE_RATE_LOAN, datetime.date(2029, 1, 2))
+    pos = _make_position("pos-l", "l", BookType.BANKING, PositionSide.LONG, 10_000_000)
+    bank = MagicMock()
+    bank.positions.open_positions.return_value = [pos]
+    bank.instruments.get.return_value = loan
+    store = MagicMock(get=MagicMock(return_value=Decimal(10_000_000)))
+    before, on = datetime.date(2024, 3, 31), datetime.date(2024, 4, 1)
+    loan.repricing_date.return_value = on
+    eve = MaturityGapModel().compute(bank, before, store).total_delta_nii_up
+    loan.repricing_date.return_value = datetime.date(2024, 5, 1)
+    day = MaturityGapModel().compute(bank, on, store).total_delta_nii_up
+    assert eve - day == pytest.approx(10_000_000 * 0.02 * 29 / 365.25, rel=1e-9)  # 1 day to go, then 30
