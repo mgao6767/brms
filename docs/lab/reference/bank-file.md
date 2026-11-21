@@ -150,6 +150,7 @@ All optional; annual amounts in the file's unit.
 | `operational_rwa` | operational-risk RWA, added to credit RWA |
 | `additional_tier1` | Additional Tier 1 capital instruments |
 | `tier2` | Tier 2 capital |
+| `preferred_equity` | preferred stock included in equity that counts as Additional Tier 1: excluded from CET1, added back in Tier 1 |
 
 ## Building
 

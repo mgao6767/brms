@@ -77,9 +77,12 @@ provisions are **not** modelled.
 
 ## Capital
 
-- **CET1** = total equity − intangible assets − (AOCI, when the AOCI filter is on).
-- **Tier 1** = CET1 + additional Tier 1 (an input); **total capital** = Tier 1 + Tier 2 (an input).
-- **Credit RWA** uses the Basel standardised approach (CRE20): each security and loan is weighted
+- **CET1** = total equity − intangible assets − preferred stock in equity − (AOCI, when the AOCI
+  filter is on).
+- **Tier 1** = CET1 + preferred stock in equity + other additional Tier 1; **total capital** =
+  Tier 1 + Tier 2. Call Report banks take preferred stock and Tier 2 from the filing.
+- **Credit RWA** uses the Basel III standardised approach (CRE20), not the US capital rules, so a
+  US bank's RWA in the lab differ from its filing (see [Validation](../validation.md#capital-at-the-start)): each security and loan is weighted
   by its issuer type and rating (sovereign, public-sector entity, bank, corporate), mortgages by
   loan-to-value, retail loans at 75%. Cash is 0%; other assets 100%; intangibles are deducted.
 - **Operational RWA** is an input; for Call Report banks the lab estimates it with the Basel

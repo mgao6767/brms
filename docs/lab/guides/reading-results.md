@@ -61,7 +61,9 @@ Tables show amounts as filed: Call Report banks in **USD thousands** (the panel 
 
 **Compare** overlays runs on the same charts: CET1 ratio, total unrealised gains and losses, worst
 ΔEVE / Tier 1, net interest margin and the 10-year yield. The summary table is sorted by each run's
-lowest CET1 ratio. Runs of different banks are labelled with the bank's name.
+lowest CET1 ratio. Runs of different banks are labelled with the bank's name, and their unrealised
+gains and losses are shown as a percentage of each bank's equity at the start, so banks of
+different sizes compare.
 
 ## Common questions
 

@@ -55,21 +55,22 @@ Bank, end-2021** and **JPMorgan Chase Bank, end-2021**:
 3. Click **Run scenario**.
 
 Then open **Runs**, tick the four runs and click **Compare 4 selected**. Each run is labelled with
-its bank:
+its bank. Because the banks differ in size, the comparison shows unrealised gains and losses as a
+share of each bank's equity at the start: SVB's are almost twice its equity, at about −180%.
 
 ![Four banks under +200bp](../../images/lab/compare-banks.jpg)
 
 | Bank | Lowest CET1 ratio | Worst ΔEVE / Tier 1 | HTM unrealised | AFS unrealised |
 |---|---:|---:|---:|---:|
-| Signature Bank | **8.4%** | −20% | −$0.4bn | −$1.5bn |
+| Signature Bank | **7.4%** | −20% | −$0.4bn | −$1.5bn |
+| First Republic Bank | 11.0% | −42% | −$3.4bn | −$0.7bn |
 | Silicon Valley Bank | 12.2% | **−55%** | −$10.3bn | −$2.8bn |
 | JPMorgan Chase Bank | 13.6% | −10% | −$28.4bn | −$23.3bn |
-| First Republic Bank | 14.5% | −42% | −$3.4bn | −$0.7bn |
 
 How to read it:
 
 - **Capital.** With AOCI counted, the shock hits CET1 on day one through AFS losses. Signature
-  starts with the thinnest capital and drops to 8.4%. All four then recover as profits accumulate.
+  starts with the thinnest capital and drops to 7.4%. All four then recover as profits accumulate.
 - **Economic value.** ΔEVE revalues every asset and liability at the shocked rates, including the
   stable (core) part of deposits. Three of the four banks are outliers against the 15% threshold;
   JPMorgan is not. SVB is the most exposed: long securities, funded by deposits that were 95%
@@ -78,8 +79,8 @@ How to read it:
   HTM or AFS.
 - **Size.** JPMorgan's dollar losses are the largest, but against its capital its economic-value
   loss is the smallest, and its larger share of insured retail deposits offsets more of it. Its
-  CET1 ratio is lower than First Republic's because $46bn of goodwill and other intangibles is
-  deducted from its capital.
+  $46bn of goodwill and other intangibles is deducted from CET1, as First Republic's and
+  Signature's preferred stock is (it counts as Additional Tier 1, not common equity).
 
 !!! info "Deposits in ΔEVE"
     Core deposits follow the Basel caps, weighted by each bank's insured share

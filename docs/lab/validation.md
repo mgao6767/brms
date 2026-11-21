@@ -6,6 +6,31 @@ its unrealised losses at the end of 2022, as a share of amortised cost, with wha
 Rates of loss, not amounts, are compared, because SVB bought, sold and was repaid securities during
 2022 while the lab holds the end-2021 book.
 
+## Capital at the start
+
+Each case study's capital on its first market day in the lab, against the same bank's Call Report
+(USD billions):
+
+| Bank | Equity, filed | Equity, lab | RWA, filed | RWA, lab | CET1 ratio, filed | CET1 ratio, lab |
+|---|---:|---:|---:|---:|---:|---:|
+| Silicon Valley Bank, end-2021 | 14.8 | 14.6 | 98 | 93 | 14.9% | 15.7% |
+| Silicon Valley Bank, end-2022 | 15.5 | 15.6 | 111 | 103 | 15.3% | 17.2% |
+| Signature Bank, end-2021 | 7.8 | 7.8 | 77 | 74 | 9.6% | 9.9% |
+| First Republic Bank, end-2021 | 15.9 | 15.9 | 125 | 104 | 9.7% | 11.6% |
+| JPMorgan Chase Bank, end-2021 | 302.8 | 301.6 | 1,582 | 1,684 | 16.9% | 15.2% |
+
+- **Equity** matches to within 1.5%. The small gaps are the first day's marks and two days of
+  income.
+- **RWA** differ because the lab applies the Basel III standardised approach (CRE20). US banks
+  report under the US capital rules, which weight residential mortgages at 50%; Basel III weights
+  low loan-to-value mortgages at 20–40%. So the lab's RWA are lower for mortgage-heavy banks (First
+  Republic) and its CET1 ratios higher. JPMorgan reports under the advanced approaches, with lower
+  RWA than the standardised approach gives.
+- **CET1** excludes preferred stock (Additional Tier 1) and intangibles, as the filing does.
+
+The browser app shows this comparison for any Call Report bank, on its page under **Filing and
+lab**.
+
 ## From the Call Report alone
 
 The [case study](tutorials/svb-2022.md) bank, built from SVB's Call Report with no other input.

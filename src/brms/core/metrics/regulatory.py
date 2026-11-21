@@ -3,8 +3,9 @@
 All figures for a day come from one :class:`CapitalCalculator` pass over the as-if-closed
 balance sheet and the day's valuations, shared by every metric in this module.
 
-- CET1 = total equity - (accumulated OCI if the AOCI filter is on) - intangible assets.
-- Tier 1 = CET1 + AT1; Total capital = Tier 1 + Tier 2 (AT1 and Tier 2 are inputs).
+- CET1 = total equity - (accumulated OCI if the AOCI filter is on) - intangible assets - preferred
+  stock in equity.
+- Tier 1 = CET1 + preferred stock in equity + other AT1; Total capital = Tier 1 + Tier 2 (inputs).
 - Total RWA = credit RWA (standardised approach) + operational RWA (an input).
 - Leverage exposure = total assets - intangible assets (on-balance-sheet only).
 """
@@ -59,8 +60,9 @@ class CapitalCalculator:
         intangibles = rows.get("Intangible Assets", Decimal(0))
         aoci = rows.get("Accumulated OCI", Decimal(0))
         regulatory = bank.regulatory
-        cet1 = Decimal(str(bs["total_equity"])) - intangibles - (aoci if regulatory.aoci_filter else Decimal(0))
-        tier1 = cet1 + regulatory.additional_tier1
+        cet1 = (Decimal(str(bs["total_equity"])) - intangibles - (aoci if regulatory.aoci_filter else Decimal(0))
+                - regulatory.preferred_equity)
+        tier1 = cet1 + regulatory.preferred_equity + regulatory.additional_tier1
         credit = credit_rwa(bank, valuation_store, date, bs).total
         figures = CapitalFigures(
             cet1=cet1,

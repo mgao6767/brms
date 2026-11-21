@@ -67,6 +67,7 @@ FIELDS: tuple[str, ...] = (
     *(f"LNRS{s}" for _k, s, *_ in _BUCKETS), *(f"LNOT{s}" for _k, s, *_ in _BUCKETS),
     "DEP", "DEPNIDOM", "OTHBRF", "FREPP", "SUBND", "EDEP", "EINTEXP", "ISC", "ILNLS",
     "NONIX", "NONII", "ITAX", "IBEFTAX", "NETINC", "INTINC", "ERNAST", "EQCDIV", "DEPDOM", "DEPUNINS", "DEPFOR",
+    "EQPP", "RBCT2",
     "RBCT1C", "RBCT1CER", "RWAJ",
 )
 
@@ -185,6 +186,8 @@ def bank_file_from_call_report(  # noqa: PLR0913
         "reported": {k: items.get(k) for k in _REPORTED},
         "regulatory": {
             "aoci_filter": aoci_filter,
+            "preferred_equity": _n(items, "EQPP"),
+            "tier2": _n(items, "RBCT2"),
             "operational_rwa": operational_rwa(
                 net_interest_income=(_n(items, "INTINC") - _n(items, "EINTEXP")) * annualise,
                 earning_assets=_n(items, "ERNAST") or _n(items, "ASSET"),

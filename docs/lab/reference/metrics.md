@@ -18,8 +18,8 @@ fractions (0.12 = 12%).
 
 | Column | Definition |
 |---|---|
-| `CET1_CAPITAL` | total equity − intangible assets − accumulated OCI (only when the AOCI filter is on) |
-| `TIER1_CAPITAL` | CET1 + additional Tier 1 (input) |
+| `CET1_CAPITAL` | total equity − intangible assets − preferred stock in equity − accumulated OCI (only when the AOCI filter is on) |
+| `TIER1_CAPITAL` | CET1 + preferred stock in equity + other additional Tier 1 (inputs) |
 | `TOTAL_CAPITAL` | Tier 1 + Tier 2 (input) |
 | `CREDIT_RWA` | standardised credit risk-weighted assets: exposures (carrying value plus accrued interest) × CRE20 risk weights; other assets 100%, cash 0% |
 | `OPERATIONAL_RWA` | operational-risk RWA (input, or estimated for Call Report banks) |
