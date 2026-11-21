@@ -237,3 +237,19 @@ def test_no_operating_flows_in_the_opening_balances(tmp_path: Path) -> None:
     sim = build_core_services(simulation_zip=out).simulation_service
     assert float(account_balance(sim, "Cash and Cash Equivalents")) == pytest.approx(2_000_000.0)  # noqa: S101
     assert float(account_balance(sim, "Dividends Paid")) == 0  # noqa: S101
+
+
+def test_preferred_equity_is_tier1_not_cet1(tmp_path: Path) -> None:
+    from brms.core.enums import MetricName
+
+    bank = {**_bank(), "regulatory": {"aoci_filter": True, "preferred_equity": 50_000, "tier2": 20_000}}
+    out = tmp_path / "bank.zip"
+    build_bank(_write(tmp_path, bank), {"yields": _yields()}, out)
+    services = build_core_services(simulation_zip=out)
+    sim = services.simulation_service
+    sim.advance()
+    day = sim.current_date
+    cet1, tier1, total = (float(services.metric_store.get(m, day)) for m in
+                          (MetricName.CET1_CAPITAL, MetricName.TIER1_CAPITAL, MetricName.TOTAL_CAPITAL))
+    assert tier1 - cet1 == pytest.approx(50_000)  # noqa: S101
+    assert total - tier1 == pytest.approx(20_000)  # noqa: S101

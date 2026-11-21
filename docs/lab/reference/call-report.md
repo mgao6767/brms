@@ -65,6 +65,8 @@ Credit-loss provisions are not used: the lab does not model credit losses.
 ## Capital
 
 - `regulatory.aoci_filter`: an input (default on).
+- `regulatory.preferred_equity`: perpetual preferred stock `EQPP` (Additional Tier 1, part of equity).
+- `regulatory.tier2`: Tier 2 capital as reported, `RBCT2`.
 - `regulatory.operational_rwa`: estimated with the Basel III standardised approach for
   operational risk. The business indicator is the smaller of |net interest income| and 2.25% of
   earning assets (`ERNAST`), plus non-interest income. It is multiplied by 12% up to $1bn, 15% from

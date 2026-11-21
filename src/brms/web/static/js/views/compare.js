@@ -82,9 +82,19 @@ function view(runs, failed) {
     return r.dates.map((_, j) => books.reduce((acc, values) => (values[j] === null ? acc : (acc ?? 0) + values[j] * unit),
       null));
   };
+  // Across banks of different sizes, losses mean more against each bank's own equity.
+  const ofEquity = (r) => {
+    const total = sumBooks(r);
+    const equity = (r.metrics.TOTAL_EQUITY || []).find((v) => v !== null && v !== undefined);
+    if (!total || !equity) return null;
+    return total.map((v) => (v === null ? null : v / (equity * (r.meta.unit || 1))));
+  };
+  const unrealised = multiBank
+    ? ["Unrealised gains and losses", ofEquity, (v) => pct(v, { sign: true }), "% of equity at the start", true]
+    : ["Unrealised gains and losses", sumBooks, (v) => money(v, { sign: true }), "securities and loans, total", true];
   const specs = [
     ["CET1 ratio", (r) => r.metrics.CET1_RATIO, (v) => pct(v), "% of RWA"],
-    ["Unrealised gains and losses", sumBooks, (v) => money(v, { sign: true }), "securities and loans, total", true],
+    unrealised,
     ["Worst ΔEVE / Tier 1", (r) => r.metrics.DELTA_EVE_WORST_TO_TIER1, (v) => pct(v, { sign: true }), "Basel shocks", true],
     ["Net interest margin", (r) => r.metrics.NET_INTEREST_MARGIN, (v) => pct(v), "trailing, annualised"],
   ];

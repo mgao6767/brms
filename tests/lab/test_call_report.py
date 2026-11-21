@@ -306,3 +306,9 @@ def test_a_bank_without_securities_or_loans_maps(items: dict) -> None:
     empty = {k: (0.0 if k.startswith(("SC", "LN", "ISC", "ILNLS")) else v) for k, v in items.items()}
     bank = bank_file_from_call_report({**empty, "REPDTE": items["REPDTE"]}, prime=_PRIME)
     assert bank["positions"] == []
+
+
+def test_capital_structure_from_the_filing(items: dict) -> None:
+    bank = bank_file_from_call_report({**items, "EQPP": 3_632_500.0, "RBCT2": 1_445_789.0}, prime=_PRIME)
+    assert bank["regulatory"]["preferred_equity"] == 3_632_500.0
+    assert bank["regulatory"]["tier2"] == 1_445_789.0
