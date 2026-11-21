@@ -158,8 +158,37 @@ def summarise_bank(zip_path: str, out: str, unit: float | None = None) -> dict[s
         "regulatory": {"aoci_filter": regulatory.aoci_filter, "operational_rwa": float(regulatory.operational_rwa)},
         "operating": services.bank.operating.to_json(),
     }
+    summary["first_day"] = _first_market_day(services)
     _atomic_write(Path(out), json.dumps(summary, default=str))
     return summary
+
+
+def _first_market_day(services: Any) -> dict[str, Any] | None:  # noqa: ANN401
+    """Advance to the first market day and return its headline figures (after the first fair-value marks).
+
+    The snapshot holds AFS securities at cost on the as-of date; their fair value, and so equity as
+    reported, appears with the first mark. This is what to compare with a filing.
+    """
+    from brms.core.enums import MetricName
+
+    sim = services.simulation_service
+    for _ in range(10):
+        sim.advance()
+        day = sim.current_date
+        if services.metric_store.get(MetricName.TOTAL_ASSETS, day) is None:
+            continue
+
+        def metric(name: MetricName, day: Any = day) -> float | None:  # noqa: ANN401
+            value = services.metric_store.get(name, day)
+            return None if value is None else float(value)
+
+        return {
+            "date": day.isoformat(), "total_assets": metric(MetricName.TOTAL_ASSETS),
+            "total_equity": metric(MetricName.TOTAL_EQUITY), "cet1_capital": metric(MetricName.CET1_CAPITAL),
+            "total_rwa": metric(MetricName.TOTAL_RWA), "cet1_ratio": metric(MetricName.CET1_RATIO),
+            "leverage_ratio": metric(MetricName.LEVERAGE_RATIO),
+        }
+    return None
 
 
 def _atomic_write(path: Path, text: str) -> None:

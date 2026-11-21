@@ -26,7 +26,7 @@ def test_core_cash_flows_amortise_over_twice_the_average_life() -> None:
     assert len(flows) == 48
     assert sum(a for _d, a in flows) == pytest.approx(600.0)
     life = sum((d - _DAY).days / 365.25 * a for d, a in flows) / 600.0
-    assert life == pytest.approx(2.0, abs=0.05)
+    assert life == pytest.approx(2.0, abs=0.005)
     assert Deposit(interest_rate=0.0).core_cash_flows(1_000.0, _DAY) == []
 
 
@@ -86,3 +86,22 @@ def test_nii_gap_reprices_deposits_by_their_beta() -> None:
     assert gap.total_rsl == pytest.approx(0.4 * 400_000.0, rel=1e-9)
     fixed = _bank(core_share=0.0, beta=0.0)
     assert MaturityGapModel().compute(fixed.bank, _DAY, fixed.valuation_store).total_rsl == 0
+
+
+def test_eve_level_counts_other_balances_at_book(tmp_path) -> None:  # noqa: ANN001
+    import json
+
+    from brms.core.services import build_core_services
+    from brms.lab.bank_file import build_bank
+    from tests.lab.test_bank_file import _bank as bank_file
+    from tests.lab.test_bank_file import _yields
+
+    eves = {}
+    for name, extra in (("plain", {}), ("other", {"other_assets": 300_000.0, "other_liabilities": 100_000.0})):
+        path = tmp_path / f"{name}.json"
+        path.write_text(json.dumps({**bank_file(), **extra}))
+        services = build_core_services(simulation_zip=build_bank(path, {"yields": _yields()}, tmp_path / f"{name}.zip"))
+        sim = services.simulation_service
+        sim.advance()
+        eves[name] = eve_scenarios(services.bank, sim.valuation_service.yield_handle, sim.current_date).base
+    assert float(eves["other"] - eves["plain"]) == pytest.approx(200_000, abs=0.01)

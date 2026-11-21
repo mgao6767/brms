@@ -87,3 +87,13 @@ def test_cli_stress_flags(simulation: Path, tmp_path: Path) -> None:
                  "--withdrawal-date", "2021-08-02", "--sell-afs-on", "2021-08-07", "--out", str(tmp_path)])
     assert code == 0
     assert (tmp_path / "historical" / "summary.json").exists()
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"sell_afs_on": datetime.date(2021, 6, 1)},
+    {"deposit_stress": DepositStress(withdrawal=0.2, withdrawal_date=datetime.date(2021, 6, 1))},
+    {"deposit_stress": DepositStress(withdrawal=0.2, withdrawal_date=datetime.date(2022, 6, 1))},
+])
+def test_stress_dates_outside_the_run_are_rejected(simulation: Path, kwargs: dict) -> None:
+    with pytest.raises(ValueError, match="outside the run"):
+        run(simulation, Historical(), end=datetime.date(2021, 8, 31), **kwargs)

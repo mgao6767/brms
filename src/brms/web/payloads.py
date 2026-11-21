@@ -167,3 +167,17 @@ def day_payload(result: RunResult, day: datetime.date) -> dict[str, Any]:
         "journal": entries,
         "valuations": valuations,
     }
+
+
+def valuations_long(result: RunResult) -> pd.DataFrame:
+    """Return every position's carrying value, fair value and amortised cost per day, in long form."""
+    frames = {"carrying_value": result.carrying_value, "fair_value": result.fair_value,
+              "amortized_cost": result.amortized_cost}
+    parts = []
+    for name, frame in frames.items():
+        wide = frame.rename_axis(index="date").reset_index()
+        long = wide.melt(id_vars="date", var_name="position", value_name=name).dropna(subset=[name])
+        parts.append(long.set_index(["date", "position"])[name])
+    out = pd.concat(parts, axis=1).reset_index()
+    out["date"] = pd.to_datetime(out["date"]).dt.date
+    return out[["date", "position", "carrying_value", "fair_value", "amortized_cost"]]

@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from brms.web import jobs
-from brms.web.payloads import day_payload
+from brms.web.payloads import day_payload, valuations_long
 from brms.web.workspace import DEMO_PREFIX, Workspace, default_data_dir, now
 
 if TYPE_CHECKING:
@@ -356,6 +356,16 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
         csv = load_result(run_id).metrics.to_csv(index_label="date")
         headers = {"Content-Disposition": f'attachment; filename="{run_id}-metrics.csv"'}
         return PlainTextResponse(csv, media_type="text/csv", headers=headers)
+
+    @app.get("/api/runs/{run_id}/{table}.csv", response_class=PlainTextResponse)
+    def table_csv(run_id: str, table: str) -> PlainTextResponse:
+        run_or_404(run_id)
+        if table not in {"statements", "journal", "valuations"}:
+            raise HTTPException(404, f"No table {table!r}; use statements, journal, valuations or metrics")
+        result = load_result(run_id)
+        frame = valuations_long(result) if table == "valuations" else getattr(result, table)
+        headers = {"Content-Disposition": f'attachment; filename="{run_id}-{table}.csv"'}
+        return PlainTextResponse(frame.to_csv(index=False), media_type="text/csv", headers=headers)
 
     @app.delete("/api/runs/{run_id}", status_code=204)
     def delete_run(run_id: str) -> None:

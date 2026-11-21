@@ -105,7 +105,7 @@ class SimulationBuilder:
             msg = f"Positions acquired after the start date {config.start_date} are not supported: {late}"
             raise UnsupportedPositionError(msg)
         snapshot_date = config.start_date - datetime.timedelta(days=1)
-        sim, calculator = self._replay(config, snapshot_date, None)
+        sim, calculator = self._replay(config, snapshot_date, None, operating=False)
         # Close the books so the snapshot holds only permanent accounts: the loaded
         # simulation's income statement then starts from zero on the start date.
         sim.bank.ledger.close_ledger(snapshot_date)
@@ -146,8 +146,13 @@ class SimulationBuilder:
         config: BuildConfig,
         until: datetime.date,
         on_advance: Callable[[SimulationService, datetime.date], None] | None,
+        *,
+        operating: bool = True,
     ) -> tuple[SimulationService, AmortizedCostCalculator]:
         sim, calculator = self._create_engine(config)
+        # A snapshot holds the balance sheet as reported: the bank's operating flows (costs, fees, tax,
+        # dividends) start with the run, not during the replay that rebuilds the books.
+        sim.operating_enabled = operating
         earliest = min((p.acquisition_date for p in config.positions), default=until)
         current = earliest
         self._add_other_balances(earliest, config, sim)

@@ -238,3 +238,13 @@ input[type=checkbox] { accent-color: var(--accent); }
 .drop { border: 1px dashed var(--border-strong); border-radius: var(--radius); padding: 14px; text-align: center;
   color: var(--muted); cursor: pointer; }
 .drop.over { border-color: var(--accent); color: var(--text); background: rgba(57, 135, 229, .08); }
+
+/* Drop-down menu */
+.menu { position: relative; }
+.menu summary { list-style: none; }
+.menu summary::-webkit-details-marker { display: none; }
+.menu-list { position: absolute; right: 0; top: 28px; z-index: 30; min-width: 190px; background: var(--raised);
+  border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: 0 6px 20px rgba(0, 0, 0, .4);
+  display: grid; padding: 4px 0; }
+.menu-list a { padding: 5px 12px; color: var(--text); }
+.menu-list a:hover { background: var(--hover); text-decoration: none; }

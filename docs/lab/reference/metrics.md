@@ -1,7 +1,7 @@
 # Metrics
 
 Computed on every market day and returned in `RunResult.metrics` (Python), `metrics.csv` (command
-line) and the **Metrics CSV** download (browser). Money is in the bank's unit; ratios are
+line) and **Download CSV → Metrics, daily** (browser). Money is in the bank's unit; ratios are
 fractions (0.12 = 12%).
 
 ## Balance sheet

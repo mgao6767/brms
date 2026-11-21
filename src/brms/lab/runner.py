@@ -196,14 +196,21 @@ class DepositStress:
             msg = "A withdrawal needs a withdrawal_date"
             raise ValueError(msg)
 
-    def apply(self, services: CoreServices, start: datetime.date) -> None:
-        """Set the stress on the deposits of a loaded simulation."""
+    def apply(self, services: CoreServices, start: datetime.date, end: datetime.date) -> None:
+        """Set the stress on the deposits of a loaded simulation (each deposit instrument once)."""
         from brms.core.enums import InstrumentType
 
+        if self.withdrawal_date is not None and not start <= self.withdrawal_date <= end:
+            msg = f"The withdrawal date {self.withdrawal_date} is outside the run ({start} to {end})"
+            raise ValueError(msg)
+        seen: set[str] = set()
         for position in services.bank.positions.open_positions():
             deposit = services.bank.instruments.get(position.instrument_id)
             if getattr(deposit, "instrument_type", None) != InstrumentType.DEPOSIT or deposit.borrowing:
                 continue
+            if deposit.id in seen:
+                continue
+            seen.add(deposit.id)
             deposit.stress_runoff = self.runoff_rate
             deposit.stress_from = start
             if self.withdrawal:
@@ -216,8 +223,11 @@ def _apply_stress(
 ) -> None:
     """Set the run's deposit stress and the sale of the AFS book (on the first market day from *sell_afs_on*)."""
     if deposit_stress is not None:
-        deposit_stress.apply(services, start)
+        deposit_stress.apply(services, start, end)
     if sell_afs_on is not None:
+        if not start <= sell_afs_on <= end:
+            msg = f"The sale date {sell_afs_on} is outside the run ({start} to {end})"
+            raise ValueError(msg)
         day = _next_market_day(services, sell_afs_on, end)
         for position in services.bank.positions.open_positions():
             if position.measurement_basis == MeasurementBasis.FVOCI:

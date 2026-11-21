@@ -202,6 +202,7 @@ def _core_deposit_legs(
 
 
 def _cash_less_deposits(bank: Bank) -> Decimal:
-    """Cash less deposits and interest payable, at book value (treated as repricing overnight)."""
+    """Cash and other assets less deposits, interest payable and other liabilities, at book value."""
     accounts = {a.name: Decimal(str(a.balance())) for a in bank.ledger.chart_of_accounts.all_accounts()}
-    return accounts["Cash and Cash Equivalents"] - accounts["Deposits"] - accounts["Interest Payable"]
+    return (accounts["Cash and Cash Equivalents"] - accounts["Deposits"] - accounts["Interest Payable"]
+            + accounts["Other Assets"] - accounts["Other Liabilities"])

@@ -48,7 +48,15 @@ export async function render(main, ctx) {
 
 function head(meta, done = false) {
   const actions = [];
-  if (done) actions.push(h("a", { class: "btn", href: api.metricsCsvUrl(meta.id), download: "" }, "Metrics CSV"));
+  if (done) {
+    const menu = h("details", { class: "menu" }, h("summary", { class: "btn" }, "Download CSV \u25BE"),
+      h("div", { class: "menu-list" },
+        h("a", { href: api.metricsCsvUrl(meta.id), download: "" }, "Metrics, daily"),
+        h("a", { href: api.tableCsvUrl(meta.id, "statements"), download: "" }, "Statements, daily"),
+        h("a", { href: api.tableCsvUrl(meta.id, "valuations"), download: "" }, "Position values, daily"),
+        h("a", { href: api.tableCsvUrl(meta.id, "journal"), download: "" }, "Journal")));
+    actions.push(menu);
+  }
   actions.push(h("a", { class: "btn", href: `#/banks/${encodeURIComponent(meta.bank_id)}` }, "Run another"));
   if (meta.status === "done" || meta.status === "failed") {
     const del = h("button", { class: "btn ghost danger", type: "button" }, "Delete");
@@ -140,9 +148,14 @@ function dashboard(data) {
     chartPanel("Net interest margin", (box) => (available(m("NET_INTEREST_MARGIN"))
       ? lineChart(box, { dates, format: (v) => pct(v), series: [{ name: "NIM", values: m("NET_INTEREST_MARGIN") }] })
       : unavailable(box, "Needs 30 days of history")), { note: "trailing, annualised" }),
-    chartPanel("Credit RWA", (box) => (available(m("CREDIT_RWA"))
-      ? lineChart(box, { dates, format: (v) => money(v), series: [{ name: "Credit RWA", values: m("CREDIT_RWA") }] })
-      : unavailable(box, "Not available")), { note: "standardised approach" }),
+    chartPanel("Cash and funding", (box) => {
+      const cash = composition.assets["Cash and Cash Equivalents"];
+      const funding = composition.liabilities["Deposits and Other Public Borrowings"];
+      if (!cash) return unavailable(box, "Not available");
+      const series = [{ name: "Cash", values: cash }];
+      if (funding) series.push({ name: "Deposits and borrowings", values: funding });
+      return lineChart(box, { dates, zero: true, format: (v) => money(v), series });
+    }, { note: "below zero: funding the bank would need" }),
   );
 
   // Day detail: positions at the end, statements and journal on a chosen day.

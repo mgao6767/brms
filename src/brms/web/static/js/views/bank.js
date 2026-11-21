@@ -33,7 +33,8 @@ export async function render(main, ctx) {
     main.replaceChildren(head(bank), bank.story ? h("p", { class: "story" }, bank.story) : null, kpis(bank),
       h("div", { class: "grid cols-3" },
         h("div", { class: "span-2 grid" }, balanceSheet(bank), positions(bank)),
-        h("div", { class: "grid", style: { alignContent: "start" } }, launcher(bank, scenarios), recentRuns(runs))));
+        h("div", { class: "grid", style: { alignContent: "start" } }, launcher(bank, scenarios),
+          reportedPanel(bank), recentRuns(runs))));
   }
 
   await refresh();
@@ -241,6 +242,27 @@ function launcher(bank, scenarios) {
   });
 
   return panel("Run a scenario", form);
+}
+
+function reportedPanel(bank) {
+  const reported = bank.summary.reported;
+  if (!reported) return null;
+  const lab = bank.summary.first_day || {};
+  const ratio = (v) => (v === null || v === undefined ? "\u2013" : pct(v));
+  const rows = [
+    ["Total assets", money(reported.ASSET), money(lab.total_assets)],
+    ["Equity", money(reported.EQ), money(lab.total_equity)],
+    ["CET1 capital", money(reported.RBCT1C), money(lab.cet1_capital)],
+    ["Risk-weighted assets", money(reported.RWAJ), money(lab.total_rwa)],
+    ["CET1 ratio", reported.RBCT1CER === null || reported.RBCT1CER === undefined ? "\u2013"
+      : pct(reported.RBCT1CER / 100), ratio(lab.cet1_ratio)],
+  ];
+  return panel("Filing and lab", h("table", { class: "data" },
+    h("thead", {}, h("tr", {}, h("th", {}, ""), h("th", { class: "num" }, "Call Report"),
+      h("th", { class: "num" }, `Lab, ${date(lab.date)}`))),
+    h("tbody", {}, rows.map(([label, filed, value]) => h("tr", {}, h("td", {}, label),
+      h("td", { class: "num" }, filed), h("td", { class: "num" }, value))))),
+  { flush: true, note: "the lab's first market day, after the first fair-value marks" });
 }
 
 function recentRuns(runs) {

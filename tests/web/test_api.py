@@ -106,6 +106,14 @@ def test_historical_run_end_to_end(client: TestClient) -> None:
     csv = client.get(f"/api/runs/{run_id}/metrics.csv")
     assert csv.status_code == 200
     assert csv.text.startswith("date,")
+    for table, header in (("statements", "date,section,account,balance"),
+                          ("journal", "date,entry,kind,description,position,account,debit,credit"),
+                          ("valuations", "date,position,carrying_value,fair_value,amortized_cost")):
+        response = client.get(f"/api/runs/{run_id}/{table}.csv")
+        assert response.status_code == 200, table
+        assert response.text.splitlines()[0] == header
+        assert "attachment" in response.headers["content-disposition"]
+    assert client.get(f"/api/runs/{run_id}/nonsense.csv").status_code == 404
 
     assert any(r["id"] == run_id for r in client.get("/api/runs").json())
     assert client.delete(f"/api/runs/{run_id}").status_code == 204

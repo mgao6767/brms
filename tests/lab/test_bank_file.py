@@ -227,3 +227,13 @@ def test_deposit_core_inputs_reach_the_deposit(tmp_path: Path) -> None:
     build_bank(_write(tmp_path, bank), {"yields": _yields()}, out)
     deposit = build_core_services(simulation_zip=out).bank.instruments.get("dep")
     assert (deposit.core_share, deposit.core_maturity) == (0.7, 4.5)  # noqa: S101
+
+
+def test_no_operating_flows_in_the_opening_balances(tmp_path: Path) -> None:
+    bank = {**_bank(), "operating": {"noninterest_expense": 36_500_000, "noninterest_income": 50_000_000,
+                                     "tax_rate": 0.2, "dividend_payout": 0.5}}
+    out = tmp_path / "bank.zip"
+    build_bank(_write(tmp_path, bank), {"yields": _yields()}, out)
+    sim = build_core_services(simulation_zip=out).simulation_service
+    assert float(account_balance(sim, "Cash and Cash Equivalents")) == pytest.approx(2_000_000.0)  # noqa: S101
+    assert float(account_balance(sim, "Dividends Paid")) == 0  # noqa: S101

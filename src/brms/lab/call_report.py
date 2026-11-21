@@ -66,7 +66,7 @@ FIELDS: tuple[str, ...] = (
     "LNLSNET", "LNLSGR", "LNLSGR5",
     *(f"LNRS{s}" for _k, s, *_ in _BUCKETS), *(f"LNOT{s}" for _k, s, *_ in _BUCKETS),
     "DEP", "DEPNIDOM", "OTHBRF", "FREPP", "SUBND", "EDEP", "EINTEXP", "ISC", "ILNLS",
-    "NONIX", "NONII", "ITAX", "IBEFTAX", "NETINC", "INTINC", "ERNAST", "EQCDIV", "DEPDOM", "DEPUNINS",
+    "NONIX", "NONII", "ITAX", "IBEFTAX", "NETINC", "INTINC", "ERNAST", "EQCDIV", "DEPDOM", "DEPUNINS", "DEPFOR",
     "RBCT1C", "RBCT1CER", "RWAJ",
 )
 
@@ -115,6 +115,11 @@ def _get(url: str, sleep: Callable[[float], None] = time.sleep) -> bytes:
         except urllib.error.HTTPError as exc:
             if exc.code not in _RETRY_STATUS or wait is None:
                 msg = f"The FDIC API answered {exc.code} {exc.reason} for {url}"
+                raise ConnectionError(msg) from exc
+            sleep(wait)
+        except (urllib.error.URLError, TimeoutError) as exc:
+            if wait is None:
+                msg = f"Cannot reach the FDIC API ({exc}); check the internet connection"
                 raise ConnectionError(msg) from exc
             sleep(wait)
     raise AssertionError  # unreachable: the last attempt returns or raises
@@ -168,12 +173,9 @@ def bank_file_from_call_report(  # noqa: PLR0913
     # A quarter end on a weekend is described as of the Friday before: the last business day, when
     # Prime fixes and the curve exists.
     as_of = report_date - datetime.timedelta(days=max(0, report_date.weekday() - 4))
-    positions = [
-        *_securities(items, as_of, _ratio(_n(items, "ISC") * annualise, _n(items, "SC5"), "the securities yield"),
-                     afs),
-        *_loans(items, as_of, _ratio(_n(items, "ILNLS") * annualise, _n(items, "LNLSGR5"), "the loan yield"),
-                prime, ltv),
-    ]
+    securities_yield = _n(items, "ISC") * annualise / _n(items, "SC5") if _n(items, "SC5") > 0 else 0.0
+    loan_yield = _n(items, "ILNLS") * annualise / _n(items, "LNLSGR5") if _n(items, "LNLSGR5") > 0 else 0.0
+    positions = [*_securities(items, as_of, securities_yield, afs), *_loans(items, as_of, loan_yield, prime, ltv)]
     return {
         "name": f"{items.get('NAME', 'Bank')} (Call Report {report_date}, USD thousands)",
         "as_of": as_of.isoformat(),
@@ -221,6 +223,8 @@ def _securities(
 ) -> list[dict[str, Any]]:
     htm_cost, htm_fair = _n(items, "SCHA"), _n(items, "SCHF")
     afs_cost, afs_fair = _n(items, "SCAA"), _n(items, "SCAF")
+    if htm_cost + afs_fair <= 0:
+        return []  # no debt securities
 
     def bond(years: float, issuer: dict[str, str]) -> dict[str, Any]:
         maturity = as_of + datetime.timedelta(days=round(years * 365.25))
@@ -353,6 +357,7 @@ def _other_balances(items: dict[str, Any]) -> dict[str, float]:
 _CORE_RETAIL_TRANSACTIONAL = (0.9, 5.0)
 _CORE_RETAIL_OTHER = (0.7, 4.5)
 _CORE_WHOLESALE = (0.5, 4.0)
+_SMALL_BANK = 1_000_000  # USD 1bn in thousands: below it the uninsured-deposit memo item is not filed
 
 
 def _core(items: dict[str, Any], retail: tuple[float, float]) -> dict[str, float]:
@@ -361,9 +366,13 @@ def _core(items: dict[str, Any], retail: tuple[float, float]) -> dict[str, float
     The retail cap applies to the insured share, the wholesale cap to the uninsured share (all
     uninsured when the filing does not say).
     """
-    domestic = _n(items, "DEPDOM")
-    known = domestic > 0 and items.get("DEPUNINS") is not None
-    uninsured = min(1.0, _n(items, "DEPUNINS") / domestic) if known else 1.0
+    total = _n(items, "DEP")
+    domestic = _n(items, "DEPDOM") or total
+    foreign = max(0.0, total - domestic)
+    # Banks under $1bn do not report uninsured deposits: a 0 or a missing item means unknown.
+    reported = items.get("DEPUNINS") is not None and (_n(items, "DEPUNINS") > 0 or _n(items, "ASSET") >= _SMALL_BANK)
+    # Foreign deposits are not insured.
+    uninsured = 1.0 if total <= 0 or not reported else min(1.0, (_n(items, "DEPUNINS") + foreign) / total)
     insured = 1.0 - uninsured
     share = insured * retail[0] + uninsured * _CORE_WHOLESALE[0]
     life = (insured * retail[0] * retail[1] + uninsured * _CORE_WHOLESALE[0] * _CORE_WHOLESALE[1]) / share

@@ -109,9 +109,9 @@ class Deposit(Instrument):
         if core <= 0:
             return []
         months = max(1, round(24 * self.core_maturity))
-        from dateutil.relativedelta import relativedelta
-
-        return [(date + relativedelta(months=k), core / months) for k in range(1, months + 1)]
+        # Paid in the middle of each month, so the average life is exactly the core maturity.
+        return [(date + datetime.timedelta(days=round(365.25 * (k - 0.5) / 12)), core / months)
+                for k in range(1, months + 1)]
 
     def accept(self, visitor: Visitor) -> None:
         """Accept a visitor."""
