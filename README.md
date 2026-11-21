@@ -19,11 +19,15 @@ The engine also runs as a stress-test lab: put a bank's balance sheet (from a ba
 Call Report; SVB, Signature, First Republic and JPMorgan ship as case studies) through historical rates or the Basel interest-rate shocks, and read its statements,
 regulatory capital, unrealised losses and interest-rate risk day by day.
 
+It runs on your own computer: install it, start it, and use it in your browser at
+`http://127.0.0.1:8765`.
+
 ```bash
-pip install "brms[web]"
-brms-web                      # the lab in your browser
-python -m brms.lab --help     # or from the command line
+uv tool install "brms[web]>=0.2"   # or: python -m pip install "brms[web]>=0.2" (Python 3.11+)
+brms-web                           # the lab in your browser
 ```
+
+Step by step, for Windows, macOS and Linux: [Install on your computer](docs/lab/install.md).
 
 Start with the [quick start](docs/lab/quickstart.md), then the tutorials, e.g.
 [why SVB failed, step by step](docs/lab/tutorials/svb-2022.md). Everything is in

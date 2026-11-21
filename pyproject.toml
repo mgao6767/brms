@@ -1,6 +1,6 @@
 [project]
 name = "brms"
-version = "0.1.0.dev2"
+version = "0.2.0"
 description = "A bank risk management simulation framework."
 readme = "README.md"
 authors = [{ name = "Mingze Gao", email = "adrian.gao@outlook.com" }]

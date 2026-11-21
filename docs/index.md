@@ -13,10 +13,14 @@ Run a bank's balance sheet (any US bank from its Call Report, or your own) throu
 rates or the Basel interest-rate shocks, and read its books, regulatory capital, unrealised losses
 and interest-rate risk day by day, in your browser or from Python.
 
+It runs on your own computer, in your browser. With [uv](https://docs.astral.sh/uv/) installed:
+
 ```bash
-pip install "brms[web]"
+uv tool install "brms[web]>=0.2"
 brms-web
 ```
+
+Step-by-step instructions for Windows, macOS and Linux: [Install on your computer](lab/install.md).
 
 ![Silicon Valley Bank through 2022](images/lab/run.jpg)
 

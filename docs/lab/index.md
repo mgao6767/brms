@@ -43,12 +43,16 @@ full double-entry accounting. For every day it reports:
 
 ## Install
 
+The lab runs on your own computer and opens in your browser; nothing is uploaded.
+
 ```bash
-pip install "brms[web]"   # the lab, its browser app and the command line
+uv tool install "brms[web]>=0.2"   # or: python -m pip install "brms[web]>=0.2" (Python 3.11+)
+brms-web
 ```
 
-`pip install brms` alone installs the library and the command line without the browser app.
-Python 3.11 or later is needed.
+Step by step for Windows, macOS and Linux, and what to do if something goes wrong:
+[Install on your computer](install.md). `pip install brms` alone installs the Python library and
+the command line without the browser app.
 
 ## The banks it ships with
 
