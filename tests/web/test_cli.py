@@ -15,7 +15,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import TYPE_CHECKING
 
-from brms.web.__main__ import default_workers, main
+from brms.web.__main__ import _port_free, default_workers, main
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -121,3 +121,17 @@ def test_quit_from_the_browser_stops_the_lab(tmp_path: Path) -> None:
     assert lab.returncode == 0, out
     assert "Traceback" not in out, out
     assert "stopped" in out.splitlines()[-1], out
+
+
+def test_a_port_just_released_is_free_again() -> None:
+    # Stopping the lab leaves its closed connections in TIME_WAIT for up to a minute; a restart must still start.
+    with socket.socket() as listener:
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen()
+        port = listener.getsockname()[1]
+        client = socket.create_connection(("127.0.0.1", port))
+        served, _ = listener.accept()
+        served.close()  # the server closes first, so the TIME_WAIT is on the lab's port
+        client.close()
+    assert _port_free("127.0.0.1", port)
