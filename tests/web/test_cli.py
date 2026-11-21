@@ -1,11 +1,17 @@
 # ruff: noqa: S101, D103, PLR2004
-"""The ``brms-web`` command on a desktop: a second launch, a busy port, worker defaults."""
+"""The ``brms-web`` command on a desktop: a second launch, a busy port, worker defaults, stopping."""
 
 from __future__ import annotations
 
 import json
+import os
+import signal
 import socket
+import subprocess
+import sys
 import threading
+import time
+import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import TYPE_CHECKING
 
@@ -13,6 +19,7 @@ from brms.web.__main__ import default_workers, main
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from pathlib import Path
 
     import pytest
 
@@ -57,3 +64,60 @@ def test_default_workers_leave_a_core_free() -> None:
     assert default_workers(1) == 1
     assert default_workers(2) == 1
     assert default_workers(8) == 4
+
+
+def _free_port() -> int:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return probe.getsockname()[1]
+
+
+def _start_lab(tmp_path: Path) -> tuple[subprocess.Popen[str], str]:
+    port = _free_port()
+    lab = subprocess.Popen(  # noqa: S603 (our own command)
+        [sys.executable, "-m", "brms.web", "--no-browser", "--port", str(port), "--data-dir", str(tmp_path)],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True,
+    )
+    url = f"http://127.0.0.1:{port}/"
+    deadline = time.monotonic() + 60
+    while True:
+        try:
+            with urllib.request.urlopen(url + "api/banks", timeout=2):  # noqa: S310 (local URL)
+                return lab, url
+        except OSError:
+            if time.monotonic() > deadline or lab.poll() is not None:
+                lab.kill()
+                raise
+            time.sleep(0.3)
+
+
+def _stopped(lab: subprocess.Popen[str]) -> str:
+    try:
+        out, _ = lab.communicate(timeout=30)
+    except subprocess.TimeoutExpired:
+        os.killpg(lab.pid, signal.SIGKILL)
+        out, _ = lab.communicate()
+        raise AssertionError("brms-web did not stop:\n" + out) from None
+    return out
+
+
+def test_ctrl_c_stops_the_lab_and_its_workers_quietly(tmp_path: Path) -> None:
+    lab, _ = _start_lab(tmp_path)
+    time.sleep(2)  # the demo summaries have started worker processes
+    os.killpg(lab.pid, signal.SIGINT)  # what Ctrl+C in a terminal does: every process in the group
+    out = _stopped(lab)
+    assert lab.returncode == 0, out
+    assert "Traceback" not in out, out
+    assert "stopped" in out.splitlines()[-1], out
+
+
+def test_quit_from_the_browser_stops_the_lab(tmp_path: Path) -> None:
+    lab, url = _start_lab(tmp_path)
+    request = urllib.request.Request(url + "api/quit", data=b"{}", method="POST",  # noqa: S310 (local URL)
+                                     headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=10) as response:  # noqa: S310 (local URL)
+        assert response.status == 202
+    out = _stopped(lab)
+    assert lab.returncode == 0, out
+    assert "Traceback" not in out, out
+    assert "stopped" in out.splitlines()[-1], out

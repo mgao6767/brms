@@ -6,9 +6,10 @@ import contextlib
 import datetime
 import json
 import pickle
+import signal
 import threading
 from collections import OrderedDict
-from concurrent.futures import BrokenExecutor, Executor, Future, ProcessPoolExecutor
+from concurrent.futures import BrokenExecutor, CancelledError, Executor, Future, ProcessPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -23,7 +24,7 @@ from brms.web.payloads import day_payload, valuations_long
 from brms.web.workspace import DEMO_PREFIX, Workspace, default_data_dir, now
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Callable
+    from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 
     from brms.lab.runner import RunResult
 
@@ -67,6 +68,27 @@ class BankFileRequest(BaseModel):
     bank: dict[str, Any]
 
 
+class QuitRequest(BaseModel):
+    """Stop the lab (sent by the Quit button)."""
+
+
+@contextlib.contextmanager
+def _no_interrupts() -> Iterator[None]:
+    """Block Ctrl+C in this thread while it may start worker processes.
+
+    Workers inherit the blocked signal, so a Ctrl+C in the terminal reaches only the server, even
+    while a new worker is still importing. Threads the pool starts here inherit it too.
+    """
+    if not hasattr(signal, "pthread_sigmask"):  # Windows: jobs.ignore_interrupts covers it
+        yield
+        return
+    previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT})
+    try:
+        yield
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+
+
 class JobManager:
     """Runs jobs in worker processes, one process per job, and records the outcome.
 
@@ -80,16 +102,18 @@ class JobManager:
         self._executor = factory()
         self._futures: dict[str, Future[Any]] = {}
         self._lock = threading.Lock()
+        self._stopping = False
 
     def submit(
         self, key: str, fn: Callable[..., Any], args: tuple[Any, ...], on_done: Callable[[Future[Any]], None],
     ) -> None:
         """Run ``fn(*args)`` in a worker; call *on_done* with the future when it finishes."""
-        with self._lock:
+        with self._lock, _no_interrupts():
             try:
                 future = self._executor.submit(fn, *args)
             except BrokenExecutor:
-                self._executor.shutdown(wait=False, cancel_futures=True)
+                # Its workers are gone; waiting is quick and avoids Python 3.11's race on the process list.
+                self._executor.shutdown(wait=True, cancel_futures=True)
                 self._executor = self._factory()
                 future = self._executor.submit(fn, *args)
             self._futures[key] = future
@@ -101,12 +125,45 @@ class JobManager:
 
         future.add_done_callback(finished)
 
+    @property
+    def stopping(self) -> bool:
+        """True once :meth:`shutdown` has begun: jobs ending now were stopped, not failed."""
+        return self._stopping
+
+    def running(self) -> int:
+        """Return the number of jobs queued or running."""
+        with self._lock:
+            return len(self._futures)
+
     def shutdown(self) -> None:
-        """Cancel queued jobs and wait for running ones (Python 3.11's pool races if not waited for)."""
-        self._executor.shutdown(wait=True, cancel_futures=True)
+        """Cancel queued jobs, stop running ones, and wait until the workers have gone."""
+        self._stopping = True
+        with self._lock:
+            executor = self._executor
+            pending = list(self._futures.values())
+        for future in pending:
+            future.cancel()  # jobs still queued
+        # Stop the running workers (no public API before Python 3.14). The pool sees them die and fails
+        # their jobs; shutdown(wait=False) instead races with Python 3.11's pool replacing a worker.
+        for process in list((getattr(executor, "_processes", None) or {}).values()):
+            process.terminate()
+        executor.shutdown(wait=True, cancel_futures=True)
 
 
 _MAX_ERROR = 2000
+
+
+_STOPPED = "Stopped: the lab was closed while this was in progress"
+
+
+def _outcome(future: Future[Any], manager: JobManager) -> BaseException | None:
+    """Return the job's exception (None on success); a job ended by closing the lab says so."""
+    if future.cancelled():
+        return CancelledError(_STOPPED)
+    exc = future.exception()
+    if exc is not None and manager.stopping:
+        return CancelledError(_STOPPED)
+    return exc
 
 
 def _error_text(exc: BaseException) -> str:
@@ -133,12 +190,17 @@ def _check_stress_dates(request: RunRequest, bank: dict[str, Any]) -> None:
 
 def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a closure over its state)
     data_dir: Path | None = None, *, workers: int = 2, executor: Executor | None = None,
+    on_quit: Callable[[], None] | None = None,
 ) -> FastAPI:
-    """Return the web application storing its banks and runs under *data_dir*."""
+    """Return the web application storing its banks and runs under *data_dir*.
+
+    *on_quit* stops the server; without it, ``POST /api/quit`` is not available.
+    """
     workspace = Workspace(data_dir or default_data_dir())
     workspace.recover()
     manager = JobManager((lambda: executor) if executor is not None
-                         else (lambda: ProcessPoolExecutor(max_workers=workers, max_tasks_per_child=1)))
+                         else (lambda: ProcessPoolExecutor(max_workers=workers, max_tasks_per_child=1,
+                                                         initializer=jobs.ignore_interrupts)))
     results: OrderedDict[str, RunResult] = OrderedDict()
     results_lock = threading.Lock()
     summarising: set[str] = set()
@@ -164,8 +226,8 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
         out = workspace.bank_dir(bank_id) / "summary.json"
 
         def done(f: Future[Any]) -> None:
-            exc = f.exception()
-            if exc is not None:
+            exc = _outcome(f, manager)
+            if exc is not None and not manager.stopping:  # a stopped summary is retried at the next start
                 workspace.set_demo_error(bank_id, _error_text(exc))
             with summarising_lock:
                 summarising.discard(bank_id)
@@ -209,7 +271,7 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
         folder = workspace.bank_dir(meta["id"])
 
         def done(f: Future[Any]) -> None:
-            exc = f.exception()
+            exc = _outcome(f, manager)
             if exc is not None:
                 workspace.update_bank(meta["id"], status="failed", error=_error_text(exc))
                 return
@@ -318,7 +380,7 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
         run_id = meta["id"]
 
         def done(f: Future[Any]) -> None:
-            exc = f.exception()
+            exc = _outcome(f, manager)
             if exc is not None:
                 workspace.update_run(run_id, status="failed", error=_error_text(exc), finished=now())
             else:
@@ -331,6 +393,15 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
             workspace.update_run(run_id, status="failed", error=_error_text(exc), finished=now())
             raise HTTPException(503, f"Could not start the run: {_error_text(exc)}") from exc
         return workspace.run_meta(run_id) or meta
+
+    @app.post("/api/quit", status_code=202)
+    def quit_lab(_confirm: QuitRequest) -> dict[str, int]:
+        # The JSON body makes a browser send a preflight first, so no other web site can stop the lab.
+        if on_quit is None:
+            raise HTTPException(404, "Quit is available when the lab is started with brms-web")
+        in_progress = manager.running()
+        on_quit()
+        return {"stopped": in_progress}
 
     @app.get("/api/runs")
     def list_runs() -> list[dict[str, Any]]:

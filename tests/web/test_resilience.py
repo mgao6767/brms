@@ -5,7 +5,8 @@ from __future__ import annotations
 
 import os
 import time
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -17,12 +18,14 @@ from brms.web import jobs  # noqa: E402
 from brms.web.app import create_app  # noqa: E402
 from brms.web.workspace import Workspace  # noqa: E402
 
-if TYPE_CHECKING:
-    from pathlib import Path
-
 
 def _die(*_args: Any) -> None:  # noqa: ANN401
     os._exit(1)  # a worker killed mid-run (out of memory, segfault)
+
+
+def _hang(_zip: str, _spec: dict[str, Any], folder: str) -> None:
+    jobs._mark_running(Path(folder))  # noqa: SLF001
+    time.sleep(600)  # a long run
 
 
 def _wait(client: TestClient, url: str, done: Any, timeout: float = 120) -> dict[str, Any]:  # noqa: ANN401
@@ -91,3 +94,36 @@ def test_updates_to_deleted_items_are_ignored(tmp_path: Path) -> None:
     assert workspace.update_run(run["id"], status="done") is None
     assert workspace.banks() == [b for b in workspace.banks() if b.get("id")]
     assert not (tmp_path / "banks" / bank["id"]).exists()
+
+
+def test_stopping_the_server_stops_runs_in_progress(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(jobs, "run_scenario", _hang)
+    with TestClient(create_app(tmp_path, workers=2)) as client:
+        _wait(client, "/api/banks/demo-htm_treasury", lambda b: b["status"] == "ready")
+        running = client.post("/api/runs", json={"bank_id": "demo-htm_treasury", "months": 1}).json()["id"]
+        queued = [client.post("/api/runs", json={"bank_id": "demo-htm_treasury", "months": 1}).json()["id"]
+                  for _ in range(2)]
+        _wait(client, f"/api/runs/{running}", lambda r: r["meta"]["status"] == "running")
+        started = time.monotonic()
+    assert time.monotonic() - started < 15  # did not wait for the run to finish
+    workspace = Workspace(tmp_path)
+    for run_id in [running, *queued]:
+        meta = workspace.run_meta(run_id)
+        assert meta is not None
+        assert meta["status"] == "failed"
+        assert "stopped" in meta["error"].lower()
+
+
+def test_quit_asks_the_command_to_stop(tmp_path: Path) -> None:
+    calls: list[bool] = []
+    with TestClient(create_app(tmp_path, on_quit=lambda: calls.append(True))) as client:
+        assert client.post("/api/quit", content="x", headers={"Content-Type": "text/plain"}).status_code == 422
+        assert calls == []  # a plain form post from another web site cannot stop the lab
+        response = client.post("/api/quit", json={})
+        assert response.status_code == 202
+        assert calls == [True]
+
+
+def test_quit_without_the_command_is_not_available(tmp_path: Path) -> None:
+    with TestClient(create_app(tmp_path)) as client:
+        assert client.post("/api/quit", json={}).status_code == 404

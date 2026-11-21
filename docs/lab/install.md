@@ -54,7 +54,7 @@ The terminal shows:
 ```text
 BRMS Stress Lab running at http://127.0.0.1:8765/
 Your banks and runs are saved in C:\Users\you\.brms-web
-Keep this window open while you use the lab; press Ctrl+C to stop it.
+Keep this window open while you use the lab. To stop it, click Quit in the lab or press Ctrl+C here.
 ```
 
 and your browser opens the lab. If it does not, open <http://127.0.0.1:8765> yourself. The first
@@ -96,12 +96,13 @@ Activate the environment again (the second line) each time you open a new termin
 | To | Do this |
 |---|---|
 | start the lab | open a terminal and run `brms-web` |
-| stop it | press ++ctrl+c++ in its terminal, or close the terminal |
+| stop it | click **Quit** at the top right of the lab, or press ++ctrl+c++ in its terminal |
 | open it again in the browser | run `brms-web` again: if the lab is already running, it opens the browser at it |
 | update to the latest version | `uv tool upgrade brms` (with pip: `python -m pip install -U "brms[web]"`) |
 | uninstall | `uv tool uninstall brms`, then delete the data folder if you no longer need it |
 
-Closing the browser tab does not stop the lab; the terminal does.
+Closing the browser tab does not stop the lab. Stopping it stops any run still in progress (the run is
+marked failed; start it again later). Your banks and finished runs are kept.
 
 ## Your data
 
