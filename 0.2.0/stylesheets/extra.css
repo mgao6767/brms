@@ -1,0 +1,94 @@
+/* Macquarie University colours. The header and tabs are MQ Red in both schemes. Links are MQ Red on
+   light (7.5:1 on white); on dark, MQ Red is too dark to read (2.2:1), so links are MQ Sand
+   (10.7:1) carrying an MQ Bright Red underline. */
+:root {
+  --mq-red: #a6192e;
+  --mq-bright-red: #d6001c;
+  --mq-deep-red: #76232f;
+  --mq-sand: #d6d2c4;
+
+  --md-primary-fg-color: var(--mq-red);
+  --md-primary-fg-color--light: var(--mq-bright-red);
+  --md-primary-fg-color--dark: var(--mq-deep-red);
+  --md-accent-fg-color: var(--mq-bright-red);
+  --md-typeset-a-color: var(--mq-red);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-hue: 225;
+  --md-accent-fg-color: #ffffff;
+  --md-typeset-a-color: var(--mq-sand);
+}
+
+/* Links in running text: coloured and underlined, so they are links and not emphasis. */
+.md-typeset a {
+  color: var(--md-typeset-a-color);
+}
+.md-typeset a:hover,
+.md-typeset a:focus {
+  color: var(--md-accent-fg-color);
+}
+article p a,
+article li a,
+article td a {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+}
+[data-md-color-scheme="slate"] article p a,
+[data-md-color-scheme="slate"] article li a,
+[data-md-color-scheme="slate"] article td a,
+[data-md-color-scheme="slate"] .md-typeset .grid.cards a {
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--mq-bright-red);
+}
+
+/* The active page in the sidebar and table of contents. */
+[data-md-color-scheme="slate"] .md-nav__link--active {
+  color: #ffffff;
+  font-weight: 700;
+}
+[data-md-color-scheme="slate"] .md-nav__link:is(:focus, :hover) {
+  color: #ffffff;
+}
+
+/* Readable body text. */
+.md-typeset {
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
+code,
+pre {
+  font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+}
+
+.md-typeset h2 {
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+
+/* Make equations full-width */
+mjx-container {
+  width: 100% !important;
+}
+
+/* Glossary terms: a dotted underline shows a definition on hover. */
+.md-typeset abbr {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--md-default-fg-color--light);
+  cursor: help;
+}
+
+/* Home page cards: two per row on wide screens, one on phones. */
+.md-typeset .grid.cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+}
+
+/* Glossary terms stand out from their definitions. */
+.md-typeset dl dt {
+  font-weight: 700;
+}
