@@ -1,5 +1,5 @@
 # ruff: noqa: S101, D103, PLR2004
-"""The ``brms-web`` command on a desktop: a second launch, a busy port, worker defaults, stopping."""
+"""The ``brms`` command on a desktop: a second launch, a busy port, worker defaults, stopping."""
 
 from __future__ import annotations
 
@@ -97,7 +97,7 @@ def _stopped(lab: subprocess.Popen[str]) -> str:
     except subprocess.TimeoutExpired:
         os.killpg(lab.pid, signal.SIGKILL)
         out, _ = lab.communicate()
-        raise AssertionError("brms-web did not stop:\n" + out) from None
+        raise AssertionError("brms did not stop:\n" + out) from None
     return out
 
 

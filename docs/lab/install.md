@@ -46,7 +46,7 @@ This takes a minute the first time.
 **4. Start it.**
 
 ```bash
-brms-web
+brms
 ```
 
 The terminal shows:
@@ -63,7 +63,7 @@ start takes up to half a minute while the demo banks are prepared.
 Now follow the [quick start](quickstart.md).
 
 !!! tip "Just trying it?"
-    `uvx --from "brms[web]>=0.2" brms-web` starts the lab without installing it.
+    `uvx --from "brms[web]>=0.2" brms` starts the lab without installing it.
 
 ## With pip
 
@@ -75,7 +75,7 @@ If you already use Python 3.11 or later, install the lab into a virtual environm
     py -3.12 -m venv brms-env
     brms-env\Scripts\activate
     python -m pip install "brms[web]>=0.2"
-    brms-web
+    brms
     ```
 
 === "macOS and Linux"
@@ -84,7 +84,7 @@ If you already use Python 3.11 or later, install the lab into a virtual environm
     python3 -m venv brms-env
     source brms-env/bin/activate
     python -m pip install "brms[web]>=0.2"
-    brms-web
+    brms
     ```
 
 Activate the environment again (the second line) each time you open a new terminal.
@@ -95,9 +95,9 @@ Activate the environment again (the second line) each time you open a new termin
 
 | To | Do this |
 |---|---|
-| start the lab | open a terminal and run `brms-web` |
+| start the lab | open a terminal and run `brms` |
 | stop it | click **Quit** at the top right of the lab, or press ++ctrl+c++ in its terminal |
-| open it again in the browser | run `brms-web` again: if the lab is already running, it opens the browser at it |
+| open it again in the browser | run `brms` again: if the lab is already running, it opens the browser at it |
 | update to the latest version | `uv tool upgrade brms` (with pip: `python -m pip install -U "brms[web]"`) |
 | uninstall | `uv tool uninstall brms`, then delete the data folder if you no longer need it |
 
@@ -109,7 +109,7 @@ marked failed; start it again later). Your banks and finished runs are kept.
 Banks you import and runs you make are saved in a folder in your home directory:
 `C:\Users\<you>\.brms-web` on Windows, `~/.brms-web` on macOS and Linux. They are still there the
 next time you start the lab. To keep them somewhere else, start the lab with
-`brms-web --data-dir <folder>`, or set the environment variable `BRMS_WEB_HOME`.
+`brms --data-dir <folder>`, or set the environment variable `BRMS_WEB_HOME`.
 
 Each run takes a few MB. Delete runs you no longer need on the **Runs** page. The demo banks come
 with the lab and cannot be deleted.
@@ -117,7 +117,7 @@ with the lab and cannot be deleted.
 ## Options
 
 ```bash
-brms-web [--port 8765] [--data-dir FOLDER] [--workers N] [--no-browser]
+brms [--port 8765] [--data-dir FOLDER] [--workers N] [--no-browser]
 ```
 
 | Option | Meaning |
@@ -135,12 +135,12 @@ while the lab is running.
 
 ## If something goes wrong
 
-**`brms-web` or `uv`: command not found.**
+**`brms` or `uv`: command not found.**
 Close the terminal and open a new one. If it still fails after installing uv, run
 `uv tool update-shell`, then open a new terminal.
 
 **"Port 8765 is used by another program".**
-Start the lab on another port, `brms-web --port 8800`, and open <http://127.0.0.1:8800>.
+Start the lab on another port, `brms --port 8800`, and open <http://127.0.0.1:8800>.
 
 **The browser shows an old page after an update.**
 Reload the page (++ctrl+shift+r++, or ++cmd+shift+r++ on a Mac).
