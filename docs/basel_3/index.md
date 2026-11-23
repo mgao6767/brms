@@ -2,13 +2,15 @@
 
 Basel III is an internationally agreed-upon regulatory framework developed by the Basel Committee on Banking Supervision (BCBS) to strengthen the resilience of banks and the financial system. It builds upon previous Basel accords by introducing stricter capital requirements, enhanced risk management practices, and liquidity standards to mitigate systemic risks and financial crises.  
 
-## Basel III in the BRMS Application
+## Basel III in the Stress Lab
 
-The **Bank Risk Management Simulation (BRMS) software** incorporates the Basel III framework to allow users to simulate regulatory compliance, risk assessment, and capital adequacy scenarios.
+The [Stress Lab](../lab/index.md) computes a bank's regulatory capital every day of a run: CET1,
+Tier 1 and total capital, risk-weighted assets under the standardised approach, the capital ratios
+and the leverage ratio, and the Basel interest-rate shocks to its economic value of equity. It makes
+some simplifying assumptions, listed in [Assumptions](../lab/guides/assumptions.md#capital); the
+[Metrics](../lab/reference/metrics.md) page defines each figure.
 
-To facilitate learning and teaching, BRMS makes some **simplifying assumptions** while maintaining alignment with the core principles of Basel III. These simplifications ensure that users can focus on understanding regulatory requirements, risk dynamics, and capital management without unnecessary complexity.
-
-This documentation will explain the key components of Basel III, describe how they are implemented within BRMS, and highlight the assumptions made to enhance clarity and usability.
+These pages explain the parts of Basel III behind those figures.
 
 ## Key Components of Basel III
 

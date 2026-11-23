@@ -26,6 +26,9 @@ for path in sorted(src.rglob("*.py")):
     # Exclude "brms.resources"
     elif parts[1].startswith("resources"):
         continue
+    # Exclude the desktop app (brms.app, brms.main), which is being retired
+    if len(parts) > 1 and parts[1] in {"app", "main"}:
+        continue
 
     nav_parts = [f"{mod_symbol} {part}" for part in parts]
     nav[tuple(nav_parts)] = doc_path.as_posix()
