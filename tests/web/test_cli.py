@@ -135,3 +135,11 @@ def test_a_port_just_released_is_free_again() -> None:
         served.close()  # the server closes first, so the TIME_WAIT is on the lab's port
         client.close()
     assert _port_free("127.0.0.1", port)
+
+
+def test_the_server_starts_without_the_engine_libraries() -> None:
+    # On a fresh install the first import of pandas or QuantLib takes 10-20 s; the page must not wait for it.
+    code = ("import sys; from brms.web.__main__ import main; from brms.web.app import create_app; "
+            "print(sorted(m for m in ('pandas', 'numpy', 'QuantLib') if m in sys.modules))")
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)  # noqa: S603
+    assert out.stdout.strip() == "[]", out.stdout + out.stderr

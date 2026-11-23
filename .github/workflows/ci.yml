@@ -22,7 +22,7 @@ jobs:
     - name: Install the project
       run: |
         uv sync --all-extras --dev
-        uv pip install .
+        # uv sync installs the project (editable); a plain build needs the zips first
     - name: Build the default simulations
       run: |
         uv run python -m brms.data.build_all

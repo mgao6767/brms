@@ -12,6 +12,7 @@ The server process only reads and writes these files; engine work happens in wor
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 import json
 import os
@@ -19,6 +20,7 @@ import re
 import shutil
 import threading
 import uuid
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -69,6 +71,8 @@ class Workspace:
         for folder in (self.banks_dir, self.runs_dir, self.cache_dir):
             folder.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
+        self._names: dict[str, str] = {}
+        self._names_lock = threading.Lock()
 
     # -- banks ---------------------------------------------------------------------------------
 
@@ -108,9 +112,22 @@ class Workspace:
             error = self.demo_error(bank_id)
             status = "ready" if summary else "failed" if error else "pending"
             source = "case_study" if bank_id.startswith(f"{DEMO_PREFIX}case_") else "demo"
-            return {"id": bank_id, "name": summary.get("name", bank_id[len(DEMO_PREFIX):]), "source": source,
+            name = summary.get("name") or self.demo_name(bank_id)
+            return {"id": bank_id, "name": name, "source": source,
                     "status": status, "error": error, "created": None}
         return _read(self.banks_dir / bank_id / "meta.json")
+
+    def demo_name(self, bank_id: str) -> str:
+        """Return a demo bank's name from its zip (shown while its summary is being prepared)."""
+        with self._names_lock:
+            if bank_id not in self._names:
+                name = bank_id[len(DEMO_PREFIX):]
+                # A damaged zip keeps its id as the name; preparing its summary reports the error.
+                with (contextlib.suppress(OSError, KeyError, ValueError, zipfile.BadZipFile),
+                      zipfile.ZipFile(self.demo_banks()[bank_id]) as archive):
+                    name = json.loads(archive.read("config.json")).get("name") or name
+                self._names[bank_id] = name
+            return self._names[bank_id]
 
     def demo_error(self, bank_id: str) -> str | None:
         """Return why a demo bank could not be summarised, if it could not."""

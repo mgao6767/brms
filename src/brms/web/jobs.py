@@ -1,7 +1,9 @@
 """Work done in worker processes: building banks, summarising them and running scenarios.
 
 Every function here is module-level (picklable), takes plain data and writes its output to disk,
-so the server never imports QuantLib state into its own process.
+so the server never imports QuantLib state into its own process. The engine is imported inside the
+functions: the server imports this module at start, and on a fresh install the first import of
+pandas or QuantLib takes many seconds.
 """
 
 from __future__ import annotations
@@ -13,16 +15,6 @@ import signal
 from pathlib import Path
 from typing import Any
 
-from brms.core.metrics.risk.interest_rate_risk.eve import Scenario
-
-BASEL = {
-    "parallel_up": Scenario.PARALLEL_UP,
-    "parallel_down": Scenario.PARALLEL_DOWN,
-    "steepener": Scenario.STEEPENER,
-    "flattener": Scenario.FLATTENER,
-    "short_up": Scenario.SHORT_UP,
-    "short_down": Scenario.SHORT_DOWN,
-}
 BASEL_LABELS = {
     "parallel_up": "Parallel up (+200bp)",
     "parallel_down": "Parallel down (-200bp)",
@@ -46,9 +38,10 @@ class SpecError(ValueError):
 def scenario_from_spec(spec: dict[str, Any]) -> Any:  # noqa: ANN401
     """Return the lab scenario a run specification describes.
 
-    ``kind``: ``historical``; ``basel`` with ``name`` (a key of :data:`BASEL`); ``parallel`` with
+    ``kind``: ``historical``; ``basel`` with ``name`` (a key of :data:`BASEL_LABELS`); ``parallel`` with
     ``bp``; ``key_rate`` with ``points`` ``[[t_years, bp], ...]``. Shocks take ``ramp_days``.
     """
+    from brms.core.metrics.risk.interest_rate_risk.eve import Scenario
     from brms.lab.scenarios import Historical, KeyRateShift, Shock
 
     kind = spec.get("kind", "historical")
@@ -60,10 +53,10 @@ def scenario_from_spec(spec: dict[str, Any]) -> Any:  # noqa: ANN401
         return Historical()
     if kind == "basel":
         name = spec.get("name")
-        if name not in BASEL:
-            msg = f"Unknown Basel scenario {name!r}; use one of {', '.join(BASEL)}"
+        if name not in BASEL_LABELS:
+            msg = f"Unknown Basel scenario {name!r}; use one of {', '.join(BASEL_LABELS)}"
             raise SpecError(msg)
-        return Shock(BASEL[name], ramp_days=ramp, label=name)
+        return Shock(Scenario[name.upper()], ramp_days=ramp, label=name)
     if kind == "parallel":
         bp = float(spec.get("bp", 0))
         return Shock(KeyRateShift(((0.0, bp),)), ramp_days=ramp, label=f"parallel{bp:+g}bp")

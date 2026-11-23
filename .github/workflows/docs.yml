@@ -29,7 +29,7 @@ jobs:
       - name: Install the project
         run: |
           uv sync --all-extras --dev
-          uv pip install .
+          # uv sync installs the project (editable); a plain build needs the zips first
 
       - name: Get Version from pyproject.toml
         id: version

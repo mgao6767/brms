@@ -57,8 +57,9 @@ Your banks and runs are saved in C:\Users\you\.brms-web
 Keep this window open while you use the lab. To stop it, click Quit in the lab or press Ctrl+C here.
 ```
 
-and your browser opens the lab. If it does not, open <http://127.0.0.1:8765> yourself. The first
-start takes up to half a minute while the demo banks are prepared.
+and your browser opens the lab. If it does not, open <http://127.0.0.1:8765> yourself. The lab
+opens in a second or two. The first time after installing, the demo banks take up to half a minute
+to prepare: they show **preparing** and fill in as each one is ready.
 
 Now follow the [quick start](quickstart.md).
 
