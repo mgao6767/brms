@@ -70,3 +70,13 @@ mjx-container {
   text-decoration-color: var(--md-default-fg-color--light);
   cursor: help;
 }
+
+/* Home page cards: two per row on wide screens, one on phones. */
+.md-typeset .grid.cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+}
+
+/* Glossary terms stand out from their definitions. */
+.md-typeset dl dt {
+  font-weight: 700;
+}
