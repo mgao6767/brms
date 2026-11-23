@@ -63,7 +63,8 @@ function pendingPanel(bank) {
     return panel("Build failed", h("div", { class: "form" }, errorBox(bank.error || "Unknown error"),
       h("div", {}, h("a", { class: "btn", href: "#/import" }, "Back to import"))));
   }
-  return panel("Preparing", loading(["demo", "case_study"].includes(bank.source) ? "Summarising the bank"
+  return panel("Preparing", loading(["demo", "case_study"].includes(bank.source)
+    ? "Preparing this bank: a few seconds, or up to half a minute the first time after an install"
     : "Building the bank"));
 }
 

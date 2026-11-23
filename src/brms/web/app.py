@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import datetime
+import importlib
 import json
 import pickle
 import signal
@@ -20,7 +21,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from brms.web import jobs
-from brms.web.payloads import day_payload, valuations_long
 from brms.web.workspace import DEMO_PREFIX, Workspace, default_data_dir, now
 
 if TYPE_CHECKING:
@@ -166,6 +166,12 @@ def _outcome(future: Future[Any], manager: JobManager) -> BaseException | None:
     return exc
 
 
+def _load_engine() -> None:
+    """Import what run requests and run pages need (slow the first time after an install)."""
+    for module in ("brms.lab.scenarios", "brms.web.payloads"):
+        importlib.import_module(module)
+
+
 def _error_text(exc: BaseException) -> str:
     if isinstance(exc, BrokenExecutor):
         return "The worker process stopped unexpectedly (out of memory or a crash); try again or a shorter horizon"
@@ -208,6 +214,11 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
 
     @contextlib.asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        # The page is served at once; the demo banks are prepared in the workers meanwhile, and the
+        # engine is loaded in the background so the first run does not wait for it.
+        for bank_id in workspace.demo_banks():
+            ensure_demo_summary(bank_id)
+        threading.Thread(target=_load_engine, name="load-engine", daemon=True).start()
         yield
         manager.shutdown()
 
@@ -419,6 +430,8 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
     @app.get("/api/runs/{run_id}/day")
     def get_day(run_id: str, date: datetime.date) -> dict[str, Any]:
         run_or_404(run_id)
+        from brms.web.payloads import day_payload  # pandas: not imported at start
+
         return day_payload(load_result(run_id), date)
 
     @app.get("/api/runs/{run_id}/metrics.csv", response_class=PlainTextResponse)
@@ -434,6 +447,8 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
         if table not in {"statements", "journal", "valuations"}:
             raise HTTPException(404, f"No table {table!r}; use statements, journal, valuations or metrics")
         result = load_result(run_id)
+        from brms.web.payloads import valuations_long  # pandas: not imported at start
+
         frame = valuations_long(result) if table == "valuations" else getattr(result, table)
         headers = {"Content-Disposition": f'attachment; filename="{run_id}-{table}.csv"'}
         return PlainTextResponse(frame.to_csv(index=False), media_type="text/csv", headers=headers)

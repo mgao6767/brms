@@ -31,8 +31,10 @@ export function kpi(label, value, { sub, cls = "", title } = {}) {
     sub !== undefined ? h("div", { class: "sub" }, sub) : null);
 }
 
+const CHIP_LABELS = { pending: "preparing" };
+
 export function chip(status) {
-  return h("span", { class: `chip ${status}` }, status);
+  return h("span", { class: `chip ${status}` }, CHIP_LABELS[status] || status);
 }
 
 export function seg(options, current, onChange) {

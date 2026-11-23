@@ -127,3 +127,20 @@ def test_quit_asks_the_command_to_stop(tmp_path: Path) -> None:
 def test_quit_without_the_command_is_not_available(tmp_path: Path) -> None:
     with TestClient(create_app(tmp_path)) as client:
         assert client.post("/api/quit", json={}).status_code == 404
+
+
+def test_demo_banks_are_prepared_at_start_without_a_request(tmp_path: Path) -> None:
+    workspace = Workspace(tmp_path)
+    with TestClient(create_app(tmp_path, workers=2)):
+        deadline = time.monotonic() + 120
+        while workspace.bank_summary("demo-htm_treasury") is None:
+            if time.monotonic() > deadline:
+                pytest.fail("the demo bank was not prepared")
+            time.sleep(0.2)
+
+
+def test_a_pending_demo_bank_shows_its_name(tmp_path: Path) -> None:
+    meta = Workspace(tmp_path).bank_meta("demo-case_svb_2021")
+    assert meta is not None
+    assert meta["status"] == "pending"
+    assert meta["name"] == "Silicon Valley Bank, end-2021"
