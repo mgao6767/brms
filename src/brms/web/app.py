@@ -398,7 +398,7 @@ def create_app(  # noqa: C901, PLR0915 (one factory registers every route as a c
     def quit_lab(_confirm: QuitRequest) -> dict[str, int]:
         # The JSON body makes a browser send a preflight first, so no other web site can stop the lab.
         if on_quit is None:
-            raise HTTPException(404, "Quit is available when the lab is started with brms-web")
+            raise HTTPException(404, "Quit is available when the lab is started with brms")
         in_progress = manager.running()
         on_quit()
         return {"stopped": in_progress}

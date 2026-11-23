@@ -19,7 +19,7 @@ The Stress Lab runs on your own computer and opens in your browser at `http://12
 
 ```bash
 uv tool install "brms[web]>=0.2"   # or: python -m pip install "brms[web]>=0.2" (Python 3.11+)
-brms-web                           # the lab in your browser
+brms                           # the lab in your browser
 ```
 
 Step by step, for Windows, macOS and Linux: [Install on your computer](docs/lab/install.md).

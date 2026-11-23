@@ -135,7 +135,7 @@ outstanding):
 
 === "Browser"
 
-    1. Start `brms-web` and open **Import**.
+    1. Start `brms` and open **Import**.
     2. Drop `riverside.json` on **From a bank file** (or paste it), then click **Build from bank file**.
     3. On the bank's page, click **Run all Basel shocks**.
 

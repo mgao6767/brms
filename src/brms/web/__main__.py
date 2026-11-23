@@ -1,4 +1,4 @@
-"""Command line: ``brms-web [--port 8765] [--data-dir DIR] [--workers N] [--no-browser]``."""
+"""Command line: ``brms [--port 8765] [--data-dir DIR] [--workers N] [--no-browser]``."""
 
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ def _out(text: str, *, err: bool = False) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     """Serve the web app on this computer and open it in the browser."""
-    parser = argparse.ArgumentParser(prog="brms-web", description="Run the BRMS Stress Lab in your browser.")
+    parser = argparse.ArgumentParser(prog="brms", description="Run the BRMS Stress Lab in your browser.")
     parser.add_argument("--host", default="127.0.0.1", help="interface to listen on (default: this computer only)")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--data-dir", type=Path, default=None, help="where banks and runs are kept "
@@ -73,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
                 webbrowser.open(url)
             return 0
         _out(f"Port {args.port} is used by another program. Start the lab on another port, "
-             f"for example: brms-web --port {args.port + 35}", err=True)
+             f"for example: brms --port {args.port + 35}", err=True)
         return 1
 
     try:

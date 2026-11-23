@@ -139,5 +139,5 @@ scenario (`historical`, `parallel_up`, `parallel_down`, `steepener`, `flattener`
 `summary.json`. Liquidity stress: `--deposit-runoff 0.5`, `--withdrawal 0.25 --withdrawal-date 2023-03-09` and
 `--sell-afs-on 2023-03-08`. Sales of single positions and reinvestment are available from Python.
 
-`brms-web [--port 8765] [--data-dir DIR] [--workers N] [--no-browser]` starts the browser app on
+`brms [--port 8765] [--data-dir DIR] [--workers N] [--no-browser]` starts the browser app on
 your computer; see [the options](../install.md#options).

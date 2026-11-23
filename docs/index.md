@@ -20,7 +20,7 @@ for teaching and research.
 
 1. **Install it.** Follow [Install on your computer](lab/install.md): two commands, for Windows,
    macOS or Linux.
-2. **Start it.** Run `brms-web` in a terminal. The lab opens in your browser.
+2. **Start it.** Run `brms` in a terminal. The lab opens in your browser.
 3. **Try it.** The [quick start](lab/quickstart.md) walks you through your first run in five
    minutes.
 

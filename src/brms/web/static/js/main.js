@@ -122,7 +122,7 @@ function showStopped(count) {
     h("h1", {}, "The Stress Lab has stopped"),
     h("p", {}, "Your banks and runs are saved. You can close this tab."),
     note ? h("p", {}, note) : null,
-    h("p", {}, "To use the lab again, run ", h("code", {}, "brms-web"), " in a terminal.")));
+    h("p", {}, "To use the lab again, run ", h("code", {}, "brms"), " in a terminal.")));
   document.title = "BRMS Stress Lab (stopped)";
 }
 

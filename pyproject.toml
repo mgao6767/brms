@@ -29,8 +29,8 @@ web = [
 ]
 
 [project.scripts]
-brms = "brms.main:main"
-brms-web = "brms.web.__main__:main"
+brms = "brms.web.__main__:main"
+brms-desktop = "brms.main:main"  # the desktop app (brms[gui]), being retired
 
 [project.urls]
 Homepage = "https://bankrisk.org"

@@ -11,7 +11,7 @@ async function request(method, url, body) {
     response = await fetch(url, options);
   } catch {
     // The browser could not reach the lab at all: its terminal was closed or the lab was stopped.
-    throw new Error("The lab is not running. Start it again with brms-web in a terminal, then reload this page.");
+    throw new Error("The lab is not running. Start it again with brms in a terminal, then reload this page.");
   }
   if (response.status === 204) return null;
   const text = await response.text();

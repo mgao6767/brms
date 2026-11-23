@@ -47,7 +47,7 @@ The lab runs on your own computer and opens in your browser; nothing is uploaded
 
 ```bash
 uv tool install "brms[web]>=0.2"   # or: python -m pip install "brms[web]>=0.2" (Python 3.11+)
-brms-web
+brms
 ```
 
 Step by step for Windows, macOS and Linux, and what to do if something goes wrong:
