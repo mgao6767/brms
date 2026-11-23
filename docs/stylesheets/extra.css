@@ -1,25 +1,52 @@
+/* Macquarie University colours. The header and tabs are MQ Red in both schemes; links use the red
+   that reads on each background (contrast: MQ Red on white 7.5:1, its light tint on slate 7.2:1). */
 :root {
-  --md-primary-fg-color: #a6192e;
-  --md-primary-fg-color--light: #d6001c;
-  --md-primary-fg-color--dark: #76232f;
-  --md-accent-fg-color: #d6001c;
+  --mq-red: #a6192e;
+  --mq-bright-red: #d6001c;
+  --mq-deep-red: #76232f;
+  --mq-sand: #d6d2c4;
+  --mq-red-tint: #ff8a94;
+
+  --md-primary-fg-color: var(--mq-red);
+  --md-primary-fg-color--light: var(--mq-bright-red);
+  --md-primary-fg-color--dark: var(--mq-deep-red);
+  --md-accent-fg-color: var(--mq-bright-red);
+  --md-typeset-a-color: var(--mq-red);
 }
 
-/* strong {
-  color: var(--md-primary-fg-color);
-} */
-
-/* Make equations full-width */
-mjx-container {
-  width: 100% !important;
+[data-md-color-scheme="slate"] {
+  --md-hue: 225;
+  --md-accent-fg-color: var(--mq-sand);
+  --md-typeset-a-color: var(--mq-red-tint);
 }
 
+/* Links in running text: coloured and underlined, so they are links and not emphasis. */
+.md-typeset a {
+  color: var(--md-typeset-a-color);
+}
+.md-typeset a:hover,
+.md-typeset a:focus {
+  color: var(--md-accent-fg-color);
+}
 article p a,
-article li a {
+article li a,
+article td a {
   text-decoration-line: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: 5px;
-  text-decoration-color: var(--md-primary-fg-color--dark);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+}
+
+/* The active page in the sidebar and table of contents. */
+[data-md-color-scheme="slate"] .md-nav__link--active,
+[data-md-color-scheme="slate"] .md-nav__link:is(:focus, :hover) {
+  color: var(--mq-red-tint);
+}
+
+/* Readable body text. */
+.md-typeset {
+  font-size: 0.84rem;
+  line-height: 1.7;
 }
 
 code,
@@ -27,7 +54,19 @@ pre {
   font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
 }
 
-h2 {
+.md-typeset h2 {
   padding-bottom: 0.3em;
-  border-bottom: 1px solid #eaecef;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+
+/* Make equations full-width */
+mjx-container {
+  width: 100% !important;
+}
+
+/* Glossary terms: a dotted underline shows a definition on hover. */
+.md-typeset abbr {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--md-default-fg-color--light);
+  cursor: help;
 }

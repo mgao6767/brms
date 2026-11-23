@@ -1,48 +1,90 @@
 ---
 hide:
   - navigation
+  - toc
 ---
 
-# BRMS - Bank Risk Management Simulation
+# Bank Risk Management Simulation
 
-BRMS is an educational tool designed to provide users with an in-depth understanding of bank risk management practices. It allows users to simulate and respond to various risk scenarios, and analyze the impact on a bank's financial health. It is developed by Dr. [Mingze Gao](https://mingze-gao.com) from the Department of Applied Finance at [Macquarie Business School](https://www.mq.edu.au/macquarie-business-school).
+Put a bank's balance sheet through rising or falling interest rates and watch, day by day, what
+happens to its books, its regulatory capital and its unrealised losses. Use any US bank, from its
+public Call Report, or a bank you describe yourself.
 
-## Stress Lab
-
-Run a bank's balance sheet (any US bank from its Call Report, or your own) through historical
-rates or the Basel interest-rate shocks, and read its books, regulatory capital, unrealised losses
-and interest-rate risk day by day, in your browser or from Python.
-
-It runs on your own computer, in your browser. With [uv](https://docs.astral.sh/uv/) installed:
-
-```bash
-uv tool install "brms[web]>=0.2"
-brms-web
-```
-
-Step-by-step instructions for Windows, macOS and Linux: [Install on your computer](lab/install.md).
+The **Stress Lab** runs on your own computer and opens in your web browser. It is developed by
+Dr. [Mingze Gao](https://mingze-gao.com) at [Macquarie Business School](https://www.mq.edu.au/macquarie-business-school)
+for teaching and research.
 
 ![Silicon Valley Bank through 2022](images/lab/run.jpg)
 
-[Quick start](lab/quickstart.md) · [Why SVB failed, step by step](lab/tutorials/svb-2022.md) ·
-[The Basel shocks across banks](lab/tutorials/basel-shocks.md) · [All of the Stress Lab](lab/index.md)
+## Get started in three steps
 
-## Desktop app
+1. **Install it.** Follow [Install on your computer](lab/install.md): two commands, for Windows,
+   macOS or Linux.
+2. **Start it.** Run `brms-web` in a terminal. The lab opens in your browser.
+3. **Try it.** The [quick start](lab/quickstart.md) walks you through your first run in five
+   minutes.
 
-!!! note
+## Learn from real banks
 
-    The desktop app was built for teaching AFIN8003 Banking and Financial Intermediation at Macquarie University.
+<div class="grid cards" markdown>
 
-### How It Works
+-   :material-bank-outline: **[Why SVB failed](lab/tutorials/svb-2022.md)**
 
-A simulation in BRMS begins with a predefined set of banking and trading books, covering instruments from standard mortgages to HTM, FVOCI, and FVTPL securities (e.g., Treasuries). Each simulation unfolds through daily scenarios, incorporating economic data such as yield curves. As users navigate these scenarios, the bank's performance is automatically computed and reported under IFRS accounting. Capital adequacy and liquidity ratios are assessed following the Basel III framework, with RWAs calculated based on the selected approach. Users can actively adjust exposures through various risk mitigation strategies, and their overall performance is analyzed at the simulation’s conclusion.
+    ---
 
-### GUI Demo
+    Run Silicon Valley Bank through the rates of 2022 and see $15bn of losses build up while its
+    capital ratio still looked healthy.
 
-Here is an overview of the user interface at this stage (2025-01-31).
+-   :material-chart-bell-curve-cumulative: **[The Basel shocks](lab/tutorials/basel-shocks.md)**
 
-![GUI Demo 1](images/GUI-demo1-2025-01-30.png)
+    ---
 
-![GUI Demo 2](images/GUI-demo2-2025-01-30.png)
+    Apply the six standard rate shocks to SVB, Signature, First Republic and JPMorgan, and compare
+    which bank is most exposed.
 
-![GUI Demo 3](images/GUI-demo3-2025-01-31.png)
+-   :material-run-fast: **[SVB's last week](lab/tutorials/svb-last-week.md)**
+
+    ---
+
+    Add a deposit run and a forced sale of securities, and see what the bank would have realised.
+
+-   :material-file-document-outline: **[Any US bank](lab/tutorials/call-report.md)**
+
+    ---
+
+    Import a bank from its Call Report by its FDIC number and put it through any scenario.
+
+</div>
+
+## Look things up
+
+<div class="grid cards" markdown>
+
+-   :material-book-open-variant: **[Glossary](glossary.md)**
+
+    ---
+
+    AFS, HTM, AOCI, CET1, EVE and the other terms, in plain words.
+
+-   :material-chart-line: **[Reading a run](lab/guides/reading-results.md)**
+
+    ---
+
+    What each chart and table in a run shows, and how to read them.
+
+-   :material-tune-variant: **[Scenarios](lab/guides/scenarios.md) and [assumptions](lab/guides/assumptions.md)**
+
+    ---
+
+    The rate paths you can choose, and what the lab assumes about the bank.
+
+-   :material-scale-balance: **[Basel III](basel_3/index.md)**
+
+    ---
+
+    The capital and liquidity rules behind the numbers.
+
+</div>
+
+Prefer code? The lab is also a Python library: see
+[Python and the command line](lab/tutorials/python.md).

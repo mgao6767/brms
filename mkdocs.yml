@@ -2,7 +2,7 @@ site_name: Bank Risk Management Simulation
 site_author: Mingze Gao
 site_url: https://bankrisk.org/
 site_description: >-
-  A bank risk management simulation framework
+  Stress-test a bank's balance sheet against interest-rate scenarios, day by day, in your browser
 
 repo_url: https://github.com/mgao6767/brms
 repo_name: brms
@@ -21,30 +21,20 @@ theme:
   custom_dir: overrides
   favicon: icon.png
   logo: icon.png
-  palette: 
-    # Palette toggle for automatic mode
-    - media: "(prefers-color-scheme)"
-      primary: custom
-      accent: custom
-      toggle:
-        icon: material/brightness-auto
-        name: Switch to light mode
-    # Palette toggle for light mode
-    - media: "(prefers-color-scheme: light)"
-      scheme: default 
+  palette:
+    # Dark by default; the toggle switches to light.
+    - scheme: slate
       primary: custom
       accent: custom
       toggle:
         icon: material/brightness-7
-        name: Switch to dark mode
-    # Palette toggle for dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
+        name: Switch to light mode
+    - scheme: default
       primary: custom
       accent: custom
       toggle:
         icon: material/brightness-4
-        name: Switch to system preference
+        name: Switch to dark mode
   icon:
     repo: fontawesome/brands/github
     admonition:
@@ -59,6 +49,7 @@ theme:
     - content.code.select
     - content.code.annotate
     - content.tabs.link
+    - content.tooltips
     - toc.follow 
     - navigation.prune 
     - navigation.tabs
@@ -81,19 +72,29 @@ extra:
       link: mailto:mingze.gao@mq.edu.au
 
 markdown_extensions:
+  - abbr
   - admonition
   - attr_list
+  - def_list
   - md_in_html
   - tables
   - toc:
       permalink: true
   - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.superfences
   - pymdownx.keys
   - pymdownx.highlight
   - pymdownx.inlinehilite
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.snippets:
+      base_path: [includes]
+      check_paths: true
+      auto_append:
+        - glossary-terms.md
 
 plugins:
   - search
@@ -169,4 +170,5 @@ nav:
     - Leverage Ratio: basel_3/lev.md
     - Liquidity Coverage Ratio (LCR): basel_3/lcr.md
     - Net Stable Funding Ratio (NSFR): basel_3/nsfr.md
-  - API Reference: reference/
+  - Glossary: glossary.md
+  - Python API: reference/
